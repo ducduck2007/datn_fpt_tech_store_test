@@ -1,21 +1,32 @@
 <template>
-  <div style="display: grid; gap: 16px;">
+  <div style="display: grid; gap: 16px">
     <!-- TOKEN -->
-    <div style="padding: 12px; border: 1px solid #ddd;">
-      <div style="display:flex; justify-content: space-between; align-items:center; gap: 8px;">
+    <div style="padding: 12px; border: 1px solid #ddd">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+        "
+      >
         <strong>Session / Token</strong>
-        <div style="display:flex; gap: 8px;">
-          <button @click="logout('Manual logout')" :disabled="!token">Logout</button>
+        <div style="display: flex; gap: 8px">
+          <button @click="logout('Manual logout')" :disabled="!token">
+            Logout
+          </button>
           <button @click="clearResult">Clear Response</button>
         </div>
       </div>
 
-      <div style="margin-top: 8px; word-break: break-all;">
+      <div style="margin-top: 8px; word-break: break-all">
         <span v-if="token">{{ token }}</span>
-        <span v-else style="color:#888;">(Chưa có token)</span>
+        <span v-else style="color: #888"
+          >(Chưa có token) (phần sửa ở máy windows nhánh qduc)</span
+        >
       </div>
 
-      <div style="margin-top: 10px; display:grid; gap: 6px;">
+      <div style="margin-top: 10px; display: grid; gap: 6px">
         <div>
           <strong>Idle logout:</strong>
           {{ IDLE_MINUTES }} phút không thao tác sẽ logout
@@ -23,20 +34,28 @@
         <div>
           <strong>Token expires at:</strong>
           <span v-if="tokenExpiresAt">{{ tokenExpiresAt }}</span>
-          <span v-else style="color:#888;">(n/a)</span>
+          <span v-else style="color: #888">(n/a)</span>
         </div>
       </div>
 
-      <div style="margin-top: 12px;">
+      <div style="margin-top: 12px">
         <strong>JWT payload (decode để xem nhanh)</strong>
-        <pre style="background:#f7f7f7; padding:12px; overflow:auto; max-height: 220px;">{{ pretty(jwtPayload) }}</pre>
+        <pre
+          style="
+            background: #f7f7f7;
+            padding: 12px;
+            overflow: auto;
+            max-height: 220px;
+          "
+          >{{ pretty(jwtPayload) }}</pre
+        >
       </div>
     </div>
 
     <!-- REGISTER -->
-    <div style="padding: 12px; border: 1px solid #ddd;">
+    <div style="padding: 12px; border: 1px solid #ddd">
       <h3>Register (backend fix role = CUSTOMER)</h3>
-      <div style="display:grid; gap: 8px;">
+      <div style="display: grid; gap: 8px">
         <input v-model="reg.username" placeholder="username" />
         <input v-model="reg.email" placeholder="email" />
         <input v-model="reg.password" type="password" placeholder="password" />
@@ -44,53 +63,96 @@
           {{ loading ? "Loading..." : "Register" }}
         </button>
       </div>
-      <div v-if="lastUser" style="margin-top: 10px;">
+      <div v-if="lastUser" style="margin-top: 10px">
         <strong>User trả về:</strong>
-        <pre style="background:#f7f7f7; padding:12px; overflow:auto; max-height: 180px;">{{ pretty(lastUser) }}</pre>
+        <pre
+          style="
+            background: #f7f7f7;
+            padding: 12px;
+            overflow: auto;
+            max-height: 180px;
+          "
+          >{{ pretty(lastUser) }}</pre
+        >
       </div>
     </div>
 
     <!-- LOGIN -->
-    <div style="padding: 12px; border: 1px solid #ddd;">
+    <div style="padding: 12px; border: 1px solid #ddd">
       <h3>Login</h3>
-      <div style="display:grid; gap: 8px;">
-        <input v-model="login.identifier" placeholder="identifier (username hoặc email)" />
-        <input v-model="login.password" type="password" placeholder="password" />
+      <div style="display: grid; gap: 8px">
+        <input
+          v-model="login.identifier"
+          placeholder="identifier (username hoặc email)"
+        />
+        <input
+          v-model="login.password"
+          type="password"
+          placeholder="password"
+        />
         <button :disabled="loading" @click="handleLogin">
           {{ loading ? "Loading..." : "Login" }}
         </button>
       </div>
-      <div v-if="lastUser" style="margin-top: 10px;">
+      <div v-if="lastUser" style="margin-top: 10px">
         <strong>User trả về:</strong>
-        <pre style="background:#f7f7f7; padding:12px; overflow:auto; max-height: 180px;">{{ pretty(lastUser) }}</pre>
+        <pre
+          style="
+            background: #f7f7f7;
+            padding: 12px;
+            overflow: auto;
+            max-height: 180px;
+          "
+          >{{ pretty(lastUser) }}</pre
+        >
       </div>
     </div>
 
     <!-- TEST PROTECTED -->
-    <div style="padding: 12px; border: 1px solid #ddd;">
+    <div style="padding: 12px; border: 1px solid #ddd">
       <h3>Test Protected API (GET)</h3>
-      <div style="display:grid; gap: 8px;">
-        <input v-model="protectedPath" placeholder="GET path (vd: /api/customer/profile)" />
+      <div style="display: grid; gap: 8px">
+        <input
+          v-model="protectedPath"
+          placeholder="GET path (vd: /api/customer/profile)"
+        />
         <button :disabled="loading" @click="handleTestProtected">
           {{ loading ? "Loading..." : "Send GET (Bearer token)" }}
         </button>
-        <small style="color:#666;">
+        <small style="color: #666">
           Nếu API trả 401, FE sẽ auto logout (xóa token).
         </small>
       </div>
     </div>
 
     <!-- RESPONSE -->
-    <div style="padding: 12px; border: 1px solid #ddd;">
+    <div style="padding: 12px; border: 1px solid #ddd">
       <h3>Response</h3>
-      <div v-if="error" style="color: #b00020; white-space: pre-wrap;">{{ error }}</div>
-      <pre style="background:#f7f7f7; padding:12px; overflow:auto; max-height: 360px;">{{ pretty(result) }}</pre>
+      <div v-if="error" style="color: #b00020; white-space: pre-wrap">
+        {{ error }}
+      </div>
+      <pre
+        style="
+          background: #f7f7f7;
+          padding: 12px;
+          overflow: auto;
+          max-height: 360px;
+        "
+        >{{ pretty(result) }}</pre
+      >
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+} from "vue";
 import { authApi } from "../api/auth.api";
 
 const loading = ref(false);
@@ -124,7 +186,11 @@ const tokenExpiresAt = computed(() => {
 
 // ====== helpers ======
 function pretty(obj) {
-  try { return JSON.stringify(obj, null, 2); } catch { return String(obj); }
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return String(obj);
+  }
 }
 
 function normalizeError(e) {
@@ -141,7 +207,10 @@ function decodeJwtPayload(jwt) {
     if (parts.length < 2) return null;
 
     const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      "="
+    );
     const json = atob(padded);
     return JSON.parse(json);
   } catch {
@@ -204,9 +273,19 @@ function scheduleTokenExpiryLogout() {
 }
 
 function attachActivityListeners() {
-  const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
-  events.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
-  return () => events.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
+  const events = [
+    "mousemove",
+    "mousedown",
+    "keydown",
+    "scroll",
+    "touchstart",
+    "click",
+  ];
+  events.forEach((ev) =>
+    window.addEventListener(ev, resetIdleTimer, { passive: true })
+  );
+  return () =>
+    events.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
 }
 
 // ====== API actions ======
