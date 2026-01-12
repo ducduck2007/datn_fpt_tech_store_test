@@ -22,7 +22,7 @@
       <div style="margin-top: 8px; word-break: break-all">
         <span v-if="token">{{ token }}</span>
         <span v-else style="color: #888"
-          >(Chưa có token) (phần sửa ở máy macos nhánh macos)</span
+          >(Chưa có token) (phần sửa ở máy windows nhánh qduc)</span
         >
       </div>
 
