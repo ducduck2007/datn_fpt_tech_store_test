@@ -1,8 +1,8 @@
 package com.retailmanagement.service;
 
 
-import com.retailmanagement.Request.CustomerRequest;
-import com.retailmanagement.Response.CustomerResponse;
+import com.retailmanagement.dto.request.CustomerRequest;
+import com.retailmanagement.dto.response.CustomerResponse;
 import com.retailmanagement.entity.Customer;
 import com.retailmanagement.entity.CustomerType;
 import com.retailmanagement.entity.VipTier;

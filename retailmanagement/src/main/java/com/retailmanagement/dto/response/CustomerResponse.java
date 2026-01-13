@@ -1,4 +1,4 @@
-package com.retailmanagement.Response;
+package com.retailmanagement.dto.response;
 
 
 import com.retailmanagement.entity.*;

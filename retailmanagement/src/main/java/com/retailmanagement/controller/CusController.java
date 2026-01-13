@@ -1,12 +1,11 @@
 package com.retailmanagement.controller;
 
 
-import com.retailmanagement.Request.CustomerRequest;
-import com.retailmanagement.Response.CustomerResponse;
+import com.retailmanagement.dto.request.CustomerRequest;
+import com.retailmanagement.dto.response.CustomerResponse;
 import com.retailmanagement.entity.CustomerType;
 import com.retailmanagement.service.CustomerService;
 import jakarta.validation.Valid;
-import org.hibernate.annotations.Cache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
