@@ -1,4 +1,4 @@
-package com.retailmanagement.Request;
+package com.retailmanagement.dto.request;
 
 
 import com.retailmanagement.entity.CustomerType;
@@ -10,7 +10,6 @@ import lombok.Data;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
