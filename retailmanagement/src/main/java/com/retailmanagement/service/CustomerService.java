@@ -89,7 +89,38 @@ public class CustomerService {
        Customer customer = customRes.findById(id).orElseThrow();
        customer.setIsActive(false);
        customRes.save(customer);
-
     }
+    public CustomerResponse updateById(Integer id, CustomerRequest customerRequest) {
+        Customer customer = customRes.findById(id).orElseThrow(()->(new RuntimeException("Không tìm thấy Khách hàng với id: " + id)));
+        if(customerRequest.getFullName()!=null){
+            customer.setName(customerRequest.getFullName());
+        }
+        String oldemail = customer.getEmail();
+        if(customerRequest.getEmail()!=null && !customerRequest.getEmail().equals(oldemail)){
+            if(customRes.findByEmail(customerRequest.getEmail()).isPresent()){
+                    throw new RuntimeException("Email này đã tồn tại trong hệ thống");
+            }
+            customer.setEmail(customerRequest.getEmail());
+        }
+        String oldphone = customer.getPhone();
+        if(customerRequest.getPhone()!=null && !customerRequest.getPhone().equals(oldphone)){
+            if(customRes.findByPhone(customerRequest.getPhone()).isPresent()){
+                throw new RuntimeException("Số điện thoại này đã tồn tại trong hệ thống");
+            }
+            customer.setPhone(customerRequest.getPhone());
+        }
+        if(customerRequest.getBirthDate()!=null){
+            customer.setDateOfBirth(customerRequest.getBirthDate());
+        }
+        if (customerRequest.getAddress() != null) {
+            customer.setAddress(customerRequest.getAddress());
+        }
+
+        if (customerRequest.getNotes() != null) {
+            customer.setNotes(customerRequest.getNotes());
+        }
+        Customer update = customRes.save(customer);
+        return mapToResponse(update);
+        }
 }
 

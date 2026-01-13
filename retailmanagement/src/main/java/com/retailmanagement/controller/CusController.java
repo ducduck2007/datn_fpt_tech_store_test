@@ -38,5 +38,10 @@ public class CusController {
         cusservice.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<CustomerResponse> updateCustomer(@Valid @PathVariable int id, @RequestBody CustomerRequest cus) {
+        CustomerResponse up = cusservice.updateById(id, cus);
+        return ResponseEntity.ok().body(up) ;
+    }
 
 }
