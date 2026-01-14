@@ -8,11 +8,11 @@
         <version>4.0.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.example</groupId>
-    <artifactId>TH04243_FINAL</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>TH04243_FINAL</name>
-    <description>Demo project for Spring Boot</description>
+    <groupId>com.retailmanagement</groupId>
+    <artifactId>retail-management-api</artifactId>
+    <version>1.0.0</version>
+    <name>Retail Management API</name>
+    <description>Hệ thống quản lý bán hàng</description>
     <url/>
     <licenses>
         <license/>
