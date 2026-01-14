@@ -1,42 +1,433 @@
+// export-tree-with-code.js
+// Chạy:
+//   node export-tree-with-code.js
+//   node export-tree-with-code.js --module=6
+//   node export-tree-with-code.js --module=pricing --out=pricing.txt
+
 const fs = require("fs");
 const path = require("path");
+const readline = require("readline");
 
 const ROOT_DIR = "src/main/java/com/retailmanagement";
-const OUTPUT = "project-tree-with-code.txt";
+const DEFAULT_OUTPUT = "project-tree-with-code.txt";
+const IGNORE_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "target",
+  ".idea",
+  ".vscode",
+]);
 
-const IGNORE = ["node_modules", ".git", "target", ".idea"];
+const BASE_PACKAGE = "com.retailmanagement.";
 
-function walk(dir, prefix = "") {
-  let result = "";
-  const items = fs.readdirSync(dir);
+/**
+ * Preset theo đúng structure dự án bạn gửi.
+ * Mỗi module = seedFiles (đường dẫn tương đối dưới ROOT_DIR).
+ * Script sẽ:
+ * 1) Include seedFiles
+ * 2) Expand dependency bằng cách parse `import com.retailmanagement...`
+ */
+const MODULE_PRESETS = {
+  all: {
+    key: "1",
+    label: "All",
+    mode: "all",
+    seedFiles: [],
+  },
+  catalog: {
+    key: "2",
+    label: "Catalog / Product",
+    mode: "seed",
+    seedFiles: [
+      "controller/ProductController.java",
+      "controller/CategoryController.java",
+      "service/ProductService.java",
+      "repository/ProductRepository.java",
+      "repository/ProductVariantRepository.java",
+      "repository/CategoryRepository.java",
+      "repository/ProductCategoryRepository.java",
+      // DTO core catalog
+      "dto/request/ProductRequest.java",
+      "dto/response/ProductResponse.java",
+      // Entities core catalog
+      "entity/Product.java",
+      "entity/ProductVariant.java",
+      "entity/Category.java",
+      "entity/ProductCategory.java",
+      "entity/ProductCategoryId.java",
+      "entity/Image.java",
+      "repository/ImageRepository.java",
+      "entity/Tag.java",
+      "entity/ProductTag.java",
+      "entity/ProductTagId.java",
+    ],
+  },
+  sales: {
+    key: "3",
+    label: "Sales / Order & Returns",
+    mode: "seed",
+    seedFiles: [
+      "controller/OrderController.java",
+      "service/OrderService.java",
+      "service/OrderQueryService.java",
+      "repository/OrderRepository.java",
+      "repository/OrderItemRepository.java",
+      "dto/request/CreateOrderRequest.java",
+      "dto/request/CreateOrderItemRequest.java",
+      "dto/response/CreateOrderResponse.java",
+      "dto/response/OrderListResponse.java",
+      "entity/Order.java",
+      "entity/OrderItem.java",
+      "entity/Payment.java",
+      "entity/Return.java",
+      "entity/StockTransaction.java",
+      "repository/StockTransactionRepository.java",
+    ],
+  },
+  customer: {
+    key: "4",
+    label: "Customer & Loyalty",
+    mode: "seed",
+    seedFiles: [
+      "controller/CusController.java",
+      "service/CustomerService.java",
+      "dto/request/CustomerRequest.java",
+      "dto/response/CustomerResponse.java",
+      "entity/Customer.java",
+      "entity/CustomerType.java",
+      "entity/Customergroup.java",
+      "entity/VipTier.java",
+    ],
+  },
+  user: {
+    key: "5",
+    label: "User & Role / Audit",
+    mode: "seed",
+    seedFiles: [
+      "controller/AuthController.java",
+      "controller/UserController.java",
+      "service/AuthService.java",
+      "service/UserService.java",
+      "security/CustomUserDetails.java",
+      "security/CustomUserDetailsService.java",
+      "security/JwtAuthenticationFilter.java",
+      "security/JwtService.java",
+      "config/SecurityConfig.java",
+      "config/JwtProperties.java",
+      "dto/request/LoginRequest.java",
+      "dto/request/RegisterRequest.java",
+      "dto/request/CreateUserRequest.java",
+      "dto/request/UpdateUserRequest.java",
+      "dto/response/AuthResponse.java",
+      "dto/response/UserResponse.java",
+      "entity/User.java",
+      "entity/Role.java",
+      "repository/UserRepository.java",
+    ],
+  },
+  pricing: {
+    key: "6",
+    label: "Pricing & Promotion",
+    mode: "seed",
+    seedFiles: [
+      // controllers
+      "controller/PriceController.java",
+      "controller/PromotionController.java",
 
-  items.forEach((item, index) => {
-    if (IGNORE.includes(item)) return;
+      // services
+      "service/PricingService.java",
+      "service/PromotionService.java",
 
-    const fullPath = path.join(dir, item);
-    const isLast = index === items.length - 1;
-    const pointer = isLast ? "└── " : "├── ";
+      // repositories
+      "repository/PriceHistoryRepository.java",
+      "repository/PromotionRepository.java",
 
-    result += `${prefix}${pointer}${item}\n`;
+      // dto
+      "dto/request/UpsertPriceRequest.java",
+      "dto/request/PromotionRequest.java",
+      "dto/response/VariantPriceResponse.java",
 
-    if (fs.statSync(fullPath).isDirectory()) {
-      result += walk(fullPath, prefix + (isLast ? "    " : "│   "));
-    } else {
-      const content = fs.readFileSync(fullPath, "utf8");
-      result += `${prefix}${isLast ? "    " : "│   "}---- CODE ----\n`;
-      result += content
-        .split("\n")
-        .map(line => `${prefix}${isLast ? "    " : "│   "}  ${line}`)
-        .join("\n");
-      result += `\n${prefix}${isLast ? "    " : "│   "}---- END ----\n`;
-    }
-  });
+      // entities
+      "entity/PriceHistory.java",
+      "entity/Promotion.java",
+      // thường pricing/promotion sẽ đụng tới product variant/product
+      "entity/ProductVariant.java",
+      "entity/Product.java",
+      "repository/ProductVariantRepository.java",
+      "repository/ProductRepository.java",
+    ],
+  },
+};
 
-  return result;
+// -------------------- utils --------------------
+function exists(p) {
+  try {
+    fs.accessSync(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function normalizeAbs(p) {
+  return path.normalize(path.resolve(p));
+}
+function isIgnoredDir(name) {
+  return IGNORE_DIRS.has(name);
+}
+function isJavaFile(p) {
+  return p.endsWith(".java");
+}
+function readTextSafe(p) {
+  try {
+    return fs.readFileSync(p, "utf8");
+  } catch {
+    return "";
+  }
 }
 
-const output = walk(ROOT_DIR);
-fs.writeFileSync(OUTPUT, output, "utf8");
-console.log("Exported to", OUTPUT);
+function listAllFilesRec(dir) {
+  let out = [];
+  const items = fs.readdirSync(dir, { withFileTypes: true });
+  for (const it of items) {
+    const full = path.join(dir, it.name);
+    if (it.isDirectory()) {
+      if (isIgnoredDir(it.name)) continue;
+      out = out.concat(listAllFilesRec(full));
+    } else {
+      out.push(full);
+    }
+  }
+  return out;
+}
 
-// lệnh chạy: node export-tree-with-code.js
+function parseInternalImports(javaContent) {
+  const imports = new Set();
+  const re = /^\s*import\s+(?:static\s+)?(com\.retailmanagement\.[\w.]*\*?);/gm;
+  let m;
+  while ((m = re.exec(javaContent)) !== null) imports.add(m[1]);
+  return [...imports];
+}
+
+function packageToJavaPath(importName) {
+  if (!importName.startsWith(BASE_PACKAGE)) return null;
+  const rel = importName.replace(BASE_PACKAGE, "").replace(/\./g, path.sep);
+  return path.join(ROOT_DIR, rel) + ".java";
+}
+
+function wildcardToDir(importName) {
+  if (!importName.endsWith(".*")) return null;
+  if (!importName.startsWith(BASE_PACKAGE)) return null;
+  const rel = importName
+    .replace(BASE_PACKAGE, "")
+    .replace(/\.\*$/, "")
+    .replace(/\./g, path.sep);
+  return path.join(ROOT_DIR, rel);
+}
+
+function isAncestorDir(dirAbs, fileAbs) {
+  const d = dirAbs.endsWith(path.sep) ? dirAbs : dirAbs + path.sep;
+  return fileAbs.startsWith(d);
+}
+
+// -------------------- build included set --------------------
+function buildIncludedSet(preset) {
+  const rootAbs = normalizeAbs(ROOT_DIR);
+  const allFilesAbs = listAllFilesRec(ROOT_DIR).map(normalizeAbs);
+  const allJavaAbs = allFilesAbs.filter(isJavaFile);
+
+  const included = new Set();
+
+  if (preset.mode === "all") {
+    for (const f of allFilesAbs) included.add(f);
+    return { included, rootAbs, allFilesAbs, allJavaAbs };
+  }
+
+  // seed files
+  const queue = [];
+  for (const rel of preset.seedFiles) {
+    const abs = normalizeAbs(path.join(ROOT_DIR, rel));
+    if (exists(abs)) {
+      included.add(abs);
+      if (isJavaFile(abs)) queue.push(abs);
+    }
+  }
+
+  // dependency expand via import
+  while (queue.length) {
+    const fileAbs = queue.pop();
+    const content = readTextSafe(fileAbs);
+    if (!content) continue;
+
+    const imports = parseInternalImports(content);
+
+    for (const imp of imports) {
+      if (imp.endsWith(".*")) {
+        const dir = wildcardToDir(imp);
+        if (!dir) continue;
+        const dirAbs = normalizeAbs(dir);
+        if (!exists(dirAbs)) continue;
+
+        for (const jf of allJavaAbs) {
+          if (isAncestorDir(dirAbs, jf) && !included.has(jf)) {
+            included.add(jf);
+            queue.push(jf);
+          }
+        }
+      } else {
+        const javaPath = packageToJavaPath(imp);
+        if (!javaPath) continue;
+        const depAbs = normalizeAbs(javaPath);
+        if (exists(depAbs) && !included.has(depAbs)) {
+          included.add(depAbs);
+          queue.push(depAbs);
+        }
+      }
+    }
+  }
+
+  return { included, rootAbs, allFilesAbs, allJavaAbs };
+}
+
+// -------------------- tree writer (only included) --------------------
+function writeTreeWithCode(rootAbs, includedSet) {
+  function dirHasIncluded(dirAbs) {
+    const d = dirAbs.endsWith(path.sep) ? dirAbs : dirAbs + path.sep;
+    for (const f of includedSet) if (f.startsWith(d)) return true;
+    return false;
+  }
+
+  function walk(dirAbs, prefix = "") {
+    let items = fs
+      .readdirSync(dirAbs, { withFileTypes: true })
+      .filter((it) => {
+        const fullAbs = normalizeAbs(path.join(dirAbs, it.name));
+        if (it.isDirectory()) {
+          if (isIgnoredDir(it.name)) return false;
+          return dirHasIncluded(fullAbs);
+        }
+        return includedSet.has(fullAbs);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    let result = "";
+    items.forEach((it, idx) => {
+      const isLast = idx === items.length - 1;
+      const pointer = isLast ? "└── " : "├── ";
+      const fullAbs = normalizeAbs(path.join(dirAbs, it.name));
+      result += `${prefix}${pointer}${it.name}\n`;
+
+      const childPrefix = prefix + (isLast ? "    " : "│   ");
+
+      if (it.isDirectory()) {
+        result += walk(fullAbs, childPrefix);
+      } else {
+        const content = readTextSafe(fullAbs);
+        result += `${childPrefix}---- CODE ----\n`;
+        result += content
+          .split("\n")
+          .map((line) => `${childPrefix}  ${line}`)
+          .join("\n");
+        result += `\n${childPrefix}---- END ----\n`;
+      }
+    });
+    return result;
+  }
+
+  return walk(rootAbs);
+}
+
+// -------------------- CLI/menu --------------------
+function parseArgs(argv) {
+  const args = {};
+  for (const a of argv.slice(2)) {
+    if (a.startsWith("--module=")) args.module = a.split("=")[1];
+    if (a.startsWith("--out=")) args.out = a.split("=")[1];
+    if (a === "--help" || a === "-h") args.help = true;
+  }
+  return args;
+}
+
+function resolveModule(input) {
+  if (!input) return null;
+  const normalized = String(input).trim().toLowerCase();
+
+  // by number
+  for (const k of Object.keys(MODULE_PRESETS)) {
+    if (MODULE_PRESETS[k].key === normalized) return k;
+  }
+  // by key
+  if (MODULE_PRESETS[normalized]) return normalized;
+
+  return null;
+}
+
+function printHelp() {
+  console.log(`
+Usage:
+  node export-tree-with-code.js
+  node export-tree-with-code.js --module=6
+  node export-tree-with-code.js --module=pricing --out=pricing.txt
+
+Modules:
+  1. All
+  2. Catalog / Product
+  3. Sales / Order & Returns
+  4. Customer & Loyalty
+  5. User & Role / Audit
+  6. Pricing & Promotion
+`);
+}
+
+async function askMenu() {
+  console.log("Chọn module để export:");
+  const entries = Object.entries(MODULE_PRESETS).sort(
+    (a, b) => Number(a[1].key) - Number(b[1].key)
+  );
+  for (const [, v] of entries) console.log(`${v.key}. ${v.label}`);
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const answer = await new Promise((res) =>
+    rl.question("Nhập lựa chọn (1-6): ", res)
+  );
+  rl.close();
+  return answer;
+}
+
+// -------------------- main --------------------
+(async function main() {
+  const args = parseArgs(process.argv);
+  if (args.help) {
+    printHelp();
+    process.exit(0);
+  }
+
+  if (!exists(ROOT_DIR)) {
+    console.error(`ROOT_DIR not found: ${ROOT_DIR}`);
+    process.exit(1);
+  }
+
+  let moduleKey = resolveModule(args.module);
+  if (!moduleKey) {
+    const ans = await askMenu();
+    moduleKey = resolveModule(ans) || "all";
+  }
+
+  const preset = MODULE_PRESETS[moduleKey] || MODULE_PRESETS.all;
+
+  const outFile = args.out
+    ? args.out
+    : moduleKey === "all"
+    ? DEFAULT_OUTPUT
+    : `project-tree-with-code.${moduleKey}.txt`;
+
+  const { included, rootAbs } = buildIncludedSet(preset);
+  const tree = writeTreeWithCode(rootAbs, included);
+
+  fs.writeFileSync(outFile, tree, "utf8");
+  console.log(`Exported module: ${preset.label}`);
+  console.log(`Files included: ${included.size}`);
+  console.log("Output:", outFile);
+})();

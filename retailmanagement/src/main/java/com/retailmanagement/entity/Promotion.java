@@ -1,12 +1,19 @@
 package com.retailmanagement.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "promotions")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Promotion {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -35,9 +42,11 @@ public class Promotion {
     @Column(name = "rules_json", columnDefinition = "NVARCHAR(MAX)")
     private String rulesJson;
 
+    @Builder.Default
     @Column(nullable = false)
     private Integer priority = 0;
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean stackable = false;
 
@@ -47,6 +56,7 @@ public class Promotion {
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -55,38 +65,4 @@ public class Promotion {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    // getters/setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getDiscountType() { return discountType; }
-    public void setDiscountType(String discountType) { this.discountType = discountType; }
-    public BigDecimal getDiscountValue() { return discountValue; }
-    public void setDiscountValue(BigDecimal discountValue) { this.discountValue = discountValue; }
-    public BigDecimal getMinOrderAmount() { return minOrderAmount; }
-    public void setMinOrderAmount(BigDecimal minOrderAmount) { this.minOrderAmount = minOrderAmount; }
-    public String getApplicabilityJson() { return applicabilityJson; }
-    public void setApplicabilityJson(String applicabilityJson) { this.applicabilityJson = applicabilityJson; }
-    public String getRulesJson() { return rulesJson; }
-    public void setRulesJson(String rulesJson) { this.rulesJson = rulesJson; }
-    public Integer getPriority() { return priority; }
-    public void setPriority(Integer priority) { this.priority = priority; }
-    public Boolean getStackable() { return stackable; }
-    public void setStackable(Boolean stackable) { this.stackable = stackable; }
-    public LocalDateTime getStartDate() { return startDate; }
-    public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
-    public LocalDateTime getEndDate() { return endDate; }
-    public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean active) { isActive = active; }
-    public Integer getCreatedBy() { return createdBy; }
-    public void setCreatedBy(Integer createdBy) { this.createdBy = createdBy; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
