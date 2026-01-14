@@ -8,7 +8,7 @@ public class RetailmanagementApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(RetailmanagementApplication.class, args);
-        System.out.println("running");
+        System.out.println("running...");
     }
 
 }

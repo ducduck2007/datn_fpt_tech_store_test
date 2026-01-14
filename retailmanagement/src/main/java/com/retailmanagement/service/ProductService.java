@@ -1,11 +1,17 @@
 package com.retailmanagement.service;
 
-
 import com.retailmanagement.dto.request.ProductRequest;
 import com.retailmanagement.dto.response.ProductResponse;
-import com.retailmanagement.entity.*;
-import com.retailmanagement.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.retailmanagement.entity.Category;
+import com.retailmanagement.entity.Image;
+import com.retailmanagement.entity.Product;
+import com.retailmanagement.entity.ProductCategory;
+import com.retailmanagement.entity.ProductCategoryId;
+import com.retailmanagement.repository.CategoryRepository;
+import com.retailmanagement.repository.ImageRepository;
+import com.retailmanagement.repository.ProductCategoryRepository;
+import com.retailmanagement.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,20 +21,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ProductService {
 
-    @Autowired private ProductRepository productRepository;
-    @Autowired private CategoryRepository categoryRepository;
-    @Autowired private ImageRepository imageRepository;
-    @Autowired private ProductCategoryRepository productCategoryRepository;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final ImageRepository imageRepository;
+    private final ProductCategoryRepository productCategoryRepository;
 
-    private final String UPLOAD_DIR = "uploads/";
+    private static final String UPLOAD_DIR = "uploads";
 
     @Transactional
     public Product createProduct(ProductRequest request) throws IOException {
@@ -37,8 +46,6 @@ public class ProductService {
         product.setSku(request.getSku());
         product.setDescription(request.getDescription());
         product.setIsVisible(request.getIsVisible() != null ? request.getIsVisible() : true);
-        product.setCreatedAt(LocalDateTime.now());
-        product.setUpdatedAt(LocalDateTime.now());
 
         Product savedProduct = productRepository.save(product);
 
@@ -47,14 +54,7 @@ public class ProductService {
                     .orElseThrow(() -> new RuntimeException("Category not found"));
 
             ProductCategory pc = new ProductCategory();
-
-            ProductCategoryId pcId = new ProductCategoryId();
-            pcId.setProductId(savedProduct.getId());
-            pcId.setCategoryId(category.getId());
-            pcId.setProductId(savedProduct.getId());
-            pcId.setCategoryId(category.getId());
-
-            pc.setId(pcId);
+            pc.setId(new ProductCategoryId(savedProduct.getId(), category.getId())); // ✅ bỏ trùng set
             pc.setCategory(category);
             pc.setIsPrimary(true);
             pc.setCreatedAt(Instant.now());
@@ -62,8 +62,9 @@ public class ProductService {
             productCategoryRepository.save(pc);
         }
 
-        if (request.getImageFile() != null && !request.getImageFile().isEmpty()) {
-            String fileName = saveFileToDisk(request.getImageFile());
+        MultipartFile imgFile = request.getImageFile();
+        if (imgFile != null && !imgFile.isEmpty()) {
+            String fileName = saveFileToDisk(imgFile);
 
             Image image = new Image();
             image.setProduct(savedProduct);
@@ -78,43 +79,49 @@ public class ProductService {
         return savedProduct;
     }
 
-    // 2. Lấy danh sách sản phẩm (Sửa lại logic Sort để fix lỗi Native Query)
     public Page<ProductResponse> getProducts(int page, Integer categoryId) {
-        Page<Product> productPage;
+        Page<Product> productPage = (categoryId != null)
+                ? productRepository.findByCategoryId(categoryId, pageRequestForNative(page))
+                : productRepository.findAll(pageRequestForJpa(page));
 
-        if (categoryId != null) {
-            // TRƯỜNG HỢP 1: Lọc theo Category -> Dùng Native Query
-            // Phải dùng tên cột trong Database ("created_at") để sắp xếp
-            Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
-            productPage = productRepository.findByCategoryId(categoryId, pageable);
-        } else {
-            // TRƯỜNG HỢP 2: Lấy tất cả -> Dùng JPA mặc định
-            // Dùng tên biến trong Entity ("createdAt") để sắp xếp
-            Pageable pageable = PageRequest.of(page, 20, Sort.by("createdAt").descending());
-            productPage = productRepository.findAll(pageable);
-        }
+        return productPage.map(this::toResponse);
+    }
 
-        // Convert Entity -> ResponseDTO (Giữ nguyên đoạn này)
-        return productPage.map(product -> {
-            ProductResponse dto = new ProductResponse();
-            dto.setId(product.getId());
-            dto.setName(product.getName());
-            dto.setSku(product.getSku());
-            dto.setDescription(product.getDescription());
-            dto.setIsVisible(product.getIsVisible());
-            dto.setCreatedAt(product.getCreatedAt());
+    private Pageable pageRequestForNative(int page) {
+        // Native query -> sort theo tên cột DB
+        return PageRequest.of(page, 20, Sort.by("created_at").descending());
+    }
 
-            imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
-                    .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+    private Pageable pageRequestForJpa(int page) {
+        // JPA -> sort theo field entity
+        return PageRequest.of(page, 20, Sort.by("createdAt").descending());
+    }
 
-            return dto;
-        });
+    private ProductResponse toResponse(Product product) {
+        ProductResponse dto = new ProductResponse();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setSku(product.getSku());
+        dto.setDescription(product.getDescription());
+        dto.setIsVisible(product.getIsVisible());
+        dto.setCreatedAt(product.getCreatedAt());
+
+        imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
+                .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+
+        return dto;
     }
 
     private String saveFileToDisk(MultipartFile file) throws IOException {
         Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String original = file.getOriginalFilename();
+        String safeOriginal = (original == null) ? "file" : original.replaceAll("[\\\\/]+", "_");
+        String fileName = UUID.randomUUID() + "_" + safeOriginal;
+
         Files.copy(file.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
         return fileName;
     }

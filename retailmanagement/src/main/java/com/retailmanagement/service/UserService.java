@@ -7,8 +7,6 @@ import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +20,11 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public UserResponse createUser(CreateUserRequest request){
-
+    public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username đã tồn tại trong hệ thống");
         }
-        if(userRepository.existsByEmail(request.getEmail())){
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email đã tồn tại trong hệ thống");
         }
 
@@ -35,53 +32,25 @@ public class UserService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole()) // Role có thể để trống để trở thành CUSTOMER
+                .role(request.getRole())
                 .build();
 
-        //Lưu User lúc Create để hiện thị kiểm tra data lúc Create
-        User savedUser = userRepository.save(user);
-
-        //Trả User về dạng response để hiện thị
-        return UserResponse.builder()
-                .id(savedUser.getId())
-                .username(savedUser.getUsername())
-                .email(savedUser.getEmail())
-                .role(savedUser.getRole())
-                .isActive(savedUser.getIsActive())
-                .createdAt(savedUser.getCreatedAt())
-                .updatedAt(savedUser.getUpdatedAt())
-                .build();
+        return toResponse(userRepository.save(user));
     }
 
     public List<UserResponse> findAll() {
-        //Dùng Builder ở trong UserResponse để lấy danh sách User
-        return userRepository.findAll()
-                .stream()
-                .map(user -> UserResponse.builder()
-                        .id(user.getId())
-                        .username(user.getUsername())
-                        .email(user.getEmail())
-                        .role(user.getRole())
-                        .isActive(user.getIsActive())
-                        .createdAt(user.getCreatedAt())
-                        .updatedAt(user.getUpdatedAt())
-                        .build()
-                )
-                .toList();
+        return userRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-
-
-    public UserResponse updateUser(UpdateUserRequest request, Integer id){
-
-        //Tìm user bằng id và trả về lỗi nếu không tìm thấy
+    @Transactional
+    public UserResponse updateUser(UpdateUserRequest request, Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         if (userRepository.existsByUsernameAndIdNot(request.getUsername(), id)) {
             throw new RuntimeException("Username đã tồn tại trong hệ thống");
         }
-        if(userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
+        if (userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
             throw new RuntimeException("Email đã tồn tại trong hệ thống");
         }
 
@@ -89,41 +58,29 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
 
-        //Lưu User được Update để hiện thị kiểm tra data lúc Update
-        User savedUser = userRepository.save(user);
-
-        //Trả User về dạng response để hiện thị
-        return UserResponse.builder()
-                .id(savedUser.getId())
-                .username(savedUser.getUsername())
-                .email(savedUser.getEmail())
-                .role(savedUser.getRole())
-                .isActive(savedUser.getIsActive())
-                .createdAt(savedUser.getCreatedAt())
-                .updatedAt(savedUser.getUpdatedAt())
-                .build();
+        return toResponse(userRepository.save(user));
     }
 
+    @Transactional
     public UserResponse deleteUser(Integer id) {
-
-        //Tìm user bằng id và trả về lỗi nếu không tìm thấy
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         user.setIsActive(false);
+        userRepository.save(user);
 
-        //Lưu User được Delete để hiện thị kiểm tra data lúc Delete
-        User savedUser = userRepository.save(user);
+        return toResponse(user);
+    }
 
-        //Trả User về dạng response để hiện thị
+    private UserResponse toResponse(User user) {
         return UserResponse.builder()
-                .id(savedUser.getId())
-                .username(savedUser.getUsername())
-                .email(savedUser.getEmail())
-                .role(savedUser.getRole())
-                .isActive(savedUser.getIsActive())
-                .createdAt(savedUser.getCreatedAt())
-                .updatedAt(savedUser.getUpdatedAt())
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .isActive(user.getIsActive())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 }
