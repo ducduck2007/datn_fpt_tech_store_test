@@ -1,11 +1,17 @@
 package com.retailmanagement.service;
 
-
 import com.retailmanagement.dto.request.ProductRequest;
 import com.retailmanagement.dto.response.ProductResponse;
-import com.retailmanagement.entity.*;
-import com.retailmanagement.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.retailmanagement.entity.Category;
+import com.retailmanagement.entity.Image;
+import com.retailmanagement.entity.Product;
+import com.retailmanagement.entity.ProductCategory;
+import com.retailmanagement.entity.ProductCategoryId;
+import com.retailmanagement.repository.CategoryRepository;
+import com.retailmanagement.repository.ImageRepository;
+import com.retailmanagement.repository.ProductCategoryRepository;
+import com.retailmanagement.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,20 +21,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ProductService {
 
-    @Autowired private ProductRepository productRepository;
-    @Autowired private CategoryRepository categoryRepository;
-    @Autowired private ImageRepository imageRepository;
-    @Autowired private ProductCategoryRepository productCategoryRepository;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final ImageRepository imageRepository;
+    private final ProductCategoryRepository productCategoryRepository;
 
-    private final String UPLOAD_DIR = "uploads/";
+    private static final String UPLOAD_DIR = "uploads";
 
     @Transactional
     public Product createProduct(ProductRequest request) throws IOException {
@@ -37,8 +46,6 @@ public class ProductService {
         product.setSku(request.getSku());
         product.setDescription(request.getDescription());
         product.setIsVisible(request.getIsVisible() != null ? request.getIsVisible() : true);
-        product.setCreatedAt(LocalDateTime.now());
-        product.setUpdatedAt(LocalDateTime.now());
 
         Product savedProduct = productRepository.save(product);
 
@@ -47,14 +54,7 @@ public class ProductService {
                     .orElseThrow(() -> new RuntimeException("Category not found"));
 
             ProductCategory pc = new ProductCategory();
-
-            ProductCategoryId pcId = new ProductCategoryId();
-            pcId.setProductId(savedProduct.getId());
-            pcId.setCategoryId(category.getId());
-            pcId.setProductId(savedProduct.getId());
-            pcId.setCategoryId(category.getId());
-
-            pc.setId(pcId);
+            pc.setId(new ProductCategoryId(savedProduct.getId(), category.getId())); // ✅ bỏ trùng set
             pc.setCategory(category);
             pc.setIsPrimary(true);
             pc.setCreatedAt(Instant.now());
@@ -62,8 +62,9 @@ public class ProductService {
             productCategoryRepository.save(pc);
         }
 
-        if (request.getImageFile() != null && !request.getImageFile().isEmpty()) {
-            String fileName = saveFileToDisk(request.getImageFile());
+        MultipartFile imgFile = request.getImageFile();
+        if (imgFile != null && !imgFile.isEmpty()) {
+            String fileName = saveFileToDisk(imgFile);
 
             Image image = new Image();
             image.setProduct(savedProduct);
@@ -107,8 +108,14 @@ public class ProductService {
 
     private String saveFileToDisk(MultipartFile file) throws IOException {
         Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String original = file.getOriginalFilename();
+        String safeOriginal = (original == null) ? "file" : original.replaceAll("[\\\\/]+", "_");
+        String fileName = UUID.randomUUID() + "_" + safeOriginal;
+
         Files.copy(file.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
         return fileName;
     }

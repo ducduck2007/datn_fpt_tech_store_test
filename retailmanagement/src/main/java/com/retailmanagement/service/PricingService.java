@@ -5,12 +5,15 @@ import com.retailmanagement.dto.response.VariantPriceResponse;
 import com.retailmanagement.entity.PriceHistory;
 import com.retailmanagement.entity.ProductVariant;
 import com.retailmanagement.entity.Promotion;
+import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.PriceHistoryRepository;
 import com.retailmanagement.repository.ProductVariantRepository;
+import com.retailmanagement.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -22,15 +25,17 @@ public class PricingService {
     private final PriceHistoryRepository priceHistoryRepo;
     private final SettingService settingService;
     private final PromotionService promotionService;
+    private final UserRepository userRepository;
 
     public PricingService(ProductVariantRepository variantRepo,
                           PriceHistoryRepository priceHistoryRepo,
                           SettingService settingService,
-                          PromotionService promotionService) {
+                          PromotionService promotionService, UserRepository userRepository) {
         this.variantRepo = variantRepo;
         this.priceHistoryRepo = priceHistoryRepo;
         this.settingService = settingService;
         this.promotionService = promotionService;
+        this.userRepository = userRepository;
     }
 
     // 1) Tạo/đổi giá (và tạo history)
@@ -38,6 +43,9 @@ public class PricingService {
     public PriceHistory setVariantPrice(Integer variantId, UpsertPriceRequest req, Integer userId) {
         ProductVariant v = variantRepo.findById(variantId)
                 .orElseThrow(() -> new NoSuchElementException("Variant not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (req.getPrice() == null || req.getPrice().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("price phải >= 0");
@@ -47,7 +55,7 @@ public class PricingService {
                 ? settingService.getDefaultCurrency()
                 : req.getCurrencyCode().trim().toUpperCase();
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         // close current history
         priceHistoryRepo.findFirstByVariant_IdAndEffectiveToIsNullOrderByEffectiveFromDesc(variantId)
@@ -65,7 +73,7 @@ public class PricingService {
         ph.setReason(req.getReason() == null ? "MANUAL" : req.getReason());
         ph.setEffectiveFrom(now);
         ph.setEffectiveTo(null);
-        ph.setCreatedBy(userId);
+        ph.setCreatedBy(user);
         ph.setCreatedAt(now);
         priceHistoryRepo.save(ph);
 
@@ -134,7 +142,7 @@ public class PricingService {
         v.setCurrencyCode(currency);
         v.setPrice(req.getPrice());
         v.setCostPrice(req.getCostPrice());
-        v.setUpdatedAt(LocalDateTime.now());
+        v.setUpdatedAt(Instant.now());
         variantRepo.save(v);
 
         return ph;
@@ -168,7 +176,7 @@ public class PricingService {
         v.setCurrencyCode(latest.getCurrencyCode());
         v.setPrice(latest.getPrice());
         v.setCostPrice(latest.getCostPrice());
-        v.setUpdatedAt(LocalDateTime.now());
+        v.setUpdatedAt(Instant.now());
         variantRepo.save(v);
     }
 
