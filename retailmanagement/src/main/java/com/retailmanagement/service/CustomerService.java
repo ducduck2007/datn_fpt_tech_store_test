@@ -114,8 +114,7 @@ public class CustomerService {
         }
         if (customerRequest.getAddress() != null) {
             customer.setAddress(customerRequest.getAddress());
-        }
-
+        }   
         if (customerRequest.getNotes() != null) {
             customer.setNotes(customerRequest.getNotes());
         }
