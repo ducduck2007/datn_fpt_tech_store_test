@@ -66,7 +66,6 @@
 │   │     import com.retailmanagement.security.CustomUserDetailsService;
 │   │     import com.retailmanagement.security.JwtAuthenticationFilter;
 │   │     import lombok.RequiredArgsConstructor;
-│   │     import org.springframework.boot.context.properties.EnableConfigurationProperties;
 │   │     import org.springframework.context.annotation.Bean;
 │   │     import org.springframework.context.annotation.Configuration;
 │   │     import org.springframework.security.authentication.AuthenticationManager;
@@ -81,7 +80,6 @@
 │   │     
 │   │     @Configuration
 │   │     @RequiredArgsConstructor
-│   │     @EnableConfigurationProperties(JwtProperties.class)
 │   │     public class SecurityConfig {
 │   │     
 │   │         private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -92,10 +90,14 @@
 │   │             return new BCryptPasswordEncoder();
 │   │         }
 │   │     
+│   │         /**
+│   │          * ✅ Fix cho lỗi của bạn:
+│   │          * - DaoAuthenticationProvider bắt buộc truyền UserDetailsService trong constructor
+│   │          * - Không dùng setUserDetailsService() (vì version bạn đang dùng không có)
+│   │          */
 │   │         @Bean
 │   │         public DaoAuthenticationProvider authenticationProvider(PasswordEncoder encoder) {
-│   │             DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-│   │             provider.setUserDetailsService(userDetailsService);
+│   │             DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
 │   │             provider.setPasswordEncoder(encoder);
 │   │             return provider;
 │   │         }
@@ -109,7 +111,7 @@
 │   │         public SecurityFilterChain filterChain(HttpSecurity http, DaoAuthenticationProvider provider) throws Exception {
 │   │             http
 │   │                     .csrf(csrf -> csrf.disable())
-│   │                     .cors(cors -> {}) // dùng CorsConfig bạn đã config
+│   │                     .cors(cors -> {})
 │   │                     .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 │   │                     .authenticationProvider(provider)
 │   │                     .authorizeHttpRequests(auth -> auth
@@ -118,12 +120,13 @@
 │   │                                     "/swagger-ui.html",
 │   │                                     "/swagger-ui/**",
 │   │                                     "/api-docs/**",
+│   │                                     "/v3/api-docs/**",
 │   │                                     "/api/products/**",
 │   │                                     "/api/categories/**",
 │   │                                     "/uploads/**"
 │   │                             ).permitAll()
 │   │     
-│   │                             // RULE MẪU 4 ROLE
+│   │                             // ví dụ rule role (tuỳ bạn đang dùng ROLE_... hay không)
 │   │                             .requestMatchers("/api/admin/**").hasRole("ADMIN")
 │   │                             .requestMatchers("/api/sales/**").hasAnyRole("SALES", "ADMIN")
 │   │                             .requestMatchers("/api/inventory/**").hasAnyRole("INVENTORY", "ADMIN")
@@ -265,6 +268,57 @@
 │   │         }
 │   │     
 │   │     }
+│   │     
+│   │   ---- END ----
+│   ├── OrderController.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.controller;
+│   │     
+│   │     import com.retailmanagement.dto.request.CreateOrderRequest;
+│   │     import com.retailmanagement.dto.response.CreateOrderResponse;
+│   │     import com.retailmanagement.dto.response.OrderListResponse;
+│   │     import com.retailmanagement.security.CustomUserDetails;
+│   │     import com.retailmanagement.service.OrderQueryService;
+│   │     import com.retailmanagement.service.OrderService;
+│   │     import lombok.RequiredArgsConstructor;
+│   │     import org.springframework.http.ResponseEntity;
+│   │     import org.springframework.security.core.annotation.AuthenticationPrincipal;
+│   │     import org.springframework.web.bind.annotation.*;
+│   │     
+│   │     import java.util.List;
+│   │     
+│   │     @RestController
+│   │     @RequestMapping("/api/orders")
+│   │     @RequiredArgsConstructor
+│   │     public class OrderController {
+│   │     
+│   │         private final OrderService orderService;
+│   │         private final OrderQueryService orderQueryService;
+│   │     
+│   │         @PostMapping
+│   │         public ResponseEntity<CreateOrderResponse> createOrder(
+│   │                 @RequestBody CreateOrderRequest request,
+│   │                 @AuthenticationPrincipal CustomUserDetails user) {
+│   │     
+│   │             return ResponseEntity.ok(
+│   │                     orderService.createOrder(request, user.getUserId())
+│   │             );
+│   │         }
+│   │     
+│   │     
+│   │     
+│   │     
+│   │         @GetMapping("/new")
+│   │         public List<OrderListResponse> getNewOrders() {
+│   │             return orderQueryService.getNewOrders();
+│   │         }
+│   │     
+│   │         @GetMapping("/processing")
+│   │         public List<OrderListResponse> getProcessingOrders() {
+│   │             return orderQueryService.getProcessingOrders();
+│   │         }
+│   │     }
+│   │     
 │   │     
 │   │   ---- END ----
 │   ├── PriceController.java
@@ -515,6 +569,41 @@
 │       ---- END ----
 ├── dto
 │   ├── request
+│   │   ├── CreateOrderItemRequest.java
+│   │   │   ---- CODE ----
+│   │   │     package com.retailmanagement.dto.request;
+│   │   │     
+│   │   │     import lombok.Data;
+│   │   │     
+│   │   │     @Data
+│   │   │     public class CreateOrderItemRequest {
+│   │   │     
+│   │   │         private Integer variantId;
+│   │   │         private Integer quantity;
+│   │   │     }
+│   │   │     
+│   │   │   ---- END ----
+│   │   ├── CreateOrderRequest.java
+│   │   │   ---- CODE ----
+│   │   │     package com.retailmanagement.dto.request;
+│   │   │     
+│   │   │     import lombok.Data;
+│   │   │     
+│   │   │     import java.util.List;
+│   │   │     
+│   │   │     @Data
+│   │   │     public class CreateOrderRequest {
+│   │   │     
+│   │   │         private Integer customerId;
+│   │   │         private String paymentMethod; // CASH / BANK / COD
+│   │   │         private String channel;        // ONLINE / OFFLINE
+│   │   │         private String notes;
+│   │   │     
+│   │   │         private List<CreateOrderItemRequest> items;
+│   │   │     }
+│   │   │     
+│   │   │     
+│   │   │   ---- END ----
 │   │   ├── CreateUserRequest.java
 │   │   │   ---- CODE ----
 │   │   │     package com.retailmanagement.dto.request;
@@ -839,6 +928,62 @@
 │       │     }
 │       │     
 │       │   ---- END ----
+│       ├── CreateOrderResponse.java
+│       │   ---- CODE ----
+│       │     package com.retailmanagement.dto.response;
+│       │     
+│       │     import lombok.AllArgsConstructor;
+│       │     import lombok.Data;
+│       │     
+│       │     import java.math.BigDecimal;
+│       │     import java.time.Instant;
+│       │     import java.util.List;
+│       │     
+│       │     @Data
+│       │     @AllArgsConstructor
+│       │     public class CreateOrderResponse {
+│       │     
+│       │         private Long orderId;
+│       │         private String orderNumber;
+│       │         private String status;
+│       │         private String paymentStatus;
+│       │     
+│       │         // Customer (flatten)
+│       │         private Integer customerId;
+│       │         private String customerName;
+│       │     
+│       │         // Staff (flatten)
+│       │         private Integer staffId;
+│       │         private String staffUsername;
+│       │     
+│       │         // Amounts
+│       │         private BigDecimal subtotal;
+│       │         private BigDecimal discountTotal;
+│       │         private BigDecimal taxTotal;
+│       │         private BigDecimal shippingFee;
+│       │         private BigDecimal totalAmount;
+│       │     
+│       │         private Instant createdAt;
+│       │     
+│       │         // Items (list đơn giản)
+│       │         private List<Item> items;
+│       │     
+│       │         @Data
+│       │         @AllArgsConstructor
+│       │         public static class Item {
+│       │             private String productName;
+│       │             private String variantName;
+│       │             private String sku;
+│       │             private Integer quantity;
+│       │             private BigDecimal unitPrice;
+│       │             private BigDecimal discount;
+│       │             private BigDecimal lineTotal;
+│       │         }
+│       │     }
+│       │     
+│       │     
+│       │     
+│       │   ---- END ----
 │       ├── CustomerResponse.java
 │       │   ---- CODE ----
 │       │     package com.retailmanagement.dto.response;
@@ -885,6 +1030,36 @@
 │       │         private LocalDateTime createdAt;
 │       │         private LocalDateTime updatedAt;
 │       │     }
+│       │   ---- END ----
+│       ├── OrderListResponse.java
+│       │   ---- CODE ----
+│       │     package com.retailmanagement.dto.response;
+│       │     
+│       │     import lombok.AllArgsConstructor;
+│       │     import lombok.Data;
+│       │     
+│       │     import java.math.BigDecimal;
+│       │     import java.time.Instant;
+│       │     
+│       │     
+│       │     @Data
+│       │     @AllArgsConstructor
+│       │     public class OrderListResponse {
+│       │     
+│       │         private Long orderId;
+│       │         private String orderNumber;
+│       │     
+│       │         private String customerName;
+│       │         private String staffName;
+│       │     
+│       │         private BigDecimal totalAmount;
+│       │         private String status;
+│       │         private String paymentStatus;
+│       │     
+│       │         private Instant createdAt;
+│       │     }
+│       │     
+│       │     
 │       │   ---- END ----
 │       ├── ProductResponse.java
 │       │   ---- CODE ----
@@ -1291,72 +1466,378 @@
 │   │     
 │   │     }
 │   │   ---- END ----
+│   ├── Order.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.entity;
+│   │     
+│   │     import jakarta.persistence.*;
+│   │     import jakarta.validation.constraints.NotNull;
+│   │     import jakarta.validation.constraints.Size;
+│   │     import lombok.Getter;
+│   │     import lombok.Setter;
+│   │     import org.hibernate.annotations.ColumnDefault;
+│   │     import org.hibernate.annotations.Nationalized;
+│   │     import org.hibernate.annotations.OnDelete;
+│   │     import org.hibernate.annotations.OnDeleteAction;
+│   │     
+│   │     import java.math.BigDecimal;
+│   │     import java.time.Instant;
+│   │     import java.util.LinkedHashSet;
+│   │     import java.util.Set;
+│   │     
+│   │     @Getter
+│   │     @Setter
+│   │     @Entity
+│   │     @Table(name = "orders")
+│   │     public class Order {
+│   │         @Id
+│   │         @GeneratedValue(strategy = GenerationType.IDENTITY)
+│   │         @Column(name = "id", nullable = false)
+│   │         private Long id;
+│   │     
+│   │         @Size(max = 40)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @ColumnDefault("concat(N'ORD-', CONVERT([char](8), sysdatetime(), 112), N'-', right(N'000000'+CONVERT([varchar](20), NEXT VALUE FOR [dbo].[order_seq]), 6))")
+│   │         @Column(name = "order_number", nullable = false, length = 40)
+│   │         private String orderNumber;
+│   │     
+│   │         @ManyToOne(fetch = FetchType.LAZY)
+│   │         @OnDelete(action = OnDeleteAction.SET_NULL)
+│   │         @JoinColumn(name = "customer_id")
+│   │         private Customer customer;
+│   │     
+│   │         @ManyToOne(fetch = FetchType.LAZY)
+│   │         @OnDelete(action = OnDeleteAction.SET_NULL)
+│   │         @JoinColumn(name = "user_id")
+│   │         private User user;
+│   │     
+│   │         @Size(max = 20)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @ColumnDefault("'OFFLINE'")
+│   │         @Column(name = "channel", nullable = false, length = 20)
+│   │         private String channel;
+│   │     
+│   │         @Size(max = 30)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @ColumnDefault("'PENDING'")
+│   │         @Column(name = "status", nullable = false, length = 30)
+│   │         private String status;
+│   │     
+│   │         @Size(max = 50)
+│   │         @Nationalized
+│   │         @Column(name = "payment_method", length = 50)
+│   │         private String paymentMethod;
+│   │     
+│   │         @Size(max = 20)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @ColumnDefault("'UNPAID'")
+│   │         @Column(name = "payment_status", nullable = false, length = 20)
+│   │         private String paymentStatus;
+│   │     
+│   │         @Size(max = 500)
+│   │         @Nationalized
+│   │         @Column(name = "shipping_address", length = 500)
+│   │         private String shippingAddress;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "shipping_fee", nullable = false, precision = 12, scale = 2)
+│   │         private BigDecimal shippingFee;
+│   │     
+│   │         @Size(max = 30)
+│   │         @Nationalized
+│   │         @Column(name = "shipping_status", length = 30)
+│   │         private String shippingStatus;
+│   │     
+│   │         @Size(max = 100)
+│   │         @Nationalized
+│   │         @Column(name = "tracking_code", length = 100)
+│   │         private String trackingCode;
+│   │     
+│   │         @Column(name = "paid_at")
+│   │         private Instant paidAt;
+│   │     
+│   │         @Column(name = "shipped_at")
+│   │         private Instant shippedAt;
+│   │     
+│   │         @Column(name = "delivered_at")
+│   │         private Instant deliveredAt;
+│   │     
+│   │         @Column(name = "cancelled_at")
+│   │         private Instant cancelledAt;
+│   │     
+│   │         @Column(name = "returned_at")
+│   │         private Instant returnedAt;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "subtotal", nullable = false, precision = 15, scale = 2)
+│   │         private BigDecimal subtotal;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "discount_total", nullable = false, precision = 15, scale = 2)
+│   │         private BigDecimal discountTotal;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "tax_total", nullable = false, precision = 15, scale = 2)
+│   │         private BigDecimal taxTotal;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
+│   │         private BigDecimal totalAmount;
+│   │     
+│   │         @Size(max = 50)
+│   │         @Nationalized
+│   │         @Column(name = "applied_promotion_code", length = 50)
+│   │         private String appliedPromotionCode;
+│   │     
+│   │         @Nationalized
+│   │         @Lob
+│   │         @Column(name = "applied_promotion_json")
+│   │         private String appliedPromotionJson;
+│   │     
+│   │         @Nationalized
+│   │         @Lob
+│   │         @Column(name = "notes")
+│   │         private String notes;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "created_at", nullable = false)
+│   │         private Instant createdAt;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "updated_at", nullable = false)
+│   │         private Instant updatedAt;
+│   │     
+│   │         @OneToMany(mappedBy = "order")
+│   │         private Set<OrderItem> orderItems = new LinkedHashSet<>();
+│   │     
+│   │         @OneToMany(mappedBy = "order")
+│   │         private Set<Payment> payments = new LinkedHashSet<>();
+│   │     
+│   │         @OneToMany(mappedBy = "order")
+│   │         private Set<Return> returns = new LinkedHashSet<>();
+│   │     
+│   │     }
+│   │   ---- END ----
+│   ├── OrderItem.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.entity;
+│   │     
+│   │     import jakarta.persistence.*;
+│   │     import jakarta.validation.constraints.NotNull;
+│   │     import jakarta.validation.constraints.Size;
+│   │     import lombok.Getter;
+│   │     import lombok.Setter;
+│   │     import org.hibernate.annotations.ColumnDefault;
+│   │     import org.hibernate.annotations.Nationalized;
+│   │     
+│   │     import java.math.BigDecimal;
+│   │     import java.time.Instant;
+│   │     
+│   │     @Getter
+│   │     @Setter
+│   │     @Entity
+│   │     @Table(name = "order_items")
+│   │     public class OrderItem {
+│   │         @Id
+│   │         @GeneratedValue(strategy = GenerationType.IDENTITY)
+│   │         @Column(name = "id", nullable = false)
+│   │         private Long id;
+│   │     
+│   │         @NotNull
+│   │         @ManyToOne(fetch = FetchType.LAZY, optional = false)
+│   │         @JoinColumn(name = "order_id", nullable = false)
+│   │         private Order order;
+│   │     
+│   │         @Size(max = 200)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @Column(name = "product_name", nullable = false, length = 200)
+│   │         private String productName;
+│   │     
+│   │         @Size(max = 150)
+│   │         @Nationalized
+│   │         @Column(name = "variant_name", length = 150)
+│   │         private String variantName;
+│   │     
+│   │         @Size(max = 100)
+│   │         @Nationalized
+│   │         @Column(name = "sku", length = 100)
+│   │         private String sku;
+│   │     
+│   │         @NotNull
+│   │         @Column(name = "quantity", nullable = false)
+│   │         private Integer quantity;
+│   │     
+│   │         @NotNull
+│   │         @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
+│   │         private BigDecimal unitPrice;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "discount", nullable = false, precision = 12, scale = 2)
+│   │         private BigDecimal discount;
+│   │     
+│   │         @NotNull
+│   │         @Column(name = "line_total", nullable = false, precision = 15, scale = 2)
+│   │         private BigDecimal lineTotal;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "created_at", nullable = false)
+│   │         private Instant createdAt;
+│   │     
+│   │         @ManyToOne(fetch = FetchType.LAZY)
+│   │         @JoinColumn(name = "variant_id")
+│   │         private ProductVariant variant;
+│   │     
+│   │     }
+│   │   ---- END ----
+│   ├── Payment.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.entity;
+│   │     
+│   │     import jakarta.persistence.*;
+│   │     import jakarta.validation.constraints.NotNull;
+│   │     import jakarta.validation.constraints.Size;
+│   │     import lombok.Getter;
+│   │     import lombok.Setter;
+│   │     import org.hibernate.annotations.ColumnDefault;
+│   │     import org.hibernate.annotations.Nationalized;
+│   │     import org.hibernate.annotations.OnDelete;
+│   │     import org.hibernate.annotations.OnDeleteAction;
+│   │     
+│   │     import java.math.BigDecimal;
+│   │     import java.time.Instant;
+│   │     
+│   │     @Getter
+│   │     @Setter
+│   │     @Entity
+│   │     @Table(name = "payments")
+│   │     public class Payment {
+│   │         @Id
+│   │         @GeneratedValue(strategy = GenerationType.IDENTITY)
+│   │         @Column(name = "id", nullable = false)
+│   │         private Long id;
+│   │     
+│   │         @NotNull
+│   │         @ManyToOne(fetch = FetchType.LAZY, optional = false)
+│   │         @OnDelete(action = OnDeleteAction.CASCADE)
+│   │         @JoinColumn(name = "order_id", nullable = false)
+│   │         private Order order;
+│   │     
+│   │         @NotNull
+│   │         @Column(name = "amount", nullable = false, precision = 15, scale = 2)
+│   │         private BigDecimal amount;
+│   │     
+│   │         @Size(max = 50)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @Column(name = "method", nullable = false, length = 50)
+│   │         private String method;
+│   │     
+│   │         @Size(max = 100)
+│   │         @Nationalized
+│   │         @Column(name = "transaction_ref", length = 100)
+│   │         private String transactionRef;
+│   │     
+│   │         @Size(max = 20)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @ColumnDefault("'PENDING'")
+│   │         @Column(name = "status", nullable = false, length = 20)
+│   │         private String status;
+│   │     
+│   │         @Column(name = "paid_at")
+│   │         private Instant paidAt;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "created_at", nullable = false)
+│   │         private Instant createdAt;
+│   │     
+│   │     }
+│   │   ---- END ----
 │   ├── PriceHistory.java
 │   │   ---- CODE ----
 │   │     package com.retailmanagement.entity;
 │   │     
 │   │     import jakarta.persistence.*;
-│   │     import java.math.BigDecimal;
-│   │     import java.time.LocalDateTime;
+│   │     import jakarta.validation.constraints.NotNull;
+│   │     import jakarta.validation.constraints.Size;
+│   │     import lombok.Getter;
+│   │     import lombok.Setter;
+│   │     import org.hibernate.annotations.ColumnDefault;
+│   │     import org.hibernate.annotations.Nationalized;
+│   │     import org.hibernate.annotations.OnDelete;
+│   │     import org.hibernate.annotations.OnDeleteAction;
 │   │     
+│   │     import java.math.BigDecimal;
+│   │     import java.time.Instant;
+│   │     
+│   │     @Getter
+│   │     @Setter
 │   │     @Entity
 │   │     @Table(name = "price_history")
 │   │     public class PriceHistory {
 │   │         @Id
 │   │         @GeneratedValue(strategy = GenerationType.IDENTITY)
+│   │         @Column(name = "id", nullable = false)
 │   │         private Long id;
 │   │     
-│   │         @ManyToOne(fetch = FetchType.LAZY)
+│   │         @NotNull
+│   │         @ManyToOne(fetch = FetchType.LAZY, optional = false)
+│   │         @OnDelete(action = OnDeleteAction.CASCADE)
 │   │         @JoinColumn(name = "variant_id", nullable = false)
 │   │         private ProductVariant variant;
 │   │     
+│   │         @Size(max = 3)
+│   │         @NotNull
+│   │         @ColumnDefault("'VND'")
 │   │         @Column(name = "currency_code", nullable = false, length = 3)
-│   │         private String currencyCode = "VND";
+│   │         private String currencyCode;
 │   │     
-│   │         @Column(nullable = false, precision = 12, scale = 2)
+│   │         @NotNull
+│   │         @Column(name = "price", nullable = false, precision = 12, scale = 2)
 │   │         private BigDecimal price;
 │   │     
 │   │         @Column(name = "cost_price", precision = 12, scale = 2)
 │   │         private BigDecimal costPrice;
 │   │     
-│   │         @Column(length = 200)
+│   │         @Size(max = 200)
+│   │         @Nationalized
+│   │         @Column(name = "reason", length = 200)
 │   │         private String reason;
 │   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
 │   │         @Column(name = "effective_from", nullable = false)
-│   │         private LocalDateTime effectiveFrom;
+│   │         private Instant effectiveFrom;
 │   │     
 │   │         @Column(name = "effective_to")
-│   │         private LocalDateTime effectiveTo;
+│   │         private Instant effectiveTo;
 │   │     
-│   │         @Column(name = "created_by")
-│   │         private Integer createdBy;
+│   │         @ManyToOne(fetch = FetchType.LAZY)
+│   │         @OnDelete(action = OnDeleteAction.SET_NULL)
+│   │         @JoinColumn(name = "created_by")
+│   │         private User createdBy;
 │   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
 │   │         @Column(name = "created_at", nullable = false)
-│   │         private LocalDateTime createdAt;
+│   │         private Instant createdAt;
 │   │     
-│   │         // getters/setters
-│   │         public Long getId() { return id; }
-│   │         public void setId(Long id) { this.id = id; }
-│   │         public ProductVariant getVariant() { return variant; }
-│   │         public void setVariant(ProductVariant variant) { this.variant = variant; }
-│   │         public String getCurrencyCode() { return currencyCode; }
-│   │         public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode; }
-│   │         public BigDecimal getPrice() { return price; }
-│   │         public void setPrice(BigDecimal price) { this.price = price; }
-│   │         public BigDecimal getCostPrice() { return costPrice; }
-│   │         public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
-│   │         public String getReason() { return reason; }
-│   │         public void setReason(String reason) { this.reason = reason; }
-│   │         public LocalDateTime getEffectiveFrom() { return effectiveFrom; }
-│   │         public void setEffectiveFrom(LocalDateTime effectiveFrom) { this.effectiveFrom = effectiveFrom; }
-│   │         public LocalDateTime getEffectiveTo() { return effectiveTo; }
-│   │         public void setEffectiveTo(LocalDateTime effectiveTo) { this.effectiveTo = effectiveTo; }
-│   │         public Integer getCreatedBy() { return createdBy; }
-│   │         public void setCreatedBy(Integer createdBy) { this.createdBy = createdBy; }
-│   │         public LocalDateTime getCreatedAt() { return createdAt; }
-│   │         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 │   │     }
-│   │     
 │   │   ---- END ----
 │   ├── Product.java
 │   │   ---- CODE ----
@@ -1552,62 +2033,117 @@
 │   │     package com.retailmanagement.entity;
 │   │     
 │   │     import jakarta.persistence.*;
-│   │     import java.math.BigDecimal;
-│   │     import java.time.LocalDateTime;
+│   │     import jakarta.validation.constraints.NotNull;
+│   │     import jakarta.validation.constraints.Size;
+│   │     import lombok.Getter;
+│   │     import lombok.Setter;
+│   │     import org.hibernate.annotations.ColumnDefault;
+│   │     import org.hibernate.annotations.Nationalized;
+│   │     import org.hibernate.annotations.OnDelete;
+│   │     import org.hibernate.annotations.OnDeleteAction;
 │   │     
+│   │     import java.math.BigDecimal;
+│   │     import java.time.Instant;
+│   │     import java.util.LinkedHashSet;
+│   │     import java.util.Set;
+│   │     
+│   │     @Getter
+│   │     @Setter
 │   │     @Entity
 │   │     @Table(name = "product_variants")
 │   │     public class ProductVariant {
 │   │         @Id
 │   │         @GeneratedValue(strategy = GenerationType.IDENTITY)
+│   │         @Column(name = "id", nullable = false)
 │   │         private Integer id;
 │   │     
-│   │         @ManyToOne(fetch = FetchType.LAZY)
+│   │         @NotNull
+│   │         @ManyToOne(fetch = FetchType.LAZY, optional = false)
+│   │         @OnDelete(action = OnDeleteAction.CASCADE)
 │   │         @JoinColumn(name = "product_id", nullable = false)
 │   │         private Product product;
 │   │     
+│   │         @Size(max = 150)
+│   │         @NotNull
+│   │         @Nationalized
 │   │         @Column(name = "variant_name", nullable = false, length = 150)
 │   │         private String variantName;
 │   │     
-│   │         @Column(nullable = false, unique = true, length = 100)
+│   │         @Size(max = 100)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @Column(name = "sku", nullable = false, length = 100)
 │   │         private String sku;
 │   │     
-│   │         @Column(name = "currency_code", nullable = false, length = 3)
-│   │         private String currencyCode = "VND";
+│   │         @Size(max = 100)
+│   │         @Nationalized
+│   │         @Column(name = "barcode", length = 100)
+│   │         private String barcode;
 │   │     
-│   │         @Column(nullable = false, precision = 12, scale = 2)
+│   │         @Size(max = 3)
+│   │         @NotNull
+│   │         @ColumnDefault("'VND'")
+│   │         @Column(name = "currency_code", nullable = false, length = 3)
+│   │         private String currencyCode;
+│   │     
+│   │         @NotNull
+│   │         @Column(name = "price", nullable = false, precision = 12, scale = 2)
 │   │         private BigDecimal price;
 │   │     
 │   │         @Column(name = "cost_price", precision = 12, scale = 2)
 │   │         private BigDecimal costPrice;
 │   │     
+│   │         @Nationalized
+│   │         @Lob
+│   │         @Column(name = "price_tiers_json")
+│   │         private String priceTiersJson;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "stock_quantity", nullable = false)
+│   │         private Integer stockQuantity;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "reserved_qty", nullable = false)
+│   │         private Integer reservedQty;
+│   │     
+│   │         @Nationalized
+│   │         @Lob
+│   │         @Column(name = "attributes_json")
+│   │         private String attributesJson;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("1")
 │   │         @Column(name = "is_active", nullable = false)
-│   │         private Boolean isActive = true;
+│   │         private Boolean isActive = false;
 │   │     
-│   │         @Column(name = "updated_at")
-│   │         private LocalDateTime updatedAt;
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "created_at", nullable = false)
+│   │         private Instant createdAt;
 │   │     
-│   │         // getters/setters
-│   │         public Integer getId() { return id; }
-│   │         public void setId(Integer id) { this.id = id; }
-│   │         public Product getProduct() { return product; }
-│   │         public void setProduct(Product product) { this.product = product; }
-│   │         public String getVariantName() { return variantName; }
-│   │         public void setVariantName(String variantName) { this.variantName = variantName; }
-│   │         public String getSku() { return sku; }
-│   │         public void setSku(String sku) { this.sku = sku; }
-│   │         public String getCurrencyCode() { return currencyCode; }
-│   │         public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode; }
-│   │         public BigDecimal getPrice() { return price; }
-│   │         public void setPrice(BigDecimal price) { this.price = price; }
-│   │         public BigDecimal getCostPrice() { return costPrice; }
-│   │         public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
-│   │         public Boolean getIsActive() { return isActive; }
-│   │         public void setIsActive(Boolean active) { isActive = active; }
-│   │         public LocalDateTime getUpdatedAt() { return updatedAt; }
-│   │         public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "updated_at", nullable = false)
+│   │         private Instant updatedAt;
+│   │     
+│   │         @Column(name = "deleted_at")
+│   │         private Instant deletedAt;
+│   │     
+│   │         @OneToMany(mappedBy = "variant")
+│   │         private Set<Image> images = new LinkedHashSet<>();
+│   │     
+│   │         @OneToMany(mappedBy = "variant")
+│   │         private Set<OrderItem> orderItems = new LinkedHashSet<>();
+│   │     
+│   │         @OneToMany(mappedBy = "variant")
+│   │         private Set<PriceHistory> priceHistories = new LinkedHashSet<>();
+│   │     
+│   │         @OneToMany(mappedBy = "variant")
+│   │         private Set<StockTransaction> stockTransactions = new LinkedHashSet<>();
+│   │     
 │   │     }
-│   │     
 │   │   ---- END ----
 │   ├── Promotion.java
 │   │   ---- CODE ----
@@ -1705,6 +2241,84 @@
 │   │     }
 │   │     
 │   │   ---- END ----
+│   ├── Return.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.entity;
+│   │     
+│   │     import jakarta.persistence.*;
+│   │     import jakarta.validation.constraints.NotNull;
+│   │     import jakarta.validation.constraints.Size;
+│   │     import lombok.Getter;
+│   │     import lombok.Setter;
+│   │     import org.hibernate.annotations.ColumnDefault;
+│   │     import org.hibernate.annotations.Nationalized;
+│   │     
+│   │     import java.math.BigDecimal;
+│   │     import java.time.Instant;
+│   │     
+│   │     @Getter
+│   │     @Setter
+│   │     @Entity
+│   │     @Table(name = "returns")
+│   │     public class Return {
+│   │         @Id
+│   │         @GeneratedValue(strategy = GenerationType.IDENTITY)
+│   │         @Column(name = "id", nullable = false)
+│   │         private Long id;
+│   │     
+│   │         @NotNull
+│   │         @ManyToOne(fetch = FetchType.LAZY, optional = false)
+│   │         @JoinColumn(name = "order_id", nullable = false)
+│   │         private Order order;
+│   │     
+│   │         @NotNull
+│   │         @Column(name = "quantity", nullable = false)
+│   │         private Integer quantity;
+│   │     
+│   │         @Size(max = 500)
+│   │         @Nationalized
+│   │         @Column(name = "reason", length = 500)
+│   │         private String reason;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("0")
+│   │         @Column(name = "refund_amount", nullable = false, precision = 15, scale = 2)
+│   │         private BigDecimal refundAmount;
+│   │     
+│   │         @Size(max = 50)
+│   │         @Nationalized
+│   │         @Column(name = "refund_method", length = 50)
+│   │         private String refundMethod;
+│   │     
+│   │         @Size(max = 20)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @ColumnDefault("'PENDING'")
+│   │         @Column(name = "refund_status", nullable = false, length = 20)
+│   │         private String refundStatus;
+│   │     
+│   │         @Column(name = "refunded_at")
+│   │         private Instant refundedAt;
+│   │     
+│   │         @Size(max = 20)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @ColumnDefault("'PENDING'")
+│   │         @Column(name = "status", nullable = false, length = 20)
+│   │         private String status;
+│   │     
+│   │         @Nationalized
+│   │         @Lob
+│   │         @Column(name = "note")
+│   │         private String note;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "created_at", nullable = false)
+│   │         private Instant createdAt;
+│   │     
+│   │     }
+│   │   ---- END ----
 │   ├── Role.java
 │   │   ---- CODE ----
 │   │     package com.retailmanagement.entity;
@@ -1713,6 +2327,73 @@
 │   │         ADMIN, SALES, INVENTORY, CUSTOMER
 │   │     }
 │   │     
+│   │   ---- END ----
+│   ├── StockTransaction.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.entity;
+│   │     
+│   │     import jakarta.persistence.*;
+│   │     import jakarta.validation.constraints.NotNull;
+│   │     import jakarta.validation.constraints.Size;
+│   │     import lombok.Getter;
+│   │     import lombok.Setter;
+│   │     import org.hibernate.annotations.ColumnDefault;
+│   │     import org.hibernate.annotations.Nationalized;
+│   │     import org.hibernate.annotations.OnDelete;
+│   │     import org.hibernate.annotations.OnDeleteAction;
+│   │     
+│   │     import java.time.Instant;
+│   │     
+│   │     @Getter
+│   │     @Setter
+│   │     @Entity
+│   │     @Table(name = "stock_transactions")
+│   │     public class StockTransaction {
+│   │         @Id
+│   │         @GeneratedValue(strategy = GenerationType.IDENTITY)
+│   │         @Column(name = "id", nullable = false)
+│   │         private Long id;
+│   │     
+│   │         @NotNull
+│   │         @ManyToOne(fetch = FetchType.LAZY, optional = false)
+│   │         @OnDelete(action = OnDeleteAction.CASCADE)
+│   │         @JoinColumn(name = "variant_id", nullable = false)
+│   │         private ProductVariant variant;
+│   │     
+│   │         @NotNull
+│   │         @Column(name = "quantity", nullable = false)
+│   │         private Integer quantity;
+│   │     
+│   │         @Size(max = 30)
+│   │         @NotNull
+│   │         @Nationalized
+│   │         @Column(name = "type", nullable = false, length = 30)
+│   │         private String type;
+│   │     
+│   │         @Size(max = 50)
+│   │         @Nationalized
+│   │         @Column(name = "reference_type", length = 50)
+│   │         private String referenceType;
+│   │     
+│   │         @Column(name = "reference_id")
+│   │         private Long referenceId;
+│   │     
+│   │         @Size(max = 500)
+│   │         @Nationalized
+│   │         @Column(name = "note", length = 500)
+│   │         private String note;
+│   │     
+│   │         @ManyToOne(fetch = FetchType.LAZY)
+│   │         @OnDelete(action = OnDeleteAction.SET_NULL)
+│   │         @JoinColumn(name = "created_by")
+│   │         private User createdBy;
+│   │     
+│   │         @NotNull
+│   │         @ColumnDefault("sysdatetime()")
+│   │         @Column(name = "created_at", nullable = false)
+│   │         private Instant createdAt;
+│   │     
+│   │     }
 │   │   ---- END ----
 │   ├── SystemSetting.java
 │   │   ---- CODE ----
@@ -2039,6 +2720,36 @@
 │   │         Optional<Image> findFirstByProductIdAndIsPrimaryTrue(Integer productId);
 │   │     }
 │   │   ---- END ----
+│   ├── OrderItemRepository.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.repository;
+│   │     
+│   │     import com.retailmanagement.entity.OrderItem;
+│   │     import org.springframework.data.jpa.repository.JpaRepository;
+│   │     
+│   │     public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
+│   │     }
+│   │     
+│   │     
+│   │   ---- END ----
+│   ├── OrderRepository.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.repository;
+│   │     
+│   │     import com.retailmanagement.entity.Order;
+│   │     import org.springframework.data.jpa.repository.JpaRepository;
+│   │     
+│   │     import java.util.List;
+│   │     
+│   │     public interface OrderRepository extends JpaRepository<Order, Long> {
+│   │     
+│   │         List<Order> findByStatusOrderByCreatedAtDesc(String status);
+│   │     
+│   │         List<Order> findByStatusInOrderByCreatedAtDesc(List<String> statuses);
+│   │     }
+│   │     
+│   │     
+│   │   ---- END ----
 │   ├── PriceHistoryRepository.java
 │   │   ---- CODE ----
 │   │     package com.retailmanagement.repository;
@@ -2133,6 +2844,17 @@
 │   │     }
 │   │     
 │   │   ---- END ----
+│   ├── StockTransactionRepository.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.repository;
+│   │     
+│   │     import com.retailmanagement.entity.StockTransaction;
+│   │     import org.springframework.data.jpa.repository.JpaRepository;
+│   │     
+│   │     public interface StockTransactionRepository extends JpaRepository<StockTransaction, Long> {
+│   │     }
+│   │     
+│   │   ---- END ----
 │   ├── SystemSettingRepository.java
 │   │   ---- CODE ----
 │   │     package com.retailmanagement.repository;
@@ -2187,6 +2909,61 @@
 │     
 │   ---- END ----
 ├── security
+│   ├── CustomUserDetails.java
+│   │   ---- CODE ----
+│   │     package com.retailmanagement.security;
+│   │     
+│   │     import com.retailmanagement.entity.User;
+│   │     import lombok.Getter;
+│   │     import org.springframework.security.core.GrantedAuthority;
+│   │     import org.springframework.security.core.userdetails.UserDetails;
+│   │     
+│   │     import java.util.Collection;
+│   │     import java.util.List;
+│   │     
+│   │     @Getter
+│   │     public class CustomUserDetails implements UserDetails {
+│   │     
+│   │         private final Integer userId;
+│   │         private final String username;
+│   │         private final String password;
+│   │         private final String role;
+│   │         private final boolean enabled;
+│   │         private final Collection<? extends GrantedAuthority> authorities;
+│   │     
+│   │         public CustomUserDetails(User user) {
+│   │             this.userId = user.getId();
+│   │             this.username = user.getUsername();
+│   │             this.password = user.getPasswordHash();
+│   │             this.role = user.getRole();
+│   │             this.enabled = Boolean.TRUE.equals(user.getIsActive());
+│   │             this.authorities = List.of(
+│   │                     () -> "ROLE_" + user.getRole()
+│   │             );
+│   │         }
+│   │     
+│   │         @Override
+│   │         public boolean isAccountNonExpired() {
+│   │             return true;
+│   │         }
+│   │     
+│   │         @Override
+│   │         public boolean isAccountNonLocked() {
+│   │             return enabled;
+│   │         }
+│   │     
+│   │         @Override
+│   │         public boolean isCredentialsNonExpired() {
+│   │             return true;
+│   │         }
+│   │     
+│   │         @Override
+│   │         public boolean isEnabled() {
+│   │             return enabled;
+│   │         }
+│   │     }
+│   │     
+│   │   ---- END ----
 │   ├── CustomUserDetailsService.java
 │   │   ---- CODE ----
 │   │     package com.retailmanagement.security;
@@ -2208,7 +2985,9 @@
 │   │     
 │   │     
 │   │         @Override
-│   │         public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+│   │         public UserDetails loadUserByUsername(String username)
+│   │                 throws UsernameNotFoundException {
+│   │     
 │   │             User user = userRepository.findByUsername(username)
 │   │                     .orElseThrow(() -> new UsernameNotFoundException("User không tồn tại"));
 │   │     
@@ -2216,12 +2995,9 @@
 │   │                 throw new UsernameNotFoundException("Tài khoản đã bị khóa");
 │   │             }
 │   │     
-│   │             return new org.springframework.security.core.userdetails.User(
-│   │                     user.getUsername(),
-│   │                     user.getPasswordHash(),
-│   │                     List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
-│   │             );
+│   │             return new CustomUserDetails(user);
 │   │         }
+│   │     
 │   │     }
 │   │     
 │   │   ---- END ----
@@ -2572,6 +3348,219 @@
     │     
     │     
     │   ---- END ----
+    ├── OrderQueryService.java
+    │   ---- CODE ----
+    │     package com.retailmanagement.service;
+    │     
+    │     import com.retailmanagement.dto.response.OrderListResponse;
+    │     import com.retailmanagement.entity.Order;
+    │     import com.retailmanagement.repository.OrderRepository;
+    │     import lombok.RequiredArgsConstructor;
+    │     import org.springframework.stereotype.Service;
+    │     
+    │     import java.util.List;
+    │     
+    │     @Service
+    │     @RequiredArgsConstructor
+    │     public class OrderQueryService {
+    │     
+    │         private final OrderRepository orderRepository;
+    │     
+    │         public List<OrderListResponse> getNewOrders() {
+    │             return mapToResponse(
+    │                     orderRepository.findByStatusOrderByCreatedAtDesc("PENDING")
+    │             );
+    │         }
+    │     
+    │         public List<OrderListResponse> getProcessingOrders() {
+    │             return mapToResponse(
+    │                     orderRepository.findByStatusInOrderByCreatedAtDesc(
+    │                             List.of("PAID", "SHIPPING")
+    │                     )
+    │             );
+    │         }
+    │     
+    │         private List<OrderListResponse> mapToResponse(List<Order> orders) {
+    │             return orders.stream()
+    │                     .map(o -> new OrderListResponse(
+    │                             o.getId(),
+    │                             o.getOrderNumber(),
+    │                             o.getCustomer() != null ? o.getCustomer().getName() : null,
+    │                             o.getUser() != null ? o.getUser().getUsername() : null,
+    │                             o.getTotalAmount(),
+    │                             o.getStatus(),
+    │                             o.getPaymentStatus(),
+    │                             o.getCreatedAt()
+    │                     ))
+    │                     .toList();
+    │         }
+    │     }
+    │     
+    │     
+    │   ---- END ----
+    ├── OrderService.java
+    │   ---- CODE ----
+    │     package com.retailmanagement.service;
+    │     
+    │     import com.retailmanagement.dto.request.CreateOrderItemRequest;
+    │     import com.retailmanagement.dto.request.CreateOrderRequest;
+    │     import com.retailmanagement.dto.response.CreateOrderResponse;
+    │     import com.retailmanagement.entity.*;
+    │     import com.retailmanagement.repository.*;
+    │     import jakarta.transaction.Transactional;
+    │     import lombok.RequiredArgsConstructor;
+    │     import org.springframework.stereotype.Service;
+    │     
+    │     import java.math.BigDecimal;
+    │     import java.time.Instant;
+    │     import java.time.LocalDateTime;
+    │     import java.time.ZoneOffset;
+    │     import java.util.ArrayList;
+    │     import java.util.List;
+    │     import java.util.UUID;
+    │     
+    │     
+    │     @Service
+    │     @RequiredArgsConstructor
+    │     @Transactional
+    │     public class OrderService {
+    │     
+    │         private final OrderRepository orderRepository;
+    │         private final OrderItemRepository orderItemRepository;
+    │         private final ProductVariantRepository variantRepository;
+    │         private final StockTransactionRepository stockTransactionRepository;
+    │         private final CustomRes customerRepository;
+    │         private final UserRepository userRepository;
+    │     
+    │         public CreateOrderResponse createOrder(CreateOrderRequest request, Integer userId) {
+    │     
+    │             // ===== LẤY CUSTOMER & USER =====
+    │             Customer customer = customerRepository.findById(request.getCustomerId())
+    │                     .orElseThrow(() -> new RuntimeException("Customer not found"));
+    │     
+    │             User user = userRepository.findById(userId)
+    │                     .orElseThrow(() -> new RuntimeException("User not found"));
+    │     
+    │             // ===== TẠO ORDER (SET ĐỦ @NotNull) =====
+    │             Order order = new Order();
+    │             order.setCustomer(customer);
+    │             order.setUser(user);
+    │             order.setChannel(request.getChannel());
+    │             order.setPaymentMethod(request.getPaymentMethod());
+    │             order.setStatus("PENDING");
+    │             order.setPaymentStatus("UNPAID");
+    │             order.setNotes(request.getNotes());
+    │     
+    │             order.setSubtotal(BigDecimal.ZERO);
+    │             order.setDiscountTotal(BigDecimal.ZERO);
+    │             order.setTaxTotal(BigDecimal.ZERO);
+    │             order.setShippingFee(BigDecimal.ZERO);
+    │             order.setTotalAmount(BigDecimal.ZERO);
+    │     
+    │             order.setOrderNumber("TMP-" + UUID.randomUUID().toString().substring(0, 8));
+    │     
+    │     
+    │             order.setCreatedAt(Instant.now());
+    │             order.setUpdatedAt(Instant.now());
+    │     
+    │             order = orderRepository.save(order);
+    │     
+    │             // ===== XỬ LÝ ITEMS =====
+    │             BigDecimal subtotal = BigDecimal.ZERO;
+    │             List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
+    │     
+    │             for (CreateOrderItemRequest itemReq : request.getItems()) {
+    │     
+    │                 ProductVariant variant = variantRepository.findById(itemReq.getVariantId())
+    │                         .orElseThrow(() -> new RuntimeException("Variant not found"));
+    │     
+    │                 int available = variant.getStockQuantity() - variant.getReservedQty();
+    │                 if (available < itemReq.getQuantity()) {
+    │                     throw new RuntimeException("Not enough stock");
+    │                 }
+    │     
+    │                 BigDecimal lineTotal =
+    │                         variant.getPrice().multiply(BigDecimal.valueOf(itemReq.getQuantity()));
+    │     
+    │                 // ----- ORDER ITEM -----
+    │                 OrderItem item = new OrderItem();
+    │                 item.setOrder(order);
+    │                 item.setVariant(variant);
+    │                 item.setProductName(variant.getProduct().getName());
+    │                 item.setVariantName(variant.getVariantName());
+    │                 item.setSku(variant.getSku());
+    │                 item.setQuantity(itemReq.getQuantity());
+    │                 item.setUnitPrice(variant.getPrice());
+    │                 item.setLineTotal(lineTotal);
+    │     
+    │                 // FIX @NotNull
+    │                 item.setDiscount(BigDecimal.ZERO);
+    │                 item.setCreatedAt(Instant.now());
+    │     
+    │                 orderItemRepository.save(item);
+    │     
+    │                 subtotal = subtotal.add(lineTotal);
+    │     
+    │                 // ----- RESERVE TỒN KHO -----
+    │                 variant.setReservedQty(variant.getReservedQty() + itemReq.getQuantity());
+    │                 variantRepository.save(variant);
+    │     
+    │                 StockTransaction st = new StockTransaction();
+    │                 st.setVariant(variant);
+    │                 st.setQuantity(itemReq.getQuantity());
+    │                 st.setType("RESERVE");
+    │                 st.setReferenceType("orders");
+    │                 st.setReferenceId(order.getId());
+    │                 st.setCreatedBy(user);
+    │                 st.setCreatedAt(Instant.now());
+    │     
+    │                 stockTransactionRepository.save(st);
+    │     
+    │                 // ----- MAP RESPONSE ITEM (PHẲNG) -----
+    │                 responseItems.add(new CreateOrderResponse.Item(
+    │                         item.getProductName(),
+    │                         item.getVariantName(),
+    │                         item.getSku(),
+    │                         item.getQuantity(),
+    │                         item.getUnitPrice(),
+    │                         item.getDiscount(),
+    │                         item.getLineTotal()
+    │                 ));
+    │             }
+    │     
+    │             // ===== CẬP NHẬT TOTAL =====
+    │             order.setSubtotal(subtotal);
+    │             order.setTotalAmount(subtotal);
+    │             order.setUpdatedAt(Instant.now());
+    │     
+    │             orderRepository.save(order);
+    │     
+    │             // ===== TRẢ RESPONSE ĐẦY ĐỦ (PHẲNG) =====
+    │             return new CreateOrderResponse(
+    │                     order.getId(),
+    │                     order.getOrderNumber(),
+    │                     order.getStatus(),
+    │                     order.getPaymentStatus(),
+    │     
+    │                     customer.getId(),
+    │                     customer.getName(),
+    │     
+    │                     user.getId(),
+    │                     user.getUsername(),
+    │     
+    │                     order.getSubtotal(),
+    │                     order.getDiscountTotal(),
+    │                     order.getTaxTotal(),
+    │                     order.getShippingFee(),
+    │                     order.getTotalAmount(),
+    │     
+    │                     order.getCreatedAt(),
+    │                     responseItems
+    │             );
+    │         }
+    │     }
+    │     
+    │   ---- END ----
     ├── PricingService.java
     │   ---- CODE ----
     │     package com.retailmanagement.service;
@@ -2581,12 +3570,15 @@
     │     import com.retailmanagement.entity.PriceHistory;
     │     import com.retailmanagement.entity.ProductVariant;
     │     import com.retailmanagement.entity.Promotion;
+    │     import com.retailmanagement.entity.User;
     │     import com.retailmanagement.repository.PriceHistoryRepository;
     │     import com.retailmanagement.repository.ProductVariantRepository;
+    │     import com.retailmanagement.repository.UserRepository;
     │     import org.springframework.stereotype.Service;
     │     import org.springframework.transaction.annotation.Transactional;
     │     
     │     import java.math.BigDecimal;
+    │     import java.time.Instant;
     │     import java.time.LocalDateTime;
     │     import java.util.List;
     │     import java.util.NoSuchElementException;
@@ -2598,15 +3590,17 @@
     │         private final PriceHistoryRepository priceHistoryRepo;
     │         private final SettingService settingService;
     │         private final PromotionService promotionService;
+    │         private final UserRepository userRepository;
     │     
     │         public PricingService(ProductVariantRepository variantRepo,
     │                               PriceHistoryRepository priceHistoryRepo,
     │                               SettingService settingService,
-    │                               PromotionService promotionService) {
+    │                               PromotionService promotionService, UserRepository userRepository) {
     │             this.variantRepo = variantRepo;
     │             this.priceHistoryRepo = priceHistoryRepo;
     │             this.settingService = settingService;
     │             this.promotionService = promotionService;
+    │             this.userRepository = userRepository;
     │         }
     │     
     │         // 1) Tạo/đổi giá (và tạo history)
@@ -2614,6 +3608,9 @@
     │         public PriceHistory setVariantPrice(Integer variantId, UpsertPriceRequest req, Integer userId) {
     │             ProductVariant v = variantRepo.findById(variantId)
     │                     .orElseThrow(() -> new NoSuchElementException("Variant not found"));
+    │     
+    │             User user = userRepository.findById(userId)
+    │                     .orElseThrow(() -> new RuntimeException("User not found"));
     │     
     │             if (req.getPrice() == null || req.getPrice().compareTo(BigDecimal.ZERO) < 0) {
     │                 throw new IllegalArgumentException("price phải >= 0");
@@ -2623,7 +3620,7 @@
     │                     ? settingService.getDefaultCurrency()
     │                     : req.getCurrencyCode().trim().toUpperCase();
     │     
-    │             LocalDateTime now = LocalDateTime.now();
+    │             Instant now = Instant.now();
     │     
     │             // close current history
     │             priceHistoryRepo.findFirstByVariant_IdAndEffectiveToIsNullOrderByEffectiveFromDesc(variantId)
@@ -2641,7 +3638,7 @@
     │             ph.setReason(req.getReason() == null ? "MANUAL" : req.getReason());
     │             ph.setEffectiveFrom(now);
     │             ph.setEffectiveTo(null);
-    │             ph.setCreatedBy(userId);
+    │             ph.setCreatedBy(user);
     │             ph.setCreatedAt(now);
     │             priceHistoryRepo.save(ph);
     │     
@@ -2710,7 +3707,7 @@
     │             v.setCurrencyCode(currency);
     │             v.setPrice(req.getPrice());
     │             v.setCostPrice(req.getCostPrice());
-    │             v.setUpdatedAt(LocalDateTime.now());
+    │             v.setUpdatedAt(Instant.now());
     │             variantRepo.save(v);
     │     
     │             return ph;
@@ -2744,7 +3741,7 @@
     │             v.setCurrencyCode(latest.getCurrencyCode());
     │             v.setPrice(latest.getPrice());
     │             v.setCostPrice(latest.getCostPrice());
-    │             v.setUpdatedAt(LocalDateTime.now());
+    │             v.setUpdatedAt(Instant.now());
     │             variantRepo.save(v);
     │         }
     │     
