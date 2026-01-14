@@ -10,9 +10,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Integer> {
-
-    // SỬA: Dùng Native Query (SQL thuần) để tránh lỗi cú pháp của Hibernate 7
-    // Cấu trúc: SELECT ... FROM tên_bảng ...
     @Query(value = "SELECT p.* FROM products p " +
             "INNER JOIN product_categories pc ON p.id = pc.product_id " +
             "WHERE pc.category_id = :categoryId",

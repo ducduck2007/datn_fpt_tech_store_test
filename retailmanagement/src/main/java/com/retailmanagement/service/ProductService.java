@@ -80,36 +80,30 @@ public class ProductService {
     }
 
     public Page<ProductResponse> getProducts(int page, Integer categoryId) {
-        Page<Product> productPage = (categoryId != null)
-                ? productRepository.findByCategoryId(categoryId, pageRequestForNative(page))
-                : productRepository.findAll(pageRequestForJpa(page));
+        Page<Product> productPage;
 
-        return productPage.map(this::toResponse);
-    }
+        if (categoryId != null) {
+            Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
+            productPage = productRepository.findByCategoryId(categoryId, pageable);
+        } else {
+            Pageable pageable = PageRequest.of(page, 20, Sort.by("createdAt").descending());
+            productPage = productRepository.findAll(pageable);
+        }
 
-    private Pageable pageRequestForNative(int page) {
-        // Native query -> sort theo tên cột DB
-        return PageRequest.of(page, 20, Sort.by("created_at").descending());
-    }
+        return productPage.map(product -> {
+            ProductResponse dto = new ProductResponse();
+            dto.setId(product.getId());
+            dto.setName(product.getName());
+            dto.setSku(product.getSku());
+            dto.setDescription(product.getDescription());
+            dto.setIsVisible(product.getIsVisible());
+            dto.setCreatedAt(product.getCreatedAt());
 
-    private Pageable pageRequestForJpa(int page) {
-        // JPA -> sort theo field entity
-        return PageRequest.of(page, 20, Sort.by("createdAt").descending());
-    }
+            imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
+                    .ifPresent(img -> dto.setImageUrl(img.getUrl()));
 
-    private ProductResponse toResponse(Product product) {
-        ProductResponse dto = new ProductResponse();
-        dto.setId(product.getId());
-        dto.setName(product.getName());
-        dto.setSku(product.getSku());
-        dto.setDescription(product.getDescription());
-        dto.setIsVisible(product.getIsVisible());
-        dto.setCreatedAt(product.getCreatedAt());
-
-        imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
-                .ifPresent(img -> dto.setImageUrl(img.getUrl()));
-
-        return dto;
+            return dto;
+        });
     }
 
     private String saveFileToDisk(MultipartFile file) throws IOException {
