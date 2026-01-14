@@ -78,23 +78,17 @@ public class ProductService {
         return savedProduct;
     }
 
-    // 2. Lấy danh sách sản phẩm (Sửa lại logic Sort để fix lỗi Native Query)
     public Page<ProductResponse> getProducts(int page, Integer categoryId) {
         Page<Product> productPage;
 
         if (categoryId != null) {
-            // TRƯỜNG HỢP 1: Lọc theo Category -> Dùng Native Query
-            // Phải dùng tên cột trong Database ("created_at") để sắp xếp
             Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
             productPage = productRepository.findByCategoryId(categoryId, pageable);
         } else {
-            // TRƯỜNG HỢP 2: Lấy tất cả -> Dùng JPA mặc định
-            // Dùng tên biến trong Entity ("createdAt") để sắp xếp
             Pageable pageable = PageRequest.of(page, 20, Sort.by("createdAt").descending());
             productPage = productRepository.findAll(pageable);
         }
 
-        // Convert Entity -> ResponseDTO (Giữ nguyên đoạn này)
         return productPage.map(product -> {
             ProductResponse dto = new ProductResponse();
             dto.setId(product.getId());
