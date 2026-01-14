@@ -10,14 +10,13 @@ import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "price_history")
-public class PriceHistory {
+@Table(name = "stock_transactions")
+public class StockTransaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -29,31 +28,28 @@ public class PriceHistory {
     @JoinColumn(name = "variant_id", nullable = false)
     private ProductVariant variant;
 
-    @Size(max = 3)
     @NotNull
-    @ColumnDefault("'VND'")
-    @Column(name = "currency_code", nullable = false, length = 3)
-    private String currencyCode;
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
 
+    @Size(max = 30)
     @NotNull
-    @Column(name = "price", nullable = false, precision = 12, scale = 2)
-    private BigDecimal price;
-
-    @Column(name = "cost_price", precision = 12, scale = 2)
-    private BigDecimal costPrice;
-
-    @Size(max = 200)
     @Nationalized
-    @Column(name = "reason", length = 200)
-    private String reason;
+    @Column(name = "type", nullable = false, length = 30)
+    private String type;
 
-    @NotNull
-    @ColumnDefault("sysdatetime()")
-    @Column(name = "effective_from", nullable = false)
-    private Instant effectiveFrom;
+    @Size(max = 50)
+    @Nationalized
+    @Column(name = "reference_type", length = 50)
+    private String referenceType;
 
-    @Column(name = "effective_to")
-    private Instant effectiveTo;
+    @Column(name = "reference_id")
+    private Long referenceId;
+
+    @Size(max = 500)
+    @Nationalized
+    @Column(name = "note", length = 500)
+    private String note;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.SET_NULL)

@@ -1,0 +1,159 @@
+package com.retailmanagement.service;
+
+import com.retailmanagement.dto.request.CreateOrderItemRequest;
+import com.retailmanagement.dto.request.CreateOrderRequest;
+import com.retailmanagement.dto.response.CreateOrderResponse;
+import com.retailmanagement.entity.*;
+import com.retailmanagement.repository.*;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ProductVariantRepository variantRepository;
+    private final StockTransactionRepository stockTransactionRepository;
+    private final CustomRes customerRepository;
+    private final UserRepository userRepository;
+
+    public CreateOrderResponse createOrder(CreateOrderRequest request, Integer userId) {
+
+        // ===== LẤY CUSTOMER & USER =====
+        Customer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // ===== TẠO ORDER (SET ĐỦ @NotNull) =====
+        Order order = new Order();
+        order.setCustomer(customer);
+        order.setUser(user);
+        order.setChannel(request.getChannel());
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setStatus("PENDING");
+        order.setPaymentStatus("UNPAID");
+        order.setNotes(request.getNotes());
+
+        order.setSubtotal(BigDecimal.ZERO);
+        order.setDiscountTotal(BigDecimal.ZERO);
+        order.setTaxTotal(BigDecimal.ZERO);
+        order.setShippingFee(BigDecimal.ZERO);
+        order.setTotalAmount(BigDecimal.ZERO);
+
+        order.setOrderNumber("TMP-" + UUID.randomUUID().toString().substring(0, 8));
+
+
+        order.setCreatedAt(Instant.now());
+        order.setUpdatedAt(Instant.now());
+
+        order = orderRepository.save(order);
+
+        // ===== XỬ LÝ ITEMS =====
+        BigDecimal subtotal = BigDecimal.ZERO;
+        List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
+
+        for (CreateOrderItemRequest itemReq : request.getItems()) {
+
+            ProductVariant variant = variantRepository.findById(itemReq.getVariantId())
+                    .orElseThrow(() -> new RuntimeException("Variant not found"));
+
+            int available = variant.getStockQuantity() - variant.getReservedQty();
+            if (available < itemReq.getQuantity()) {
+                throw new RuntimeException("Not enough stock");
+            }
+
+            BigDecimal lineTotal =
+                    variant.getPrice().multiply(BigDecimal.valueOf(itemReq.getQuantity()));
+
+            // ----- ORDER ITEM -----
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setVariant(variant);
+            item.setProductName(variant.getProduct().getName());
+            item.setVariantName(variant.getVariantName());
+            item.setSku(variant.getSku());
+            item.setQuantity(itemReq.getQuantity());
+            item.setUnitPrice(variant.getPrice());
+            item.setLineTotal(lineTotal);
+
+            // FIX @NotNull
+            item.setDiscount(BigDecimal.ZERO);
+            item.setCreatedAt(Instant.now());
+
+            orderItemRepository.save(item);
+
+            subtotal = subtotal.add(lineTotal);
+
+            // ----- RESERVE TỒN KHO -----
+            variant.setReservedQty(variant.getReservedQty() + itemReq.getQuantity());
+            variantRepository.save(variant);
+
+            StockTransaction st = new StockTransaction();
+            st.setVariant(variant);
+            st.setQuantity(itemReq.getQuantity());
+            st.setType("RESERVE");
+            st.setReferenceType("orders");
+            st.setReferenceId(order.getId());
+            st.setCreatedBy(user);
+            st.setCreatedAt(Instant.now());
+
+            stockTransactionRepository.save(st);
+
+            // ----- MAP RESPONSE ITEM (PHẲNG) -----
+            responseItems.add(new CreateOrderResponse.Item(
+                    item.getProductName(),
+                    item.getVariantName(),
+                    item.getSku(),
+                    item.getQuantity(),
+                    item.getUnitPrice(),
+                    item.getDiscount(),
+                    item.getLineTotal()
+            ));
+        }
+
+        // ===== CẬP NHẬT TOTAL =====
+        order.setSubtotal(subtotal);
+        order.setTotalAmount(subtotal);
+        order.setUpdatedAt(Instant.now());
+
+        orderRepository.save(order);
+
+        // ===== TRẢ RESPONSE ĐẦY ĐỦ (PHẲNG) =====
+        return new CreateOrderResponse(
+                order.getId(),
+                order.getOrderNumber(),
+                order.getStatus(),
+                order.getPaymentStatus(),
+
+                customer.getId(),
+                customer.getName(),
+
+                user.getId(),
+                user.getUsername(),
+
+                order.getSubtotal(),
+                order.getDiscountTotal(),
+                order.getTaxTotal(),
+                order.getShippingFee(),
+                order.getTotalAmount(),
+
+                order.getCreatedAt(),
+                responseItems
+        );
+    }
+}
