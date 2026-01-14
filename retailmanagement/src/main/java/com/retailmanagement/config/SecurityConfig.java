@@ -52,7 +52,10 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/api-docs/**"
+                                "/api-docs/**",
+                                "/api/products/**",
+                                "/api/categories/**",
+                                "/uploads/**"
                         ).permitAll()
 
                         // ✅ RULE MẪU 4 ROLE (tuỳ chọn)
