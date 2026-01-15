@@ -1,3 +1,4 @@
+<!-- \retail-fe\src\pages\customer\CustomerDashboard.vue -->
 <template>
   <div class="wrap">
     <el-row :gutter="16">
