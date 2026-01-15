@@ -1,74 +1,100 @@
-// src/stores/auth.js
+import { ref } from "vue";
+
 export const AUTH_TOKEN_KEY = "access_token";
 export const AUTH_USER_KEY = "auth_user";
 export const LAST_RESPONSE_KEY = "last_auth_response";
+
+const S = {
+  get(key) {
+    return sessionStorage.getItem(key);
+  },
+  set(key, val) {
+    sessionStorage.setItem(key, val);
+  },
+  remove(key) {
+    sessionStorage.removeItem(key);
+  },
+};
+
+function safeJsonParse(raw) {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ✅ Reactive state (khởi tạo từ sessionStorage)
+const tokenRef = ref(S.get(AUTH_TOKEN_KEY) || "");
+const userRef = ref(safeJsonParse(S.get(AUTH_USER_KEY)));
+const lastRespRef = ref(safeJsonParse(S.get(LAST_RESPONSE_KEY)));
 
 export function decodeJwtPayload(jwt) {
   try {
     if (!jwt) return null;
     const parts = jwt.split(".");
     if (parts.length < 2) return null;
-
     const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const padded = base64.padEnd(
       base64.length + ((4 - (base64.length % 4)) % 4),
       "="
     );
-    const json = atob(padded);
-    return JSON.parse(json);
+    return JSON.parse(atob(padded));
   } catch {
     return null;
   }
 }
 
 export function getToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  return tokenRef.value || "";
 }
 
 export function getUser() {
-  try {
-    const raw = localStorage.getItem(AUTH_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return userRef.value || null;
 }
 
 export function getRole() {
-  const u = getUser();
-  return u?.role || u?.data?.role || ""; // tuỳ backend trả về
+  const u = userRef.value;
+  return (u?.role || u?.data?.role || "").toString();
 }
 
 export function setSession({ token, user }) {
-  if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
-  else localStorage.removeItem(AUTH_TOKEN_KEY);
+  if (token) {
+    S.set(AUTH_TOKEN_KEY, token);
+    tokenRef.value = token;
+  } else {
+    S.remove(AUTH_TOKEN_KEY);
+    tokenRef.value = "";
+  }
 
-  if (user) localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  else localStorage.removeItem(AUTH_USER_KEY);
+  if (user) {
+    S.set(AUTH_USER_KEY, JSON.stringify(user));
+    userRef.value = user;
+  } else {
+    S.remove(AUTH_USER_KEY);
+    userRef.value = null;
+  }
 }
 
 export function clearSession() {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
+  S.remove(AUTH_TOKEN_KEY);
+  S.remove(AUTH_USER_KEY);
+  tokenRef.value = "";
+  userRef.value = null;
 }
 
 export function setLastAuthResponse(resData) {
   try {
-    sessionStorage.setItem(LAST_RESPONSE_KEY, JSON.stringify(resData ?? null));
-  } catch {
-    // ignore
-  }
+    S.set(LAST_RESPONSE_KEY, JSON.stringify(resData ?? null));
+    lastRespRef.value = resData ?? null;
+  } catch {}
 }
 
 export function getLastAuthResponse() {
-  try {
-    const raw = sessionStorage.getItem(LAST_RESPONSE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return lastRespRef.value ?? null;
 }
 
 export function clearLastAuthResponse() {
-  sessionStorage.removeItem(LAST_RESPONSE_KEY);
+  S.remove(LAST_RESPONSE_KEY);
+  lastRespRef.value = null;
 }

@@ -1,3 +1,4 @@
+<!-- \retail-fe\src\pages\system\SystemLogin.vue -->
 <template>
   <AuthLayout
     currentPortal="system"
