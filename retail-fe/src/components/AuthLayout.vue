@@ -4,9 +4,14 @@
       <div class="topbar__inner">
         <div class="logo">
           <span class="logo__dot"></span>
-          <span class="logo__text">Tech Store</span>
+          <div class="logo__txt">
+            <div class="logo__text">Tech Store</div>
+            <div class="logo__sub">Secure Access</div>
+          </div>
         </div>
-        <el-tag :type="tagType" effect="dark">{{ tagText }}</el-tag>
+        <el-tag :type="tagType" effect="dark" class="pill">{{
+          tagText
+        }}</el-tag>
       </div>
     </header>
 
@@ -17,6 +22,12 @@
           <h1 class="headline">{{ headline }}</h1>
           <p class="desc">{{ desc }}</p>
           <p v-if="hint" class="hint">{{ hint }}</p>
+
+          <div class="promo__badges">
+            <el-tag round effect="plain" type="info">Bảo mật JWT</el-tag>
+            <el-tag round effect="plain" type="info">Role-based Routing</el-tag>
+            <el-tag round effect="plain" type="info">Element Plus UI</el-tag>
+          </div>
 
           <div v-if="showPortalSwitch" class="switch">
             <el-segmented
@@ -33,11 +44,20 @@
           <template #header>
             <div class="panel__hdr">
               <div class="panel__title">{{ title }}</div>
+              <div class="panel__sub">Vui lòng nhập thông tin để tiếp tục</div>
             </div>
           </template>
 
           <slot />
         </el-card>
+
+        <div class="panel__foot">
+          <span class="ts-muted"
+            >© {{ new Date().getFullYear() }} Tech Store</span
+          >
+          <span class="dot">•</span>
+          <span class="ts-muted">Premium Laptop Commerce UI</span>
+        </div>
       </section>
     </div>
   </div>
@@ -73,22 +93,33 @@ watchEffect(() => (seg.value = props.currentPortal));
 <style scoped>
 .auth {
   min-height: 100vh;
-  background: linear-gradient(
-    180deg,
-    rgba(64, 158, 255, 0.1),
-    rgba(255, 255, 255, 0)
-  );
+  padding-bottom: 18px;
+  background: radial-gradient(
+      1100px 520px at 10% -15%,
+      rgba(37, 99, 235, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 520px at 95% 0%,
+      rgba(6, 182, 212, 0.14),
+      transparent 55%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 247, 251, 1));
 }
+
 .topbar {
   padding: 16px;
 }
+
 .topbar__inner {
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
+
 .logo {
   display: flex;
   align-items: center;
@@ -99,10 +130,23 @@ watchEffect(() => (seg.value = props.currentPortal));
   height: 10px;
   border-radius: 999px;
   background: var(--el-color-primary);
+  box-shadow: 0 0 18px rgba(37, 99, 235, 0.35);
+}
+.logo__txt {
+  line-height: 1.05;
 }
 .logo__text {
-  font-weight: 800;
+  font-weight: 900;
 }
+.logo__sub {
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.55);
+  font-weight: 600;
+}
+.pill {
+  border-radius: 999px;
+}
+
 .shell {
   max-width: 1100px;
   margin: 0 auto;
@@ -111,42 +155,83 @@ watchEffect(() => (seg.value = props.currentPortal));
   grid-template-columns: 1.1fr 1fr;
   gap: 16px;
 }
+
 @media (max-width: 920px) {
   .shell {
     grid-template-columns: 1fr;
   }
 }
+
 .promo__card {
   padding: 18px;
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 26px rgba(2, 6, 23, 0.06);
 }
+
 .kicker {
   font-size: 12px;
-  opacity: 0.7;
-  font-weight: 700;
+  opacity: 0.75;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
 }
+
 .headline {
-  margin: 8px 0;
-  font-size: 28px;
+  margin: 10px 0 8px;
+  font-size: 30px;
+  letter-spacing: -0.4px;
 }
+
 .desc {
   margin: 0;
-  opacity: 0.85;
+  opacity: 0.9;
+  line-height: 1.6;
 }
+
 .hint {
   margin: 10px 0 0;
   opacity: 0.7;
   font-size: 13px;
+  line-height: 1.55;
 }
+
+.promo__badges {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .switch {
   margin-top: 14px;
 }
+
 .panel__card {
-  border-radius: 18px;
+  border-radius: 20px;
+}
+
+.panel__hdr {
+  display: grid;
+  gap: 2px;
 }
 .panel__title {
-  font-weight: 800;
+  font-weight: 900;
+}
+.panel__sub {
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.58);
+}
+
+.panel__foot {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.dot {
+  opacity: 0.35;
 }
 </style>
