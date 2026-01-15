@@ -1,5 +1,7 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.audit.Audit;
+import com.retailmanagement.audit.AuditAction;
 import com.retailmanagement.dto.request.CreateUserRequest;
 import com.retailmanagement.dto.request.UpdateUserRequest;
 import com.retailmanagement.dto.response.UserResponse;
@@ -19,6 +21,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Audit(
+            module = "USER",
+            action = AuditAction.CREATE,
+            targetType = "User"
+    )
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -42,6 +49,11 @@ public class UserService {
         return userRepository.findAll().stream().map(this::toResponse).toList();
     }
 
+    @Audit(
+            module = "USER",
+            action = AuditAction.UPDATE,
+            targetType = "User"
+    )
     @Transactional
     public UserResponse updateUser(UpdateUserRequest request, Integer id) {
         User user = userRepository.findById(id)
@@ -61,6 +73,11 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
+    @Audit(
+            module = "USER",
+            action = AuditAction.DELETE,
+            targetType = "User"
+    )
     @Transactional
     public UserResponse deleteUser(Integer id) {
         User user = userRepository.findById(id)
