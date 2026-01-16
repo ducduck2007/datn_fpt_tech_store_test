@@ -34,6 +34,7 @@ const MODULE_PRESETS = {
     mode: "all",
     seedFiles: [],
   },
+
   catalog: {
     key: "2",
     label: "Catalog / Product",
@@ -46,9 +47,12 @@ const MODULE_PRESETS = {
       "repository/ProductVariantRepository.java",
       "repository/CategoryRepository.java",
       "repository/ProductCategoryRepository.java",
+
       // DTO core catalog
       "dto/request/ProductRequest.java",
       "dto/response/ProductResponse.java",
+      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
+
       // Entities core catalog
       "entity/Product.java",
       "entity/ProductVariant.java",
@@ -60,8 +64,13 @@ const MODULE_PRESETS = {
       "entity/Tag.java",
       "entity/ProductTag.java",
       "entity/ProductTagId.java",
+
+      // infra hay dùng chung
+      "exception/ErrorResponse.java", // ✅ add (khuyến nghị)
+      "exception/GlobalExceptionHandler.java", // ✅ add (khuyến nghị)
     ],
   },
+
   sales: {
     key: "3",
     label: "Sales / Order & Returns",
@@ -72,18 +81,29 @@ const MODULE_PRESETS = {
       "service/OrderQueryService.java",
       "repository/OrderRepository.java",
       "repository/OrderItemRepository.java",
+
       "dto/request/CreateOrderRequest.java",
       "dto/request/CreateOrderItemRequest.java",
+      "dto/request/UpdateOrderRequest.java", // ✅ add
+
       "dto/response/CreateOrderResponse.java",
       "dto/response/OrderListResponse.java",
+      "dto/response/OrderDetailResponse.java", // ✅ add
+      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
+
       "entity/Order.java",
       "entity/OrderItem.java",
       "entity/Payment.java",
       "entity/Return.java",
       "entity/StockTransaction.java",
       "repository/StockTransactionRepository.java",
+
+      // infra
+      "exception/ErrorResponse.java",
+      "exception/GlobalExceptionHandler.java",
     ],
   },
+
   customer: {
     key: "4",
     label: "Customer & Loyalty",
@@ -93,12 +113,20 @@ const MODULE_PRESETS = {
       "service/CustomerService.java",
       "dto/request/CustomerRequest.java",
       "dto/response/CustomerResponse.java",
+      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
+
       "entity/Customer.java",
       "entity/CustomerType.java",
       "entity/Customergroup.java",
       "entity/VipTier.java",
+
+      // infra hay dùng
+      "exception/ErrorResponse.java",
+      "exception/GlobalExceptionHandler.java",
+      "util/IpUtil.java", // ✅ add (khuyến nghị)
     ],
   },
+
   user: {
     key: "5",
     label: "User & Role / Audit",
@@ -108,23 +136,47 @@ const MODULE_PRESETS = {
       "controller/UserController.java",
       "service/AuthService.java",
       "service/UserService.java",
+
       "security/CustomUserDetails.java",
       "security/CustomUserDetailsService.java",
       "security/JwtAuthenticationFilter.java",
       "security/JwtService.java",
+
       "config/SecurityConfig.java",
       "config/JwtProperties.java",
+
       "dto/request/LoginRequest.java",
       "dto/request/RegisterRequest.java",
       "dto/request/CreateUserRequest.java",
       "dto/request/UpdateUserRequest.java",
+
       "dto/response/AuthResponse.java",
       "dto/response/UserResponse.java",
+      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
+
       "entity/User.java",
       "entity/Role.java",
       "repository/UserRepository.java",
+
+      // ✅ AUDIT package (đúng theo label module)
+      "audit/Audit.java",
+      "audit/AuditAction.java",
+      "audit/AuditLog.java",
+      "audit/AuditLogAspect.java",
+      "audit/AuditLogRepository.java",
+      "audit/AuditLogService.java",
+
+      // infra
+      "util/SecurityUtil.java",
+      "util/IpUtil.java",
+      "exception/ErrorResponse.java",
+      "exception/GlobalExceptionHandler.java",
+      "config/CorsConfig.java", // ✅ add (khuyến nghị)
+      "config/WebConfig.java", // ✅ add (khuyến nghị)
+      "config/ModelMapperConfig.java", // ✅ add (khuyến nghị)
     ],
   },
+
   pricing: {
     key: "6",
     label: "Pricing & Promotion",
@@ -146,15 +198,41 @@ const MODULE_PRESETS = {
       "dto/request/UpsertPriceRequest.java",
       "dto/request/PromotionRequest.java",
       "dto/response/VariantPriceResponse.java",
+      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
 
       // entities
       "entity/PriceHistory.java",
       "entity/Promotion.java",
-      // thường pricing/promotion sẽ đụng tới product variant/product
+
+      // pricing/promotion đụng tới product
       "entity/ProductVariant.java",
       "entity/Product.java",
       "repository/ProductVariantRepository.java",
       "repository/ProductRepository.java",
+
+      // infra
+      "exception/ErrorResponse.java",
+      "exception/GlobalExceptionHandler.java",
+    ],
+  },
+
+  // ✅ NEW MODULE: settings (bạn đang thiếu trong presets)
+  settings: {
+    key: "7",
+    label: "Settings / System Config",
+    mode: "seed",
+    seedFiles: [
+      "controller/SettingController.java",
+      "service/SettingService.java",
+      "repository/SystemSettingRepository.java",
+      "entity/SystemSetting.java",
+      "dto/request/SetDefaultCurrencyRequest.java",
+      "dto/response/ApiResponse.java",
+
+      // infra
+      "exception/ErrorResponse.java",
+      "exception/GlobalExceptionHandler.java",
+      "config/WebConfig.java",
     ],
   },
 };

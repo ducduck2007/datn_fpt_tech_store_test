@@ -7,10 +7,12 @@ import com.retailmanagement.entity.Image;
 import com.retailmanagement.entity.Product;
 import com.retailmanagement.entity.ProductCategory;
 import com.retailmanagement.entity.ProductCategoryId;
+import com.retailmanagement.entity.ProductVariant;
 import com.retailmanagement.repository.CategoryRepository;
 import com.retailmanagement.repository.ImageRepository;
 import com.retailmanagement.repository.ProductCategoryRepository;
 import com.retailmanagement.repository.ProductRepository;
+import com.retailmanagement.repository.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,11 +23,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -36,6 +42,9 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ImageRepository imageRepository;
     private final ProductCategoryRepository productCategoryRepository;
+
+    // ✅ Added for computing min price in product list
+    private final ProductVariantRepository productVariantRepository;
 
     private static final String UPLOAD_DIR = "uploads";
 
@@ -54,7 +63,7 @@ public class ProductService {
                     .orElseThrow(() -> new RuntimeException("Category not found"));
 
             ProductCategory pc = new ProductCategory();
-            pc.setId(new ProductCategoryId(savedProduct.getId(), category.getId())); // ✅ bỏ trùng set
+            pc.setId(new ProductCategoryId(savedProduct.getId(), category.getId()));
             pc.setCategory(category);
             pc.setIsPrimary(true);
             pc.setCreatedAt(Instant.now());
@@ -82,28 +91,47 @@ public class ProductService {
     public Page<ProductResponse> getProducts(int page, Integer categoryId) {
         Page<Product> productPage;
 
+        // ✅ Keep fixed 20/page as required
         if (categoryId != null) {
-            Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
+            Pageable pageable = PageRequest.of(page, 20); // ordering handled by native query ORDER BY
             productPage = productRepository.findByCategoryId(categoryId, pageable);
         } else {
-            Pageable pageable = PageRequest.of(page, 20, Sort.by("createdAt").descending());
+            Pageable pageable = PageRequest.of(page, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
             productPage = productRepository.findAll(pageable);
         }
 
-        return productPage.map(product -> {
-            ProductResponse dto = new ProductResponse();
-            dto.setId(product.getId());
-            dto.setName(product.getName());
-            dto.setSku(product.getSku());
-            dto.setDescription(product.getDescription());
-            dto.setIsVisible(product.getIsVisible());
-            dto.setCreatedAt(product.getCreatedAt());
+        return productPage.map(this::toProductResponse);
+    }
 
-            imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
-                    .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+    private ProductResponse toProductResponse(Product product) {
+        ProductResponse dto = new ProductResponse();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setSku(product.getSku());
+        dto.setDescription(product.getDescription());
+        dto.setIsVisible(product.getIsVisible());
+        dto.setCreatedAt(product.getCreatedAt());
 
-            return dto;
-        });
+        imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
+                .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+
+        // ✅ "Display current price in product list"
+        // Choose min current price among variants (if you want "primary variant" instead, we can switch logic)
+        List<ProductVariant> variants = productVariantRepository.findByProduct_Id(product.getId());
+        Optional<ProductVariant> minVariantOpt = variants.stream()
+                .filter(v -> v.getPrice() != null)
+                .min(Comparator.comparing(ProductVariant::getPrice));
+
+        if (minVariantOpt.isPresent()) {
+            ProductVariant v = minVariantOpt.get();
+            dto.setMinPrice(v.getPrice());
+            dto.setCurrencyCode(v.getCurrencyCode());
+        } else {
+            dto.setMinPrice(null);
+            dto.setCurrencyCode(null);
+        }
+
+        return dto;
     }
 
     private String saveFileToDisk(MultipartFile file) throws IOException {
