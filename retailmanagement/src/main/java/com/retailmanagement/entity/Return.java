@@ -72,4 +72,9 @@ public class Return {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "order_item_id", nullable = false)
+    private OrderItem orderItem;
+
 }
