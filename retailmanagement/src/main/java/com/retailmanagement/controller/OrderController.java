@@ -1,7 +1,9 @@
 package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.CreateOrderRequest;
+import com.retailmanagement.dto.request.UpdateOrderRequest;
 import com.retailmanagement.dto.response.CreateOrderResponse;
+import com.retailmanagement.dto.response.OrderDetailResponse;
 import com.retailmanagement.dto.response.OrderListResponse;
 import com.retailmanagement.security.CustomUserDetails;
 import com.retailmanagement.service.OrderQueryService;
@@ -42,6 +44,44 @@ public class OrderController {
     @GetMapping("/processing")
     public List<OrderListResponse> getProcessingOrders() {
         return orderQueryService.getProcessingOrders();
+    }
+
+    /* UPDATE */
+    @PutMapping("/{orderId}")
+    public ResponseEntity<Void> updateOrder(
+            @PathVariable Long orderId,
+            @RequestBody UpdateOrderRequest request) {
+
+        orderService.updateOrder(orderId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    /* CANCEL */
+    @PutMapping("/{orderId}/cancel")
+    public ResponseEntity<Void> cancelOrder(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal CustomUserDetails user) {
+
+        orderService.cancelOrder(orderId, user.getUserId());
+        return ResponseEntity.ok().build();
+    }
+
+    /* DELETE */
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<Void> deleteOrder(@PathVariable Long orderId) {
+
+        orderService.deleteOrder(orderId);
+        return ResponseEntity.ok().build();
+    }
+
+    /* DETAIL */
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderDetailResponse> getOrderDetail(
+            @PathVariable Long orderId) {
+
+        return ResponseEntity.ok(
+                orderService.getOrderDetail(orderId)
+        );
     }
 }
 
