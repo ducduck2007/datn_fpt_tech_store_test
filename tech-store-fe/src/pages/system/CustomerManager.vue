@@ -321,10 +321,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import {
+  ref,
+  reactive,
+  onMounted,
+  computed,
+  watch,
+  nextTick,
+  onBeforeUnmount,
+} from "vue";
 import http from "../../api/http";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
+
+// ✅ IMPORTANT: use Bootstrap Modal via ESM import (works in Vite)
+import { Modal } from "bootstrap";
 
 const API_URL = "/api/auth/customers";
 
@@ -348,7 +359,7 @@ const formData = reactive({
   fullName: "",
   email: "",
   phone: "",
-  birthDate: null, // keep YYYY-MM-DD
+  birthDate: null, // YYYY-MM-DD
   address: "",
   customerType: "REGULAR",
   notes: "",
@@ -415,7 +426,10 @@ function resetFilters() {
   page.value = 1;
 }
 
-function openEditModal(row) {
+async function openEditModal(row) {
+  if (!row) return;
+
+  // fill form
   currentId.value = row.id;
 
   formData.fullName = row.name || "";
@@ -428,12 +442,22 @@ function openEditModal(row) {
 
   formAlert.value = "";
 
-  // show modal
-  modalInstance = window.bootstrap?.Modal?.getOrCreateInstance(modalEl.value, {
+  // ✅ ensure ref is ready
+  await nextTick();
+
+  if (!modalEl.value) {
+    console.warn(
+      "customerEditModal ref is null. Modal element not found in DOM."
+    );
+    return;
+  }
+
+  // ✅ create/show modal reliably in Vite
+  modalInstance = Modal.getOrCreateInstance(modalEl.value, {
     backdrop: "static",
     keyboard: true,
   });
-  modalInstance?.show?.();
+  modalInstance.show();
 }
 
 function validateForm() {
@@ -464,9 +488,10 @@ async function submitForm() {
   try {
     await http.put(`${API_URL}/${currentId.value}`, formData);
     toast("Cập nhật thành công!", "success");
-    modalInstance?.hide?.();
+    modalInstance?.hide();
     await fetchCustomers();
   } catch (error) {
+    console.error(error);
     const msg = error?.response?.data?.message || "Có lỗi xảy ra";
     toast(msg, "danger");
   } finally {
@@ -494,6 +519,8 @@ async function handleDelete(id) {
 
 function resetForm() {
   formAlert.value = "";
+  // optional: clear form fields if you want
+  // currentId.value = null;
 }
 
 function formatCurrency(value) {
@@ -508,7 +535,25 @@ function getCustomerTypeBadge(type) {
   return type === "VIP" ? "text-bg-warning" : "text-bg-success";
 }
 
-onMounted(fetchCustomers);
+// ✅ reset when modal fully closes (nice UX)
+function onHidden() {
+  resetForm();
+}
+
+onMounted(async () => {
+  await fetchCustomers();
+  await nextTick();
+
+  if (modalEl.value) {
+    modalEl.value.addEventListener("hidden.bs.modal", onHidden);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (modalEl.value) {
+    modalEl.value.removeEventListener("hidden.bs.modal", onHidden);
+  }
+});
 </script>
 
 <style scoped>

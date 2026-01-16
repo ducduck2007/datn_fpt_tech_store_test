@@ -1,0 +1,67 @@
+Based on the updated API list, please help me with the front-end UI source code, adding or supplementing any missing parts in the front-end. I only need the complete source code of the modified or added files.
+(Identify which functions belong to the system admin and which belong to the client side)
+A) Auth
+- POST   /api/auth/register
+  Body: { username, email, password }
+- POST   /api/auth/login
+  Body: { identifier, password }
+
+B) User Management (Base: /api/auth/users)
+- GET    /api/auth/users
+- POST   /api/auth/users/add
+  Body: { username, email, password, role }
+- PUT    /api/auth/users/update?id=<id>
+  Body: { username, email, role }
+- DELETE /api/auth/users/delete?id=<id>
+
+C) Customers & Loyalty (Base: /api/auth/customers)
+- POST   /api/auth/customers
+  Body: { fullName, email, phone, birthDate, customerType, address, notes }
+- GET    /api/auth/customers
+- GET    /api/auth/customers/{type}   (REGULAR|VIP)
+- PUT    /api/auth/customers/{id}
+  Body: (partial) CustomerRequest
+- DELETE /api/auth/customers/{id}
+
+D) Categories (Base: /api/categories)
+- POST   /api/categories
+  Body: { name, description, imageUrl, displayOrder, isActive, parent?: {id} }
+- GET    /api/categories?activeOnly=true|false
+
+E) Products (Base: /api/products)
+- POST   /api/products  (multipart/form-data)
+  Fields: name, sku, description, isVisible, categoryId, imageFile
+- GET    /api/products?page=0&categoryId=<id?>
+
+F) Orders (Base: /api/orders)
+- POST   /api/orders
+  Body: { customerId, paymentMethod, channel, notes, items:[{variantId, quantity}] }
+- GET    /api/orders/new
+- GET    /api/orders/processing
+- GET    /api/orders/{orderId}
+- PUT    /api/orders/{orderId}
+  Body: { paymentMethod, notes }
+- PUT    /api/orders/{orderId}/cancel
+- DELETE /api/orders/{orderId}
+
+G) Pricing (Base: /api/prices)
+- POST   /api/prices/variants/{variantId}
+  Body: { currencyCode, price, costPrice, reason }
+- GET    /api/prices/products/{productId}
+- PUT    /api/prices/history/{id}
+  Body: { currencyCode, price, costPrice, reason }
+- DELETE /api/prices/history/{id}
+- GET    /api/prices/variants/{variantId}/effective
+
+H) Promotions (Base: /api/promotions)
+- POST   /api/promotions
+  Body: { code, name, description, discountType, discountValue, startDate, endDate,
+          scope, productIds[], variantIds[], priority, stackable, isActive }
+- GET    /api/promotions?activeOnly=true|false
+- PUT    /api/promotions/{id}
+- DELETE /api/promotions/{id}
+
+I) Settings (Base: /api/settings)
+- GET    /api/settings/currency/default
+- PUT    /api/settings/currency/default
+  Body: { currencyCode }
