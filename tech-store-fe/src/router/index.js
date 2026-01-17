@@ -1,16 +1,27 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { getToken, getRole } from "../stores/auth";
+import { getRole, getToken } from "../stores/auth";
 
-// --- Customer Imports ---
+// ===== Customer =====
 import CustomerHome from "../pages/customer/CustomerHome.vue";
 import CustomerLogin from "../pages/customer/CustomerLogin.vue";
 import CustomerRegister from "../pages/customer/CustomerRegister.vue";
+import CustomerOrderCreate from "../pages/customer/OrderCreate.vue";
+import CustomerOrderDetail from "../pages/customer/OrderDetail.vue";
 
-// --- System Imports ---
+// ===== System (Admin) =====
 import SystemLogin from "../pages/system/SystemLogin.vue";
+import SystemShell from "../pages/system/SystemShell.vue";
 import SystemDashboard from "../pages/system/SystemDashboard.vue";
+import UserManager from "../pages/system/UserManager.vue";
 import CustomerManager from "../pages/system/CustomerManager.vue";
-import SystemShell from "../pages/system/SystemShell.vue"; // ✅ NEW
+import CategoryManager from "../pages/system/CategoryManager.vue";
+import ProductManager from "../pages/system/ProductManager.vue";
+import OrderListNew from "../pages/system/OrderListNew.vue";
+import OrderListProcessing from "../pages/system/OrderListProcessing.vue";
+import SystemOrderDetail from "../pages/system/OrderDetail.vue";
+import PricingManager from "../pages/system/PricingManager.vue";
+import PromotionManager from "../pages/system/PromotionManager.vue";
+import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 
 const routes = [
   // ===== CUSTOMER PORTAL =====
@@ -24,16 +35,26 @@ const routes = [
     path: "/login",
     name: "login",
     component: CustomerLogin,
-    meta: { portal: "customer" },
+    meta: { portal: "customer", hideHeader: true },
   },
   {
     path: "/register",
     name: "register",
     component: CustomerRegister,
-    meta: { portal: "customer" },
+    meta: { portal: "customer", hideHeader: true },
   },
-
-  { path: "/dashboard", redirect: "/" },
+  {
+    path: "/orders/new",
+    name: "customer-order-create",
+    component: CustomerOrderCreate,
+    meta: { portal: "customer", requiresAuth: true },
+  },
+  {
+    path: "/orders/:orderId",
+    name: "customer-order-detail",
+    component: CustomerOrderDetail,
+    meta: { portal: "customer", requiresAuth: true },
+  },
 
   // ===== SYSTEM LOGIN =====
   {
@@ -43,7 +64,7 @@ const routes = [
     meta: { portal: "system", hideHeader: true },
   },
 
-  // ===== SYSTEM AREA WITH COMMON LAYOUT =====
+  // ===== SYSTEM AREA =====
   {
     path: "/system",
     component: SystemShell,
@@ -54,13 +75,73 @@ const routes = [
         path: "dashboard",
         name: "system-dashboard",
         component: SystemDashboard,
-        meta: { title: "Dashboard", showTokenPanel: false }, // ✅ hide right panel
+        meta: { title: "Dashboard" },
+      },
+
+      // Admin modules
+      {
+        path: "users",
+        name: "system-users",
+        component: UserManager,
+        meta: { title: "User Management" },
       },
       {
         path: "customers",
         name: "system-customers",
         component: CustomerManager,
-        meta: { title: "Customers", showTokenPanel: false }, // ✅ hide right panel
+        meta: { title: "Customers & Loyalty" },
+      },
+      {
+        path: "categories",
+        name: "system-categories",
+        component: CategoryManager,
+        meta: { title: "Categories" },
+      },
+      {
+        path: "products",
+        name: "system-products",
+        component: ProductManager,
+        meta: { title: "Products" },
+      },
+
+      // Orders
+      {
+        path: "orders/new",
+        name: "system-orders-new",
+        component: OrderListNew,
+        meta: { title: "Orders (New)" },
+      },
+      {
+        path: "orders/processing",
+        name: "system-orders-processing",
+        component: OrderListProcessing,
+        meta: { title: "Orders (Processing)" },
+      },
+      {
+        path: "orders/:orderId",
+        name: "system-order-detail",
+        component: SystemOrderDetail,
+        meta: { title: "Order Detail" },
+      },
+
+      // Pricing / Promotions / Settings
+      {
+        path: "pricing",
+        name: "system-pricing",
+        component: PricingManager,
+        meta: { title: "Pricing" },
+      },
+      {
+        path: "promotions",
+        name: "system-promotions",
+        component: PromotionManager,
+        meta: { title: "Promotions" },
+      },
+      {
+        path: "settings/currency",
+        name: "system-settings-currency",
+        component: SettingsCurrency,
+        meta: { title: "Settings - Currency" },
       },
     ],
   },
@@ -82,24 +163,22 @@ router.beforeEach((to) => {
   const isSystemRoute = portal === "system";
   const isCustomer = role === "CUSTOMER";
 
-  // 1) Route cần auth mà chưa login
+  // 1) Route requires auth
   if (to.meta?.requiresAuth && !isAuthed) {
     return isSystemRoute ? "/system/login" : "/login";
   }
 
-  // 2) Đã login rồi thì chặn vào trang login/register
+  // 2) Logged-in user goes to login/register pages
   if (isAuthed) {
     if (!isSystemRoute && (to.path === "/login" || to.path === "/register")) {
-      if (isCustomer) return "/";
-      return "/system/dashboard";
+      return isCustomer ? "/" : "/system/dashboard";
     }
     if (isSystemRoute && to.path === "/system/login") {
-      if (!isCustomer) return "/system/dashboard";
-      return "/";
+      return !isCustomer ? "/system/dashboard" : "/";
     }
   }
 
-  // 3) Chặn cross-portal
+  // 3) Cross-portal protection
   if (isAuthed) {
     if (!isSystemRoute && !isCustomer) return "/system/dashboard";
     if (isSystemRoute && isCustomer) return "/";

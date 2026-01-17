@@ -1,107 +1,57 @@
+<!-- FILE: src/pages/customer/CustomerLogin.vue -->
 <template>
   <AuthLayout
     currentPortal="customer"
     :title="'Customer login'"
-    :desc="'Đăng nhập dành cho khách hàng (CUSTOMER).'"
+    :desc="'Login for customers (CUSTOMER).'"
     tag-text="Customer"
     tag-type="primary"
     kicker="Customer Portal"
-    headline="Đăng nhập"
+    headline="Login"
     :showPortalSwitch="false"
   >
-    <div class="d-grid gap-3">
-      <div
-        v-if="alert"
-        class="alert alert-danger d-flex align-items-center gap-2 mb-0"
-        role="alert"
-      >
-        <i class="bi bi-exclamation-triangle-fill"></i>
-        <div>{{ alert }}</div>
-      </div>
+    <el-form
+      :model="form"
+      label-position="top"
+      class="d-grid gap-3"
+      @submit.prevent
+    >
+      <el-alert v-if="alert" :title="alert" type="error" show-icon />
 
-      <div class="intro">
-        <div class="intro__title">Chào mừng bạn quay lại</div>
-        <div class="intro__sub">
-          Đăng nhập để xem đơn hàng, tích điểm và nhận ưu đãi theo tài khoản.
-        </div>
-      </div>
+      <el-form-item label="Email or Username">
+        <el-input
+          v-model="form.identifier"
+          autocomplete="username"
+          placeholder="user@mail.com / username"
+        />
+      </el-form-item>
 
-      <form @submit.prevent class="d-grid gap-3">
-        <div>
-          <label class="form-label fw-bold">Email hoặc Username</label>
-          <input
-            v-model="form.identifier"
-            class="form-control form-control-lg ts-input"
-            placeholder="vd: nguyenvana / user@mail.com"
-            autocomplete="username"
-          />
-        </div>
+      <el-form-item label="Password">
+        <el-input
+          v-model="form.password"
+          type="password"
+          show-password
+          autocomplete="current-password"
+          placeholder="Your password"
+        />
+      </el-form-item>
 
-        <div>
-          <label class="form-label fw-bold">Mật khẩu</label>
-          <div class="input-group input-group-lg">
-            <input
-              v-model="form.password"
-              class="form-control ts-input"
-              :type="showPass ? 'text' : 'password'"
-              placeholder="Nhập mật khẩu của bạn"
-              autocomplete="current-password"
-            />
-            <button
-              class="btn btn-outline-secondary"
-              type="button"
-              @click="showPass = !showPass"
-            >
-              <i class="bi" :class="showPass ? 'bi-eye-slash' : 'bi-eye'"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="ts-muted">
-            Bạn chưa có tài khoản?
-            <button
-              type="button"
-              class="btn btn-link p-0 fw-bold"
-              @click="goRegister"
-            >
-              Đăng ký ngay
-            </button>
-          </div>
-        </div>
-
-        <button
-          class="btn btn-primary btn-lg ts-btn w-100"
-          type="button"
-          :disabled="loading"
-          @click="doLogin"
-        >
-          <span
-            v-if="loading"
-            class="spinner-border spinner-border-sm me-2"
-            aria-hidden="true"
-          ></span>
-          Đăng nhập
-        </button>
-
-        <div class="foot ts-muted text-center">
-          <span class="dot">•</span> Bảo mật phiên đăng nhập
-          <span class="dot">•</span> Hỗ trợ tư vấn cấu hình
-          <span class="dot">•</span> Đổi trả theo chính sách
-        </div>
-
-        <div class="switch text-center">
-          <span class="ts-muted">Bạn là nhân viên/quản trị?</span>
-          <button
-            type="button"
-            class="btn btn-link fw-bold"
-            @click="$router.push('/system/login')"
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="text-muted">
+          No account?
+          <el-link type="primary" @click="router.push('/register')"
+            >Register</el-link
           >
-            Đăng nhập hệ thống
-          </button>
-        </div>
-      </form>
-    </div>
+        </span>
+        <el-link type="success" @click="router.push('/system/login')"
+          >System login</el-link
+        >
+      </div>
+
+      <el-button type="primary" size="large" :loading="loading" @click="doLogin"
+        >Login</el-button
+      >
+    </el-form>
   </AuthLayout>
 </template>
 
@@ -110,19 +60,14 @@ import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import AuthLayout from "../../components/AuthLayout.vue";
 import { toast } from "../../ui/toast";
-
 import { authApi } from "../../api/auth.api";
-import {
-  setSession,
-  setLastAuthResponse,
-  clearSession,
-  clearLastAuthResponse,
-} from "../../stores/auth";
+import { useAuthStore } from "../../stores/auth";
 
 const router = useRouter();
+const auth = useAuthStore();
+
 const loading = ref(false);
 const alert = ref("");
-const showPass = ref(false);
 
 const form = reactive({
   identifier: "",
@@ -130,41 +75,47 @@ const form = reactive({
 });
 
 function errToText(e) {
-  const msg = e?.response?.data?.message || e?.message || "Đăng nhập thất bại";
+  const msg = e?.response?.data?.message || e?.message || "Login failed";
   return typeof msg === "string" ? msg : JSON.stringify(msg);
 }
 
-function goRegister() {
-  router.push("/register");
+function pickTokenUser(payload) {
+  const root = payload?.data ?? payload;
+  const token =
+    root?.token ??
+    root?.data?.token ??
+    payload?.token ??
+    payload?.data?.data?.token;
+  const user =
+    root?.user ??
+    root?.data?.user ??
+    payload?.user ??
+    payload?.data?.data?.user;
+  return { token, user };
 }
 
 async function doLogin() {
   loading.value = true;
   alert.value = "";
-
   try {
     const res = await authApi.login({ ...form });
     const data = res?.data;
+    const { token, user } = pickTokenUser(data);
 
-    const token = data?.data?.token;
-    const user = data?.data?.user;
-
-    setLastAuthResponse(data);
-
-    const role = (user?.role || "").toUpperCase();
+    const role = String(user?.role || "").toUpperCase();
     if (role !== "CUSTOMER") {
-      clearSession();
-      clearLastAuthResponse();
       toast(
-        "Tài khoản không phải CUSTOMER. Vui lòng đăng nhập ở System portal.",
+        "This account is not CUSTOMER. Redirecting to System login.",
         "warning"
       );
       return router.replace("/system/login");
     }
 
-    setSession({ token, user });
-    toast("Đăng nhập thành công!", "success");
-    router.replace("/"); // back home
+    auth.setLastAuthResponse(data);
+    auth.setSession({ token, user });
+
+    toast("Login successful.", "success");
+    router.replace("/");
   } catch (e) {
     alert.value = errToText(e);
   } finally {
@@ -172,27 +123,3 @@ async function doLogin() {
   }
 }
 </script>
-
-<style scoped>
-.intro {
-  display: grid;
-  gap: 4px;
-}
-.intro__title {
-  font-weight: 900;
-  letter-spacing: -0.2px;
-  font-size: 16px;
-}
-.intro__sub {
-  font-size: 13px;
-  color: rgba(15, 23, 42, 0.6);
-  line-height: 1.55;
-}
-.foot {
-  font-size: 12px;
-}
-.dot {
-  opacity: 0.35;
-  padding: 0 6px;
-}
-</style>

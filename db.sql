@@ -1,13 +1,13 @@
 ---------------------------------------------------------------
 -- 0) CREATE DB (optional)
 ---------------------------------------------------------------
-IF DB_ID(N'retail_management') IS NULL
+IF DB_ID(N'retail_management_v2') IS NULL
 BEGIN
-    CREATE DATABASE retail_management;
+    CREATE DATABASE retail_management_v2;
 END
 GO
 
-USE retail_management;
+USE retail_management_v2;
 GO
 
 ---------------------------------------------------------------
@@ -592,4 +592,9 @@ IF NOT EXISTS (SELECT 1 FROM dbo.system_settings WHERE setting_key = 'DEFAULT_CU
 BEGIN
     INSERT INTO dbo.system_settings(setting_key, setting_value) VALUES ('DEFAULT_CURRENCY', 'VND');
 END
+GO
+
+ALTER TABLE dbo.user_logins
+ADD updated_at DATETIME2 NOT NULL
+    CONSTRAINT DF_user_logins_updated_at DEFAULT SYSDATETIME();
 GO
