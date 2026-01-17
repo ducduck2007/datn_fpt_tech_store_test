@@ -1,13 +1,10 @@
-<!-- src/App.vue -->
 <template>
-  <div class="app-shell">
-    <!-- Sticky Navbar -->
-    <header v-if="showHeader" class="app-header">
+  <el-container class="app-shell">
+    <el-header v-if="showHeader" class="app-header">
       <div
         class="container-xl h-100 d-flex align-items-center justify-content-between gap-3"
       >
         <div class="d-flex align-items-center gap-3 min-w-0">
-          <!-- Brand -->
           <div
             class="brand d-flex align-items-center gap-2"
             role="button"
@@ -21,178 +18,132 @@
             </div>
           </div>
 
-          <!-- Landing nav (only on customer home) -->
           <div
-            v-if="showLandingNav"
-            class="landing-nav d-none d-lg-flex align-items-center gap-2"
+            v-if="showSearch"
+            class="d-none d-lg-flex align-items-center gap-2"
           >
-            <input
+            <el-input
               v-model="q"
-              class="form-control form-control-sm ts-input search"
-              placeholder="Tìm laptop, CPU, RAM..."
+              class="search"
+              placeholder="Search laptop, CPU, RAM..."
+              clearable
+              @input="emitSearch"
             />
-            <div class="links d-flex align-items-center gap-1">
-              <button
-                class="btn btn-sm btn-light ts-pill"
-                @click="scrollTo('featured')"
-              >
-                Sản phẩm
-              </button>
-              <button
-                class="btn btn-sm btn-light ts-pill"
-                @click="scrollTo('benefits')"
-              >
-                Dịch vụ
-              </button>
-              <button
-                class="btn btn-sm btn-light ts-pill"
-                @click="scrollTo('footer')"
-              >
-                Liên hệ
-              </button>
-            </div>
           </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2 flex-shrink-0">
-          <template v-if="isAuthed">
-            <span
-              v-if="role"
-              class="badge text-bg-secondary ts-pill text-uppercase"
-              >{{ role }}</span
-            >
+        <div class="d-flex align-items-center gap-2">
+          <el-tag v-if="isAuthed" :type="portalTagType" effect="light">
+            {{ portalLabel }}
+          </el-tag>
 
-            <div
-              v-if="userLabel"
-              class="userbox d-none d-md-flex align-items-center gap-2"
-            >
-              <div class="avatar">
-                {{ (userLabel || "U").slice(0, 1).toUpperCase() }}
-              </div>
-              <span class="small">
-                Xin chào, <b>{{ userLabel }}</b>
-              </span>
-            </div>
-
-            <button
-              class="btn btn-outline-danger ts-btn"
-              :disabled="isLoggingOut"
-              @click="logout"
-            >
-              <span
-                v-if="isLoggingOut"
-                class="spinner-border spinner-border-sm me-2"
-                aria-hidden="true"
-              ></span>
-              Đăng xuất
-            </button>
+          <template v-if="!isAuthed">
+            <el-button type="primary" @click="goLogin">Login</el-button>
           </template>
 
           <template v-else>
-            <button class="btn btn-primary ts-btn" @click="goLogin">
-              Đăng nhập
-            </button>
+            <el-dropdown>
+              <span class="userbox d-flex align-items-center gap-2">
+                <span class="avatar">{{ avatarLetter }}</span>
+                <span class="d-none d-md-inline">{{ displayName }}</span>
+                <i class="bi bi-chevron-down"></i>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item
+                    v-if="isSystemUser"
+                    @click="router.push('/system/dashboard')"
+                  >
+                    System Dashboard
+                  </el-dropdown-item>
+                  <el-dropdown-item
+                    v-if="isCustomer"
+                    @click="router.push('/orders/new')"
+                  >
+                    Create Order
+                  </el-dropdown-item>
+                  <el-dropdown-item divided @click="logout">
+                    Logout
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
         </div>
       </div>
-    </header>
+    </el-header>
 
-    <main class="app-main">
+    <el-main class="app-main">
       <router-view />
-    </main>
-  </div>
+    </el-main>
+  </el-container>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { toast } from "./ui/toast";
-import { confirmModal } from "./ui/confirm";
-
 import {
-  clearSession,
   clearLastAuthResponse,
-  getToken,
-  getRole,
-  getUser,
+  clearSession,
+  useAuthStore,
 } from "./stores/auth";
 
-const router = useRouter();
 const route = useRoute();
-const isLoggingOut = ref(false);
+const router = useRouter();
+const auth = useAuthStore();
 
-const isAuthed = computed(() => !!getToken());
-const role = computed(() => (getRole() || "").toUpperCase());
-const user = computed(() => getUser());
+const q = ref("");
 
-const userLabel = computed(() => {
-  const u = user.value || {};
-  return u.username || u.email || u.name || "";
+const isAuthed = computed(() => auth.isAuthed);
+const isCustomer = computed(() => auth.isCustomer);
+const isSystemUser = computed(() => isAuthed.value && !isCustomer.value);
+const displayName = computed(() => auth.displayName);
+
+const avatarLetter = computed(() => {
+  const s = String(displayName.value || "U").trim();
+  return (s[0] || "U").toUpperCase();
 });
 
-const showHeader = computed(() => !route.meta?.hideHeader);
-const showLandingNav = computed(
-  () => route.meta?.portal === "customer" && route.path === "/"
+const showHeader = computed(() => route.meta?.hideHeader !== true);
+const showSearch = computed(
+  () =>
+    route.name === "home" && (route.meta?.portal || "customer") === "customer"
 );
 
-// ===== Search -> dispatch event for CustomerHome =====
-const q = ref("");
-let _t = null;
-watch(q, (v) => {
-  clearTimeout(_t);
-  _t = setTimeout(() => {
-    window.dispatchEvent(
-      new CustomEvent("products:search", { detail: v || "" })
-    );
-  }, 200);
-});
+const portalLabel = computed(() => (isCustomer.value ? "Customer" : "System"));
+const portalTagType = computed(() =>
+  isCustomer.value ? "primary" : "success"
+);
 
-function scrollTo(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
+function emitSearch() {
+  window.dispatchEvent(new CustomEvent("products:search", { detail: q.value }));
 }
 
 function goHome() {
   if (!isAuthed.value) return router.push("/");
-  return router.push(role.value === "CUSTOMER" ? "/" : "/system/dashboard");
+  return isCustomer.value ? router.push("/") : router.push("/system/dashboard");
 }
 
 function goLogin() {
-  if (route.path.startsWith("/system")) return router.push("/system/login");
-  return router.push("/login");
-}
-
-async function doLogout(autoReason = "") {
-  clearSession();
-  clearLastAuthResponse();
-
-  if (autoReason)
-    toast("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "warning");
-  else toast("Đã đăng xuất.", "success");
-
-  if (route.path.startsWith("/system")) return router.replace("/system/login");
-  return router.replace("/login");
+  router.push("/login");
 }
 
 async function logout() {
-  const ok = await confirmModal(
-    "Bạn muốn đăng xuất?",
-    "Xác nhận",
-    "Đăng xuất",
-    true
-  );
-  if (!ok) return;
-  isLoggingOut.value = true;
-  try {
-    await doLogout("");
-  } finally {
-    isLoggingOut.value = false;
-  }
+  clearSession();
+  clearLastAuthResponse();
+  toast("Logged out.", "success");
+  router.push(isSystemUser.value ? "/system/login" : "/login");
 }
 
 function onAutoLogout(e) {
-  doLogout(e?.detail || "401");
+  clearSession();
+  clearLastAuthResponse();
+  toast(
+    `Session expired (${e?.detail || "401"}). Please login again.`,
+    "warning"
+  );
+  router.push("/login");
 }
 
 onMounted(() => window.addEventListener("auth:logout", onAutoLogout));
@@ -218,6 +169,8 @@ onBeforeUnmount(() => window.removeEventListener("auth:logout", onAutoLogout));
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   background: rgba(255, 255, 255, 0.78);
   height: 64px;
+  display: flex;
+  align-items: center;
 }
 
 .brand {
@@ -254,6 +207,7 @@ onBeforeUnmount(() => window.removeEventListener("auth:logout", onAutoLogout));
   border-radius: 999px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   background: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
 }
 .avatar {
   width: 28px;

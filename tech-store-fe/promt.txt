@@ -1,12 +1,49 @@
-Based on the updated API list, please help me with the front-end UI source code, adding or supplementing any missing parts in the front-end. I only need the complete source code of the modified or added files.
-(Identify which functions belong to the system admin and which belong to the client side)
+Đóng vai trò là Senior Frontend Developer (Vue.js). Dựa trên danh sách API bên dưới, hãy xây dựng và/hoặc bổ sung đầy đủ mã nguồn giao diện người dùng (Frontend UI) cho dự án  (mã nguồn Frontend UI trong project-tree-with-code.txt).
+
+YÊU CẦU CHUNG
+1) Chỉ trả về MÃ NGUỒN HOÀN CHỈNH của các tệp:
+   - Được thêm mới
+   - Hoặc đã được chỉnh sửa
+   Không cần giải thích dài dòng, không cần mô tả lý thuyết.
+2) Phân tách rõ ràng chức năng:
+   - Hệ thống quản trị (System Admin)
+   - Phía khách hàng (Customer)
+3) Giả định dự án sử dụng:
+   - Vue 3 (Composition API)
+   - Router + Store (Pinia hoặc Vuex đều được, chọn 1 và dùng nhất quán)
+   - Axios cho HTTP
+   - UI framework: Element Plus
+4) Tuân thủ đúng request/response theo API đã cho (method, endpoint, body, params).
+5) Tổ chức code rõ ràng theo module: auth, users, customers, products, orders, v.v.
+
+PHÂN QUYỀN CHỨC NĂNG
+- System Admin:
+  • Đăng nhập hệ thống
+  • Quản lý User
+  • Quản lý Customers & Loyalty
+  • Quản lý Categories
+  • Quản lý Products
+  • Quản lý Pricing
+  • Quản lý Promotions
+  • Xem & xử lý Orders
+  • Cấu hình Settings (Currency)
+
+- Customer:
+  • Đăng ký
+  • Đăng nhập
+  • Xem sản phẩm
+  • Tạo đơn hàng
+  • Xem chi tiết đơn hàng của mình
+
+DANH SÁCH API LÀM CĂN CỨ
+
 A) Auth
 - POST   /api/auth/register
   Body: { username, email, password }
 - POST   /api/auth/login
   Body: { identifier, password }
 
-B) User Management (Base: /api/auth/users)
+B) User Management (Admin) – Base: /api/auth/users
 - GET    /api/auth/users
 - POST   /api/auth/users/add
   Body: { username, email, password, role }
@@ -14,37 +51,38 @@ B) User Management (Base: /api/auth/users)
   Body: { username, email, role }
 - DELETE /api/auth/users/delete?id=<id>
 
-C) Customers & Loyalty (Base: /api/auth/customers)
+C) Customers & Loyalty (Admin) – Base: /api/auth/customers
 - POST   /api/auth/customers
   Body: { fullName, email, phone, birthDate, customerType, address, notes }
 - GET    /api/auth/customers
-- GET    /api/auth/customers/{type}   (REGULAR|VIP)
+- GET    /api/auth/customers/{type}   (REGULAR | VIP)
 - PUT    /api/auth/customers/{id}
-  Body: (partial) CustomerRequest
+  Body: Partial CustomerRequest
 - DELETE /api/auth/customers/{id}
 
-D) Categories (Base: /api/categories)
+D) Categories (Admin) – Base: /api/categories
 - POST   /api/categories
-  Body: { name, description, imageUrl, displayOrder, isActive, parent?: {id} }
+  Body: { name, description, imageUrl, displayOrder, isActive, parent?: { id } }
 - GET    /api/categories?activeOnly=true|false
 
-E) Products (Base: /api/products)
-- POST   /api/products  (multipart/form-data)
+E) Products
+- POST   /api/products  (Admin – multipart/form-data)
   Fields: name, sku, description, isVisible, categoryId, imageFile
 - GET    /api/products?page=0&categoryId=<id?>
+  (Customer + Admin)
 
-F) Orders (Base: /api/orders)
-- POST   /api/orders
-  Body: { customerId, paymentMethod, channel, notes, items:[{variantId, quantity}] }
-- GET    /api/orders/new
-- GET    /api/orders/processing
+F) Orders
+- POST   /api/orders (Customer)
+  Body: { customerId, paymentMethod, channel, notes, items:[{ variantId, quantity }] }
+- GET    /api/orders/new (Admin)
+- GET    /api/orders/processing (Admin)
 - GET    /api/orders/{orderId}
 - PUT    /api/orders/{orderId}
   Body: { paymentMethod, notes }
 - PUT    /api/orders/{orderId}/cancel
 - DELETE /api/orders/{orderId}
 
-G) Pricing (Base: /api/prices)
+G) Pricing (Admin) – Base: /api/prices
 - POST   /api/prices/variants/{variantId}
   Body: { currencyCode, price, costPrice, reason }
 - GET    /api/prices/products/{productId}
@@ -53,7 +91,7 @@ G) Pricing (Base: /api/prices)
 - DELETE /api/prices/history/{id}
 - GET    /api/prices/variants/{variantId}/effective
 
-H) Promotions (Base: /api/promotions)
+H) Promotions (Admin) – Base: /api/promotions
 - POST   /api/promotions
   Body: { code, name, description, discountType, discountValue, startDate, endDate,
           scope, productIds[], variantIds[], priority, stackable, isActive }
@@ -61,7 +99,13 @@ H) Promotions (Base: /api/promotions)
 - PUT    /api/promotions/{id}
 - DELETE /api/promotions/{id}
 
-I) Settings (Base: /api/settings)
+I) Settings (Admin) – Base: /api/settings
 - GET    /api/settings/currency/default
 - PUT    /api/settings/currency/default
   Body: { currencyCode }
+
+KẾT QUẢ MONG MUỐN
+- Mã nguồn frontend hoàn chỉnh cho các chức năng tương ứng
+- Có router, store, api service, page/component cần thiết
+- Phân tách rõ Admin UI và Customer UI
+- Chỉ output code của các file cần thiết (đã sửa hoặc thêm mới)
