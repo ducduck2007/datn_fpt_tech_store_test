@@ -74,8 +74,8 @@
           <el-form-item label="role">
             <el-select v-model="dlg.form.role">
               <el-option label="ADMIN" value="ADMIN" />
-              <el-option label="STAFF" value="STAFF" />
-              <el-option label="MANAGER" value="MANAGER" />
+              <el-option label="SALES" value="SALES" />
+              <el-option label="INVENTORY" value="INVENTORY" />
             </el-select>
           </el-form-item>
         </div>
