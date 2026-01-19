@@ -7,7 +7,7 @@ import java.lang.annotation.*;
 @Documented
 public @interface Audit {
 
-    String module();
+    AuditModule module();
     AuditAction action();
-    String targetType();
+    TargetType targetType();
 }

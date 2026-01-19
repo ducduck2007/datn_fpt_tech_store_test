@@ -2,6 +2,8 @@ package com.retailmanagement.service;
 
 import com.retailmanagement.audit.Audit;
 import com.retailmanagement.audit.AuditAction;
+import com.retailmanagement.audit.AuditModule;
+import com.retailmanagement.audit.TargetType;
 import com.retailmanagement.dto.request.CreateUserRequest;
 import com.retailmanagement.dto.request.UpdateUserRequest;
 import com.retailmanagement.dto.response.UserResponse;
@@ -22,9 +24,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Audit(
-            module = "USER",
+            module = AuditModule.USER,
             action = AuditAction.CREATE,
-            targetType = "User"
+            targetType = TargetType.USER
     )
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
@@ -50,9 +52,9 @@ public class UserService {
     }
 
     @Audit(
-            module = "USER",
+            module = AuditModule.USER,
             action = AuditAction.UPDATE,
-            targetType = "User"
+            targetType = TargetType.USER
     )
     @Transactional
     public UserResponse updateUser(UpdateUserRequest request, Integer id) {
@@ -68,15 +70,14 @@ public class UserService {
 
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
-        user.setRole(request.getRole());
 
         return toResponse(userRepository.save(user));
     }
 
     @Audit(
-            module = "USER",
+            module = AuditModule.USER,
             action = AuditAction.DELETE,
-            targetType = "User"
+            targetType = TargetType.USER
     )
     @Transactional
     public UserResponse deleteUser(Integer id) {

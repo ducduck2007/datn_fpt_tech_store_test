@@ -17,9 +17,9 @@ public class AuditLogService {
 
     public void save(
             Integer userId,
-            String module,
+            AuditModule module,
             AuditAction action,
-            String targetType,
+            TargetType target,
             Long targetId,
             String detailsJson,
             String ipAddress
@@ -32,9 +32,9 @@ public class AuditLogService {
             User userRef = entityManager.getReference(User.class,userId);
             log.setUser(userRef);
        }
-        log.setModule(module);
+        log.setModule(module.name());
         log.setAction(action.name());
-        log.setTargetType(targetType);
+        log.setTargetType(target.name());
         log.setTargetId(targetId);
         log.setDetailsJson(detailsJson);
         log.setIpAddress(ipAddress);
