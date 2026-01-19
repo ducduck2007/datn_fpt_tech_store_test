@@ -31,15 +31,23 @@ public class OrderQueryService {
     private List<OrderListResponse> mapToResponse(List<Order> orders) {
         return orders.stream()
                 .map(o -> new OrderListResponse(
-                        o.getId(),
-                        o.getOrderNumber(),
-                        o.getCustomer() != null ? o.getCustomer().getName() : null,
-                        o.getUser() != null ? o.getUser().getUsername() : null,
-                        o.getTotalAmount(),
-                        o.getStatus(),
-                        o.getPaymentStatus(),
-                        o.getCreatedAt()
-                ))
+                                o.getId(),
+                                o.getOrderNumber(),
+
+                                o.getCustomer().getId(),          // customerId
+                                o.getCustomer().getName(),
+
+                                o.getUser().getUsername(),
+
+                                o.getChannel(),                   // channel
+                                o.getPaymentMethod(),             // paymentMethod
+
+                                o.getTotalAmount(),
+                                o.getStatus(),
+                                o.getPaymentStatus(),
+                                o.getCreatedAt()
+                        )
+                )
                 .toList();
     }
 }
