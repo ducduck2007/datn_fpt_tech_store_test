@@ -5,6 +5,7 @@ import com.retailmanagement.dto.request.RegisterRequest;
 import com.retailmanagement.dto.response.ApiResponse;
 import com.retailmanagement.dto.response.AuthResponse;
 import com.retailmanagement.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.success("Đăng nhập thành công", authService.login(request));
+    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest req, HttpServletRequest request) {
+        return ApiResponse.success("Đăng nhập thành công", authService.login(req,request));
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<AuthResponse> logout() {
+        authService.logout();
+        return ApiResponse.success("Đăng xuất thành công", null);
     }
 }

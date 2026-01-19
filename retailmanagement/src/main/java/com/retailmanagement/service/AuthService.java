@@ -10,6 +10,8 @@ import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.UserRepository;
 import com.retailmanagement.security.JwtService;
+import com.retailmanagement.util.SecurityUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -32,6 +34,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final ModelMapper modelMapper;
     private final AuthenticationManager authenticationManager;
+    private final UserLoginLogService userLoginLogService;
 
     // ✅ Requirement #3: customer registration must also insert into `customers`
     // Ensure atomicity: either both user+customer are saved or none.
@@ -99,11 +102,23 @@ public class AuthService {
                 .build();
     }
 
-    public AuthResponse login(LoginRequest req) {
+    public AuthResponse login(LoginRequest req, HttpServletRequest request) {
         User user = userRepository.findByUsernameOrEmail(req.getIdentifier(), req.getIdentifier())
-                .orElseThrow(() -> new RuntimeException("Sai tài khoản hoặc mật khẩu"));
+                .orElseThrow(() -> {
+                    userLoginLogService.logLoginFail(
+                            req.getIdentifier(),
+                            request
+                    );
+
+                    return new RuntimeException("Sai tài khoản hoặc mật khẩu");
+                });
 
         if (Boolean.FALSE.equals(user.getIsActive())) {
+            userLoginLogService.logLoginFail(
+                    user.getUsername(),
+                    request
+            );
+
             throw new RuntimeException("Tài khoản đã bị khóa");
         }
 
@@ -112,8 +127,19 @@ public class AuthService {
         );
 
         if (!auth.isAuthenticated()) {
+            userLoginLogService.logLoginFail(
+                    user.getUsername(),
+                    request
+            );
+
             throw new RuntimeException("Sai tài khoản hoặc mật khẩu");
         }
+
+        userLoginLogService.logLoginSuccess(
+                user.getId(),
+                user.getUsername(),
+                request
+        );
 
         String token = jwtService.generateToken(user);
         UserResponse userRes = modelMapper.map(user, UserResponse.class);
@@ -123,5 +149,12 @@ public class AuthService {
                 .expiresIn(jwtService.getExpirationMillis())
                 .user(userRes)
                 .build();
+    }
+
+    public void logout() {
+        Integer userId = SecurityUtil.getCurrentUserId();
+        if(userId != null) {
+            userLoginLogService.logLogout(userId);
+        }
     }
 }

@@ -22,5 +22,4 @@ public class UpdateUserRequest {
     @Email(message = "Email không đúng định dạng")
     private String email;
 
-    private String role; //Chỉ được nhập ADMIN,SALES,INVENTORY,CUSTOMER
 }

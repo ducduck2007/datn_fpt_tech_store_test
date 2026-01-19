@@ -63,6 +63,9 @@ public class SecurityConfig {
                                 "/uploads/**"
                         ).permitAll()
 
+                        //Cho phép chạy logout
+                        .requestMatchers("/api/auth/logout").authenticated()
+
                         // ví dụ rule role (tuỳ bạn đang dùng ROLE_... hay không)
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/sales/**").hasAnyRole("SALES", "ADMIN")

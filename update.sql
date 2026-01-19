@@ -18,3 +18,7 @@ ALTER TABLE dbo.user_logins
 ADD updated_at DATETIME2 NOT NULL
     CONSTRAINT DF_user_logins_updated_at DEFAULT SYSDATETIME();
 GO
+
+ALTER TABLE user_logins
+ALTER COLUMN updated_at DATETIME2 NULL;
+GO
