@@ -134,11 +134,16 @@ public class OrderService {
 
             // ----- MAP RESPONSE ITEM (PHẲNG) -----
             responseItems.add(new CreateOrderResponse.Item(
+                    item.getProduct().getId(),      // productId
+                    item.getVariant().getId(),      // variantId
+
                     item.getProductName(),
                     item.getVariantName(),
                     item.getSku(),
+
                     item.getQuantity(),
-                    item.getUnitPrice(),
+
+                    item.getUnitPrice(),             // price
                     item.getDiscount(),
                     item.getLineTotal()
             ));
@@ -275,11 +280,16 @@ public class OrderService {
         List<CreateOrderResponse.Item> items =
                 order.getOrderItems().stream()
                         .map(i -> new CreateOrderResponse.Item(
+                                i.getProduct().getId(),      // productId
+                                i.getVariant().getId(),      // variantId
+
                                 i.getProductName(),
                                 i.getVariantName(),
                                 i.getSku(),
+
                                 i.getQuantity(),
-                                i.getUnitPrice(),
+
+                                i.getUnitPrice(),             // price
                                 i.getDiscount(),
                                 i.getLineTotal()
                         ))
@@ -288,6 +298,10 @@ public class OrderService {
         return new OrderDetailResponse(
                 order.getId(),
                 order.getOrderNumber(),
+
+                order.getChannel(),
+                order.getPaymentMethod(),
+
                 order.getStatus(),
                 order.getPaymentStatus(),
 
@@ -296,6 +310,8 @@ public class OrderService {
 
                 order.getUser().getId(),
                 order.getUser().getUsername(),
+
+                order.getNotes(),                 // ✅ notes
 
                 order.getSubtotal(),
                 order.getDiscountTotal(),
@@ -306,5 +322,7 @@ public class OrderService {
                 order.getCreatedAt(),
                 items
         );
+
+
     }
 }

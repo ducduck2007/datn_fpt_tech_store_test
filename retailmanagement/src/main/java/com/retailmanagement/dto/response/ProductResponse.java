@@ -19,4 +19,8 @@ public class ProductResponse {
     // We return the MIN current price among variants (common storefront behavior).
     private BigDecimal minPrice;
     private String currencyCode;
+
+    // ✅ THÊM
+    private Integer variantId;
+    private Integer categoryId;
 }

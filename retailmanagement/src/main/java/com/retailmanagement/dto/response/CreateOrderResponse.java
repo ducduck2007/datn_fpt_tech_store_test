@@ -39,11 +39,17 @@ public class CreateOrderResponse {
     @Data
     @AllArgsConstructor
     public static class Item {
+
+        private Integer productId;
+        private Integer variantId;        // ✅ thêm
+
         private String productName;
         private String variantName;
         private String sku;
+
         private Integer quantity;
-        private BigDecimal unitPrice;
+
+        private BigDecimal price;         // ✅ thêm (unitPrice)
         private BigDecimal discount;
         private BigDecimal lineTotal;
     }

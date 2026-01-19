@@ -126,6 +126,13 @@ public class ProductService {
             ProductVariant v = minVariantOpt.get();
             dto.setMinPrice(v.getPrice());
             dto.setCurrencyCode(v.getCurrencyCode());
+            dto.setVariantId(v.getId());
+            productCategoryRepository
+                    .findFirstById_ProductIdAndIsPrimaryTrue(product.getId())
+                    .ifPresent(pc -> dto.setCategoryId(
+                            pc.getCategory().getId()
+                    ));
+
         } else {
             dto.setMinPrice(null);
             dto.setCurrencyCode(null);
