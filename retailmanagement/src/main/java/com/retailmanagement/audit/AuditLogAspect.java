@@ -12,6 +12,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Aspect
@@ -45,12 +46,20 @@ public class AuditLogAspect {
         Long targetId = extractTargetId(result);
 
         //
-        String detailsJson = objectMapper.writeValueAsString(
-                Map.of(
-                        "method", joinPoint.getSignature().getName(),
-                        "args", joinPoint.getArgs()
-                )
-        );
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("method", joinPoint.getSignature().getName());
+        details.put("args", joinPoint.getArgs());
+
+        String detailsJson = objectMapper.writeValueAsString(details);
+
+
+
+        if(audit.action() == AuditAction.CHANGE_PASSWORD){
+            details.put("method", joinPoint.getSignature().getName());
+            details.put("args", "Password has been changed");
+
+            detailsJson = objectMapper.writeValueAsString(details);
+        }
 
         // Lưu
         auditLogService.save(

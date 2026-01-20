@@ -3,7 +3,8 @@ package com.retailmanagement.audit;
 public enum AuditAction {
     CREATE,
     UPDATE,
-    UPDATE_ROLE,
+    CHANGE_ROLE,
+    CHANGE_PASSWORD,
     DELETE,
     LOGIN,
     LOGOUT

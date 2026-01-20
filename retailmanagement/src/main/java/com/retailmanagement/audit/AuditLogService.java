@@ -1,10 +1,13 @@
 package com.retailmanagement.audit;
 
+import com.retailmanagement.dto.response.AuditLogResponse;
 import com.retailmanagement.entity.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -40,5 +43,31 @@ public class AuditLogService {
         log.setIpAddress(ipAddress);
 
         auditLogRepository.save(log);
+    }
+
+    public List<AuditLogResponse> findAll(){
+        return auditLogRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private AuditLogResponse toResponse(AuditLog auditLog){
+
+        Integer userId = auditLog.getUser() != null
+                ? auditLog.getUser().getId()
+                : null;
+
+        return AuditLogResponse.builder()
+                .id(auditLog.getId())
+                .userId(userId)
+                .module(auditLog.getModule())
+                .action(auditLog.getAction())
+                .targetType(auditLog.getTargetType())
+                .targetId(auditLog.getTargetId())
+                .detailsJson(auditLog.getDetailsJson())
+                .ipAddress(auditLog.getIpAddress())
+                .createdAt(auditLog.getCreatedAt())
+                .build();
     }
 }
