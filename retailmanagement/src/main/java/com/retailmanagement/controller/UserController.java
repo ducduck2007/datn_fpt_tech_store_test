@@ -1,7 +1,9 @@
 package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.CreateUserRequest;
+import com.retailmanagement.dto.request.UpdateUserPasswordRequest;
 import com.retailmanagement.dto.request.UpdateUserRequest;
+import com.retailmanagement.dto.request.UpdateUserRoleRequest;
 import com.retailmanagement.dto.response.UserResponse;
 import com.retailmanagement.service.UserService;
 import jakarta.validation.Valid;
@@ -34,6 +36,18 @@ public class UserController {
     @PutMapping("update")
     public ResponseEntity<UserResponse> UpdateUser(@Valid @RequestBody UpdateUserRequest request, @RequestParam("id") Integer id){
         UserResponse response = userService.updateUser(request,id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("update/password")
+    public ResponseEntity<UserResponse> UpdateUserPassword(@Valid @RequestBody UpdateUserPasswordRequest request, @RequestParam("id") Integer id){
+        UserResponse response = userService.updateUserPassword(request,id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("update/role")
+    public ResponseEntity<UserResponse> UpdateUserRole(@Valid @RequestBody UpdateUserRoleRequest request, @RequestParam("id") Integer id){
+        UserResponse response = userService.updateUserRole(request,id);
         return ResponseEntity.ok(response);
     }
 

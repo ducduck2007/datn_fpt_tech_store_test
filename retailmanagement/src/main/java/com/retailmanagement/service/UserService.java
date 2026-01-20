@@ -5,7 +5,9 @@ import com.retailmanagement.audit.AuditAction;
 import com.retailmanagement.audit.AuditModule;
 import com.retailmanagement.audit.TargetType;
 import com.retailmanagement.dto.request.CreateUserRequest;
+import com.retailmanagement.dto.request.UpdateUserPasswordRequest;
 import com.retailmanagement.dto.request.UpdateUserRequest;
+import com.retailmanagement.dto.request.UpdateUserRoleRequest;
 import com.retailmanagement.dto.response.UserResponse;
 import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.UserRepository;
@@ -70,6 +72,40 @@ public class UserService {
 
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
+
+        return toResponse(userRepository.save(user));
+    }
+
+    @Audit(
+            module = AuditModule.USER,
+            action = AuditAction.CHANGE_PASSWORD,
+            targetType = TargetType.USER
+    )
+    @Transactional
+    public UserResponse updateUserPassword(UpdateUserPasswordRequest request, Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        if(!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())){
+            throw new RuntimeException("Mật khẩu cũ không đúng");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+
+        return toResponse(userRepository.save(user));
+    }
+
+    @Audit(
+            module = AuditModule.USER,
+            action = AuditAction.CHANGE_ROLE,
+            targetType = TargetType.USER
+    )
+    @Transactional
+    public UserResponse updateUserRole(UpdateUserRoleRequest request, Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        user.setRole(request.getRole());
 
         return toResponse(userRepository.save(user));
     }
