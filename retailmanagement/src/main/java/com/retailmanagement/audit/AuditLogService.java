@@ -7,6 +7,9 @@ import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -47,6 +50,19 @@ public class AuditLogService {
 
     public List<AuditLogResponse> findAll(){
         return auditLogRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getAuditLogsByDate(LocalDate date) {
+        ZoneId zone = ZoneId.of("UTC");
+
+        Instant from = date.atStartOfDay(zone).toInstant();
+
+        Instant to = date.plusDays(1).atStartOfDay(zone).toInstant();
+
+        return auditLogRepository.findByCreatedAtBetween(from, to)
                 .stream()
                 .map(this::toResponse)
                 .toList();
