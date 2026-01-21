@@ -41,7 +41,7 @@ public class Customer {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "vip_tier", length = 30)
-    private VipTier vipTier; // NULL cho REGULAR, BRONZE+ cho VIP
+    private VipTier vipTier;
 
     @Column(name = "segments_json", columnDefinition = "NVARCHAR(MAX)")
     private String segmentsJson;

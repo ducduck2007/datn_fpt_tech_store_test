@@ -56,6 +56,11 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="loyaltyPoints" label="Points" width="100" sortable align="center">
+          <template #default="{ row }">
+            <span class="fw-bold text-primary">{{ row.loyaltyPoints }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="birthDate" label="Birth date" width="160" />
         <el-table-column label="Actions" width="240">
           <template #default="{ row }">
@@ -184,6 +189,7 @@ function normalize(list) {
     phone: c?.phone ?? "",
     birthDate: c?.birthDate ?? "",
     customerType: (c?.customerType ?? "REGULAR").toString().toUpperCase(),
+    loyaltyPoints: c?.loyaltyPoints ?? 0,
     address: c?.address ?? "",
     notes: c?.notes ?? "",
     raw: c,

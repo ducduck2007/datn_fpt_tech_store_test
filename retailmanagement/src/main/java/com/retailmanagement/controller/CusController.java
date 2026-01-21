@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -41,6 +43,20 @@ public class CusController {
     public ResponseEntity<CustomerResponse> updateCustomer(@Valid @PathVariable int id, @RequestBody CustomerRequest cus) {
         CustomerResponse up = cusservice.updateById(id, cus);
         return ResponseEntity.ok().body(up) ;
+    }
+    @PostMapping("/{id}/points")
+    public ResponseEntity<String> addPoints(
+            @PathVariable Integer id,
+            @RequestBody Map<String, BigDecimal> payload) {
+
+        BigDecimal amount = payload.get("amount");
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.badRequest().body("Amount phải lớn hơn 0");
+        }
+
+        cusservice.addLoyaltyPoints(id, amount);
+        return ResponseEntity.ok("Đã cộng điểm và cập nhật hạng thành công!");
     }
 
 }
