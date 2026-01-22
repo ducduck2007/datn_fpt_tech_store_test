@@ -123,6 +123,12 @@ public class CustomerService {
         // Hàm fromPoints trong Enum sẽ trả về hạng tương ứng
         VipTier newTier = VipTier.fromPoints(newTotalPoints);
         customer.setVipTier(newTier);
+        if(newTier==null || newTier == VipTier.BRONZE ||  newTier == VipTier.SILVER){
+            customer.setCustomerType(CustomerType.REGULAR);
+        }
+        else{
+            customer.setCustomerType(CustomerType.VIP);
+        }
 
         // (Tuỳ chọn) Nếu hạng thay đổi, có thể log hoặc gửi thông báo tại đây
 
