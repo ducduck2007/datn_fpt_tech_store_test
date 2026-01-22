@@ -157,4 +157,20 @@ public class Order {
     @OneToMany(mappedBy = "order")
     private Set<Return> returns = new LinkedHashSet<>();
 
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+        if (paymentStatus == null) {
+            paymentStatus = "UNPAID";
+        }
+        if (status == null) {
+            status = "PENDING";
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }
