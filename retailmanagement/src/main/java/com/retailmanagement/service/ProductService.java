@@ -1,37 +1,20 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.dto.request.AttributeRequest;
 import com.retailmanagement.dto.request.ProductRequest;
 import com.retailmanagement.dto.response.ProductResponse;
-import com.retailmanagement.entity.Category;
-import com.retailmanagement.entity.Image;
-import com.retailmanagement.entity.Product;
-import com.retailmanagement.entity.ProductCategory;
-import com.retailmanagement.entity.ProductCategoryId;
-import com.retailmanagement.entity.ProductVariant;
-import com.retailmanagement.repository.CategoryRepository;
-import com.retailmanagement.repository.ImageRepository;
-import com.retailmanagement.repository.ProductCategoryRepository;
-import com.retailmanagement.repository.ProductRepository;
-import com.retailmanagement.repository.ProductVariantRepository;
+import com.retailmanagement.entity.*;
+import com.retailmanagement.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -43,114 +26,140 @@ public class ProductService {
     private final ImageRepository imageRepository;
     private final ProductCategoryRepository productCategoryRepository;
 
-    // ✅ Added for computing min price in product list
-    private final ProductVariantRepository productVariantRepository;
-
-    private static final String UPLOAD_DIR = "uploads";
+    private final String UPLOAD_DIR = "uploads/";
 
     @Transactional
-    public Product createProduct(ProductRequest request) throws IOException {
+    public void createProduct(ProductRequest request) throws IOException {
         Product product = new Product();
-        product.setName(request.getName());
-        product.setSku(request.getSku());
-        product.setDescription(request.getDescription());
+
+        // 1. Xử lý thông tin cơ bản
+        product.setName(request.getName().trim());
+        product.setSku(request.getSku().trim().toUpperCase());
         product.setIsVisible(request.getIsVisible() != null ? request.getIsVisible() : true);
+        product.setCreatedAt(LocalDateTime.now());
+        product.setUpdatedAt(LocalDateTime.now());
+
+        // 2. Xử lý thuộc tính: Gộp vào Description
+        String finalDescription = request.getDescription();
+        if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
+            StringBuilder attrStr = new StringBuilder();
+            attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT ---\n");
+            for (AttributeRequest attr : request.getAttributes()) {
+                attrStr.append("- ").append(attr.getName())
+                        .append(": ").append(attr.getValue()).append("\n");
+            }
+            finalDescription += attrStr.toString();
+        }
+        product.setDescription(finalDescription);
 
         Product savedProduct = productRepository.save(product);
 
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
-
-            ProductCategory pc = new ProductCategory();
-            pc.setId(new ProductCategoryId(savedProduct.getId(), category.getId()));
-            pc.setCategory(category);
-            pc.setIsPrimary(true);
-            pc.setCreatedAt(Instant.now());
-
-            productCategoryRepository.save(pc);
+        if (request.getCategoryIds() != null) {
+            for (Integer catId : request.getCategoryIds()) {
+                ProductCategory pc = new ProductCategory();
+                ProductCategoryId pcId = new ProductCategoryId(savedProduct.getId(), catId);
+                pc.setId(pcId);
+                pc.setCategory(categoryRepository.getReferenceById(catId));
+                pc.setIsPrimary(false);
+                pc.setCreatedAt(Instant.now());
+                productCategoryRepository.save(pc);
+            }
         }
 
-        MultipartFile imgFile = request.getImageFile();
-        if (imgFile != null && !imgFile.isEmpty()) {
-            String fileName = saveFileToDisk(imgFile);
-
-            Image image = new Image();
-            image.setProduct(savedProduct);
-            image.setUrl("/uploads/" + fileName);
-            image.setIsPrimary(true);
-            image.setSortOrder(1);
-            image.setCreatedAt(Instant.now());
-
-            imageRepository.save(image);
+        if (request.getGalleryImages() != null) {
+            int sortOrder = 0;
+            for (MultipartFile file : request.getGalleryImages()) {
+                if (!file.isEmpty()) {
+                    String fileName = saveFileToDisk(file);
+                    Image image = new Image();
+                    image.setProduct(savedProduct);
+                    image.setUrl("/uploads/" + fileName);
+                    image.setIsPrimary(sortOrder == 0);
+                    image.setSortOrder(sortOrder++);
+                    image.setCreatedAt(Instant.now());
+                    imageRepository.save(image);
+                }
+            }
         }
-
-        return savedProduct;
     }
 
-    public Page<ProductResponse> getProducts(int page, Integer categoryId) {
-        Page<Product> productPage;
+    @Transactional
+    public void updateProduct(Integer id, ProductRequest request) throws IOException {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // ✅ Keep fixed 20/page as required
+        product.setName(request.getName());
+        product.setSku(request.getSku());
+        product.setUpdatedAt(LocalDateTime.now());
+
+        // Update Description kèm thuộc tính mới
+        String finalDescription = request.getDescription();
+        if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
+            StringBuilder attrStr = new StringBuilder();
+            attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT (Cập nhật) ---\n");
+            for (AttributeRequest attr : request.getAttributes()) {
+                attrStr.append("- ").append(attr.getName())
+                        .append(": ").append(attr.getValue()).append("\n");
+            }
+            finalDescription += attrStr.toString();
+        }
+        product.setDescription(finalDescription);
+
+        if (request.getIdsToDelete() != null && !request.getIdsToDelete().isEmpty()) {
+            imageRepository.deleteAllById(request.getIdsToDelete());
+        }
+
+        if (request.getGalleryImages() != null) {
+            for (MultipartFile file : request.getGalleryImages()) {
+                if (!file.isEmpty()) {
+                    String fileName = saveFileToDisk(file);
+                    Image image = new Image();
+                    image.setProduct(product);
+                    image.setUrl("/uploads/" + fileName);
+                    image.setIsPrimary(false);
+                    image.setSortOrder(1);
+                    image.setCreatedAt(Instant.now());
+                    imageRepository.save(image);
+                }
+            }
+        }
+        productRepository.save(product);
+    }
+
+    public Page<ProductResponse> getProducts(int page, Integer categoryId, String keyword) {
+        if (keyword != null && !keyword.isEmpty()) {
+            Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
+            return productRepository.searchProducts(keyword, true, pageable).map(this::mapToResponse);
+        }
+
         if (categoryId != null) {
-            Pageable pageable = PageRequest.of(page, 20); // ordering handled by native query ORDER BY
-            productPage = productRepository.findByCategoryId(categoryId, pageable);
-        } else {
-            Pageable pageable = PageRequest.of(page, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
-            productPage = productRepository.findAll(pageable);
+            Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
+            return productRepository.findByCategoryId(categoryId, pageable).map(this::mapToResponse);
         }
 
-        return productPage.map(this::toProductResponse);
+        Pageable pageable = PageRequest.of(page, 20, Sort.by("createdAt").descending());
+        return productRepository.findAll(pageable).map(this::mapToResponse);
     }
 
-    private ProductResponse toProductResponse(Product product) {
+    private ProductResponse mapToResponse(Product product) {
         ProductResponse dto = new ProductResponse();
         dto.setId(product.getId());
         dto.setName(product.getName());
         dto.setSku(product.getSku());
-        dto.setDescription(product.getDescription());
+        dto.setDescription(product.getDescription()); // Description này đã chứa cả thuộc tính
         dto.setIsVisible(product.getIsVisible());
         dto.setCreatedAt(product.getCreatedAt());
 
         imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
                 .ifPresent(img -> dto.setImageUrl(img.getUrl()));
 
-        // ✅ "Display current price in product list"
-        // Choose min current price among variants (if you want "primary variant" instead, we can switch logic)
-        List<ProductVariant> variants = productVariantRepository.findByProduct_Id(product.getId());
-        Optional<ProductVariant> minVariantOpt = variants.stream()
-                .filter(v -> v.getPrice() != null)
-                .min(Comparator.comparing(ProductVariant::getPrice));
-
-        if (minVariantOpt.isPresent()) {
-            ProductVariant v = minVariantOpt.get();
-            dto.setMinPrice(v.getPrice());
-            dto.setCurrencyCode(v.getCurrencyCode());
-            dto.setVariantId(v.getId());
-            productCategoryRepository
-                    .findFirstById_ProductIdAndIsPrimaryTrue(product.getId())
-                    .ifPresent(pc -> dto.setCategoryId(
-                            pc.getCategory().getId()
-                    ));
-
-        } else {
-            dto.setMinPrice(null);
-            dto.setCurrencyCode(null);
-        }
-
         return dto;
     }
 
     private String saveFileToDisk(MultipartFile file) throws IOException {
         Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
-
-        String original = file.getOriginalFilename();
-        String safeOriginal = (original == null) ? "file" : original.replaceAll("[\\\\/]+", "_");
-        String fileName = UUID.randomUUID() + "_" + safeOriginal;
-
+        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
         Files.copy(file.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
         return fileName;
     }

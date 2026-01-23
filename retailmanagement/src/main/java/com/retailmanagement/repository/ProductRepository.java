@@ -22,4 +22,13 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
         nativeQuery = true
     )
     Page<Product> findByCategoryId(@Param("categoryId") Integer categoryId, Pageable pageable);
+
+    //Tìm kiếm sản phẩm theo Tên hoặc SKU
+    @Query(value = "SELECT * FROM products p WHERE " +
+            "(:keyword IS NULL OR p.name LIKE %:keyword% OR p.sku LIKE %:keyword%) " +
+            "AND (:isVisible IS NULL OR p.is_visible = :isVisible)",
+            nativeQuery = true)
+    Page<Product> searchProducts(@Param("keyword") String keyword,
+                                 @Param("isVisible") Boolean isVisible,
+                                 Pageable pageable);
 }
