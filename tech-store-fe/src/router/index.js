@@ -7,6 +7,7 @@ import CustomerLogin from "../pages/customer/CustomerLogin.vue";
 import CustomerRegister from "../pages/customer/CustomerRegister.vue";
 import CustomerOrderCreate from "../pages/customer/OrderCreate.vue";
 import CustomerOrderDetail from "../pages/customer/OrderDetail.vue";
+import CustomerProfile from "../pages/customer/CustomerProfile.vue";
 
 // ===== System (Admin) =====
 import SystemLogin from "../pages/system/SystemLogin.vue";
@@ -22,7 +23,8 @@ import SystemOrderDetail from "../pages/system/OrderDetail.vue";
 import PricingManager from "../pages/system/PricingManager.vue";
 import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
-
+import PaymentManagement from "../pages/system/PaymentManagement.vue"
+import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
 const routes = [
   // ===== CUSTOMER PORTAL =====
   {
@@ -43,6 +45,12 @@ const routes = [
     component: CustomerRegister,
     meta: { portal: "customer", hideHeader: true },
   },
+   {
+    path: "/profile",
+    name: "customer-profile",
+    component: CustomerProfile,
+    meta: { portal: "customer", requiresAuth: true },
+  },
   {
     path: "/orders/new",
     name: "customer-order-create",
@@ -53,6 +61,12 @@ const routes = [
     path: "/orders/:orderId",
     name: "customer-order-detail",
     component: CustomerOrderDetail,
+    meta: { portal: "customer", requiresAuth: true },
+  },
+  {
+    path: "/payment/success/:paymentId",
+    name: "payment-success",
+    component: PaymentSuccess,
     meta: { portal: "customer", requiresAuth: true },
   },
 
@@ -143,6 +157,15 @@ const routes = [
         component: SettingsCurrency,
         meta: { title: "Settings - Currency" },
       },
+      // Payments
+   {
+  path: "payments",
+  name: "system-payments",
+  component: PaymentManagement,
+  meta: { title: "Payment History" },
+}
+
+
     ],
   },
 

@@ -13,4 +13,5 @@ public interface CustomRes extends JpaRepository<Customer, Integer> {
     Optional<Customer> findByPhone(String phone);
     List<Customer> findAll();
     List<Customer> findByCustomerType(CustomerType type);
+    Optional<Customer> findByName(String name);
 }

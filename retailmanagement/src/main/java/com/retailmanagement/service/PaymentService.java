@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
@@ -160,17 +161,29 @@ public class PaymentService {
     /**
      * Map Payment entity sang PaymentResponse
      */
+
+
     private PaymentResponse mapToResponse(Payment payment) {
-        return PaymentResponse.builder()
+        Order order = payment.getOrder();
+
+        PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
                 .id(payment.getId())
-                .orderId(payment.getOrder().getId())
+                .orderId(order.getId())
                 .amount(payment.getAmount())
                 .method(payment.getMethod())
                 .transactionRef(payment.getTransactionRef())
                 .status(payment.getStatus())
                 .paidAt(payment.getPaidAt())
-                .createdAt(payment.getCreatedAt())
-                .build();
+                .createdAt(payment.getCreatedAt());
+
+        // Thêm thông tin customer
+        Customer customer = order.getCustomer();
+        if (customer != null) {
+            builder.customerId(customer.getId())
+                    .customerName(customer.getName());
+        }
+
+        return builder.build();
     }
 
     /**
@@ -234,5 +247,10 @@ public class PaymentService {
         }
 
         orderRepository.save(order);
+    }
+    public List<PaymentResponse> getAllPayments() {
+        return paymentRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 }

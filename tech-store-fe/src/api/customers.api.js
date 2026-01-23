@@ -8,7 +8,7 @@ export const customersApi = {
     return http.get("/api/auth/customers");
   },
   listByType(type) {
-    return http.get(`/api/auth/customers/${type}`);
+    return http.get(`/api/auth/customers/type/${type}`);
   },
   update(id, payload) {
     return http.put(`/api/auth/customers/${id}`, payload);
@@ -16,4 +16,7 @@ export const customersApi = {
   remove(id) {
     return http.delete(`/api/auth/customers/${id}`);
   },
+  getProfile() {
+    return http.get("/api/auth/customers/me");
+  }
 };

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -188,5 +189,26 @@ public class CustomerService {
         Customer updated = customRes.save(customer);
         return mapToResponse(updated);
     }
+    // Trong CustomerService
+    public CustomerResponse findByEmail(String email) {
+        System.out.println("DEBUG Service: Đang tìm khách hàng với email: " + email);
 
+        Optional<Customer> customerOpt = customRes.findByEmail(email.trim());
+
+        if (customerOpt.isEmpty()) {
+            System.out.println("DEBUG Service: Không tìm thấy với email: " + email);
+            // Thử tìm với username nếu email không tìm thấy
+            customerOpt = customRes.findByName(email.trim());
+
+            if (customerOpt.isEmpty()) {
+                System.out.println("DEBUG Service: Cũng không tìm thấy với username: " + email);
+                return null;
+            }
+        }
+
+        Customer customer = customerOpt.get();
+        System.out.println("DEBUG Service: Tìm thấy khách hàng: " + customer.getName() + ", email: " + customer.getEmail());
+
+        return mapToResponse(customer);
+    }
 }

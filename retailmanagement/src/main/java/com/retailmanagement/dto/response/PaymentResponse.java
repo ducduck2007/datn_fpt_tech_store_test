@@ -23,4 +23,6 @@ public class PaymentResponse {
     private String status;
     private Instant paidAt;
     private Instant createdAt;
+    private Integer customerId;
+    private String customerName;
 }

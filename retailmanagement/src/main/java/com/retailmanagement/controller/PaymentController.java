@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/auth/payments")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class PaymentController {
 
     private final PaymentService paymentService;
@@ -67,5 +68,10 @@ public class PaymentController {
     ) {
         paymentService.refundPayment(paymentId, userId);
         return ResponseEntity.ok().build();
+    }
+    @GetMapping("")
+    public ResponseEntity<List<PaymentResponse>> getAllPayments() {
+        List<PaymentResponse> payments = paymentService.getAllPayments();
+        return ResponseEntity.ok(payments);
     }
 }

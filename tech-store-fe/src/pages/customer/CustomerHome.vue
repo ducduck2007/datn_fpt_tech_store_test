@@ -51,10 +51,18 @@
               </div>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
               <el-button :loading="loading" @click="reloadProducts"
                 >Reload</el-button
               >
+              <el-button
+                v-if="isCustomer"
+                type="info"
+                @click="$router.push('/profile')"
+              >
+                <el-icon class="me-1"><User /></el-icon>
+                Profile
+              </el-button>
               <el-button
                 type="primary"
                 :disabled="!isCustomer"
@@ -158,6 +166,7 @@ import { categoriesApi } from "../../api/categories.api";
 import { productsApi } from "../../api/products.api";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
+import { User } from '@element-plus/icons-vue';
 
 const auth = useAuthStore();
 const isCustomer = computed(() => auth.isCustomer);
