@@ -25,12 +25,23 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Thêm sản phẩm thành công", null));
     }
 
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Object>> updateProduct(
+            @PathVariable Integer id,
+            @ModelAttribute ProductRequest request) throws IOException {
+
+        productService.updateProduct(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật sản phẩm thành công", null));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ProductResponse>>> getProducts(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false) Integer categoryId
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) String keyword
     ) {
-        Page<ProductResponse> products = productService.getProducts(page, categoryId);
+        Page<ProductResponse> products = productService.getProducts(page, categoryId, keyword);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thành công", products));
     }
 }
