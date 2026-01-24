@@ -73,6 +73,11 @@ const cards = [
     desc: "Default currency",
     to: "/system/settings/currency",
   },
+  {
+  title: "Payment History",
+  desc: "View all payment transactions",
+  to: "/system/payments",
+}
 ];
 
 function reload() {
