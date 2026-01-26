@@ -25,6 +25,8 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ImageRepository imageRepository;
     private final ProductCategoryRepository productCategoryRepository;
+    private final ProductVariantRepository productVariantRepository;
+
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -81,6 +83,8 @@ public class ProductService {
                 }
             }
         }
+
+
     }
 
     @Transactional
@@ -152,6 +156,21 @@ public class ProductService {
 
         imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
                 .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+
+        productVariantRepository.findByProduct_Id(product.getId()).stream()
+                .filter(v -> v.getPrice() != null)
+                .min((v1, v2) -> v1.getPrice().compareTo(v2.getPrice()))
+                .ifPresent(v -> {
+                    dto.setMinPrice(v.getPrice());        // ✅ FIX
+                    dto.setCurrencyCode(v.getCurrencyCode()); // ✅ FIX
+                    dto.setVariantId(v.getId());          // ✅ FIX (QUAN TRỌNG NHẤT)
+                });
+
+        productCategoryRepository
+                .findFirstById_ProductIdAndIsPrimaryTrue(product.getId())
+                .ifPresent(pc -> dto.setCategoryId(
+                        pc.getCategory().getId()
+                ));
 
         return dto;
     }
