@@ -121,6 +121,7 @@ import { useRoute, useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
+import { customersApi } from "../../api/customers.api";
 
 const route = useRoute();
 const router = useRouter();
@@ -197,14 +198,28 @@ async function submit() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   const qVariantId = route.query?.variantId
     ? Number(route.query.variantId)
     : null;
   if (qVariantId) form.items[0].variantId = qVariantId;
 
-  const uid = auth.user?.id ?? auth.user?.customerId ?? null;
-  if (uid != null) form.customerId = Number(uid);
+  try {
+    const res = await customersApi.getProfile();
+
+    // API của bạn trả kiểu { id, name, ... }
+    const customerId = res?.data?.id ?? res?.data?.data?.id ?? null;
+
+    if (customerId != null) {
+      form.customerId = Number(customerId);
+    } else {
+      alert.value = "Cannot detect customerId from profile.";
+    }
+  } catch (e) {
+    alert.value =
+      e?.response?.data?.message ||
+      "Failed to load customer profile. Please login again.";
+  }
 });
 </script>
 
