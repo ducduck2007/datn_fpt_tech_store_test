@@ -1,5 +1,9 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.audit.Audit;
+import com.retailmanagement.audit.AuditAction;
+import com.retailmanagement.audit.AuditModule;
+import com.retailmanagement.audit.TargetType;
 import com.retailmanagement.dto.request.CreateOrderItemRequest;
 import com.retailmanagement.dto.request.CreateOrderRequest;
 import com.retailmanagement.dto.request.UpdateOrderRequest;
@@ -48,7 +52,11 @@ public class OrderService {
         return "ORD-" + datePart + "-" + sequencePart;
     }
 
-
+    @Audit(
+            module = AuditModule.ORDER,
+            action = AuditAction.CREATE,
+            targetType = TargetType.ORDER
+    )
     public CreateOrderResponse createOrder(CreateOrderRequest request, Integer userId) {
 
         // ===== LẤY CUSTOMER & USER =====
@@ -180,6 +188,11 @@ public class OrderService {
         );
     }
 
+    @Audit(
+            module = AuditModule.ORDER,
+            action = AuditAction.UPDATE,
+            targetType = TargetType.ORDER
+    )
     public void updateOrder(Long orderId, UpdateOrderRequest request) {
 
         Order order = orderRepository.findById(orderId)
@@ -238,6 +251,11 @@ public class OrderService {
     /* =========================
        DELETE ORDER
        ========================= */
+    @Audit(
+            module = AuditModule.ORDER,
+            action = AuditAction.DELETE,
+            targetType = TargetType.ORDER
+    )
     public void deleteOrder(Long orderId) {
 
         Order order = orderRepository.findById(orderId)

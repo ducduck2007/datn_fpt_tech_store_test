@@ -1,6 +1,7 @@
 package com.retailmanagement.audit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.retailmanagement.dto.response.CreateOrderResponse;
 import com.retailmanagement.dto.response.CustomerResponse;
 import com.retailmanagement.dto.response.UserResponse;
 import com.retailmanagement.util.IpUtil;
@@ -87,14 +88,35 @@ public class AuditLogAspect {
             }
         }
 
-        // CREATE / UPDATE → lấy từ result
-        if(result instanceof UserResponse user){
-            return Long.valueOf(user.getId());
-        }
-        if(result instanceof CustomerResponse customer){
-            return Long.valueOf(customer.getId());
+        // CREATE → lấy từ result
+        if(audit.action() == AuditAction.CREATE){
+            if(result instanceof UserResponse user){
+                return Long.valueOf(user.getId());
+            }
+            if(result instanceof CustomerResponse customer){
+                return Long.valueOf(customer.getId());
+            }
+            if(result instanceof CreateOrderResponse orderResponse){
+                return Long.valueOf(orderResponse.getOrderId());
+            }
         }
 
+        // UPDATE (void or not) -> lấy từ param
+        if(audit.action() == AuditAction.UPDATE) {
+            Long idFromArgs = extractIdFromArgs(joinPoint.getArgs());
+            if(idFromArgs != null){
+                return idFromArgs;
+            }
+        }
+
+        return null;
+    }
+
+    private Long extractIdFromArgs(Object[] args) {
+        for(Object arg: args) {
+            if(arg instanceof Long l) return l;
+            if(arg instanceof Integer i) return i.longValue();
+        }
         return null;
     }
 }
