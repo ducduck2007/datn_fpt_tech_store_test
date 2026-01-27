@@ -1,5 +1,9 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.audit.Audit;
+import com.retailmanagement.audit.AuditAction;
+import com.retailmanagement.audit.AuditModule;
+import com.retailmanagement.audit.TargetType;
 import com.retailmanagement.dto.request.CustomerRequest;
 import com.retailmanagement.dto.response.CustomerResponse;
 import com.retailmanagement.entity.Customer;
@@ -23,6 +27,11 @@ public class CustomerService {
     @Autowired
     private final CustomRes customRes;
 
+    @Audit(
+            module = AuditModule.CUSTOMER,
+            action = AuditAction.CREATE,
+            targetType = TargetType.CUSTOMER
+    )
     @Transactional
     public CustomerResponse create(CustomerRequest customerRequest) {
         if (customRes.findByEmail(customerRequest.getEmail()).isPresent()) {
@@ -146,12 +155,22 @@ public class CustomerService {
                 .map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    @Audit(
+            module = AuditModule.CUSTOMER,
+            action = AuditAction.DELETE,
+            targetType = TargetType.CUSTOMER
+    )
     public void deleteById(int id) {
         Customer customer = customRes.findById(id).orElseThrow();
         customer.setIsActive(false);
         customRes.save(customer);
     }
 
+    @Audit(
+            module = AuditModule.CUSTOMER,
+            action = AuditAction.UPDATE,
+            targetType = TargetType.CUSTOMER
+    )
     public CustomerResponse updateById(Integer id, CustomerRequest customerRequest) {
         Customer customer = customRes.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Khách hàng với id: " + id));
