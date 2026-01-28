@@ -26,6 +26,10 @@ public class OrderListResponse {
     private String status;
     private String paymentStatus;
     private Instant createdAt;
+
+    public OrderListResponse() {
+
+    }
 }
 
 

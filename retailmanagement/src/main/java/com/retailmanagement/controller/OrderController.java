@@ -23,30 +23,73 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderQueryService orderQueryService;
 
+    // =========================================================
+    // CREATE ORDER
+    // =========================================================
     @PostMapping
     public ResponseEntity<CreateOrderResponse> createOrder(
             @RequestBody CreateOrderRequest request,
             @AuthenticationPrincipal CustomUserDetails user) {
 
+        CreateOrderResponse response =
+                orderService.createOrder(request, user.getUserId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // =========================================================
+    // LIST ORDERS (ADMIN / STAFF)
+    // =========================================================
+
+    // NEW = PENDING
+    @GetMapping("/new")
+    public ResponseEntity<List<OrderListResponse>> getNewOrders() {
+        return ResponseEntity.ok(orderQueryService.getNewOrders());
+    }
+
+    // PROCESSING = SHIPPING
+    @GetMapping("/processing")
+    public ResponseEntity<List<OrderListResponse>> getProcessingOrders() {
+        return ResponseEntity.ok(orderQueryService.getProcessingOrders());
+    }
+
+    @GetMapping("/paid")
+    public ResponseEntity<List<OrderListResponse>> getPaidOrders() {
+        return ResponseEntity.ok(orderQueryService.getPaidOrders());
+    }
+
+    @GetMapping("/delivered")
+    public ResponseEntity<List<OrderListResponse>> getDeliveredOrders() {
+        return ResponseEntity.ok(orderQueryService.getDeliveredOrders());
+    }
+
+    // =========================================================
+    // LIST ORDERS BY CUSTOMER
+    // =========================================================
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<List<OrderListResponse>> getOrdersByCustomer(
+            @PathVariable Integer customerId) {
+
         return ResponseEntity.ok(
-                orderService.createOrder(request, user.getUserId())
+                orderQueryService.getOrdersByCustomer(customerId)
         );
     }
 
+    // =========================================================
+    // ORDER DETAIL
+    // =========================================================
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderDetailResponse> getOrderDetail(
+            @PathVariable Long orderId) {
 
-
-
-    @GetMapping("/new")
-    public List<OrderListResponse> getNewOrders() {
-        return orderQueryService.getNewOrders();
+        return ResponseEntity.ok(
+                orderService.getOrderDetail(orderId)
+        );
     }
 
-    @GetMapping("/processing")
-    public List<OrderListResponse> getProcessingOrders() {
-        return orderQueryService.getProcessingOrders();
-    }
-
-    /* UPDATE */
+    // =========================================================
+    // UPDATE ORDER (GENERAL)
+    // =========================================================
     @PutMapping("/{orderId}")
     public ResponseEntity<Void> updateOrder(
             @PathVariable Long orderId,
@@ -56,32 +99,40 @@ public class OrderController {
         return ResponseEntity.ok().build();
     }
 
-    /* CANCEL */
+    // =========================================================
+    // ORDER STATUS ACTIONS
+    // =========================================================
+
+    // PENDING -> SHIPPING
+    @PutMapping("/{orderId}/ship")
+    public ResponseEntity<Void> markAsShipping(@PathVariable Long orderId) {
+        orderService.markAsShipping(orderId);
+        return ResponseEntity.ok().build();
+    }
+
+    // SHIPPING -> DELIVERED
+    @PutMapping("/{orderId}/deliver")
+    public ResponseEntity<Void> markAsDelivered(@PathVariable Long orderId) {
+        orderService.markAsDelivered(orderId);
+        return ResponseEntity.ok().build();
+    }
+
+    // CANCEL ORDER
     @PutMapping("/{orderId}/cancel")
     public ResponseEntity<Void> cancelOrder(
             @PathVariable Long orderId,
-            @AuthenticationPrincipal CustomUserDetails user) {
+            @RequestParam(required = false) String reason) {
 
-        orderService.cancelOrder(orderId, user.getUserId());
+        orderService.cancelOrder(orderId, reason);
         return ResponseEntity.ok().build();
     }
 
-    /* DELETE */
+    // =========================================================
+    // DELETE ORDER (ADMIN ONLY – nếu bạn cho phép)
+    // =========================================================
     @DeleteMapping("/{orderId}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Long orderId) {
-
         orderService.deleteOrder(orderId);
         return ResponseEntity.ok().build();
     }
-
-    /* DETAIL */
-    @GetMapping("/{orderId}")
-    public ResponseEntity<OrderDetailResponse> getOrderDetail(
-            @PathVariable Long orderId) {
-
-        return ResponseEntity.ok(
-                orderService.getOrderDetail(orderId)
-        );
-    }
 }
-

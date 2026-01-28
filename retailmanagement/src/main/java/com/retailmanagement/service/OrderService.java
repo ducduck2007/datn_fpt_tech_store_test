@@ -1,5 +1,6 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.constants.OrderStatuses;
 import com.retailmanagement.audit.Audit;
 import com.retailmanagement.audit.AuditAction;
 import com.retailmanagement.audit.AuditModule;
@@ -20,7 +21,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+
 
 
 @Service
@@ -72,7 +73,7 @@ public class OrderService {
         order.setUser(user);
         order.setChannel(request.getChannel());
         order.setPaymentMethod(request.getPaymentMethod());
-        order.setStatus("PENDING");
+        order.setStatus(OrderStatuses.PENDING);
         order.setPaymentStatus("UNPAID");
         order.setNotes(request.getNotes());
 
@@ -89,7 +90,7 @@ public class OrderService {
         order = orderRepository.save(order);
 
         // ===== XỬ LÝ ITEMS =====
-        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal  subtotal = BigDecimal.ZERO;
         List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
 
         for (CreateOrderItemRequest itemReq : request.getItems()) {
@@ -198,7 +199,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (!"PENDING".equals(order.getStatus())) {
+        if (!OrderStatuses.PENDING.equals(order.getStatus())) {
             throw new RuntimeException("Chỉ được chỉnh sửa đơn PENDING");
         }
 
@@ -209,44 +210,31 @@ public class OrderService {
         orderRepository.save(order);
     }
 
-    /* =========================
-       CANCEL ORDER + RELEASE STOCK
-       ========================= */
-    public void cancelOrder(Long orderId, Integer userId) {
-
+    @Transactional
+    public void cancelOrder(Long orderId, String reason) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (!"PENDING".equals(order.getStatus())) {
-            throw new RuntimeException("Chỉ được hủy đơn PENDING");
+        if (OrderStatuses.CANCELLED.equals(order.getStatus())) {
+            throw new IllegalStateException("Order already cancelled");
         }
 
-        for (OrderItem item : order.getOrderItems()) {
-
-            ProductVariant variant = item.getVariant();
-            variant.setReservedQty(
-                    variant.getReservedQty() - item.getQuantity()
-            );
-            variantRepository.save(variant);
-
-            StockTransaction st = new StockTransaction();
-            st.setVariant(variant);
-            st.setQuantity(item.getQuantity());
-            st.setType("RELEASE");
-            st.setReferenceType("orders");
-            st.setReferenceId(order.getId());
-            st.setCreatedBy(order.getUser());
-            st.setCreatedAt(Instant.now());
-
-            stockTransactionRepository.save(st);
+        if (OrderStatuses.DELIVERED.equals(order.getStatus())) {
+            throw new IllegalStateException("Delivered order cannot be cancelled");
         }
 
-        order.setStatus("CANCELLED");
+        // 1. Update order status
+        order.setStatus(OrderStatuses.CANCELLED);
         order.setCancelledAt(Instant.now());
         order.setUpdatedAt(Instant.now());
+        order.setNotes(reason);
 
         orderRepository.save(order);
+
+        // 2. Restore stock
+        restoreStock(order);
     }
+
 
     /* =========================
        DELETE ORDER
@@ -261,7 +249,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (!"PENDING".equals(order.getStatus())) {
+        if (!OrderStatuses.PENDING.equals(order.getStatus())) {
             throw new RuntimeException("Chỉ được xóa đơn PENDING");
         }
 
@@ -343,4 +331,49 @@ public class OrderService {
 
 
     }
+
+    @Transactional
+    public void markAsShipping(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!OrderStatuses.PENDING.equals(order.getStatus())) {
+            throw new IllegalStateException("Only PENDING orders can be shipped");
+        }
+
+        order.setStatus(OrderStatuses.SHIPPING);
+        order.setUpdatedAt(Instant.now());
+
+        orderRepository.save(order);
+    }
+
+    @Transactional
+    public void markAsDelivered(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!OrderStatuses.SHIPPING.equals(order.getStatus())) {
+            throw new IllegalStateException("Only SHIPPING orders can be delivered");
+        }
+
+        order.setStatus(OrderStatuses.DELIVERED);
+        order.setDeliveredAt(Instant.now());
+        order.setUpdatedAt(Instant.now());
+
+        orderRepository.save(order);
+    }
+
+    private void restoreStock(Order order) {
+        for (OrderItem item : order.getOrderItems()) {
+            StockTransaction tx = new StockTransaction();
+            tx.setVariant(item.getVariant());
+            tx.setQuantity(item.getQuantity());
+            tx.setType("IN"); // hoặc enum nếu bạn có
+            tx.setNote("CANCEL_ORDER");
+            tx.setCreatedAt(Instant.now());
+
+            stockTransactionRepository.save(tx);
+        }
+    }
+
 }

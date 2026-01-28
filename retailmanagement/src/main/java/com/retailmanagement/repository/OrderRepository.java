@@ -16,5 +16,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStatusInOrderByCreatedAtDesc(List<String> statuses);
 
     long countByCreatedAtBetween(Instant start, Instant end);
+
+    List<Order> findByCustomerIdOrderByCreatedAtDesc(Integer customerId);
 }
 
