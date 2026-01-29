@@ -8,6 +8,7 @@ import CustomerRegister from "../pages/customer/CustomerRegister.vue";
 import CustomerOrderCreate from "../pages/customer/OrderCreate.vue";
 import CustomerOrderDetail from "../pages/customer/OrderDetail.vue";
 import CustomerProfile from "../pages/customer/CustomerProfile.vue";
+import CartPage from "../pages/customer/CartPage.vue";
 
 // ===== System (Admin) =====
 import SystemLogin from "../pages/system/SystemLogin.vue";
@@ -68,6 +69,12 @@ const routes = [
     name: "payment-success",
     component: PaymentSuccess,
     meta: { portal: "customer", requiresAuth: true },
+  },
+  {
+    path: "/cart",
+    name: "cart",
+    component: CartPage,
+    meta: { portal: "customer", requiresAuth: true }
   },
 
   // ===== SYSTEM LOGIN =====

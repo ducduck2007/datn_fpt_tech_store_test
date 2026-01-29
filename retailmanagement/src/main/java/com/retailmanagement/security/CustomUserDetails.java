@@ -2,6 +2,7 @@ package com.retailmanagement.security;
 
 import com.retailmanagement.entity.User;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -9,10 +10,12 @@ import java.util.Collection;
 import java.util.List;
 
 @Getter
+@Setter
 public class CustomUserDetails implements UserDetails {
 
     private final Integer userId;
     private final String username;
+    private Integer customerId;
     private final String password;
     private final String role;
     private final boolean enabled;
