@@ -129,6 +129,34 @@
                       <div v-else class="form-static">{{ formatDate(customer.dateOfBirth) }}</div>
                     </el-form-item>
                   </div>
+                  
+                  <!-- THÊM TRƯỜNG ADDRESS -->
+                  <div class="col-12">
+                    <el-form-item label="Địa chỉ">
+                      <el-input 
+                        v-if="editing" 
+                        v-model="formData.address"
+                        placeholder="Nhập địa chỉ của bạn"
+                      />
+                      <div v-else class="form-static">{{ customer.address || '—' }}</div>
+                    </el-form-item>
+                  </div>
+
+                  <!-- THÊM TRƯỜNG NOTES -->
+                  <div class="col-12">
+                    <el-form-item label="Ghi chú">
+                      <el-input 
+                        v-if="editing" 
+                        v-model="formData.notes"
+                        type="textarea"
+                        :rows="3"
+                        placeholder="Ghi chú cá nhân (ví dụ: sở thích, yêu cầu đặc biệt...)"
+                      />
+                      <div v-else class="form-static notes-static">
+                        {{ customer.notes || '—' }}
+                      </div>
+                    </el-form-item>
+                  </div>
                 </div>
               </el-form>
             </el-card>
@@ -313,6 +341,12 @@ onMounted(() => {
   min-height: 40px;
   display: flex;
   align-items: center;
+}
+.notes-static {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 60px;
+  align-items: flex-start;
 }
 .text-dark { color: #303133; }
 </style>

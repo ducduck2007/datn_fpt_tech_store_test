@@ -1,15 +1,28 @@
-import axios from "axios";
 import http from "./http";
+// 1. Đảm bảo tên biến là BASE_URL
 const BASE_URL = "/api/auth/payments";
 
 export const paymentsApi = {
-  /**
-   * Lấy tất cả payments
-   */
   getAll() {
-    return http.get("/api/auth/payments");
+    return http.get(BASE_URL);
   },
-   create(payload) {
-    return http.post("/api/auth/payments", payload);
+  
+  getById(paymentId) {
+    // 2. Sửa từ ${API_BASE} thành ${BASE_URL}
+    return http.get(`${BASE_URL}/${paymentId}`);
   },
-  };
+
+  getDetail(paymentId) {
+    // 3. Sửa từ ${API_BASE} thành ${BASE_URL}
+    return http.get(`${BASE_URL}/${paymentId}/detail`);
+  },
+
+  getByOrder(orderId) {
+    // 4. Sửa từ ${API_BASE} thành ${BASE_URL}
+    return http.get(`${BASE_URL}/order/${orderId}`);
+  },
+
+  create(payload) {
+    return http.post(BASE_URL, payload);
+  },
+};

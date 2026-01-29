@@ -61,6 +61,13 @@
             <span class="fw-bold text-primary">{{ row.loyaltyPoints }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="notes" label="Notes" min-width="200">
+          <template #default="{ row }">
+            <span class="text-muted" style="font-size: 13px;">
+              {{ row.notes || '-' }}
+            </span>
+          </template>
+        </el-table-column>
         <el-table-column prop="birthDate" label="Birth date" width="160" />
         <el-table-column label="Actions" width="240">
           <template #default="{ row }">

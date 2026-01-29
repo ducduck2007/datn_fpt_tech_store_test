@@ -102,8 +102,4 @@ public class CusController {
     public ResponseEntity<List<CustomerResponse>> findByCustomerType(@PathVariable CustomerType type) {
         return ResponseEntity.ok(cusservice.findbyCustomerType(type));
     }
-
-    // ĐƯA HÀM NÀY XUỐNG DƯỚI VÀ SỬA PATH
-
-
 }

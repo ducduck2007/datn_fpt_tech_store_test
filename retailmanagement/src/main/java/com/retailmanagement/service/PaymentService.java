@@ -1,6 +1,7 @@
 package com.retailmanagement.service;
 
 import com.retailmanagement.dto.request.PaymentRequest;
+import com.retailmanagement.dto.response.PaymentItem;
 import com.retailmanagement.dto.response.PaymentResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
@@ -15,14 +16,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final ProductVariantRepository variantRepository;
+
     private final StockTransactionRepository stockTransactionRepository;
     private final CustomerService customerService;
+    private final ImageRepository imageRepository; // THÊM MỚI
 
     /**
      * Tạo payment và xử lý thanh toán đơn hàng
@@ -64,7 +66,6 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
 
         // 5. Cập nhật trạng thái order thành PAID
-
         order.setPaymentStatus("PAID");
         order.setStatus("PAID");
         order.setPaidAt(Instant.now());
@@ -159,10 +160,113 @@ public class PaymentService {
     }
 
     /**
-     * Map Payment entity sang PaymentResponse
+     * Lấy tất cả payments - THÔNG TIN CƠ BẢN
      */
+    public List<PaymentResponse> getAllPayments() {
+        return paymentRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
+    // ========== THÊM MỚI: PHẦN CHI TIẾT ==========
 
+    /**
+     * Lấy chi tiết payment ĐẦY ĐỦ (kèm items)
+     */
+    @Transactional
+    public PaymentResponse getPaymentDetail(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy payment"));
+        return mapToDetailResponse(payment);
+    }
+
+    /**
+     * Map Payment → Response CHI TIẾT (có items)
+     */
+    private PaymentResponse mapToDetailResponse(Payment payment) {
+        Order order = payment.getOrder();
+        Customer customer = order.getCustomer();
+
+        // Lấy danh sách items
+        List<PaymentResponse.PaymentItem> items = order.getOrderItems().stream()
+                .map(this::mapToPaymentItem)
+                .collect(Collectors.toList());
+
+        PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
+                // Fields cũ
+                .id(payment.getId())
+                .orderId(order.getId())
+                .amount(payment.getAmount())
+                .method(payment.getMethod())
+                .transactionRef(payment.getTransactionRef())
+                .status(payment.getStatus())
+                .paidAt(payment.getPaidAt())
+                .createdAt(payment.getCreatedAt());
+
+        // Customer info
+        if (customer != null) {
+            builder.customerId(customer.getId())
+                    .customerName(customer.getName())
+                    .customerEmail(customer.getEmail())
+                    .customerPhone(customer.getPhone())
+                    .customerType(customer.getCustomerType().name())
+                    .vipTier(customer.getVipTier() != null ? customer.getVipTier().name() : null);
+        }
+
+        // Order info
+        builder.orderNumber(order.getOrderNumber())
+                .orderStatus(order.getStatus())
+                .channel(order.getChannel())
+                .subtotal(order.getSubtotal())
+                .discountTotal(order.getDiscountTotal())
+                .taxTotal(order.getTaxTotal())
+                .shippingFee(order.getShippingFee())
+                .totalAmount(order.getTotalAmount())
+                .appliedPromotionCode(order.getAppliedPromotionCode())
+                .notes(order.getNotes())
+                .items(items); // DANH SÁCH SẢN PHẨM
+
+        return builder.build();
+    }
+
+    /**
+     * Map OrderItem → PaymentItem
+     */
+    private PaymentResponse.PaymentItem mapToPaymentItem(OrderItem item) {
+        String imageUrl = null;
+
+        // Lấy ảnh từ variant hoặc product
+        if (item.getVariant() != null) {
+            imageUrl = imageRepository.findFirstByProductIdAndIsPrimaryTrue(item.getVariant().getId())
+                    .map(Image::getUrl)
+                    .orElse(null);
+        }
+
+        if (imageUrl == null && item.getProduct() != null) {
+            imageUrl = imageRepository.findFirstByProductIdAndIsPrimaryTrue(item.getProduct().getId())
+                    .map(Image::getUrl)
+                    .orElse(null);
+        }
+
+        return PaymentResponse.PaymentItem.builder()
+                .itemId(item.getId())
+                .productId(item.getProduct() != null ? item.getProduct().getId() : null)
+                .productName(item.getProductName())
+                .variantId(item.getVariant() != null ? item.getVariant().getId() : null)
+                .variantName(item.getVariantName())
+                .sku(item.getSku())
+                .quantity(item.getQuantity())
+                .unitPrice(item.getUnitPrice())
+                .discount(item.getDiscount())
+                .lineTotal(item.getLineTotal())
+                .imageUrl(imageUrl)
+                .build();
+    }
+    // ========== KẾT THÚC PHẦN THÊM MỚI ==========
+
+    /**
+     * Map Payment entity sang PaymentResponse (CƠ BẢN - không có items)
+     */
     private PaymentResponse mapToResponse(Payment payment) {
         Order order = payment.getOrder();
 
@@ -247,10 +351,5 @@ public class PaymentService {
         }
 
         orderRepository.save(order);
-    }
-    public List<PaymentResponse> getAllPayments() {
-        return paymentRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
     }
 }

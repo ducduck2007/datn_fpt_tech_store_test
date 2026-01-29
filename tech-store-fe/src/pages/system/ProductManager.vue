@@ -324,6 +324,7 @@ onMounted(async () => {
   opacity: 0.75;
   font-weight: 900;
   text-transform: uppercase;
+  
 }
 .title {
   font-weight: 900;

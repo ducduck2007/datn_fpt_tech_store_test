@@ -1,13 +1,12 @@
 package com.retailmanagement.controller;
 
-
 import com.retailmanagement.dto.request.PaymentRequest;
 import com.retailmanagement.dto.response.PaymentResponse;
+import com.retailmanagement.security.CustomUserDetails;
 import com.retailmanagement.service.PaymentService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/auth/payments")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class PaymentController {
 
     private final PaymentService paymentService;
@@ -26,52 +24,65 @@ public class PaymentController {
      */
     @PostMapping
     public ResponseEntity<PaymentResponse> createPayment(
-            @Valid @RequestBody PaymentRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId
-    ) {
-        PaymentResponse response = paymentService.createPayment(request, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+            @RequestBody PaymentRequest request,
+            @AuthenticationPrincipal CustomUserDetails user) {
 
-    /**
-     * Lấy danh sách payment của một order
-     * GET /api/payments/order/{orderId}
-     */
-    @GetMapping("/order/{orderId}")
-    public ResponseEntity<List<PaymentResponse>> getPaymentsByOrder(
-            @PathVariable Long orderId
-    ) {
-        List<PaymentResponse> payments = paymentService.getPaymentsByOrderId(orderId);
-        return ResponseEntity.ok(payments);
-    }
-
-    /**
-     * Lấy chi tiết một payment
-     * GET /api/payments/{paymentId}
-     */
-    @GetMapping("/{paymentId}")
-    public ResponseEntity<PaymentResponse> getPaymentDetail(
-            @PathVariable Long paymentId
-    ) {
-        PaymentResponse response = paymentService.getPaymentById(paymentId);
+        PaymentResponse response = paymentService.createPayment(request, user.getUserId());
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Hoàn tiền (refund) payment
-     * POST /api/payments/{paymentId}/refund
+     * Lấy danh sách payments theo order
+     * GET /api/payments/order/{orderId}
      */
-    @PostMapping("/{paymentId}/refund")
-    public ResponseEntity<Void> refundPayment(
-            @PathVariable Long paymentId,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId
-    ) {
-        paymentService.refundPayment(paymentId, userId);
-        return ResponseEntity.ok().build();
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<List<PaymentResponse>> getPaymentsByOrderId(
+            @PathVariable Long orderId) {
+
+        return ResponseEntity.ok(paymentService.getPaymentsByOrderId(orderId));
     }
-    @GetMapping("")
+
+    /**
+     * Lấy thông tin cơ bản 1 payment
+     * GET /api/payments/{id}
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<PaymentResponse> getPaymentById(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(paymentService.getPaymentById(id));
+    }
+
+    /**
+     * Lấy tất cả payments (cơ bản)
+     * GET /api/payments
+     */
+    @GetMapping
     public ResponseEntity<List<PaymentResponse>> getAllPayments() {
-        List<PaymentResponse> payments = paymentService.getAllPayments();
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentService.getAllPayments());
+    }
+
+    /**
+     * THÊM MỚI: Lấy chi tiết payment đầy đủ (kèm items)
+     * GET /api/payments/{id}/detail
+     */
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<PaymentResponse> getPaymentDetail(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(paymentService.getPaymentDetail(id));
+    }
+
+    /**
+     * Hoàn tiền
+     * PUT /api/payments/{id}/refund
+     */
+    @PutMapping("/{id}/refund")
+    public ResponseEntity<Void> refundPayment(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails user) {
+
+        paymentService.refundPayment(id, user.getUserId());
+        return ResponseEntity.ok().build();
     }
 }

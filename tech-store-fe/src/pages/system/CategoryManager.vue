@@ -1,4 +1,4 @@
-<!-- FILE: src/pages/system/CategoryManager.vue -->
+<!-- FILE: src/pages/system/CustomerManager.vue -->
 <template>
   <div class="container-xl">
     <el-card shadow="never">
@@ -7,111 +7,179 @@
       >
         <div>
           <div class="kicker">Admin</div>
-          <div class="title">Categories</div>
-          <div class="muted">Base: /api/categories</div>
+          <div class="title">Customers & Loyalty</div>
+          <div class="muted">Base: /api/auth/customers</div>
         </div>
-        <div class="d-flex gap-2 align-items-center">
-          <el-switch
-            v-model="activeOnly"
-            active-text="Active only"
-            @change="load"
-          />
+        <div class="d-flex gap-2">
           <el-button @click="load" :loading="loading">Reload</el-button>
+          <el-button type="primary" @click="openCreate">Add customer</el-button>
         </div>
       </div>
 
       <el-divider />
 
-      <el-form :model="form" label-position="top" class="row g-3">
+      <div class="row g-3">
         <div class="col-12 col-md-4">
-          <el-form-item label="name">
-            <el-input v-model="form.name" />
-          </el-form-item>
+          <el-input
+            v-model="q"
+            placeholder="Search name / email / phone"
+            clearable
+          />
         </div>
-        <div class="col-12 col-md-4">
-          <el-form-item label="displayOrder">
-            <el-input-number v-model="form.displayOrder" :min="0" :max="9999" />
-          </el-form-item>
+        <div class="col-12 col-md-3">
+          <el-select
+            v-model="typeFilter"
+            placeholder="Type"
+            clearable
+            @change="load"
+          >
+            <el-option label="REGULAR" value="REGULAR" />
+            <el-option label="VIP" value="VIP" />
+          </el-select>
         </div>
-        <div class="col-12 col-md-4">
-          <el-form-item label="isActive">
-            <el-switch v-model="form.isActive" />
-          </el-form-item>
-        </div>
+      </div>
 
+      <el-divider />
+
+      <el-table :data="paged" border :loading="loading">
+        <el-table-column prop="id" label="ID" width="90" />
+        <el-table-column prop="fullName" label="Full name" min-width="220" />
+        <el-table-column prop="email" label="Email" min-width="220" />
+        <el-table-column prop="phone" label="Phone" width="160" />
+        <el-table-column prop="customerType" label="Type" width="140">
+          <template #default="{ row }">
+            <el-tag
+              :type="row.customerType === 'VIP' ? 'warning' : 'info'"
+              effect="light"
+            >
+              {{ row.customerType || "REGULAR" }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="loyaltyPoints" label="Points" width="100" sortable align="center">
+          <template #default="{ row }">
+            <span class="fw-bold text-primary">{{ row.loyaltyPoints }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="notes" label="Notes" min-width="200">
+          <template #default="{ row }">
+            <span class="text-muted" style="font-size: 13px;">
+              {{ row.notes || '-' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="birthDate" label="Birth date" width="160">
+          <template #default="{ row }">
+            {{ formatDate(row.birthDate) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="240">
+          <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">Edit</el-button>
+            <el-button size="small" type="danger" plain @click="remove(row)"
+              >Delete</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="d-flex justify-content-end mt-3">
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :page-size="pageSize"
+          :total="filtered.length"
+          :current-page="page"
+          @current-change="(v) => (page = v)"
+        />
+      </div>
+    </el-card>
+
+    <el-dialog
+      v-model="dlg.open"
+      :title="dlg.mode === 'create' ? 'Add Customer' : 'Update Customer'"
+      width="720px"
+    >
+      <el-alert
+        v-if="dlg.alert"
+        :title="dlg.alert"
+        type="error"
+        show-icon
+        class="mb-3"
+      />
+
+      <el-form :model="dlg.form" label-position="top" class="row g-3">
         <div class="col-12 col-md-6">
-          <el-form-item label="imageUrl">
-            <el-input v-model="form.imageUrl" placeholder="https://..." />
+          <el-form-item label="fullName">
+            <el-input v-model="dlg.form.fullName" />
           </el-form-item>
         </div>
         <div class="col-12 col-md-6">
-          <el-form-item label="parent (optional)">
-            <el-select
-              v-model="form.parentId"
-              clearable
-              placeholder="Select parent"
-            >
-              <el-option
-                v-for="c in categories"
-                :key="c.id"
-                :label="c.name"
-                :value="c.id"
-              />
+          <el-form-item label="customerType">
+            <el-select v-model="dlg.form.customerType">
+              <el-option label="REGULAR" value="REGULAR" />
+              <el-option label="VIP" value="VIP" />
             </el-select>
           </el-form-item>
         </div>
 
-        <div class="col-12">
-          <el-form-item label="description">
-            <el-input v-model="form.description" type="textarea" :rows="2" />
+        <div class="col-12 col-md-6">
+          <el-form-item label="email">
+            <el-input v-model="dlg.form.email" />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <el-form-item label="phone">
+            <el-input v-model="dlg.form.phone" />
           </el-form-item>
         </div>
 
-        <div class="col-12 d-flex justify-content-end">
-          <el-button type="primary" :loading="saving" @click="create"
-            >Create</el-button
-          >
+        <div class="col-12 col-md-6">
+          <el-form-item label="birthDate">
+            <el-date-picker
+              v-model="dlg.form.birthDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <el-form-item label="address">
+            <el-input v-model="dlg.form.address" />
+          </el-form-item>
+        </div>
+
+        <div class="col-12">
+          <el-form-item label="notes">
+            <el-input v-model="dlg.form.notes" type="textarea" :rows="2" />
+          </el-form-item>
         </div>
       </el-form>
 
-      <el-divider />
-
-      <el-table :data="categories" border :loading="loading">
-        <el-table-column prop="id" label="ID" width="90" />
-        <el-table-column prop="name" label="Name" min-width="220" />
-        <el-table-column prop="displayOrder" label="Order" width="110" />
-        <el-table-column prop="isActive" label="Active" width="110">
-          <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'info'" effect="light">
-              {{ row.isActive ? "YES" : "NO" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="imageUrl" label="ImageUrl" min-width="260" />
-      </el-table>
-    </el-card>
+      <template #footer>
+        <el-button @click="dlg.open = false">Cancel</el-button>
+        <el-button type="primary" :loading="dlg.loading" @click="save">
+          {{ dlg.mode === "create" ? "Create" : "Update" }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
-import { categoriesApi } from "../../api/categories.api";
+import { computed, onMounted, reactive, ref } from "vue";
+import { customersApi } from "../../api/customers.api";
 import { toast } from "../../ui/toast";
+import { confirmModal } from "../../ui/confirm";
 
 const loading = ref(false);
-const saving = ref(false);
-const activeOnly = ref(false);
+const rows = ref([]);
 
-const categories = ref([]);
-
-const form = reactive({
-  name: "",
-  description: "",
-  imageUrl: "",
-  displayOrder: 0,
-  isActive: true,
-  parentId: null,
-});
+const q = ref("");
+const typeFilter = ref("");
+const page = ref(1);
+const pageSize = 10;
 
 function extractList(payload) {
   if (!payload) return [];
@@ -127,13 +195,16 @@ function extractList(payload) {
 
 function normalize(list) {
   return (list || []).map((c) => ({
-    id: c?.id ?? c?.categoryId,
-    name: c?.name ?? c?.title ?? "",
-    description: c?.description ?? "",
-    imageUrl: c?.imageUrl ?? "",
-    displayOrder: c?.displayOrder ?? 0,
-    isActive: !!c?.isActive,
-    parent: c?.parent ?? null,
+    id: c?.id ?? c?.customerId,
+    fullName: c?.fullName ?? c?.name ?? "",
+    email: c?.email ?? "",
+    phone: c?.phone ?? "",
+    // FIX: Map cả birthDate VÀ dateOfBirth từ backend
+    birthDate: c?.birthDate ?? c?.dateOfBirth ?? "",
+    customerType: (c?.customerType ?? "REGULAR").toString().toUpperCase(),
+    loyaltyPoints: c?.loyaltyPoints ?? 0,
+    address: c?.address ?? "",
+    notes: c?.notes ?? "",
     raw: c,
   }));
 }
@@ -141,46 +212,135 @@ function normalize(list) {
 async function load() {
   loading.value = true;
   try {
-    const res = await categoriesApi.list(activeOnly.value);
-    categories.value = normalize(extractList(res?.data));
+    const res = typeFilter.value
+      ? await customersApi.listByType(typeFilter.value)
+      : await customersApi.listAll();
+
+    rows.value = normalize(extractList(res?.data));
+    page.value = 1;
   } catch {
-    categories.value = [];
-    toast("Failed to load categories.", "error");
+    rows.value = [];
+    toast("Failed to load customers.", "error");
   } finally {
     loading.value = false;
   }
 }
 
-async function create() {
-  if (!form.name) return toast("name is required.", "warning");
+const filtered = computed(() => {
+  const kw = (q.value || "").trim().toLowerCase();
+  if (!kw) return rows.value;
+  return rows.value.filter((r) =>
+    `${r.fullName} ${r.email} ${r.phone}`.toLowerCase().includes(kw)
+  );
+});
 
-  saving.value = true;
+const paged = computed(() => {
+  const start = (page.value - 1) * pageSize;
+  return filtered.value.slice(start, start + pageSize);
+});
+
+const dlg = reactive({
+  open: false,
+  mode: "create",
+  loading: false,
+  alert: "",
+  id: null,
+  form: {
+    fullName: "",
+    email: "",
+    phone: "",
+    birthDate: "",
+    customerType: "REGULAR",
+    address: "",
+    notes: "",
+  },
+});
+
+function openCreate() {
+  dlg.open = true;
+  dlg.mode = "create";
+  dlg.alert = "";
+  dlg.id = null;
+  dlg.form = {
+    fullName: "",
+    email: "",
+    phone: "",
+    birthDate: "",
+    customerType: "REGULAR",
+    address: "",
+    notes: "",
+  };
+}
+
+function openEdit(row) {
+  dlg.open = true;
+  dlg.mode = "edit";
+  dlg.alert = "";
+  dlg.id = row?.id;
+  dlg.form = {
+    fullName: row?.fullName || "",
+    email: row?.email || "",
+    phone: row?.phone || "",
+    birthDate: row?.birthDate || "",
+    customerType: row?.customerType || "REGULAR",
+    address: row?.address || "",
+    notes: row?.notes || "",
+  };
+}
+
+async function save() {
+  dlg.alert = "";
+  if (!dlg.form.fullName || !dlg.form.email || !dlg.form.phone) {
+    dlg.alert = "fullName, email, phone are required.";
+    return;
+  }
+
+  dlg.loading = true;
   try {
-    const payload = {
-      name: form.name,
-      description: form.description,
-      imageUrl: form.imageUrl,
-      displayOrder: Number(form.displayOrder || 0),
-      isActive: !!form.isActive,
-    };
-    if (form.parentId) payload.parent = { id: Number(form.parentId) };
-
-    await categoriesApi.create(payload);
-    toast("Category created.", "success");
-
-    form.name = "";
-    form.description = "";
-    form.imageUrl = "";
-    form.displayOrder = 0;
-    form.isActive = true;
-    form.parentId = null;
-
+    if (dlg.mode === "create") {
+      await customersApi.create({ ...dlg.form });
+      toast("Customer created.", "success");
+    } else {
+      // Partial CustomerRequest allowed
+      await customersApi.update(dlg.id, { ...dlg.form });
+      toast("Customer updated.", "success");
+    }
+    dlg.open = false;
     await load();
   } catch (e) {
-    const msg = e?.response?.data?.message || e?.message || "Create failed";
-    toast(typeof msg === "string" ? msg : JSON.stringify(msg), "error");
+    const msg = e?.response?.data?.message || e?.message || "Save failed";
+    dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg);
   } finally {
-    saving.value = false;
+    dlg.loading = false;
+  }
+}
+
+async function remove(row) {
+  const ok = await confirmModal(
+    `Delete customer #${row?.id}?`,
+    "Confirm",
+    "Delete",
+    true
+  );
+  if (!ok) return;
+
+  try {
+    await customersApi.remove(row.id);
+    toast("Customer deleted.", "success");
+    await load();
+  } catch {
+    toast("Delete failed.", "error");
+  }
+}
+
+// THÊM HÀM FORMAT DATE
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('vi-VN');
+  } catch {
+    return dateStr;
   }
 }
 
