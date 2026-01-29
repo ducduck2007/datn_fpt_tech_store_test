@@ -22,7 +22,6 @@
             v-model="filters.search"
             placeholder="Search by Order ID or Transaction Ref..."
             clearable
-            @input="handleSearch"
           >
             <template #prefix>
               <i class="bi bi-search"></i>
@@ -61,7 +60,7 @@
         </div>
       </div>
 
-      <!-- Table -->
+      <!-- Table - CHỈ HIỂN THỊ THÔNG TIN CƠ BẢN -->
       <el-table
         :data="filteredPayments"
         v-loading="loading"
@@ -70,14 +69,10 @@
       >
         <el-table-column prop="id" label="ID" width="80" sortable />
         
-        <el-table-column prop="orderId" label="Order ID" width="100" sortable>
+        <el-table-column prop="orderId" label="Order" width="120" sortable>
           <template #default="{ row }">
-            <router-link
-              :to="`/system/orders/${row.orderId}`"
-              class="text-primary text-decoration-none"
-            >
-              #{{ row.orderId }}
-            </router-link>
+            <div class="fw-bold">#{{ row.orderId }}</div>
+            <div class="text-muted small">{{ row.orderNumber }}</div>
           </template>
         </el-table-column>
 
@@ -102,12 +97,6 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="transactionRef" label="Transaction Ref" min-width="150">
-          <template #default="{ row }">
-            <code class="small">{{ row.transactionRef || '-' }}</code>
-          </template>
-        </el-table-column>
-
         <el-table-column prop="status" label="Status" width="120">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
@@ -122,23 +111,16 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Actions" width="120" fixed="right">
+        <el-table-column label="Actions" width="140" fixed="right">
           <template #default="{ row }">
+            <!-- NÚT VIEW DETAIL - LOAD CHI TIẾT KHI CLICK -->
             <el-button
               size="small"
-              @click="viewDetail(row)"
-              text
+              type="primary"
+              @click="viewDetail(row.id)"
+              :loading="loadingDetail && selectedPaymentId === row.id"
             >
-              <i class="bi bi-eye"></i>
-            </el-button>
-            <el-button
-              v-if="row.status === 'PAID'"
-              size="small"
-              type="danger"
-              @click="confirmRefund(row)"
-              text
-            >
-              <i class="bi bi-arrow-counterclockwise"></i>
+              <i class="bi bi-eye me-1"></i>Detail
             </el-button>
           </template>
         </el-table-column>
@@ -151,45 +133,43 @@
       </div>
     </el-card>
 
-    <!-- Detail Dialog -->
+    <!-- Detail Dialog - CHỈ HIỂN THỊ KHI CLICK VIEW DETAIL -->
     <el-dialog
       v-model="detailDialog"
       title="Payment Details"
-      width="600px"
+      width="900px"
+      top="5vh"
     >
       <div v-if="selectedPayment" class="payment-detail">
-        <div class="row g-3">
-          <div class="col-6">
+        <!-- Payment & Order Info -->
+        <div class="row g-3 mb-4">
+          <div class="col-12">
+            <h6 class="fw-bold mb-3">
+              <i class="bi bi-receipt-cutoff me-2"></i>Payment Information
+            </h6>
+          </div>
+          <div class="col-6 col-md-3">
             <div class="detail-label">Payment ID</div>
             <div class="detail-value">#{{ selectedPayment.id }}</div>
           </div>
-          <div class="col-6">
-            <div class="detail-label">Order ID</div>
+          <div class="col-6 col-md-3">
+            <div class="detail-label">Order Number</div>
             <div class="detail-value">
               <router-link
                 :to="`/system/orders/${selectedPayment.orderId}`"
                 class="text-primary text-decoration-none"
               >
-                #{{ selectedPayment.orderId }}
+                {{ selectedPayment.orderNumber }}
               </router-link>
             </div>
           </div>
-          <div class="col-6">
-            <div class="detail-label">Customer</div>
-            <div class="detail-value">{{ selectedPayment.customerName }}</div>
-            <div class="text-muted small">ID: {{ selectedPayment.customerId }}</div>
-          </div>
-          <div class="col-6">
+          <div class="col-6 col-md-3">
             <div class="detail-label">Amount</div>
             <div class="detail-value fw-bold text-success">
               {{ formatCurrency(selectedPayment.amount) }}
             </div>
           </div>
-          <div class="col-6">
-            <div class="detail-label">Payment Method</div>
-            <div class="detail-value">{{ formatMethod(selectedPayment.method) }}</div>
-          </div>
-          <div class="col-6">
+          <div class="col-6 col-md-3">
             <div class="detail-label">Status</div>
             <div class="detail-value">
               <el-tag :type="getStatusType(selectedPayment.status)">
@@ -197,22 +177,169 @@
               </el-tag>
             </div>
           </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div class="row g-3 mb-4">
           <div class="col-12">
-            <div class="detail-label">Transaction Reference</div>
+            <h6 class="fw-bold mb-3">
+              <i class="bi bi-person me-2"></i>Customer Information
+            </h6>
+          </div>
+          <div class="col-6">
+            <div class="detail-label">Name</div>
+            <div class="detail-value">{{ selectedPayment.customerName }}</div>
+          </div>
+          <div class="col-6">
+            <div class="detail-label">Email</div>
+            <div class="detail-value">{{ selectedPayment.customerEmail || 'N/A' }}</div>
+          </div>
+          <div class="col-6">
+            <div class="detail-label">Phone</div>
+            <div class="detail-value">{{ selectedPayment.customerPhone || 'N/A' }}</div>
+          </div>
+          <div class="col-6">
+            <div class="detail-label">Type / Tier</div>
             <div class="detail-value">
-              <code>{{ selectedPayment.transactionRef || 'N/A' }}</code>
+              <el-tag size="small" type="info" class="me-1">
+                {{ selectedPayment.customerType || 'REGULAR' }}
+              </el-tag>
+              <el-tag v-if="selectedPayment.vipTier" size="small" type="warning">
+                {{ selectedPayment.vipTier }}
+              </el-tag>
             </div>
           </div>
-          <div class="col-6">
-            <div class="detail-label">Paid At</div>
-            <div class="detail-value">{{ formatDate(selectedPayment.paidAt) }}</div>
+        </div>
+
+        <!-- Purchased Items - CHỈ HIỂN THỊ KHI ĐÃ LOAD DETAIL -->
+        <div class="row g-3 mb-4" v-if="selectedPayment.items && selectedPayment.items.length > 0">
+          <div class="col-12">
+            <h6 class="fw-bold mb-3">
+              <i class="bi bi-bag-check me-2"></i>Purchased Items
+            </h6>
           </div>
-          <div class="col-6">
-            <div class="detail-label">Created At</div>
-            <div class="detail-value">{{ formatDate(selectedPayment.createdAt) }}</div>
+          <div class="col-12">
+            <el-table :data="selectedPayment.items" border style="width: 100%">
+              <el-table-column label="Image" width="80">
+                <template #default="{ row }">
+                  <img 
+                    v-if="row.imageUrl" 
+                    :src="row.imageUrl" 
+                    class="item-image"
+                    @error="handleImageError"
+                  />
+                  <div v-else class="item-image-placeholder">
+                    <i class="bi bi-image"></i>
+                  </div>
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="Product" min-width="200">
+                <template #default="{ row }">
+                  <div class="fw-bold">{{ row.productName }}</div>
+                  <div class="text-muted small" v-if="row.variantName">
+                    {{ row.variantName }}
+                  </div>
+                  <div class="text-muted small" v-if="row.sku">
+                    SKU: {{ row.sku }}
+                  </div>
+                </template>
+              </el-table-column>
+              
+              <el-table-column prop="quantity" label="Qty" width="80" align="center">
+                <template #default="{ row }">
+                  <el-tag size="small">{{ row.quantity }}</el-tag>
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="Unit Price" width="120" align="right">
+                <template #default="{ row }">
+                  {{ formatCurrency(row.unitPrice) }}
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="Discount" width="120" align="right">
+                <template #default="{ row }">
+                  <span v-if="row.discount > 0" class="text-danger">
+                    -{{ formatCurrency(row.discount) }}
+                  </span>
+                  <span v-else class="text-muted">-</span>
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="Total" width="130" align="right">
+                <template #default="{ row }">
+                  <div class="fw-bold">{{ formatCurrency(row.lineTotal) }}</div>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <h6 class="fw-bold mb-3">
+              <i class="bi bi-info-circle me-2"></i>Additional Details
+            </h6>
+            <div class="mb-2">
+              <div class="detail-label">Payment Method</div>
+              <div class="detail-value">{{ formatMethod(selectedPayment.method) }}</div>
+            </div>
+            <div class="mb-2">
+              <div class="detail-label">Transaction Ref</div>
+              <div class="detail-value">
+                <code>{{ selectedPayment.transactionRef || 'N/A' }}</code>
+              </div>
+            </div>
+            <div class="mb-2">
+              <div class="detail-label">Channel</div>
+              <div class="detail-value">{{ selectedPayment.channel || 'N/A' }}</div>
+            </div>
+            <div class="mb-2">
+              <div class="detail-label">Order Status</div>
+              <div class="detail-value">
+                <el-tag :type="selectedPayment.orderStatus === 'DELIVERED' ? 'success' : 'warning'">
+                  {{ selectedPayment.orderStatus }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-12 col-md-6">
+            <h6 class="fw-bold mb-3">
+              <i class="bi bi-calculator me-2"></i>Order Summary
+            </h6>
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span>{{ formatCurrency(selectedPayment.subtotal) }}</span>
+            </div>
+            <div class="summary-row" v-if="selectedPayment.discountTotal > 0">
+              <span>Discount:</span>
+              <span class="text-danger">-{{ formatCurrency(selectedPayment.discountTotal) }}</span>
+            </div>
+            <div class="summary-row" v-if="selectedPayment.taxTotal > 0">
+              <span>Tax:</span>
+              <span>{{ formatCurrency(selectedPayment.taxTotal) }}</span>
+            </div>
+            <div class="summary-row" v-if="selectedPayment.shippingFee > 0">
+              <span>Shipping:</span>
+              <span>{{ formatCurrency(selectedPayment.shippingFee) }}</span>
+            </div>
+            <el-divider class="my-2" />
+            <div class="summary-row fw-bold fs-5">
+              <span>Total:</span>
+              <span class="text-success">{{ formatCurrency(selectedPayment.totalAmount) }}</span>
+            </div>
+          </div>
+
+          <div class="col-12" v-if="selectedPayment.notes">
+            <div class="detail-label">Notes</div>
+            <div class="detail-value">{{ selectedPayment.notes }}</div>
           </div>
         </div>
       </div>
+
       <template #footer>
         <el-button @click="detailDialog = false">Close</el-button>
         <el-button
@@ -229,16 +356,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { paymentsApi } from "../../api/payments";
 import { toast } from "../../ui/toast";
 import { ElMessageBox } from "element-plus";
 
 const loading = ref(false);
+const loadingDetail = ref(false);
 const refunding = ref(false);
 const payments = ref([]);
 const detailDialog = ref(false);
 const selectedPayment = ref(null);
+const selectedPaymentId = ref(null);
 
 const filters = ref({
   search: "",
@@ -250,23 +379,21 @@ const filters = ref({
 const filteredPayments = computed(() => {
   let result = [...payments.value];
 
-  // Search filter
   if (filters.value.search) {
     const search = filters.value.search.toLowerCase();
     result = result.filter(
       (p) =>
         p.orderId?.toString().includes(search) ||
+        p.orderNumber?.toLowerCase().includes(search) ||
         p.transactionRef?.toLowerCase().includes(search) ||
         p.customerName?.toLowerCase().includes(search)
     );
   }
 
-  // Status filter
   if (filters.value.status) {
     result = result.filter((p) => p.status === filters.value.status);
   }
 
-  // Method filter
   if (filters.value.method) {
     result = result.filter((p) => p.method === filters.value.method);
   }
@@ -289,17 +416,25 @@ async function loadPayments() {
   }
 }
 
-function handleSearch() {
-  // Debounce could be added here if needed
-}
-
 function applyFilters() {
   // Filters are reactive, no action needed
 }
 
-function viewDetail(payment) {
-  selectedPayment.value = payment;
-  detailDialog.value = true;
+// VIEW DETAIL - LOAD CHI TIẾT KHI CLICK
+async function viewDetail(paymentId) {
+  selectedPaymentId.value = paymentId;
+  loadingDetail.value = true;
+  try {
+    const { data } = await paymentsApi.getDetail(paymentId);
+    selectedPayment.value = data;
+    detailDialog.value = true;
+  } catch (error) {
+    console.error("Error loading payment detail:", error);
+    toast("Failed to load payment detail", "error");
+  } finally {
+    loadingDetail.value = false;
+    selectedPaymentId.value = null;
+  }
 }
 
 async function confirmRefund(payment) {
@@ -332,6 +467,10 @@ async function handleRefund(paymentId) {
   } finally {
     refunding.value = false;
   }
+}
+
+function handleImageError(e) {
+  e.target.style.display = 'none';
 }
 
 function formatCurrency(amount) {
@@ -377,10 +516,8 @@ function getStatusType(status) {
   return types[status] || "info";
 }
 
-// Lifecycle
-onMounted(() => {
-  loadPayments();
-});
+// Auto load on mount
+loadPayments();
 </script>
 
 <style scoped>
@@ -403,6 +540,8 @@ onMounted(() => {
 
 .payment-detail {
   padding: 1rem 0;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .detail-label {
@@ -417,6 +556,31 @@ onMounted(() => {
   font-size: 14px;
   color: #333;
   font-weight: 500;
+}
+
+.item-image {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.item-image-placeholder {
+  width: 60px;
+  height: 60px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+  font-size: 24px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
 }
 
 code {
