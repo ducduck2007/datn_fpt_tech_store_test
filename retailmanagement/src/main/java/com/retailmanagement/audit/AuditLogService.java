@@ -68,6 +68,20 @@ public class AuditLogService {
                 .toList();
     }
 
+    public List<AuditLogResponse> getAuditLogsByChange_Role(){
+        return auditLogRepository.findByActionOrderByCreatedAtDesc(AuditAction.CHANGE_ROLE.name())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getAuditLogsByUser_Id(Integer id){
+        return auditLogRepository.findByUserId(id)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     private AuditLogResponse toResponse(AuditLog auditLog){
 
         Integer userId = auditLog.getUser() != null
