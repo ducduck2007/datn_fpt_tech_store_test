@@ -12,7 +12,7 @@
         </div>
         <div class="d-flex gap-2">
           <el-button @click="$router.push('/')">Back</el-button>
-          <el-button type="primary" :loading="loading" @click="submit"
+          <el-button type="primary" :loading="loading" :disabled="loading" @click="submit"
             >Submit</el-button
           >
         </div>
@@ -78,31 +78,26 @@
       <el-divider />
 
       <div class="d-flex align-items-center justify-content-between">
-        <div class="h">Items</div>
-        <el-button type="success" @click="addItem">Add item</el-button>
+        <div class="h">Items (from cart)</div>
       </div>
 
       <el-table :data="form.items" class="mt-2" border>
-        <el-table-column label="variantId" width="220">
+        <el-table-column label="variantId" width="200">
           <template #default="{ row }">
-            <el-input v-model.number="row.variantId" placeholder="variantId" />
+            <div>
+              <div class="fw-bold">{{ row.productName }}</div>
+              <div class="muted small">Variant ID: {{ row.variantId }}</div>
+            </div>
           </template>
         </el-table-column>
 
         <el-table-column label="quantity" width="220">
           <template #default="{ row }">
-            <el-input-number v-model="row.quantity" :min="1" :max="999" />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Actions">
-          <template #default="{ $index }">
-            <el-button type="danger" plain @click="removeItem($index)"
-              >Remove</el-button
-            >
+            <el-input-number v-model="row.quantity" :min="1" :max="999" disabled/>
           </template>
         </el-table-column>
       </el-table>
+
 
       <el-divider />
 
@@ -122,10 +117,12 @@ import { ordersApi } from "../../api/orders.api";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
 import { customersApi } from "../../api/customers.api";
+import { cartApi } from "../../api/cart.api";
+import { useCartStore } from "../../stores/cart";
 
-const route = useRoute();
 const router = useRouter();
-const auth = useAuthStore();
+
+const cartStore = useCartStore();
 
 const loading = ref(false);
 const alert = ref("");
@@ -135,7 +132,7 @@ const form = reactive({
   paymentMethod: "CASH",
   channel: "ONLINE",
   notes: "",
-  items: [{ variantId: null, quantity: 1 }],
+  items: [],
 });
 
 function pickOrderId(payload) {
@@ -145,14 +142,6 @@ function pickOrderId(payload) {
   );
 }
 
-function addItem() {
-  form.items.push({ variantId: null, quantity: 1 });
-}
-
-function removeItem(idx) {
-  form.items.splice(idx, 1);
-  if (form.items.length === 0) addItem();
-}
 
 const payloadPreview = computed(() => JSON.stringify(form, null, 2));
 
@@ -187,7 +176,10 @@ async function submit() {
     const orderId = pickOrderId(res?.data);
     toast("Order created.", "success");
 
-    if (orderId) router.push(`/orders/${orderId}`);
+    if (orderId) {
+    await cartStore.refreshCount();
+    router.push(`/orders/${orderId}`);
+    }
     else toast("Created, but cannot detect orderId from response.", "warning");
   } catch (e) {
     const msg =
@@ -199,28 +191,45 @@ async function submit() {
 }
 
 onMounted(async () => {
-  const qVariantId = route.query?.variantId
-    ? Number(route.query.variantId)
-    : null;
-  if (qVariantId) form.items[0].variantId = qVariantId;
-
   try {
-    const res = await customersApi.getProfile();
+    // =========================
+    // 1. LOAD CUSTOMER PROFILE
+    // =========================
+    const profileRes = await customersApi.getProfile();
+    const customerId =
+      profileRes?.data?.id ??
+      profileRes?.data?.data?.id ??
+      null;
 
-    // API của bạn trả kiểu { id, name, ... }
-    const customerId = res?.data?.id ?? res?.data?.data?.id ?? null;
-
-    if (customerId != null) {
-      form.customerId = Number(customerId);
-    } else {
-      alert.value = "Cannot detect customerId from profile.";
+    if (!customerId) {
+      alert.value = "Cannot detect customerId. Please login again.";
+      return;
     }
+    form.customerId = Number(customerId);
+
+    // =========================
+    // 2. LOAD CART ITEMS
+    // =========================
+    const cartRes = await cartApi.getItems();
+    const cartItems = Array.isArray(cartRes?.data)
+      ? cartRes.data
+      : cartRes?.data?.data || [];
+
+    if (cartItems.length === 0) {
+      alert.value = "Your cart is empty.";
+      return;
+    }
+
+    form.items = cartItems.map(item => ({
+      variantId: item.variantId,
+      quantity: item.quantity,
+      productName: item.productName, // nếu BE có
+    }));
   } catch (e) {
-    alert.value =
-      e?.response?.data?.message ||
-      "Failed to load customer profile. Please login again.";
+    alert.value = "Failed to load order data.";
   }
 });
+
 </script>
 
 <style scoped>

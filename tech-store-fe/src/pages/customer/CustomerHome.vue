@@ -51,6 +51,8 @@
               </div>
             </div>
 
+
+
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <el-button :loading="loading" @click="reloadProducts"
                 >Reload</el-button
@@ -63,6 +65,20 @@
                 <el-icon class="me-1"><User /></el-icon>
                 Profile
               </el-button>
+
+              <el-badge
+                v-if="isCustomer"
+                :value="cartStore.count"
+                class="me-1"
+              >
+                <el-button
+                  type="success"
+                  @click="$router.push('/cart')"
+                >
+                  Cart
+                </el-button>
+              </el-badge>
+
               <el-button
                 type="primary"
                 :disabled="!isCustomer"
@@ -167,6 +183,7 @@ import { productsApi } from "../../api/products.api";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
 import { User } from '@element-plus/icons-vue';
+import { useCartStore } from "../../stores/cart";
 
 const auth = useAuthStore();
 const isCustomer = computed(() => auth.isCustomer);
@@ -186,6 +203,8 @@ const serverTotalPages = ref(1); // unknown; fallback
 const searchTerm = ref("");
 const clientPage = ref(1);
 const clientPageSize = 9;
+
+const cartStore = useCartStore();
 
 function extractList(payload) {
   if (!payload) return [];
@@ -302,11 +321,17 @@ function onSelectCategory(key) {
   reloadProducts();
 }
 
-function goOrder(p) {
-  const q = new URLSearchParams();
-  if (p?.defaultVariantId) q.set("variantId", String(p.defaultVariantId));
-  routerPush(`/orders/new?${q.toString()}`);
+async function goOrder(p) {
+  try {
+    await cartStore.addToCart(p.defaultVariantId, 1);
+    toast("Đã thêm vào giỏ hàng", "success");
+  } catch (e) {
+    toast("Không thể thêm vào giỏ hàng", "error");
+    console.error(e);
+  }
 }
+
+
 
 function routerPush(path) {
   // avoid importing router directly (keep page self-contained)
@@ -368,6 +393,11 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("products:search", onSearchEvent);
+});
+
+onMounted(() => {
+  // ADD: load badge khi vào trang
+  cartStore.refreshCount();
 });
 </script>
 
