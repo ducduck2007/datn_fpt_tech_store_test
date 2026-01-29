@@ -35,13 +35,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         // ===== THÊM DUY NHẤT: RESOLVE customerId =====
         Customer customer = customerRepository.findByEmail(user.getEmail())
-                .orElseThrow(() ->
-                        new UsernameNotFoundException(
-                                "Customer không tồn tại cho userId=" + user.getId()
-                        )
-                );
+                .orElse(null);
 
-        userDetails.setCustomerId(customer.getId());
+        if (customer != null) {
+            userDetails.setCustomerId(customer.getId());
+        }
         // ===== HẾT PHẦN THÊM =====
 
         return userDetails;
