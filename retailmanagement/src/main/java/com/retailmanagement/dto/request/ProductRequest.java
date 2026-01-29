@@ -17,7 +17,7 @@ public class ProductRequest {
 
     private List<Integer> categoryIds;
 
-    private List<AttributeRequest> attributes;
+    private String attributes;
 
     private List<MultipartFile> galleryImages;
 

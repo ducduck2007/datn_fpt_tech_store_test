@@ -44,4 +44,7 @@ public class Product {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "attributes_json", columnDefinition = "nvarchar(max)")
+    private String attributesJson;
 }

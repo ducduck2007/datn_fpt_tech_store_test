@@ -1,5 +1,7 @@
 package com.retailmanagement.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.retailmanagement.dto.request.AttributeRequest;
 import com.retailmanagement.dto.request.ProductRequest;
 import com.retailmanagement.dto.response.ProductResponse;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,7 +29,7 @@ public class ProductService {
     private final ImageRepository imageRepository;
     private final ProductCategoryRepository productCategoryRepository;
     private final ProductVariantRepository productVariantRepository;
-
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -43,16 +46,33 @@ public class ProductService {
 
         // 2. Xử lý thuộc tính: Gộp vào Description
         String finalDescription = request.getDescription();
+
+        // Kiểm tra nếu attributes không null và không rỗng
         if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
-            StringBuilder attrStr = new StringBuilder();
-            attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT ---\n");
-            for (AttributeRequest attr : request.getAttributes()) {
-                attrStr.append("- ").append(attr.getName())
-                        .append(": ").append(attr.getValue()).append("\n");
+            try {
+                // 1. Dùng Jackson dịch chuỗi JSON sang List
+                List<AttributeRequest> attrList = objectMapper.readValue(
+                        request.getAttributes(),
+                        new TypeReference<List<AttributeRequest>>(){}
+                );
+
+                // 2. Nối chuỗi vào Description
+                StringBuilder attrStr = new StringBuilder();
+                attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT ---\n");
+                for (AttributeRequest attr : attrList) {
+                    attrStr.append("- ").append(attr.getName())
+                            .append(": ").append(attr.getValue()).append("\n");
+                }
+                finalDescription += attrStr.toString();
+
+            } catch (Exception e) {
+                // Nếu JSON sai định dạng, chỉ in log và bỏ qua, không làm crash chương trình
+                System.err.println("Lỗi parse attributes JSON: " + e.getMessage());
             }
-            finalDescription += attrStr.toString();
         }
         product.setDescription(finalDescription);
+
+        product.setAttributesJson(request.getAttributes());
 
         Product savedProduct = productRepository.save(product);
 
@@ -98,16 +118,32 @@ public class ProductService {
 
         // Update Description kèm thuộc tính mới
         String finalDescription = request.getDescription();
+
+        // Kiểm tra nếu attributes không null và không rỗng
         if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
-            StringBuilder attrStr = new StringBuilder();
-            attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT (Cập nhật) ---\n");
-            for (AttributeRequest attr : request.getAttributes()) {
-                attrStr.append("- ").append(attr.getName())
-                        .append(": ").append(attr.getValue()).append("\n");
+            try {
+                // 1. Dùng Jackson dịch chuỗi JSON sang List
+                List<AttributeRequest> attrList = objectMapper.readValue(
+                        request.getAttributes(),
+                        new TypeReference<List<AttributeRequest>>(){}
+                );
+
+                // 2. Nối chuỗi vào Description
+                StringBuilder attrStr = new StringBuilder();
+                attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT ---\n");
+                for (AttributeRequest attr : attrList) {
+                    attrStr.append("- ").append(attr.getName())
+                            .append(": ").append(attr.getValue()).append("\n");
+                }
+                finalDescription += attrStr.toString();
+
+            } catch (Exception e) {
+                // Nếu JSON sai định dạng, chỉ in log và bỏ qua, không làm crash chương trình
+                System.err.println("Lỗi parse attributes JSON: " + e.getMessage());
             }
-            finalDescription += attrStr.toString();
         }
         product.setDescription(finalDescription);
+        product.setAttributesJson(request.getAttributes());
 
         if (request.getIdsToDelete() != null && !request.getIdsToDelete().isEmpty()) {
             imageRepository.deleteAllById(request.getIdsToDelete());
@@ -130,19 +166,44 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    public Page<ProductResponse> getProducts(int page, Integer categoryId, String keyword) {
+    public Page<ProductResponse> getProducts(int page, Integer categoryId, String keyword, String sortBy) {
+        String sortColumn = "created_at";
+        Sort.Direction direction = Sort.Direction.DESC;
+
+        if (sortBy != null) {
+            if (sortBy.contains("name")) sortColumn = "name";
+            if (sortBy.contains("asc")) direction = Sort.Direction.ASC;
+            if ("oldest".equals(sortBy)) {
+                sortColumn = "created_at";
+                direction = Sort.Direction.ASC;
+            }
+        }
+
+        Pageable pageable = PageRequest.of(page, 20, Sort.by(direction, sortColumn));
+
         if (keyword != null && !keyword.isEmpty()) {
-            Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
             return productRepository.searchProducts(keyword, true, pageable).map(this::mapToResponse);
         }
-
         if (categoryId != null) {
-            Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
             return productRepository.findByCategoryId(categoryId, pageable).map(this::mapToResponse);
         }
+        return productRepository.searchProducts(null, true, pageable).map(this::mapToResponse);
+    }
 
-        Pageable pageable = PageRequest.of(page, 20, Sort.by("createdAt").descending());
-        return productRepository.findAll(pageable).map(this::mapToResponse);
+    //CHI TIẾT SẢN PHẨM
+    public ProductResponse getProductById(Integer id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm với ID: " + id));
+        return mapToResponse(product);
+    }
+
+    //XÓA MỀM (SOFT DELETE)
+    @Transactional
+    public void softDeleteProduct(Integer id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+        product.setIsVisible(false);
+        productRepository.save(product);
     }
 
     private ProductResponse mapToResponse(Product product) {
@@ -153,6 +214,8 @@ public class ProductService {
         dto.setDescription(product.getDescription()); // Description này đã chứa cả thuộc tính
         dto.setIsVisible(product.getIsVisible());
         dto.setCreatedAt(product.getCreatedAt());
+
+        dto.setAttributes(product.getAttributesJson());
 
         imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
                 .ifPresent(img -> dto.setImageUrl(img.getUrl()));

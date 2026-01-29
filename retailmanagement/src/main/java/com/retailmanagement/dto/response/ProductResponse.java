@@ -14,6 +14,7 @@ public class ProductResponse {
     private Boolean isVisible;
     private String imageUrl;
     private LocalDateTime createdAt;
+    private String attributes;
 
     // ✅ Added for "Display current price in product list"
     // We return the MIN current price among variants (common storefront behavior).
