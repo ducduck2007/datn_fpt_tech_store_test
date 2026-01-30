@@ -21,11 +21,10 @@ const IGNORE_DIRS = new Set([
 const BASE_PACKAGE = "com.retailmanagement.";
 
 /**
- * Preset theo đúng structure dự án bạn gửi.
- * Mỗi module = seedFiles (đường dẫn tương đối dưới ROOT_DIR).
- * Script sẽ:
- * 1) Include seedFiles
- * 2) Expand dependency bằng cách parse `import com.retailmanagement...`
+ * Preset theo structure mới.
+ * Menu chỉ còn:
+ * 1) All
+ * 6) Pricing & Promotion
  */
 const MODULE_PRESETS = {
   all: {
@@ -33,148 +32,6 @@ const MODULE_PRESETS = {
     label: "All",
     mode: "all",
     seedFiles: [],
-  },
-
-  catalog: {
-    key: "2",
-    label: "Catalog / Product",
-    mode: "seed",
-    seedFiles: [
-      "controller/ProductController.java",
-      "controller/CategoryController.java",
-      "service/ProductService.java",
-      "repository/ProductRepository.java",
-      "repository/ProductVariantRepository.java",
-      "repository/CategoryRepository.java",
-      "repository/ProductCategoryRepository.java",
-
-      // DTO core catalog
-      "dto/request/ProductRequest.java",
-      "dto/response/ProductResponse.java",
-      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
-
-      // Entities core catalog
-      "entity/Product.java",
-      "entity/ProductVariant.java",
-      "entity/Category.java",
-      "entity/ProductCategory.java",
-      "entity/ProductCategoryId.java",
-      "entity/Image.java",
-      "repository/ImageRepository.java",
-      "entity/Tag.java",
-      "entity/ProductTag.java",
-      "entity/ProductTagId.java",
-
-      // infra hay dùng chung
-      "exception/ErrorResponse.java", // ✅ add (khuyến nghị)
-      "exception/GlobalExceptionHandler.java", // ✅ add (khuyến nghị)
-    ],
-  },
-
-  sales: {
-    key: "3",
-    label: "Sales / Order & Returns",
-    mode: "seed",
-    seedFiles: [
-      "controller/OrderController.java",
-      "service/OrderService.java",
-      "service/OrderQueryService.java",
-      "repository/OrderRepository.java",
-      "repository/OrderItemRepository.java",
-
-      "dto/request/CreateOrderRequest.java",
-      "dto/request/CreateOrderItemRequest.java",
-      "dto/request/UpdateOrderRequest.java", // ✅ add
-
-      "dto/response/CreateOrderResponse.java",
-      "dto/response/OrderListResponse.java",
-      "dto/response/OrderDetailResponse.java", // ✅ add
-      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
-
-      "entity/Order.java",
-      "entity/OrderItem.java",
-      "entity/Payment.java",
-      "entity/Return.java",
-      "entity/StockTransaction.java",
-      "repository/StockTransactionRepository.java",
-
-      // infra
-      "exception/ErrorResponse.java",
-      "exception/GlobalExceptionHandler.java",
-    ],
-  },
-
-  customer: {
-    key: "4",
-    label: "Customer & Loyalty",
-    mode: "seed",
-    seedFiles: [
-      "controller/CusController.java",
-      "service/CustomerService.java",
-      "dto/request/CustomerRequest.java",
-      "dto/response/CustomerResponse.java",
-      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
-
-      "entity/Customer.java",
-      "entity/CustomerType.java",
-      "entity/Customergroup.java",
-      "entity/VipTier.java",
-
-      // infra hay dùng
-      "exception/ErrorResponse.java",
-      "exception/GlobalExceptionHandler.java",
-      "util/IpUtil.java", // ✅ add (khuyến nghị)
-    ],
-  },
-
-  user: {
-    key: "5",
-    label: "User & Role / Audit",
-    mode: "seed",
-    seedFiles: [
-      "controller/AuthController.java",
-      "controller/UserController.java",
-      "service/AuthService.java",
-      "service/UserService.java",
-
-      "security/CustomUserDetails.java",
-      "security/CustomUserDetailsService.java",
-      "security/JwtAuthenticationFilter.java",
-      "security/JwtService.java",
-
-      "config/SecurityConfig.java",
-      "config/JwtProperties.java",
-
-      "dto/request/LoginRequest.java",
-      "dto/request/RegisterRequest.java",
-      "dto/request/CreateUserRequest.java",
-      "dto/request/UpdateUserRequest.java",
-
-      "dto/response/AuthResponse.java",
-      "dto/response/UserResponse.java",
-      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
-
-      "entity/User.java",
-      "entity/Role.java",
-      "repository/UserRepository.java",
-
-      // ✅ AUDIT package (đúng theo label module)
-      "audit/Audit.java",
-      "audit/AuditAction.java",
-      "audit/AuditLog.java",
-      "audit/AuditLogAspect.java",
-      "audit/AuditLogRepository.java",
-      "audit/AuditLogService.java",
-
-      // infra
-      "util/SecurityUtil.java",
-      "util/IpUtil.java",
-      "exception/ErrorResponse.java",
-      "exception/GlobalExceptionHandler.java",
-      "config/CorsConfig.java", // ✅ add (khuyến nghị)
-      "config/WebConfig.java", // ✅ add (khuyến nghị)
-      "config/ModelMapperConfig.java", // ✅ add (khuyến nghị)
-    ],
   },
 
   pricing: {
@@ -198,7 +55,7 @@ const MODULE_PRESETS = {
       "dto/request/UpsertPriceRequest.java",
       "dto/request/PromotionRequest.java",
       "dto/response/VariantPriceResponse.java",
-      "dto/response/ApiResponse.java", // ✅ add (khuyến nghị)
+      "dto/response/ApiResponse.java",
 
       // entities
       "entity/PriceHistory.java",
@@ -213,26 +70,6 @@ const MODULE_PRESETS = {
       // infra
       "exception/ErrorResponse.java",
       "exception/GlobalExceptionHandler.java",
-    ],
-  },
-
-  // ✅ NEW MODULE: settings (bạn đang thiếu trong presets)
-  settings: {
-    key: "7",
-    label: "Settings / System Config",
-    mode: "seed",
-    seedFiles: [
-      "controller/SettingController.java",
-      "service/SettingService.java",
-      "repository/SystemSettingRepository.java",
-      "entity/SystemSetting.java",
-      "dto/request/SetDefaultCurrencyRequest.java",
-      "dto/response/ApiResponse.java",
-
-      // infra
-      "exception/ErrorResponse.java",
-      "exception/GlobalExceptionHandler.java",
-      "config/WebConfig.java",
     ],
   },
 };
@@ -320,7 +157,6 @@ function buildIncludedSet(preset) {
     return { included, rootAbs, allFilesAbs, allJavaAbs };
   }
 
-  // seed files
   const queue = [];
   for (const rel of preset.seedFiles) {
     const abs = normalizeAbs(path.join(ROOT_DIR, rel));
@@ -330,7 +166,6 @@ function buildIncludedSet(preset) {
     }
   }
 
-  // dependency expand via import
   while (queue.length) {
     const fileAbs = queue.pop();
     const content = readTextSafe(fileAbs);
@@ -429,11 +264,12 @@ function resolveModule(input) {
   if (!input) return null;
   const normalized = String(input).trim().toLowerCase();
 
-  // by number
+  // allow: 1,6
   for (const k of Object.keys(MODULE_PRESETS)) {
     if (MODULE_PRESETS[k].key === normalized) return k;
   }
-  // by key
+
+  // allow: all, pricing
   if (MODULE_PRESETS[normalized]) return normalized;
 
   return null;
@@ -448,10 +284,6 @@ Usage:
 
 Modules:
   1. All
-  2. Catalog / Product
-  3. Sales / Order & Returns
-  4. Customer & Loyalty
-  5. User & Role / Audit
   6. Pricing & Promotion
 `);
 }
@@ -459,7 +291,7 @@ Modules:
 async function askMenu() {
   console.log("Chọn module để export:");
   const entries = Object.entries(MODULE_PRESETS).sort(
-    (a, b) => Number(a[1].key) - Number(b[1].key)
+    (a, b) => Number(a[1].key) - Number(b[1].key),
   );
   for (const [, v] of entries) console.log(`${v.key}. ${v.label}`);
 
@@ -468,7 +300,7 @@ async function askMenu() {
     output: process.stdout,
   });
   const answer = await new Promise((res) =>
-    rl.question("Nhập lựa chọn (1-6): ", res)
+    rl.question("Nhập lựa chọn (1 hoặc 6): ", res),
   );
   rl.close();
   return answer;
@@ -498,8 +330,8 @@ async function askMenu() {
   const outFile = args.out
     ? args.out
     : moduleKey === "all"
-    ? DEFAULT_OUTPUT
-    : `project-tree-with-code.${moduleKey}.txt`;
+      ? DEFAULT_OUTPUT
+      : `project-tree-with-code.${moduleKey}.txt`;
 
   const { included, rootAbs } = buildIncludedSet(preset);
   const tree = writeTreeWithCode(rootAbs, included);

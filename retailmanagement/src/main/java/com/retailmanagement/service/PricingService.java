@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,7 +31,8 @@ public class PricingService {
     public PricingService(ProductVariantRepository variantRepo,
                           PriceHistoryRepository priceHistoryRepo,
                           SettingService settingService,
-                          PromotionService promotionService, UserRepository userRepository) {
+                          PromotionService promotionService,
+                          UserRepository userRepository) {
         this.variantRepo = variantRepo;
         this.priceHistoryRepo = priceHistoryRepo;
         this.settingService = settingService;
@@ -38,17 +40,22 @@ public class PricingService {
         this.userRepository = userRepository;
     }
 
-    // 1) Tạo/đổi giá (và tạo history)
     @Transactional
     public PriceHistory setVariantPrice(Integer variantId, UpsertPriceRequest req, Integer userId) {
         ProductVariant v = variantRepo.findById(variantId)
                 .orElseThrow(() -> new NoSuchElementException("Variant not found"));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
+        if (req == null) throw new IllegalArgumentException("Body rỗng");
         if (req.getPrice() == null || req.getPrice().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("price phải >= 0");
+        }
+        if (req.getCostPrice() != null && req.getCostPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("costPrice phải >= 0");
+        }
+
+        User user = null;
+        if (userId != null && userId > 0) {
+            user = userRepository.findById(userId).orElse(null);
         }
 
         String currency = (req.getCurrencyCode() == null || req.getCurrencyCode().isBlank())
@@ -57,37 +64,33 @@ public class PricingService {
 
         Instant now = Instant.now();
 
-        // close current history
         priceHistoryRepo.findFirstByVariant_IdAndEffectiveToIsNullOrderByEffectiveFromDesc(variantId)
                 .ifPresent(cur -> {
                     cur.setEffectiveTo(now);
                     priceHistoryRepo.save(cur);
                 });
 
-        // create new history
         PriceHistory ph = new PriceHistory();
         ph.setVariant(v);
         ph.setCurrencyCode(currency);
-        ph.setPrice(req.getPrice());
-        ph.setCostPrice(req.getCostPrice());
-        ph.setReason(req.getReason() == null ? "MANUAL" : req.getReason());
+        ph.setPrice(scaleMoney(req.getPrice()));
+        ph.setCostPrice(req.getCostPrice() == null ? null : scaleMoney(req.getCostPrice()));
+        ph.setReason(req.getReason() == null || req.getReason().isBlank() ? "MANUAL" : req.getReason().trim());
         ph.setEffectiveFrom(now);
         ph.setEffectiveTo(null);
         ph.setCreatedBy(user);
         ph.setCreatedAt(now);
         priceHistoryRepo.save(ph);
 
-        // update current price on variant
         v.setCurrencyCode(currency);
-        v.setPrice(req.getPrice());
-        v.setCostPrice(req.getCostPrice());
+        v.setPrice(scaleMoney(req.getPrice()));
+        v.setCostPrice(req.getCostPrice() == null ? null : scaleMoney(req.getCostPrice()));
         v.setUpdatedAt(now);
         variantRepo.save(v);
 
         return ph;
     }
 
-    // 2) Danh sách giá theo sản phẩm (current)
     public List<VariantPriceResponse> listCurrentPricesByProduct(Integer productId) {
         List<ProductVariant> variants = variantRepo.findByProduct_Id(productId);
         LocalDateTime now = LocalDateTime.now();
@@ -105,7 +108,7 @@ public class PricingService {
             Promotion best = promotionService.findBestPromotionForVariant(v, now);
             if (best != null) {
                 r.setPromotionCode(best.getCode());
-                r.setFinalPrice(promotionService.applyDiscount(v.getPrice(), best.getDiscountType(), best.getDiscountValue()));
+                r.setFinalPrice(promotionService.computeEffectiveUnitPrice(v.getPrice(), best));
             } else {
                 r.setFinalPrice(v.getPrice());
             }
@@ -113,7 +116,6 @@ public class PricingService {
         }).toList();
     }
 
-    // 3) Chỉnh sửa giá: chỉ cho phép chỉnh sửa record mới nhất (effective_to = null)
     @Transactional
     public PriceHistory updateLatestHistory(Long priceHistoryId, UpsertPriceRequest req) {
         PriceHistory ph = priceHistoryRepo.findById(priceHistoryId)
@@ -123,8 +125,12 @@ public class PricingService {
             throw new IllegalArgumentException("Chỉ được sửa bản ghi giá hiện tại (effective_to = null)");
         }
 
+        if (req == null) throw new IllegalArgumentException("Body rỗng");
         if (req.getPrice() == null || req.getPrice().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("price phải >= 0");
+        }
+        if (req.getCostPrice() != null && req.getCostPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("costPrice phải >= 0");
         }
 
         String currency = (req.getCurrencyCode() == null || req.getCurrencyCode().isBlank())
@@ -132,23 +138,21 @@ public class PricingService {
                 : req.getCurrencyCode().trim().toUpperCase();
 
         ph.setCurrencyCode(currency);
-        ph.setPrice(req.getPrice());
-        ph.setCostPrice(req.getCostPrice());
-        ph.setReason(req.getReason() == null ? ph.getReason() : req.getReason());
+        ph.setPrice(scaleMoney(req.getPrice()));
+        ph.setCostPrice(req.getCostPrice() == null ? null : scaleMoney(req.getCostPrice()));
+        if (req.getReason() != null && !req.getReason().isBlank()) ph.setReason(req.getReason().trim());
         priceHistoryRepo.save(ph);
 
-        // sync variant current price
         ProductVariant v = ph.getVariant();
         v.setCurrencyCode(currency);
-        v.setPrice(req.getPrice());
-        v.setCostPrice(req.getCostPrice());
+        v.setPrice(scaleMoney(req.getPrice()));
+        v.setCostPrice(req.getCostPrice() == null ? null : scaleMoney(req.getCostPrice()));
         v.setUpdatedAt(Instant.now());
         variantRepo.save(v);
 
         return ph;
     }
 
-    // 4) Xóa giá: chỉ cho phép xóa bản ghi mới nhất và rollback về bản trước
     @Transactional
     public void deleteLatestAndRollback(Long priceHistoryId) {
         PriceHistory current = priceHistoryRepo.findById(priceHistoryId)
@@ -159,28 +163,34 @@ public class PricingService {
         }
 
         Integer variantId = current.getVariant().getId();
-
         priceHistoryRepo.delete(current);
 
-        // rollback: lấy bản mới nhất còn lại
         List<PriceHistory> histories = priceHistoryRepo.findByVariant_IdOrderByEffectiveFromDesc(variantId);
+
+        ProductVariant v = variantRepo.findById(variantId)
+                .orElseThrow(() -> new NoSuchElementException("Variant not found"));
+
         if (histories.isEmpty()) {
-            throw new IllegalStateException("Không còn lịch sử giá để rollback");
+            String currency = settingService.getDefaultCurrency();
+            v.setCurrencyCode(currency);
+            v.setPrice(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            v.setCostPrice(null);
+            v.setUpdatedAt(Instant.now());
+            variantRepo.save(v);
+            return;
         }
 
         PriceHistory latest = histories.get(0);
         latest.setEffectiveTo(null);
         priceHistoryRepo.save(latest);
 
-        ProductVariant v = latest.getVariant();
         v.setCurrencyCode(latest.getCurrencyCode());
-        v.setPrice(latest.getPrice());
-        v.setCostPrice(latest.getCostPrice());
+        v.setPrice(scaleMoney(latest.getPrice()));
+        v.setCostPrice(latest.getCostPrice() == null ? null : scaleMoney(latest.getCostPrice()));
         v.setUpdatedAt(Instant.now());
         variantRepo.save(v);
     }
 
-    // 5) Giá hiện tại sau khuyến mãi theo variant
     public VariantPriceResponse getEffectivePrice(Integer variantId) {
         ProductVariant v = variantRepo.findById(variantId)
                 .orElseThrow(() -> new NoSuchElementException("Variant not found"));
@@ -199,10 +209,15 @@ public class PricingService {
 
         if (best != null) {
             r.setPromotionCode(best.getCode());
-            r.setFinalPrice(promotionService.applyDiscount(v.getPrice(), best.getDiscountType(), best.getDiscountValue()));
+            r.setFinalPrice(promotionService.computeEffectiveUnitPrice(v.getPrice(), best));
         } else {
             r.setFinalPrice(v.getPrice());
         }
         return r;
+    }
+
+    private static BigDecimal scaleMoney(BigDecimal v) {
+        if (v == null) return null;
+        return v.setScale(2, RoundingMode.HALF_UP);
     }
 }
