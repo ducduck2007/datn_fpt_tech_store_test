@@ -61,6 +61,9 @@ public class Customer {
     @Column(name = "notes", columnDefinition = "NVARCHAR(MAX)")
     private String notes;
 
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

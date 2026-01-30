@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -98,7 +99,7 @@ public class CustomerService {
                 .loyaltyPoints(currentPoints)
                 .pointsToNextTier(pointsToNext)
                 .discountRate(currentTier != null ? currentTier.getDiscountRate() : 0.0) // 0.0 nếu là khách thường
-
+                .lastLoginAt(customer.getLastLoginAt())
                 .totalSpent(customer.getTotalSpent())
                 .lastOrderAt(customer.getLastOrderAt())
                 .address(customer.getAddress())
@@ -229,5 +230,17 @@ public class CustomerService {
         System.out.println("DEBUG Service: Tìm thấy khách hàng: " + customer.getName() + ", email: " + customer.getEmail());
 
         return mapToResponse(customer);
+
+    }
+
+    public List<CustomerResponse> findActiveInLast30Days() {
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+
+        // ✅ Dùng method mới với last_login_at
+        List<Customer> activeCustomers = customRes.findActiveCustomersSince(thirtyDaysAgo);
+
+        return activeCustomers.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 }

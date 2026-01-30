@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -29,15 +30,13 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final CustomRes customerRepository; // ✅ added
+    private final CustomRes customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final ModelMapper modelMapper;
     private final AuthenticationManager authenticationManager;
     private final UserLoginLogService userLoginLogService;
 
-    // ✅ Requirement #3: customer registration must also insert into `customers`
-    // Ensure atomicity: either both user+customer are saved or none.
     @Transactional
     public AuthResponse register(RegisterRequest req) {
         if (userRepository.existsByUsername(req.getUsername())) {
@@ -62,7 +61,7 @@ public class AuthService {
         Optional<Customer> existingCus = customerRepository.findByEmail(req.getEmail());
         if (existingCus.isEmpty()) {
             Customer customer = Customer.builder()
-                    .name(req.getUsername())            // default name from username
+                    .name(req.getUsername())
                     .email(req.getEmail())
                     .phone(null)
                     .dateOfBirth(null)
@@ -74,24 +73,23 @@ public class AuthService {
                     .address(null)
                     .notes(null)
                     .isActive(true)
+                    .lastLoginAt(LocalDateTime.now()) // ✅ Set initial login time
                     .build();
 
             customerRepository.save(customer);
         } else {
-            // If already exists (rare, but safe), ensure active & data consistent
             Customer customer = existingCus.get();
             customer.setIsActive(true);
             if (customer.getName() == null || customer.getName().isBlank()) {
                 customer.setName(req.getUsername());
             }
-            // Keep email the same (requirement). If somehow null, set it.
             if (customer.getEmail() == null || customer.getEmail().isBlank()) {
                 customer.setEmail(req.getEmail());
             }
+            customer.setLastLoginAt(LocalDateTime.now()); // ✅ Update login time
             customerRepository.save(customer);
         }
 
-        // 3) Return auth response as before
         String token = jwtService.generateToken(user);
         UserResponse userRes = modelMapper.map(user, UserResponse.class);
 
@@ -109,7 +107,6 @@ public class AuthService {
                             req.getIdentifier(),
                             request
                     );
-
                     return new RuntimeException("Sai tài khoản hoặc mật khẩu");
                 });
 
@@ -118,7 +115,6 @@ public class AuthService {
                     user.getUsername(),
                     request
             );
-
             throw new RuntimeException("Tài khoản đã bị khóa");
         }
 
@@ -131,7 +127,6 @@ public class AuthService {
                     user.getUsername(),
                     request
             );
-
             throw new RuntimeException("Sai tài khoản hoặc mật khẩu");
         }
 
@@ -140,6 +135,13 @@ public class AuthService {
                 user.getUsername(),
                 request
         );
+
+        // ✅✅✅ THÊM CODE NÀY - Update last_login_at cho customer
+        customerRepository.findByEmail(user.getEmail()).ifPresent(customer -> {
+            customer.setLastLoginAt(LocalDateTime.now());
+            customerRepository.save(customer);
+            System.out.println("✅ Updated last_login_at for customer: " + user.getEmail());
+        });
 
         String token = jwtService.generateToken(user);
         UserResponse userRes = modelMapper.map(user, UserResponse.class);

@@ -28,7 +28,7 @@ public class CustomerResponse {
 
     private VipTier vipTier; // Thêm vipTier
     private String vipTierDisplay;
-
+    private LocalDateTime lastLoginAt;
     private Integer loyaltyPoints; // Thêm loyaltyPoints
     private Integer pointsToNextTier; // Điểm cần để lên hạng
     private Double discountRate; // % giảm giá
