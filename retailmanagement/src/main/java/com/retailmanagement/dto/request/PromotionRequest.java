@@ -30,4 +30,11 @@ public class PromotionRequest {
     private Integer priority = 0;
     private Boolean stackable = false;
     private Boolean isActive = true;
+
+    // Giới hạn số lần dùng (toàn hệ thống). Null = không giới hạn
+    private Integer usageLimit;
+
+    // Combo mua X tặng Y (ví dụ mua 2 tặng 1 => buyQty=2, getQty=1). Null/0 = không áp dụng
+    private Integer buyQty;
+    private Integer getQty;
 }

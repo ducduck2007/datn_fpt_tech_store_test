@@ -20,10 +20,10 @@ public class PromotionController {
 
     @PostMapping
     public ApiResponse<Promotion> create(@RequestBody PromotionRequest req) {
-        // nếu có auth: lấy userId thật
         return ApiResponse.success(promotionService.create(req, 0));
     }
 
+    // activeOnly=true => chỉ lấy khuyến mãi đang hoạt động theo thời gian + isActive=true
     @GetMapping
     public ApiResponse<List<Promotion>> list(@RequestParam(required = false) Boolean activeOnly) {
         return ApiResponse.success(promotionService.list(activeOnly));

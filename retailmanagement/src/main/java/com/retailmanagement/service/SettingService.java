@@ -1,41 +1,29 @@
 package com.retailmanagement.service;
 
-import com.retailmanagement.entity.SystemSetting;
-import com.retailmanagement.repository.SystemSettingRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 public class SettingService {
-    public static final String DEFAULT_CURRENCY_KEY = "DEFAULT_CURRENCY";
 
-    private final SystemSettingRepository repo;
-
-    public SettingService(SystemSettingRepository repo) {
-        this.repo = repo;
-    }
+    // Tạm thời lưu in-memory
+    // Có thể thay bằng DB / Redis / config sau
+    private String defaultCurrency = "VND";
 
     public String getDefaultCurrency() {
-        return repo.findById(DEFAULT_CURRENCY_KEY)
-                .map(SystemSetting::getValue)
-                .orElse("VND");
+        return defaultCurrency;
     }
 
-    @Transactional
-    public String setDefaultCurrency(String code) {
-        if (code == null || code.trim().length() != 3) {
-            throw new IllegalArgumentException("currencyCode phải là mã 3 ký tự (VD: VND, USD)");
+    public String setDefaultCurrency(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) {
+            throw new IllegalArgumentException("currencyCode không được rỗng");
         }
-        String normalized = code.trim().toUpperCase();
 
-        SystemSetting s = repo.findById(DEFAULT_CURRENCY_KEY).orElseGet(SystemSetting::new);
-        s.setKey(DEFAULT_CURRENCY_KEY);
-        s.setValue(normalized);
-        s.setUpdatedAt(LocalDateTime.now());
-        repo.save(s);
+        String c = currencyCode.trim().toUpperCase();
+        if (c.length() != 3) {
+            throw new IllegalArgumentException("currencyCode phải là ISO-4217 (3 ký tự)");
+        }
 
-        return normalized;
+        this.defaultCurrency = c;
+        return this.defaultCurrency;
     }
 }
