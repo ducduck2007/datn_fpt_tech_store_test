@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -66,6 +68,27 @@ public class UserLoginLogService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public List<UserLogin> getByDateRange (LocalDate from, LocalDate to) {
+        if(from == null && to == null){
+            to = LocalDate.now();
+            from = to.minusDays(7);
+        }
+
+        if(to == null){
+            to = from;
+        }
+
+        if(from == null){
+            from = to;
+        }
+
+        Instant fromInstant = from.atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+        Instant toInstant = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+        return userLoginRepository.findByCreatedAtBetween(fromInstant, toInstant);
     }
 
     private UserLoginResponse toResponse(UserLogin userLogin){

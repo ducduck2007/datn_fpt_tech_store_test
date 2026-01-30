@@ -68,6 +68,27 @@ public class AuditLogService {
                 .toList();
     }
 
+    public List<AuditLog> getByDateRange(LocalDate from, LocalDate to){
+        if(from == null && to == null){
+            to = LocalDate.now();
+            from = to.minusDays(7);
+        }
+
+        if(to == null){
+            to = from;
+        }
+
+        if(from == null){
+            from = to;
+        }
+
+        Instant fromInstant = from.atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+        Instant toInstant = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+        return auditLogRepository.findByCreatedAtBetween(fromInstant,toInstant);
+    }
+
     public List<AuditLogResponse> getAuditLogsByChange_Role(){
         return auditLogRepository.findByActionOrderByCreatedAtDesc(AuditAction.CHANGE_ROLE.name())
                 .stream()
