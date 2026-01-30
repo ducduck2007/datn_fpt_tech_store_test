@@ -102,4 +102,9 @@ public class CusController {
     public ResponseEntity<List<CustomerResponse>> findByCustomerType(@PathVariable CustomerType type) {
         return ResponseEntity.ok(cusservice.findbyCustomerType(type));
     }
+    @GetMapping("/active-last-30-days")
+    public ResponseEntity<List<CustomerResponse>> getActiveCustomersLast30Days() {
+        List<CustomerResponse> activeCustomers = cusservice.findActiveInLast30Days();
+        return ResponseEntity.ok(activeCustomers);
+    }
 }

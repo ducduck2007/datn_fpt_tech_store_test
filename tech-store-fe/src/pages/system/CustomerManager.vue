@@ -19,7 +19,7 @@
       <el-divider />
 
       <div class="row g-3">
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
           <el-input
             v-model="q"
             placeholder="Search name / email / phone"
@@ -31,15 +31,61 @@
             v-model="typeFilter"
             placeholder="Type"
             clearable
-            @change="load"
+            @change="handleFilterChange"
           >
             <el-option label="REGULAR" value="REGULAR" />
             <el-option label="VIP" value="VIP" />
           </el-select>
         </div>
+        <!-- ✅ THÊM MỚI: Filter hoạt động -->
+        <div class="col-12 col-md-3">
+          <el-select
+            v-model="activityFilter"
+            placeholder="Activity Filter"
+            clearable
+            @change="handleFilterChange"
+          >
+            <el-option label="Active (30 days)" value="ACTIVE_30">
+              <span class="d-flex align-items-center gap-2">
+                <el-icon><Calendar /></el-icon>
+                <span>Active (30 days)</span>
+              </span>
+            </el-option>
+            <el-option label="All Customers" value="ALL" />
+          </el-select>
+        </div>
+        <!-- Badge hiển thị trạng thái filter -->
+        <div class="col-12 col-md-3 d-flex align-items-center">
+          <el-tag v-if="activityFilter === 'ACTIVE_30'" type="success" effect="dark">
+            <el-icon class="me-1"><Check /></el-icon>
+            Showing active customers
+          </el-tag>
+          <el-tag v-else-if="typeFilter" type="info" effect="dark">
+            Type: {{ typeFilter }}
+          </el-tag>
+        </div>
       </div>
 
       <el-divider />
+
+      <!-- ✅ Hiển thị thống kê -->
+      <div class="mb-3">
+        <el-alert
+          v-if="activityFilter === 'ACTIVE_30'"
+          title="Active Customers in Last 30 Days"
+          type="success"
+          :closable="false"
+          show-icon
+        >
+          <template #default>
+            <div class="d-flex gap-3">
+              <span><strong>{{ rows.length }}</strong> customers logged in</span>
+              <span class="text-muted">|</span>
+              <span class="text-muted">Period: Last 30 days</span>
+            </div>
+          </template>
+        </el-alert>
+      </div>
 
       <el-table :data="paged" border :loading="loading">
         <el-table-column prop="id" label="ID" width="90" />
@@ -164,6 +210,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
+import { Calendar, Check } from '@element-plus/icons-vue';
 import { customersApi } from "../../api/customers.api";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
@@ -173,6 +220,7 @@ const rows = ref([]);
 
 const q = ref("");
 const typeFilter = ref("");
+const activityFilter = ref(""); // ✅ THÊM MỚI
 const page = ref(1);
 const pageSize = 10;
 
@@ -203,21 +251,43 @@ function normalize(list) {
   }));
 }
 
+// ✅ THÊM MỚI: Hàm load với logic ưu tiên activity filter
 async function load() {
   loading.value = true;
   try {
-    const res = typeFilter.value
-      ? await customersApi.listByType(typeFilter.value)
-      : await customersApi.listAll();
+    let res;
+    
+    // Ưu tiên activity filter trước
+    if (activityFilter.value === 'ACTIVE_30') {
+      res = await customersApi.listActiveLast30Days();
+    } else if (typeFilter.value) {
+      res = await customersApi.listByType(typeFilter.value);
+    } else {
+      res = await customersApi.listAll();
+    }
 
     rows.value = normalize(extractList(res?.data));
     page.value = 1;
-  } catch {
+  } catch (error) {
+    console.error("Load error:", error);
     rows.value = [];
     toast("Failed to load customers.", "error");
   } finally {
     loading.value = false;
   }
+}
+
+// ✅ THÊM MỚI: Handler khi thay đổi filter
+function handleFilterChange() {
+  // Khi chọn activity filter, clear type filter
+  if (activityFilter.value === 'ACTIVE_30') {
+    typeFilter.value = "";
+  }
+  // Khi chọn type filter, clear activity filter
+  if (typeFilter.value) {
+    activityFilter.value = "";
+  }
+  load();
 }
 
 const filtered = computed(() => {
@@ -295,7 +365,6 @@ async function save() {
       await customersApi.create({ ...dlg.form });
       toast("Customer created.", "success");
     } else {
-      // Partial CustomerRequest allowed
       await customersApi.update(dlg.id, { ...dlg.form });
       toast("Customer updated.", "success");
     }

@@ -18,5 +18,8 @@ export const customersApi = {
   },
   getProfile() {
     return http.get("/api/auth/customers/me");
+  },
+  listActiveLast30Days() {
+    return http.get("/api/auth/customers/active-last-30-days");
   }
 };
