@@ -1,63 +1,140 @@
-IF OBJECT_ID('dbo.system_settings', 'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.system_settings (
-        setting_key   NVARCHAR(50) NOT NULL PRIMARY KEY,
-        setting_value NVARCHAR(100) NOT NULL,
-        updated_at    DATETIME2 NOT NULL DEFAULT SYSDATETIME()
-    );
-END
+﻿---------------------------------------------------------------
+-- CATEGORIES (Laptop-focused)
+---------------------------------------------------------------
+INSERT INTO dbo.categories (name, description, parent_id, display_order, is_active)
+VALUES
+(N'Laptop',            N'Sản phẩm laptop',          NULL, 1, 1),
+(N'Laptop Gaming',     N'Laptop chơi game',         1,    1, 1),
+(N'Laptop Văn Phòng',  N'Laptop học tập – văn phòng',1,   2, 1),
+(N'Laptop Doanh Nhân', N'Laptop cao cấp',           1,    3, 1),
+(N'Phụ Kiện',          N'Phụ kiện laptop',          NULL, 2, 1);
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.system_settings WHERE setting_key = 'DEFAULT_CURRENCY')
-BEGIN
-    INSERT INTO dbo.system_settings(setting_key, setting_value) VALUES ('DEFAULT_CURRENCY', 'VND');
-END
+---------------------------------------------------------------
+-- TAGS
+---------------------------------------------------------------
+INSERT INTO dbo.tags (name, tag_type, is_active)
+VALUES
+(N'Gaming',      N'PRODUCT', 1),
+(N'Văn Phòng',   N'PRODUCT', 1),
+(N'Bán Chạy',    N'PRODUCT', 1),
+(N'Mới Về',      N'PRODUCT', 1),
+(N'Cao Cấp',     N'PRODUCT', 1);
 GO
 
-ALTER TABLE dbo.user_logins
-ADD updated_at DATETIME2 NOT NULL
-    CONSTRAINT DF_user_logins_updated_at DEFAULT SYSDATETIME();
+---------------------------------------------------------------
+-- PRODUCTS (Laptop)
+---------------------------------------------------------------
+INSERT INTO dbo.products (name, sku, description, is_visible, is_featured)
+VALUES
+(N'ASUS ROG Strix G15', N'LAP-ASUS-ROG-G15', N'Laptop gaming hiệu năng cao', 1, 1),
+(N'Dell Inspiron 15',  N'LAP-DELL-INS-15',  N'Laptop văn phòng phổ thông',  1, 0),
+(N'HP EliteBook 840',  N'LAP-HP-EB-840',    N'Laptop doanh nhân cao cấp',   1, 1);
 GO
 
-ALTER TABLE user_logins
-ALTER COLUMN updated_at DATETIME2 NULL;
+---------------------------------------------------------------
+-- PRODUCT CATEGORIES
+---------------------------------------------------------------
+INSERT INTO dbo.product_categories (product_id, category_id, is_primary)
+VALUES
+((SELECT id FROM dbo.products WHERE sku = N'LAP-ASUS-ROG-G15'),
+ (SELECT id FROM dbo.categories WHERE name = N'Laptop Gaming'), 1),
+
+((SELECT id FROM dbo.products WHERE sku = N'LAP-DELL-INS-15'),
+ (SELECT id FROM dbo.categories WHERE name = N'Laptop Văn Phòng'), 1),
+
+((SELECT id FROM dbo.products WHERE sku = N'LAP-HP-EB-840'),
+ (SELECT id FROM dbo.categories WHERE name = N'Laptop Doanh Nhân'), 1);
 GO
 
-CREATE TABLE cart_items (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+---------------------------------------------------------------
+-- PRODUCT TAGS
+---------------------------------------------------------------
+INSERT INTO dbo.product_tags (product_id, tag_id)
+VALUES
+((SELECT id FROM dbo.products WHERE sku = N'LAP-ASUS-ROG-G15'),
+ (SELECT id FROM dbo.tags WHERE name = N'Gaming')),
 
-    customer_id INT NOT NULL,
-    product_variant_id INT NOT NULL,
+((SELECT id FROM dbo.products WHERE sku = N'LAP-ASUS-ROG-G15'),
+ (SELECT id FROM dbo.tags WHERE name = N'Bán Chạy')),
 
-    quantity INT NOT NULL CHECK (quantity > 0),
+((SELECT id FROM dbo.products WHERE sku = N'LAP-DELL-INS-15'),
+ (SELECT id FROM dbo.tags WHERE name = N'Văn Phòng')),
 
-    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
-    updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+((SELECT id FROM dbo.products WHERE sku = N'LAP-HP-EB-840'),
+ (SELECT id FROM dbo.tags WHERE name = N'Cao Cấp'));
+GO
 
-    CONSTRAINT uq_cart_customer_variant
-        UNIQUE (customer_id, product_variant_id)
+---------------------------------------------------------------
+-- PRODUCT VARIANTS
+---------------------------------------------------------------
+INSERT INTO dbo.product_variants
+(product_id, variant_name, sku, currency_code, price, cost_price, stock_quantity, is_active)
+VALUES
+(
+ (SELECT id FROM dbo.products WHERE sku = N'LAP-ASUS-ROG-G15'),
+ N'Ryzen 7 / 16GB / 1TB / RTX 3060',
+ N'LAP-ASUS-ROG-G15-R7',
+ 'VND',
+ 38990000,
+ 35000000,
+ 12,
+ 1
+),
+(
+ (SELECT id FROM dbo.products WHERE sku = N'LAP-DELL-INS-15'),
+ N'Core i5 / 8GB / 512GB',
+ N'LAP-DELL-INS-15-I5',
+ 'VND',
+ 18990000,
+ 17000000,
+ 20,
+ 1
+),
+(
+ (SELECT id FROM dbo.products WHERE sku = N'LAP-HP-EB-840'),
+ N'Core i7 / 16GB / 512GB',
+ N'LAP-HP-EB-840-I7',
+ 'VND',
+ 32990000,
+ 30000000,
+ 8,
+ 1
 );
-
-ALTER TABLE cart_items
-ADD CONSTRAINT fk_cart_items_customer
-FOREIGN KEY (customer_id)
-REFERENCES customers(id)
-ON DELETE CASCADE;
-
-ALTER TABLE cart_items
-ADD CONSTRAINT fk_cart_items_product_variant
-FOREIGN KEY (product_variant_id)
-REFERENCES product_variants(id);
-
-CREATE INDEX idx_cart_items_customer
-ON cart_items(customer_id);
-
-CREATE INDEX idx_cart_items_variant
-ON cart_items(product_variant_id);
-
-ALTER TABLE dbo.customers
-ADD last_login_at DATETIME2 NULL;
 GO
 
-CREATE INDEX IX_customers_last_login ON dbo.customers(last_login_at DESC);
+---------------------------------------------------------------
+-- IMAGES
+---------------------------------------------------------------
+INSERT INTO dbo.images (product_id, url, is_primary, sort_order)
+VALUES
+((SELECT id FROM dbo.products WHERE sku = N'LAP-ASUS-ROG-G15'),
+ N'https://cdn.yoursite.com/laptops/asus-rog-g15.jpg', 1, 0),
+
+((SELECT id FROM dbo.products WHERE sku = N'LAP-DELL-INS-15'),
+ N'https://cdn.yoursite.com/laptops/dell-inspiron-15.jpg', 1, 0),
+
+((SELECT id FROM dbo.products WHERE sku = N'LAP-HP-EB-840'),
+ N'https://cdn.yoursite.com/laptops/hp-elitebook-840.jpg', 1, 0);
+GO
+
+---------------------------------------------------------------
+-- PRICE HISTORY
+---------------------------------------------------------------
+INSERT INTO dbo.price_history (variant_id, price, cost_price, reason, created_by)
+VALUES
+(
+ (SELECT id FROM dbo.product_variants WHERE sku = N'LAP-ASUS-ROG-G15-R7'),
+ 38990000,
+ 35000000,
+ N'Giá khởi tạo',
+ (SELECT id FROM dbo.users WHERE username = N'admin')
+),
+(
+ (SELECT id FROM dbo.product_variants WHERE sku = N'LAP-DELL-INS-15-I5'),
+ 18990000,
+ 17000000,
+ N'Giá khởi tạo',
+ (SELECT id FROM dbo.users WHERE username = N'admin')
+);
 GO
