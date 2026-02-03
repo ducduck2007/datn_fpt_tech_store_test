@@ -178,6 +178,7 @@ async function submit() {
 
     if (orderId) {
     await cartStore.refreshCount();
+    await cartStore.clearCart();
     router.push(`/orders/${orderId}`);
     }
     else toast("Created, but cannot detect orderId from response.", "warning");

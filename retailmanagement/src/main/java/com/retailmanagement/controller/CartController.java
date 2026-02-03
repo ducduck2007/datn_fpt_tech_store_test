@@ -78,5 +78,17 @@ public class CartController {
                 cartService.count(user.getCustomerId())
         );
     }
+
+    // =================================================
+    // CLEAR CART
+    // =================================================
+    @DeleteMapping
+    public ResponseEntity<Void> clearCart(
+            @AuthenticationPrincipal CustomUserDetails user) {
+
+        cartService.clearCart(user.getCustomerId());
+        return ResponseEntity.ok().build();
+    }
+
 }
 

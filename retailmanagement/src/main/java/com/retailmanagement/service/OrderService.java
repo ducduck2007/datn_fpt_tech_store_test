@@ -223,6 +223,28 @@ public class OrderService {
             throw new IllegalStateException("Delivered order cannot be cancelled");
         }
 
+        order.getOrderItems().forEach(item -> {
+            ProductVariant variant = variantRepository
+                    .findById(item.getVariant().getId())
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Variant not found: " + item.getVariant()
+                            )
+                    );
+
+            int newReserved =
+                    variant.getReservedQty() - item.getQuantity();
+
+            if (newReserved < 0) {
+                throw new IllegalStateException(
+                        "Reserved quantity corrupted for variant "
+                                + variant.getId()
+                );
+            }
+
+            variant.setReservedQty(newReserved);
+        });
+
         // 1. Update order status
         order.setStatus(OrderStatuses.CANCELLED);
         order.setCancelledAt(Instant.now());

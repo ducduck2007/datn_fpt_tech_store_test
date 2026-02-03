@@ -66,14 +66,14 @@ public class OrderController {
     // =========================================================
     // LIST ORDERS BY CUSTOMER
     // =========================================================
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<OrderListResponse>> getOrdersByCustomer(
-            @PathVariable Integer customerId) {
-
+    @GetMapping("/my")
+    public ResponseEntity<List<OrderListResponse>> getMyOrders(
+            @AuthenticationPrincipal CustomUserDetails user) {
         return ResponseEntity.ok(
-                orderQueryService.getOrdersByCustomer(customerId)
+                orderQueryService.getOrdersByCustomer(user.getCustomerId())
         );
     }
+
 
     // =========================================================
     // ORDER DETAIL

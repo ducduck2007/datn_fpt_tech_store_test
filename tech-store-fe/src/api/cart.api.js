@@ -23,4 +23,8 @@ export const cartApi = {
       params: { quantity },
     });
   },
+
+  clear() {
+    return http.delete("/api/cart");
+  },
 };

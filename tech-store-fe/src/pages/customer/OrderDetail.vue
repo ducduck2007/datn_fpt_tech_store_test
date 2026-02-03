@@ -15,6 +15,15 @@
             >Create another</el-button
           >
           <el-button @click="reload" :loading="loading">Reload</el-button>
+
+          <el-button
+            type="danger"
+            v-if="canCancel"
+            @click="handleCancel"
+          >
+            Hủy đơn hàng
+          </el-button>
+
           
           <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
           <el-button
@@ -166,10 +175,13 @@ import { useRoute, useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
 import { paymentsApi } from "../../api/payments";
 import { toast } from "../../ui/toast";
+import { confirmModal } from "../../ui/confirm";
 
 const route = useRoute();
 const router = useRouter();
 const orderId = computed(() => route.params.orderId);
+
+
 
 const loading = ref(false);
 const paymentLoading = ref(false);
@@ -187,6 +199,39 @@ function pickOrder(payload) {
   const root = payload?.data ?? payload;
   return root?.data ?? root;
 }
+
+const canCancel = computed(() => {
+  return ['PENDING'].includes(order.value?.status)
+})
+
+const fetchOrder = async () => {
+  const res = await ordersApi.getById(route.params.orderId)
+  order.value = res.data
+}
+
+const handleCancel = async () => {
+  const ok = await confirmModal(
+    "Bạn có chắc chắn muốn hủy đơn hàng này?",
+    "Xác nhận hủy đơn",
+    "Hủy đơn",
+    true
+  );
+
+  if (!ok) return;
+
+  try {
+    await ordersApi.cancel(order.value.orderId);
+
+    toast("Đơn hàng đã được hủy", "success");
+
+    // load lại chi tiết đơn
+    await fetchOrder();
+  } catch (err) {
+    toast("Hủy đơn thất bại, vui lòng thử lại", "error");
+  }
+};
+
+
 
 const items = computed(() => {
   const o = order.value || {};

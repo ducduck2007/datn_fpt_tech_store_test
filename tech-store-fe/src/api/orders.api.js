@@ -25,4 +25,7 @@ export const ordersApi = {
   remove(orderId) {
     return http.delete(`/api/orders/${orderId}`);
   },
+  getMyOrders() {
+    return http.get("/api/orders/my");
+  },
 };
