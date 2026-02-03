@@ -22,4 +22,43 @@ public interface CustomRes extends JpaRepository<Customer, Integer> {
 
     @Query("SELECT c FROM Customer c WHERE c.lastLoginAt >= :since AND c.isActive = true ORDER BY c.lastLoginAt DESC")
     List<Customer> findActiveCustomersSince(@Param("since") LocalDateTime since);
+
+    @Query(value = "SELECT * FROM customers WHERE is_active = 1 " +
+            "AND MONTH(date_of_birth) = MONTH(GETDATE()) " +
+            "AND DAY(date_of_birth) = DAY(GETDATE())",
+            nativeQuery = true)
+    List<Customer> findCustomersWithBirthdayToday();
+
+    /**
+     * Tìm khách hàng có sinh nhật trong tháng cụ thể
+     */
+    @Query(value = "SELECT * FROM customers WHERE is_active = 1 " +
+            "AND MONTH(date_of_birth) = :month " +
+            "ORDER BY DAY(date_of_birth)",
+            nativeQuery = true)
+    List<Customer> findCustomersWithBirthdayInMonth(@Param("month") int month);
+
+    /**
+     * Tìm khách hàng có sinh nhật trong khoảng thời gian
+     */
+    @Query(value = "SELECT * FROM customers WHERE is_active = 1 " +
+            "AND ((MONTH(date_of_birth) = :startMonth AND DAY(date_of_birth) >= :startDay) " +
+            "     OR (MONTH(date_of_birth) = :endMonth AND DAY(date_of_birth) <= :endDay) " +
+            "     OR (MONTH(date_of_birth) > :startMonth AND MONTH(date_of_birth) < :endMonth)) " +
+            "ORDER BY MONTH(date_of_birth), DAY(date_of_birth)",
+            nativeQuery = true)
+    List<Customer> findCustomersWithBirthdayBetween(
+            @Param("startMonth") int startMonth,
+            @Param("startDay") int startDay,
+            @Param("endMonth") int endMonth,
+            @Param("endDay") int endDay
+    );
+
+    /**
+     * Đếm số khách hàng có sinh nhật trong tháng
+     */
+    @Query(value = "SELECT COUNT(*) FROM customers WHERE is_active = 1 " +
+            "AND MONTH(date_of_birth) = :month",
+            nativeQuery = true)
+    long countCustomersWithBirthdayInMonth(@Param("month") int month);
 }
