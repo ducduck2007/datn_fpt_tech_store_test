@@ -41,4 +41,9 @@ public class CustomerResponse {
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String birthdayDisplay; // Format: dd/MM/yyyy
+    private Integer birthMonth; // 1-12
+    private Integer birthDay; // 1-31
+    private Integer age; // Tuổi hiện tại hoặc tuổi sẽ đạt được
+    private Long daysUntilBirthday;
 }

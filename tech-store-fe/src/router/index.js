@@ -26,6 +26,7 @@ import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue"
 import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
+import Birthday from "../pages/system/BirthdayManager.vue"
 const routes = [
   // ===== CUSTOMER PORTAL =====
   {
@@ -170,8 +171,13 @@ const routes = [
   name: "system-payments",
   component: PaymentManagement,
   meta: { title: "Payment History" },
-}
-
+},
+ {
+        path: "birthday",
+        name: "Birthday Manager",
+        component: Birthday,
+        meta: { title: "Settings - Birthday Manager" },
+      }
 
     ],
   },
