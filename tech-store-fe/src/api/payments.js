@@ -1,28 +1,33 @@
 import http from "./http";
-// 1. Đảm bảo tên biến là BASE_URL
-const BASE_URL = "/api/auth/payments";
 
 export const paymentsApi = {
-  getAll() {
-    return http.get(BASE_URL);
-  },
-  
-  getById(paymentId) {
-    // 2. Sửa từ ${API_BASE} thành ${BASE_URL}
-    return http.get(`${BASE_URL}/${paymentId}`);
-  },
-
-  getDetail(paymentId) {
-    // 3. Sửa từ ${API_BASE} thành ${BASE_URL}
-    return http.get(`${BASE_URL}/${paymentId}/detail`);
-  },
-
-  getByOrder(orderId) {
-    // 4. Sửa từ ${API_BASE} thành ${BASE_URL}
-    return http.get(`${BASE_URL}/order/${orderId}`);
-  },
-
+  // Tạo payment mới
   create(payload) {
-    return http.post(BASE_URL, payload);
+    return http.post("/api/auth/payments", payload);
   },
+
+  // Lấy danh sách payments theo order
+  getByOrder(orderId) {
+    return http.get(`/api/auth/payments/order/${orderId}`);
+  },
+
+  // Lấy chi tiết payment
+  getDetail(paymentId) {
+    return http.get(`/api/auth/payments/${paymentId}/detail`);
+  },
+
+  // Lấy payment cơ bản
+  getById(paymentId) {
+    return http.get(`/api/auth/payments/${paymentId}`);
+  },
+
+  // Lấy tất cả payments
+  getAll() {
+    return http.get("/api/auth/payments");
+  },
+
+  // Hoàn tiền
+  refund(paymentId) {
+    return http.put(`/api/auth/payments/${paymentId}/refund`);
+  }
 };
