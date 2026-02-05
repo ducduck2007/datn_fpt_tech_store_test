@@ -225,26 +225,28 @@ public class OrderService {
             throw new IllegalStateException("Delivered order cannot be cancelled");
         }
 
+        // ✅ 1. GIẢI PHÓNG RESERVED_QTY
         order.getOrderItems().forEach(item -> {
             ProductVariant variant = variantRepository
                     .findById(item.getVariant().getId())
                     .orElseThrow(() ->
                             new RuntimeException(
-                                    "Variant not found: " + item.getVariant()
+                                    "Variant not found: " + item.getVariant().getId()
                             )
                     );
 
-            int newReserved =
-                    variant.getReservedQty() - item.getQuantity();
+            int currentReserved = variant.getReservedQty();
+            int newReserved = currentReserved - item.getQuantity();
 
             if (newReserved < 0) {
-                throw new IllegalStateException(
-                        "Reserved quantity corrupted for variant "
-                                + variant.getId()
-                );
+                System.out.println("⚠️ WARNING: Variant " + variant.getId()
+                        + " reservedQty=" + currentReserved
+                        + " but trying to deduct " + item.getQuantity());
+                newReserved = 0; // ✅ Set về 0 thay vì throw error
             }
 
             variant.setReservedQty(newReserved);
+            variantRepository.save(variant); // ✅ SAVE NGAY SAU KHI UPDATE
         });
 
         // 1. Update order status

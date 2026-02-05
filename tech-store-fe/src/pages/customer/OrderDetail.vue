@@ -19,14 +19,7 @@
           >
           <el-button @click="reload" :loading="loading">Reload</el-button>
 
-          <el-button
-            type="danger"
-            v-if="canCancel"
-            @click="handleCancel"
-          >
-            Hủy đơn hàng
-          </el-button>
-
+        
           
           <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
           <el-button
@@ -292,7 +285,6 @@
     </el-dialog>
   </div>
 </template>
-
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -308,19 +300,19 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 
-const isCustomer = computed(() => auth.isCustomer);
-
-
-
+// Trạng thái dữ liệu
 const loading = ref(false);
 const cancelLoading = ref(false);
 const paymentLoading = ref(false);
-const detail = ref(null);
+const detail = ref(null); 
+const orderId = computed(() => route.params.orderId);
 
+// Dialog controls
 const showCancelDialog = ref(false);
 const cancelReason = ref("");
-
 const showReturnDialog = ref(false);
+const showPaymentDialog = ref(false);
+
 const returnForm = reactive({
   orderItemId: null,
   quantity: 1,
@@ -328,11 +320,12 @@ const returnForm = reactive({
   refundAmount: 0
 });
 
-const showPaymentDialog = ref(false);
 const paymentForm = reactive({
   method: "CASH",
   transactionRef: ""
 });
+
+// --- Computed Properties ---
 
 const statusType = computed(() => {
   const s = detail.value?.status;
@@ -350,83 +343,18 @@ const paymentStatusType = computed(() => {
   return "info";
 });
 
-function formatMoney(val) {
-  if (!val) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND"
-  }).format(val);
-}
-
-function getCancelWarningTitle() {
-  if (detail.value?.paymentStatus === 'PAID') {
-    return '⚠️ Cảnh báo: Hủy đơn đã thanh toán';
-  }
-  return 'Xác nhận hủy đơn';
-}
-
-function getCancelWarningMessage() {
-  if (detail.value?.paymentStatus === 'PAID') {
-    const totalAmount = detail.value.totalAmount || 0;
-    const penaltyAmount = totalAmount * 0.10;
-    const penaltyPoints = Math.floor(penaltyAmount / 10000);
-    
-    return `
-      <p><strong>Đơn hàng đã thanh toán. Nếu hủy sẽ bị phạt như sau:</strong></p>
-      <ul class="mb-0">
-        <li>❌ Trừ điểm loyalty đã cộng: <strong class="text-danger">${Math.floor(totalAmount / 10000)} điểm</strong></li>
-        <li>⚠️ <strong class="text-danger">Phạt thêm 10%</strong> giá trị đơn hàng = <strong class="text-danger">${penaltyPoints} điểm</strong></li>
-        <li>💰 Tổng điểm bị trừ: <strong class="text-danger">${Math.floor(totalAmount / 10000) + penaltyPoints} điểm</strong></li>
-      </ul>
-      <p class="mt-2 mb-0"><em>Bạn có chắc chắn muốn hủy không?</em></p>
-    `;
-  }
-  return '<p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>';
-}
-
-function getMaxReturnQuantity() {
-  if (!returnForm.orderItemId || !detail.value?.items) return 1;
-  const item = detail.value.items.find(i => i.productId === returnForm.orderItemId);
-  return item?.quantity || 1;
-}
-
 const canCancel = computed(() => {
-  return ['PENDING'].includes(order.value?.status)
-})
-
-const fetchOrder = async () => {
-  const res = await ordersApi.getById(route.params.orderId)
-  order.value = res.data
-}
-
-const handleCancel = async () => {
-  const ok = await confirmModal(
-    "Bạn có chắc chắn muốn hủy đơn hàng này?",
-    "Xác nhận hủy đơn",
-    "Hủy đơn",
-    true
-  );
-
-  if (!ok) return;
-
-  try {
-    await ordersApi.cancel(order.value.orderId);
-
-    toast("Đơn hàng đã được hủy", "success");
-
-    // load lại chi tiết đơn
-    await fetchOrder();
-  } catch (err) {
-    toast("Hủy đơn thất bại, vui lòng thử lại", "error");
-  }
-};
-
-
+  return ['PENDING'].includes(detail.value?.status);
+});
 
 const items = computed(() => {
-  const o = order.value || {};
+  const o = detail.value || {};
   const list = o.items ?? o.orderItems ?? o.lines ?? [];
   return Array.isArray(list) ? list : [];
+});
+
+// --- Watchers ---
+
 watch(() => returnForm.orderItemId, (newItemId) => {
   if (!newItemId || !detail.value?.items) return;
   const item = detail.value.items.find(i => i.productId === newItemId);
@@ -444,24 +372,60 @@ watch(() => returnForm.quantity, (newQty) => {
   }
 });
 
+// --- Methods ---
+
+function formatMoney(val) {
+  if (!val) return "0 ₫";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND"
+  }).format(val);
+}
+
 async function reload() {
   loading.value = true;
   try {
     const res = await ordersApi.getById(orderId.value);
+    // Xử lý bóc tách dữ liệu tùy theo cấu trúc API của bạn
     detail.value = res?.data?.data || res?.data;
   } catch (e) {
-    toast("Failed to load order detail", "error");
+    toast("Không thể tải chi tiết đơn hàng", "error");
   } finally {
     loading.value = false;
   }
 }
 
-async function confirmPayment() {
-  if (!paymentForm.method) {
-    toast("Vui lòng chọn phương thức thanh toán", "warning");
-    return;
+function getCancelWarningTitle() {
+  if (detail.value?.paymentStatus === 'PAID') {
+    return '⚠️ Cảnh báo: Hủy đơn đã thanh toán';
   }
+  return 'Xác nhận hủy đơn';
+}
 
+function getCancelWarningMessage() {
+  if (detail.value?.paymentStatus === 'PAID') {
+    const totalAmount = detail.value.totalAmount || 0;
+    const penaltyAmount = totalAmount * 0.10;
+    const penaltyPoints = Math.floor(penaltyAmount / 10000);
+    return `
+      <p><strong>Đơn hàng đã thanh toán. Nếu hủy sẽ bị phạt:</strong></p>
+      <ul>
+        <li>❌ Trừ điểm loyalty: <strong class="text-danger">${Math.floor(totalAmount / 10000)} điểm</strong></li>
+        <li>⚠️ Phạt 10% giá trị: <strong class="text-danger">${penaltyPoints} điểm</strong></li>
+      </ul>
+    `;
+  }
+  return '<p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>';
+}
+
+function getMaxReturnQuantity() {
+  if (!returnForm.orderItemId || !detail.value?.items) return 1;
+  const item = detail.value.items.find(i => i.productId === returnForm.orderItemId);
+  return item?.quantity || 1;
+}
+
+async function confirmPayment() {
+  if (!paymentForm.method) return;
   paymentLoading.value = true;
   try {
     const payload = {
@@ -469,115 +433,46 @@ async function confirmPayment() {
       method: paymentForm.method,
       transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`
     };
-
     await paymentsApi.create(payload);
-    
-    toast("✅ Thanh toán thành công! Điểm loyalty đã được cộng.", "success");
+    toast("✅ Thanh toán thành công!", "success");
     showPaymentDialog.value = false;
-    
-    // Reset form
-    paymentForm.method = "CASH";
-    paymentForm.transactionRef = "";
-    
     await reload();
   } catch (e) {
-    const msg = e?.response?.data?.message || "Lỗi khi thanh toán";
-    toast(msg, "error");
+    toast(e?.response?.data?.message || "Lỗi thanh toán", "error");
   } finally {
     paymentLoading.value = false;
   }
 }
 
+// Trong confirmCancel() - dòng 343
 async function confirmCancel() {
   cancelLoading.value = true;
   try {
+    // ✅ Truyền STRING trực tiếp, không phải object
     await ordersApi.cancel(orderId.value, cancelReason.value);
-    
-    let message = "✅ Đã hủy đơn hàng thành công.";
-    
-    if (detail.value?.paymentStatus === 'PAID') {
-      const totalAmount = detail.value.totalAmount || 0;
-      const penaltyPoints = Math.floor((totalAmount * 0.10) / 10000);
-      message = `✅ Đã hủy đơn. Điểm loyalty đã được điều chỉnh (bao gồm ${penaltyPoints} điểm phạt).`;
-    }
-    
-    toast(message, "success");
+    toast("✅ Đã hủy đơn hàng thành công.", "success");
     showCancelDialog.value = false;
-    cancelReason.value = "";
     await reload();
   } catch (e) {
-    const msg = e?.response?.data?.message || "Lỗi khi hủy đơn";
-    toast(msg, "error");
+    toast("Lỗi khi hủy đơn", "error");
   } finally {
     cancelLoading.value = false;
   }
 }
 
 async function submitReturn() {
-  if (!returnForm.orderItemId || !returnForm.reason) {
-    toast("Vui lòng điền đầy đủ thông tin", "warning");
-    return;
-  }
-
+  if (!returnForm.orderItemId || !returnForm.reason) return;
   try {
     await returnsApi.create({
       orderId: Number(orderId.value),
-      orderItemId: returnForm.orderItemId,
-      quantity: returnForm.quantity,
-      reason: returnForm.reason,
-      refundAmount: returnForm.refundAmount
+      ...returnForm
     });
-
     toast("✅ Đã gửi yêu cầu trả hàng", "success");
     showReturnDialog.value = false;
-    
-    // Reset form
-    returnForm.orderItemId = null;
-    returnForm.quantity = 1;
-    returnForm.reason = "";
-    returnForm.refundAmount = 0;
   } catch (e) {
-    toast("Lỗi khi gửi yêu cầu trả hàng", "error");
+    toast("Lỗi khi gửi yêu cầu", "error");
   }
 }
 
 onMounted(() => reload());
 </script>
-
-<style scoped>
-.kicker {
-  font-size: 12px;
-  opacity: 0.75;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-.title {
-  font-weight: 900;
-  font-size: 18px;
-}
-.muted {
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 13px;
-}
-.info-box {
-  background: rgba(2, 6, 23, 0.02);
-  border: 1px solid rgba(2, 6, 23, 0.08);
-  border-radius: 8px;
-  padding: 16px;
-}
-.info-box h5 {
-  margin-bottom: 12px;
-  font-weight: 700;
-}
-.info-box p {
-  margin-bottom: 8px;
-}
-.totals-box {
-  background: rgba(64, 158, 255, 0.05);
-  border: 1px solid rgba(64, 158, 255, 0.2);
-  border-radius: 8px;
-  padding: 16px;
-  max-width: 400px;
-  margin-left: auto;
-}
-</style>
