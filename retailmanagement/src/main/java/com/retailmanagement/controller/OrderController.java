@@ -14,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -121,7 +122,18 @@ public class OrderController {
     @PutMapping("/{orderId}/cancel")
     public ResponseEntity<Void> cancelOrder(
             @PathVariable Long orderId,
-            @RequestParam(required = false) String reason) {
+            @RequestBody(required = false) Map<String, String> body) {
+
+        System.out.println("=== CANCEL ORDER DEBUG ===");
+        System.out.println("Order ID: " + orderId);
+        System.out.println("Body: " + body);
+
+        String reason = (body != null && body.containsKey("reason"))
+                ? body.get("reason")
+                : "Customer cancelled";
+
+        System.out.println("Reason: " + reason);
+        System.out.println("========================");
 
         orderService.cancelOrder(orderId, reason);
         return ResponseEntity.ok().build();

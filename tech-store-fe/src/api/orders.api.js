@@ -37,10 +37,12 @@ export const ordersApi = {
   },
   
   // ✅ HỦY ĐỠN - CÓ THAM SỐ REASON
-  cancel(orderId, reason) {
-    return http.put(`/api/orders/${orderId}/cancel`, null, {
-      params: { reason: reason || 'Customer cancelled' }
-    });
+ // ✅ Gửi reason trong BODY, không phải query params
+cancel(orderId, reason) {
+  return http.put(`/api/orders/${orderId}/cancel`, {
+    reason: reason || 'Customer cancelled'
+  });
+
   },
   
   // ✅ CHUYỂN SANG SHIPPING
