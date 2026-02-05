@@ -2,9 +2,12 @@ package com.retailmanagement.audit;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -22,6 +25,14 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     """, nativeQuery = true)
     List<Object[]> reportByModule();
 
+    @Query("""
+        SELECT l
+        from AuditLog l
+        where l.createdAt BETWEEN :start and :end
+        order by l.createdAt DESC 
+        """)
+    List<AuditLog> findLogsThisWeek(@Param("start") Instant start,@Param("end") Instant end);
 
 
+    List<AuditLog> findByModuleOrderByCreatedAtDesc(String module);
 }

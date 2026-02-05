@@ -34,14 +34,24 @@ public class AuditLogController {
         return auditLogService.getAuditLogsByDate(date);
     }
 
-    @GetMapping("filter/change-role")
-    public List<AuditLogResponse> filterByChange_Role(){
-        return  auditLogService.getAuditLogsByChange_Role();
+    @GetMapping("filter/action/change-role")
+    public List<AuditLogResponse> filterByActionChange_Role(){
+        return  auditLogService.getAuditLogsByActionChange_Role();
     }
 
     @GetMapping("filter/user_id")
     public List<AuditLogResponse> filterByUser_Id(@RequestParam("id")Integer id){
         return auditLogService.getAuditLogsByUser_Id(id);
+    }
+
+    @GetMapping("filter/module/customer")
+    public List<AuditLogResponse> filterByModuleCustomer(){
+        return auditLogService.getAuditLogsByModuleCustomer();
+    }
+
+    @GetMapping("filter/this-week")
+    public List<AuditLogResponse> filerByThisWeek(){
+        return auditLogService.getAuditLogsByThisWeek();
     }
 
     @GetMapping("report/module")
