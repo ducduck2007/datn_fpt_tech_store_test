@@ -243,5 +243,56 @@ public class CustomerService {
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+    /**
+     * Trừ điểm loyalty khi hủy đơn hoặc trả hàng
+     */
+    /**
+     * Trừ điểm loyalty khi hủy đơn hoặc trả hàng
+     */
+    @Transactional
+    public void deductLoyaltyPoints(Integer customerId, BigDecimal orderTotal,
+                                    String reason, String referenceType, Long referenceId) {
+        Customer customer = customRes.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+
+        // 1. Tính điểm bị trừ (ngược lại với cộng điểm)
+        int pointsToDeduct = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
+        if (pointsToDeduct <= 0) return;
+
+        // 2. Trừ điểm (không cho phép âm)
+        int currentPoints = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
+        int newTotalPoints = Math.max(0, currentPoints - pointsToDeduct);
+
+        customer.setLoyaltyPoints(newTotalPoints);
+
+        // 3. Trừ tổng chi tiêu (CHỈ KHI KHÔNG PHẢI PENALTY)
+        if (!"CANCEL_PENALTY".equals(reason) && !"RETURN_PENALTY".equals(reason)) {
+            BigDecimal currentSpent = customer.getTotalSpent() == null ? BigDecimal.ZERO : customer.getTotalSpent();
+            BigDecimal newSpent = currentSpent.subtract(orderTotal);
+            customer.setTotalSpent(newSpent.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newSpent);
+        }
+
+        // 4. Cập nhật lại hạng dựa trên điểm mới
+        VipTier newTier = VipTier.fromPoints(newTotalPoints);
+        customer.setVipTier(newTier);
+
+        if(newTier == null || newTier == VipTier.BRONZE || newTier == VipTier.SILVER) {
+            customer.setCustomerType(CustomerType.REGULAR);
+        } else {
+            customer.setCustomerType(CustomerType.VIP);
+        }
+
+        customRes.save(customer);
+
+        // 5. ✅ LOG ĐỂ DEBUG
+        System.out.println("=== DEDUCT LOYALTY POINTS ===");
+        System.out.println("Customer ID: " + customerId);
+        System.out.println("Reason: " + reason);
+        System.out.println("Amount: " + orderTotal);
+        System.out.println("Points Deducted: " + pointsToDeduct);
+        System.out.println("New Total Points: " + newTotalPoints);
+        System.out.println("New Tier: " + (newTier != null ? newTier.name() : "NONE"));
+        System.out.println("============================");
+    }
     
 }

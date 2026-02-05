@@ -35,6 +35,7 @@ public class OrderService {
     private final StockTransactionRepository stockTransactionRepository;
     private final CustomRes customerRepository;
     private final UserRepository userRepository;
+    private final CustomerService customerService;
 
     private String generateOrderNumber() {
 
@@ -219,9 +220,15 @@ public class OrderService {
             throw new IllegalStateException("Order already cancelled");
         }
 
+        // ✅ CHỈ KHÔNG CHO HỦY ĐƠN ĐÃ GIAO
         if (OrderStatuses.DELIVERED.equals(order.getStatus())) {
             throw new IllegalStateException("Delivered order cannot be cancelled");
         }
+
+        // ✅ KHÔNG CHO HỦY ĐƠN ĐANG SHIP (tùy chọn - bỏ comment nếu muốn cho phép)
+        // if (OrderStatuses.SHIPPING.equals(order.getStatus())) {
+        //     throw new IllegalStateException("Shipping order cannot be cancelled");
+        // }
 
         // 1. Update order status
         order.setStatus(OrderStatuses.CANCELLED);
@@ -229,12 +236,35 @@ public class OrderService {
         order.setUpdatedAt(Instant.now());
         order.setNotes(reason);
 
-        orderRepository.save(order);
-
         // 2. Restore stock
         restoreStock(order);
-    }
 
+        // 3. ✅ TRỪ ĐIỂM + ĐIỂM PHẠT NẾU ĐÃ THANH TOÁN
+        if ("PAID".equals(order.getPaymentStatus()) && order.getCustomer() != null) {
+            // Trừ điểm đã cộng
+            customerService.deductLoyaltyPoints(
+                    order.getCustomer().getId(),
+                    order.getTotalAmount(),
+                    "CANCEL_ORDER",
+                    "orders",
+                    orderId
+            );
+
+            // ✅ THÊM ĐIỂM PHẠT: 10% giá trị đơn hàng
+            BigDecimal penaltyAmount = order.getTotalAmount()
+                    .multiply(BigDecimal.valueOf(0.10)); // 10% phạt
+
+            customerService.deductLoyaltyPoints(
+                    order.getCustomer().getId(),
+                    penaltyAmount,
+                    "CANCEL_PENALTY",
+                    "orders",
+                    orderId
+            );
+        }
+
+        orderRepository.save(order);
+    }
 
     /* =========================
        DELETE ORDER
