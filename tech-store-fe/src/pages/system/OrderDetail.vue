@@ -1,19 +1,24 @@
 <template>
   <div class="container-xl">
     <el-card shadow="never">
-      <div
-        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
-      >
+      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
         <div>
-          <div class="kicker">Admin</div>
+          <div class="kicker">System Admin</div>
           <div class="title">Order Detail #{{ orderId }}</div>
           <div class="muted">GET /api/orders/{{ orderId }}</div>
         </div>
         <div class="d-flex gap-2">
           <el-button @click="reload" :loading="loading">Reload</el-button>
-          <el-button type="danger" plain :loading="acting" @click="remove"
-            >Delete</el-button
+          
+          <el-button
+            v-if="order && order.status === 'PENDING'"
+            type="primary"
+            @click="handlePayment"
+            :loading="paymentLoading"
           >
+            <i class="bi bi-credit-card me-1"></i>
+            Process Payment
+          </el-button>
         </div>
       </div>
 
@@ -29,60 +34,69 @@
           class="mb-3"
         />
 
+        <div v-if="order" class="mb-3">
+          <el-tag :type="getStatusType(order.status)" size="large">
+            {{ order.status }}
+          </el-tag>
+          <el-tag
+            v-if="order.paymentStatus"
+            :type="getPaymentStatusType(order.paymentStatus)"
+            size="large"
+            class="ms-2"
+          >
+            Payment: {{ order.paymentStatus }}
+          </el-tag>
+        </div>
+
         <el-descriptions v-if="order" :column="2" border>
-          <el-descriptions-item label="id">{{
-            order.id ?? order.orderId ?? orderId
-          }}</el-descriptions-item>
-          <el-descriptions-item label="status">{{
-            order.status ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="customerId">{{
-            order.customerId ?? order.customer?.id ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="paymentMethod">{{
-            order.paymentMethod ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="channel">{{
-            order.channel ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="notes">{{
-            order.notes ?? "—"
-          }}</el-descriptions-item>
+          <el-descriptions-item label="Order ID">
+            {{ order.id ?? order.orderId ?? orderId }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Status">
+            {{ order.status ?? "—" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Customer ID">
+            {{ order.customerId ?? order.customer?.id ?? "—" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Payment Method">
+            {{ order.paymentMethod ?? "—" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Channel">
+            {{ order.channel ?? "—" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Total Amount">
+            <span class="fw-bold text-primary">
+              {{ formatCurrency(order.totalAmount) }}
+            </span>
+          </el-descriptions-item>
+          <el-descriptions-item label="Notes" :span="2">
+            {{ order.notes ?? "—" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Created At">
+            {{ formatDate(order.createdAt) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Paid At">
+            {{ order.paidAt ? formatDate(order.paidAt) : "—" }}
+          </el-descriptions-item>
         </el-descriptions>
 
         <el-divider />
 
-        <div class="row g-3">
-          <div class="col-12 col-md-4">
-            <el-form-item label="paymentMethod">
-              <el-select v-model="edit.paymentMethod" placeholder="Select">
-                <el-option label="CASH" value="CASH" />
-                <el-option label="TRANSFER" value="TRANSFER" />
-                <el-option label="CARD" value="CARD" />
-              </el-select>
-            </el-form-item>
-          </div>
-          <div class="col-12 col-md-8">
-            <el-form-item label="notes">
-              <el-input v-model="edit.notes" placeholder="Notes" />
-            </el-form-item>
-          </div>
-        </div>
-
-        <div class="d-flex justify-content-end gap-2">
-          <el-button :loading="acting" @click="update">Update</el-button>
-          <el-button type="warning" plain :loading="acting" @click="cancel"
-            >Cancel order</el-button
-          >
-        </div>
-
-        <el-divider />
-
-        <div class="h mb-2">Items</div>
+        <div class="h mb-2">Order Items</div>
         <el-table :data="items" border>
-          <el-table-column prop="variantId" label="variantId" width="220" />
-          <el-table-column prop="quantity" label="quantity" width="160" />
-          <el-table-column prop="price" label="price" />
+          <el-table-column prop="variantId" label="Variant ID" width="120" />
+          <el-table-column prop="productName" label="Product" min-width="200" />
+          <el-table-column prop="quantity" label="Quantity" width="100" align="center" />
+          <el-table-column prop="price" label="Unit Price" width="150">
+            <template #default="{ row }">
+              {{ formatCurrency(row.price) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="Subtotal" width="150">
+            <template #default="{ row }">
+              {{ formatCurrency(row.price * row.quantity) }}
+            </template>
+          </el-table-column>
         </el-table>
 
         <el-divider />
@@ -94,30 +108,67 @@
         </el-collapse>
       </template>
     </el-card>
+
+    <el-dialog
+      v-model="paymentDialog"
+      title="Process Payment (Admin)"
+      width="500px"
+    >
+      <el-form :model="paymentForm" label-width="140px">
+        <el-form-item label="Order ID">
+          <el-input :value="orderId" disabled />
+        </el-form-item>
+        <el-form-item label="Amount">
+          <el-input :value="formatCurrency(order?.totalAmount)" disabled />
+        </el-form-item>
+        <el-form-item label="Payment Method" required>
+          <el-select v-model="paymentForm.method" placeholder="Select payment method" style="width: 100%">
+            <el-option label="Cash" value="CASH" />
+            <el-option label="Bank Transfer" value="BANK_TRANSFER" />
+            <el-option label="Credit Card" value="CREDIT_CARD" />
+            <el-option label="E-Wallet" value="E_WALLET" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Transaction Ref">
+          <el-input v-model="paymentForm.transactionRef" placeholder="Optional transaction reference" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="paymentDialog = false">Cancel</el-button>
+        <el-button
+          type="primary"
+          @click="confirmPayment"
+          :loading="paymentLoading"
+          :disabled="!paymentForm.method"
+        >
+          Confirm Payment
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
+import { paymentsApi } from "../../api/payments";
 import { toast } from "../../ui/toast";
-import { confirmModal } from "../../ui/confirm";
 
 const route = useRoute();
 const router = useRouter();
 const orderId = computed(() => route.params.orderId);
 
 const loading = ref(false);
-const acting = ref(false);
+const paymentLoading = ref(false);
 const error = ref("");
-
 const raw = ref(null);
 const order = ref(null);
+const paymentDialog = ref(false);
 
-const edit = reactive({
-  paymentMethod: "CASH",
-  notes: "",
+const paymentForm = ref({
+  method: "CASH",
+  transactionRef: "",
 });
 
 function pickOrder(payload) {
@@ -138,9 +189,6 @@ async function reload() {
     const res = await ordersApi.getById(orderId.value);
     raw.value = res?.data ?? null;
     order.value = pickOrder(res?.data);
-
-    edit.paymentMethod = order.value?.paymentMethod ?? "CASH";
-    edit.notes = order.value?.notes ?? "";
   } catch (e) {
     const msg =
       e?.response?.data?.message || e?.message || "Failed to load order";
@@ -151,62 +199,76 @@ async function reload() {
   }
 }
 
-async function update() {
-  acting.value = true;
+function handlePayment() {
+  if (!order.value) return;
+  
+  // Reset form
+  paymentForm.value = {
+    method: "CASH",
+    transactionRef: `TXN-${Date.now()}`,
+  };
+  
+  paymentDialog.value = true;
+}
+
+async function confirmPayment() {
+  if (!paymentForm.value.method) {
+    toast("Please select a payment method", "warning");
+    return;
+  }
+
+  paymentLoading.value = true;
   try {
-    await ordersApi.update(orderId.value, {
-      paymentMethod: edit.paymentMethod,
-      notes: edit.notes || "",
-    });
-    toast("Order updated.", "success");
-    await reload();
-  } catch {
-    toast("Update failed.", "error");
+    const payload = {
+      orderId: parseInt(orderId.value),
+      method: paymentForm.value.method,
+      transactionRef: paymentForm.value.transactionRef || `TXN-${Date.now()}`,
+    };
+
+    const { data } = await paymentsApi.create(payload);
+    
+    toast("Payment processed successfully!", "success");
+    paymentDialog.value = false;
+    reload(); // Admin thì reload lại trang để thấy trạng thái mới
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "Payment failed";
+    toast(msg, "error");
+    console.error("Payment error:", e);
   } finally {
-    acting.value = false;
+    paymentLoading.value = false;
   }
 }
 
-async function cancel() {
-  const ok = await confirmModal(
-    `Cancel order #${orderId.value}?`,
-    "Confirm",
-    "Cancel",
-    true
-  );
-  if (!ok) return;
-
-  acting.value = true;
-  try {
-    await ordersApi.cancel(orderId.value);
-    toast("Order cancelled.", "success");
-    await reload();
-  } catch {
-    toast("Cancel failed.", "error");
-  } finally {
-    acting.value = false;
-  }
+function formatCurrency(amount) {
+  if (!amount) return "₫0";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
 }
 
-async function remove() {
-  const ok = await confirmModal(
-    `Delete order #${orderId.value}?`,
-    "Confirm",
-    "Delete",
-    true
-  );
-  if (!ok) return;
+function formatDate(date) {
+  if (!date) return "N/A";
+  return new Date(date).toLocaleString("vi-VN");
+}
 
-  acting.value = true;
-  try {
-    await ordersApi.remove(orderId.value);
-    toast("Order deleted.", "success");
-    router.push("/system/orders/new");
-  } catch {
-    toast("Delete failed.", "error");
-  } finally {
-    acting.value = false;
-  }
+function getStatusType(status) {
+  const types = {
+    PENDING: "warning",
+    PAID: "success",
+    CANCELLED: "danger",
+    PROCESSING: "info",
+  };
+  return types[status] || "info";
+}
+
+function getPaymentStatusType(status) {
+  const types = {
+    UNPAID: "warning",
+    PAID: "success",
+    REFUNDED: "danger",
+  };
+  return types[status] || "info";
 }
 
 onMounted(reload);

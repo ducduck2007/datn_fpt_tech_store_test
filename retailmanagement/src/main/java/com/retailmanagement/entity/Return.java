@@ -1,80 +1,59 @@
 package com.retailmanagement.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
-
+import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Getter
-@Setter
 @Entity
 @Table(name = "returns")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Return {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
     private Long id;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @NotNull
-    @Column(name = "quantity", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_item_id", nullable = false)
+    private OrderItem orderItem;
+
+    @Column(nullable = false)
     private Integer quantity;
 
-    @Size(max = 500)
-    @Nationalized
-    @Column(name = "reason", length = 500)
+    @Column(length = 500)
     private String reason;
 
-    @NotNull
-    @ColumnDefault("0")
-    @Column(name = "refund_amount", nullable = false, precision = 15, scale = 2)
-    private BigDecimal refundAmount;
+    @Column(name = "refund_amount", precision = 15, scale = 2, nullable = false)
+    private BigDecimal refundAmount = BigDecimal.ZERO;
 
-    @Size(max = 50)
-    @Nationalized
     @Column(name = "refund_method", length = 50)
     private String refundMethod;
 
-    @Size(max = 20)
-    @NotNull
-    @Nationalized
-    @ColumnDefault("'PENDING'")
-    @Column(name = "refund_status", nullable = false, length = 20)
-    private String refundStatus;
+    @Column(name = "refund_status", length = 20, nullable = false)
+    private String refundStatus = "PENDING";
 
     @Column(name = "refunded_at")
     private Instant refundedAt;
 
-    @Size(max = 20)
-    @NotNull
-    @Nationalized
-    @ColumnDefault("'PENDING'")
-    @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    @Column(length = 20, nullable = false)
+    private String status = "PENDING";
 
-    @Nationalized
-    @Lob
-    @Column(name = "note")
+    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String note;
 
-    @NotNull
-    @ColumnDefault("sysdatetime()")
+    // ✅ CHỈ LƯU ID, KHÔNG DÙNG @ManyToOne
+    @Column(name = "processed_by")
+    private Integer processedBy;
+
     @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
-
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_item_id", nullable = false)
-    private OrderItem orderItem;
-
+    private Instant createdAt = Instant.now();
 }

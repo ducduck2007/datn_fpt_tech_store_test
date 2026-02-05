@@ -1,14 +1,17 @@
-<!-- FILE: src/pages/customer/OrderDetail.vue -->
 <template>
   <div class="container-xl">
     <el-card shadow="never">
-      <div
-        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
-      >
+      <!-- Header -->
+      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
         <div>
-          <div class="kicker">Customer</div>
-          <div class="title">Order Detail #{{ orderId }}</div>
-          <div class="muted">GET /api/orders/{{ orderId }}</div>
+          <div class="kicker">Order</div>
+          <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
+          <div class="muted">
+            <el-tag :type="statusType" size="large">{{ detail?.status }}</el-tag>
+            <el-tag class="ms-2" :type="paymentStatusType" size="large">
+              Payment: {{ detail?.paymentStatus }}
+            </el-tag>
+          </div>
         </div>
         <div class="d-flex gap-2">
           <el-button @click="$router.push('/orders/new')"
@@ -27,177 +30,364 @@
           
           <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
           <el-button
-            v-if="order && order.status === 'PENDING'"
+            v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'"
             type="primary"
-            @click="handlePayment"
-            :loading="paymentLoading"
+            @click="showPaymentDialog = true"
           >
-            <i class="bi bi-credit-card me-1"></i>
-            Pay Now
+            <el-icon class="me-1"><CreditCard /></el-icon>
+            Thanh toán
+          </el-button>
+
+          <!-- ✅ NÚT HỦY ĐƠN - Cho phép hủy cả đơn đã thanh toán -->
+          <el-button
+            v-if="detail?.status === 'PENDING' || detail?.status === 'PAID' || detail?.status === 'SHIPPING'"
+            type="danger"
+            @click="showCancelDialog = true"
+          >
+            <el-icon class="me-1"><Close /></el-icon>
+            Hủy đơn
+          </el-button>
+
+          <!-- Nút yêu cầu trả hàng -->
+          <el-button
+            v-if="detail?.status === 'DELIVERED'"
+            type="warning"
+            @click="showReturnDialog = true"
+          >
+            <el-icon class="me-1"><RefreshLeft /></el-icon>
+            Yêu cầu trả hàng
           </el-button>
         </div>
       </div>
 
       <el-divider />
 
+      <!-- Order Info -->
       <el-skeleton v-if="loading" :rows="6" animated />
-      <template v-else>
-        <el-alert
-          v-if="error"
-          :title="error"
-          type="error"
-          show-icon
-          class="mb-3"
-        />
-
-        <!-- Status Badge -->
-        <div v-if="order" class="mb-3">
-          <el-tag
-            :type="getStatusType(order.status)"
-            size="large"
-          >
-            {{ order.status }}
-          </el-tag>
-          <el-tag
-            v-if="order.paymentStatus"
-            :type="getPaymentStatusType(order.paymentStatus)"
-            size="large"
-            class="ms-2"
-          >
-            Payment: {{ order.paymentStatus }}
-          </el-tag>
+      <div v-else-if="detail" class="row g-3">
+        <!-- Customer & Payment Info -->
+        <div class="col-12 col-md-6">
+          <div class="info-box">
+            <h5>Thông tin khách hàng</h5>
+            <p><strong>Tên:</strong> {{ detail.customerName }}</p>
+            <p><strong>ID:</strong> {{ detail.customerId }}</p>
+          </div>
         </div>
 
-        <el-descriptions v-if="order" :column="2" border>
-          <el-descriptions-item label="Order ID">{{
-            order.id ?? order.orderId ?? orderId
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Status">{{
-            order.status ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Customer ID">{{
-            order.customerId ?? order.customer?.id ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Payment Method">{{
-            order.paymentMethod ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Channel">{{
-            order.channel ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Total Amount">
-            <span class="fw-bold text-primary">
-              {{ formatCurrency(order.totalAmount) }}
-            </span>
-          </el-descriptions-item>
-          <el-descriptions-item label="Notes" :span="2">{{
-            order.notes ?? "—"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Created At">{{
-            formatDate(order.createdAt)
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Paid At">{{
-            order.paidAt ? formatDate(order.paidAt) : "—"
-          }}</el-descriptions-item>
-        </el-descriptions>
+        <div class="col-12 col-md-6">
+          <div class="info-box">
+            <h5>Thanh toán & Giao hàng</h5>
+            <p><strong>Phương thức:</strong> {{ detail.paymentMethod }}</p>
+            <p><strong>Kênh:</strong> {{ detail.channel }}</p>
+            <p><strong>Ghi chú:</strong> {{ detail.notes || '—' }}</p>
+          </div>
+        </div>
 
-        <el-divider />
+        <!-- Items Table -->
+        <div class="col-12">
+          <h5 class="mb-2">Chi tiết sản phẩm</h5>
+          <el-table :data="detail.items" border>
+            <el-table-column label="Sản phẩm" min-width="200">
+              <template #default="{ row }">
+                <div class="fw-bold">{{ row.productName }}</div>
+                <div class="muted small">{{ row.variantName }}</div>
+                <div class="muted small">SKU: {{ row.sku }}</div>
+              </template>
+            </el-table-column>
 
-        <div class="h mb-2">Order Items</div>
-        <el-table :data="items" border>
-          <el-table-column prop="variantId" label="Variant ID" width="120" />
-          <el-table-column prop="productName" label="Product" min-width="200" />
-          <el-table-column prop="quantity" label="Quantity" width="100" align="center" />
-          <el-table-column prop="price" label="Unit Price" width="150">
-            <template #default="{ row }">
-              {{ formatCurrency(row.price) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="Subtotal" width="150">
-            <template #default="{ row }">
-              {{ formatCurrency(row.price * row.quantity) }}
-            </template>
-          </el-table-column>
-        </el-table>
+            <el-table-column label="Số lượng" width="100" align="center">
+              <template #default="{ row }">
+                {{ row.quantity }}
+              </template>
+            </el-table-column>
 
-        <el-divider />
+            <el-table-column label="Đơn giá" width="150" align="right">
+              <template #default="{ row }">
+                {{ formatMoney(row.price) }}
+              </template>
+            </el-table-column>
 
-        <el-collapse>
-          <el-collapse-item title="Raw JSON">
-            <pre class="json">{{ JSON.stringify(raw, null, 2) }}</pre>
-          </el-collapse-item>
-        </el-collapse>
-      </template>
+            <el-table-column label="Giảm giá" width="150" align="right">
+              <template #default="{ row }">
+                {{ formatMoney(row.discount) }}
+              </template>
+            </el-table-column>
+
+            <el-table-column label="Tổng" width="150" align="right">
+              <template #default="{ row }">
+                <strong>{{ formatMoney(row.lineTotal) }}</strong>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- Totals -->
+        <div class="col-12">
+          <div class="totals-box">
+            <div class="d-flex justify-content-between">
+              <span>Tạm tính:</span>
+              <strong>{{ formatMoney(detail.subtotal) }}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Giảm giá:</span>
+              <strong class="text-danger">- {{ formatMoney(detail.discountTotal) }}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Phí ship:</span>
+              <strong>{{ formatMoney(detail.shippingFee) }}</strong>
+            </div>
+            <el-divider />
+            <div class="d-flex justify-content-between fs-5">
+              <span><strong>Tổng cộng:</strong></span>
+              <strong class="text-primary">{{ formatMoney(detail.totalAmount) }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
     </el-card>
 
-    <!-- Payment Dialog -->
-    <el-dialog
-      v-model="paymentDialog"
-      title="Process Payment"
-      width="500px"
-    >
-      <el-form :model="paymentForm" label-width="140px">
-        <el-form-item label="Order ID">
-          <el-input :value="orderId" disabled />
+    <!-- ✅ PAYMENT DIALOG -->
+    <el-dialog v-model="showPaymentDialog" title="💳 Thanh toán đơn hàng" width="500px">
+      <el-alert
+        title="Thông tin thanh toán"
+        type="info"
+        :closable="false"
+        class="mb-3"
+      >
+        <p>Sau khi thanh toán thành công:</p>
+        <ul class="mb-0">
+          <li>✅ Đơn hàng sẽ chuyển sang trạng thái <strong>PAID</strong></li>
+          <li>✅ Xuất kho tự động</li>
+          <li>✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn</li>
+        </ul>
+      </el-alert>
+
+      <el-form :model="paymentForm" label-position="top">
+        <el-form-item label="Số tiền thanh toán">
+          <el-input :value="formatMoney(detail?.totalAmount)" disabled size="large" />
         </el-form-item>
-        <el-form-item label="Amount">
-          <el-input :value="formatCurrency(order?.totalAmount)" disabled />
-        </el-form-item>
-        <el-form-item label="Payment Method" required>
-          <el-select v-model="paymentForm.method" placeholder="Select payment method" style="width: 100%">
-            <el-option label="Cash" value="CASH" />
-            <el-option label="Bank Transfer" value="BANK_TRANSFER" />
-            <el-option label="Credit Card" value="CREDIT_CARD" />
-            <el-option label="E-Wallet" value="E_WALLET" />
+
+        <el-form-item label="Phương thức thanh toán" required>
+          <el-select v-model="paymentForm.method" placeholder="Chọn phương thức" class="w-100" size="large">
+            <el-option label="💵 Tiền mặt" value="CASH" />
+            <el-option label="🏦 Chuyển khoản" value="BANK_TRANSFER" />
+            <el-option label="💳 Thẻ tín dụng" value="CREDIT_CARD" />
+            <el-option label="📱 Ví điện tử" value="E_WALLET" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Transaction Ref">
-          <el-input v-model="paymentForm.transactionRef" placeholder="Optional transaction reference" />
+
+        <el-form-item label="Mã giao dịch (tùy chọn)">
+          <el-input 
+            v-model="paymentForm.transactionRef" 
+            placeholder="Ví dụ: TXN-123456" 
+          />
         </el-form-item>
       </el-form>
+
       <template #footer>
-        <el-button @click="paymentDialog = false">Cancel</el-button>
+        <el-button @click="showPaymentDialog = false" size="large">Hủy</el-button>
         <el-button
           type="primary"
           @click="confirmPayment"
           :loading="paymentLoading"
           :disabled="!paymentForm.method"
+          size="large"
         >
-          Confirm Payment
+          Xác nhận thanh toán
         </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ✅ CANCEL DIALOG - Cập nhật cảnh báo -->
+    <el-dialog v-model="showCancelDialog" title="❌ Hủy đơn hàng" width="550px">
+      <el-alert
+        :title="getCancelWarningTitle()"
+        :type="detail?.paymentStatus === 'PAID' ? 'error' : 'warning'"
+        show-icon
+        :closable="false"
+        class="mb-3"
+      >
+        <div v-html="getCancelWarningMessage()"></div>
+      </el-alert>
+
+      <el-form>
+        <el-form-item label="Lý do hủy">
+          <el-input
+            v-model="cancelReason"
+            type="textarea"
+            :rows="4"
+            placeholder="Vui lòng nhập lý do hủy đơn (không bắt buộc)"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showCancelDialog = false">Đóng</el-button>
+        <el-button 
+          type="danger" 
+          @click="confirmCancel"
+          :loading="cancelLoading"
+        >
+          Xác nhận hủy
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Return Dialog -->
+    <el-dialog v-model="showReturnDialog" title="🔄 Yêu cầu trả hàng" width="600px">
+      <el-form :model="returnForm" label-position="top">
+        <el-form-item label="Chọn sản phẩm">
+          <el-select 
+            v-model="returnForm.orderItemId" 
+            placeholder="Chọn sản phẩm muốn trả" 
+            class="w-100"
+          >
+            <el-option
+              v-for="item in detail?.items"
+              :key="item.productId"
+              :label="`${item.productName} - ${item.variantName}`"
+              :value="item.productId"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="Số lượng">
+          <el-input-number
+            v-model="returnForm.quantity"
+            :min="1"
+            :max="getMaxReturnQuantity()"
+            class="w-100"
+          />
+        </el-form-item>
+
+        <el-form-item label="Lý do trả hàng">
+          <el-input
+            v-model="returnForm.reason"
+            type="textarea"
+            :rows="3"
+            placeholder="Nhập lý do trả hàng..."
+          />
+        </el-form-item>
+
+        <el-form-item label="Số tiền hoàn">
+          <el-input v-model="returnForm.refundAmount" disabled>
+            <template #prefix>₫</template>
+          </el-input>
+        </el-form-item>
+
+        <el-alert
+          title="⚠️ Lưu ý"
+          type="info"
+          show-icon
+          :closable="false"
+        >
+          Điểm loyalty đã được cộng sẽ bị trừ lại khi trả hàng được duyệt.
+        </el-alert>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showReturnDialog = false">Đóng</el-button>
+        <el-button type="primary" @click="submitReturn">Gửi yêu cầu</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
+import { returnsApi } from "../../api/returns.api";
 import { paymentsApi } from "../../api/payments";
+import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
+import { Close, CreditCard, RefreshLeft } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
-const orderId = computed(() => route.params.orderId);
+const auth = useAuthStore();
+
+const isCustomer = computed(() => auth.isCustomer);
 
 
 
 const loading = ref(false);
+const cancelLoading = ref(false);
 const paymentLoading = ref(false);
-const error = ref("");
-const raw = ref(null);
-const order = ref(null);
-const paymentDialog = ref(false);
+const detail = ref(null);
 
-const paymentForm = ref({
-  method: "CASH",
-  transactionRef: "",
+const showCancelDialog = ref(false);
+const cancelReason = ref("");
+
+const showReturnDialog = ref(false);
+const returnForm = reactive({
+  orderItemId: null,
+  quantity: 1,
+  reason: "",
+  refundAmount: 0
 });
 
-function pickOrder(payload) {
-  const root = payload?.data ?? payload;
-  return root?.data ?? root;
+const showPaymentDialog = ref(false);
+const paymentForm = reactive({
+  method: "CASH",
+  transactionRef: ""
+});
+
+const statusType = computed(() => {
+  const s = detail.value?.status;
+  if (s === "DELIVERED") return "success";
+  if (s === "SHIPPING") return "warning";
+  if (s === "CANCELLED") return "danger";
+  if (s === "PAID") return "success";
+  return "info";
+});
+
+const paymentStatusType = computed(() => {
+  const ps = detail.value?.paymentStatus;
+  if (ps === "PAID") return "success";
+  if (ps === "PARTIAL") return "warning";
+  return "info";
+});
+
+function formatMoney(val) {
+  if (!val) return "0 ₫";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND"
+  }).format(val);
+}
+
+function getCancelWarningTitle() {
+  if (detail.value?.paymentStatus === 'PAID') {
+    return '⚠️ Cảnh báo: Hủy đơn đã thanh toán';
+  }
+  return 'Xác nhận hủy đơn';
+}
+
+function getCancelWarningMessage() {
+  if (detail.value?.paymentStatus === 'PAID') {
+    const totalAmount = detail.value.totalAmount || 0;
+    const penaltyAmount = totalAmount * 0.10;
+    const penaltyPoints = Math.floor(penaltyAmount / 10000);
+    
+    return `
+      <p><strong>Đơn hàng đã thanh toán. Nếu hủy sẽ bị phạt như sau:</strong></p>
+      <ul class="mb-0">
+        <li>❌ Trừ điểm loyalty đã cộng: <strong class="text-danger">${Math.floor(totalAmount / 10000)} điểm</strong></li>
+        <li>⚠️ <strong class="text-danger">Phạt thêm 10%</strong> giá trị đơn hàng = <strong class="text-danger">${penaltyPoints} điểm</strong></li>
+        <li>💰 Tổng điểm bị trừ: <strong class="text-danger">${Math.floor(totalAmount / 10000) + penaltyPoints} điểm</strong></li>
+      </ul>
+      <p class="mt-2 mb-0"><em>Bạn có chắc chắn muốn hủy không?</em></p>
+    `;
+  }
+  return '<p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>';
+}
+
+function getMaxReturnQuantity() {
+  if (!returnForm.orderItemId || !detail.value?.items) return 1;
+  const item = detail.value.items.find(i => i.productId === returnForm.orderItemId);
+  return item?.quantity || 1;
 }
 
 const canCancel = computed(() => {
@@ -237,100 +427,121 @@ const items = computed(() => {
   const o = order.value || {};
   const list = o.items ?? o.orderItems ?? o.lines ?? [];
   return Array.isArray(list) ? list : [];
+watch(() => returnForm.orderItemId, (newItemId) => {
+  if (!newItemId || !detail.value?.items) return;
+  const item = detail.value.items.find(i => i.productId === newItemId);
+  if (item) {
+    returnForm.quantity = 1;
+    returnForm.refundAmount = item.price;
+  }
+});
+
+watch(() => returnForm.quantity, (newQty) => {
+  if (!returnForm.orderItemId || !detail.value?.items) return;
+  const item = detail.value.items.find(i => i.productId === returnForm.orderItemId);
+  if (item) {
+    returnForm.refundAmount = item.price * newQty;
+  }
 });
 
 async function reload() {
   loading.value = true;
-  error.value = "";
   try {
     const res = await ordersApi.getById(orderId.value);
-    raw.value = res?.data ?? null;
-    order.value = pickOrder(res?.data);
+    detail.value = res?.data?.data || res?.data;
   } catch (e) {
-    const msg =
-      e?.response?.data?.message || e?.message || "Failed to load order";
-    error.value = typeof msg === "string" ? msg : JSON.stringify(msg);
-    toast("Failed to load order.", "error");
+    toast("Failed to load order detail", "error");
   } finally {
     loading.value = false;
   }
 }
 
-function handlePayment() {
-  if (!order.value) return;
-  
-  // Reset form
-  paymentForm.value = {
-    method: "CASH",
-    transactionRef: `TXN-${Date.now()}`,
-  };
-  
-  paymentDialog.value = true;
-}
-
 async function confirmPayment() {
-  if (!paymentForm.value.method) {
-    toast("Please select a payment method", "warning");
+  if (!paymentForm.method) {
+    toast("Vui lòng chọn phương thức thanh toán", "warning");
     return;
   }
 
   paymentLoading.value = true;
   try {
     const payload = {
-      orderId: parseInt(orderId.value),
-      method: paymentForm.value.method,
-      transactionRef: paymentForm.value.transactionRef || `TXN-${Date.now()}`,
+      orderId: Number(orderId.value),
+      method: paymentForm.method,
+      transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`
     };
 
-    const { data } = await paymentsApi.create(payload);
+    await paymentsApi.create(payload);
     
-    toast("Payment processed successfully!", "success");
-    paymentDialog.value = false;
+    toast("✅ Thanh toán thành công! Điểm loyalty đã được cộng.", "success");
+    showPaymentDialog.value = false;
     
-    // Chuyển đến trang Payment Success với payment ID
-    router.push(`/payment/success/${data.id}`);
+    // Reset form
+    paymentForm.method = "CASH";
+    paymentForm.transactionRef = "";
+    
+    await reload();
   } catch (e) {
-    const msg = e?.response?.data?.message || e?.message || "Payment failed";
+    const msg = e?.response?.data?.message || "Lỗi khi thanh toán";
     toast(msg, "error");
-    console.error("Payment error:", e);
   } finally {
     paymentLoading.value = false;
   }
 }
 
-function formatCurrency(amount) {
-  if (!amount) return "₫0";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
+async function confirmCancel() {
+  cancelLoading.value = true;
+  try {
+    await ordersApi.cancel(orderId.value, cancelReason.value);
+    
+    let message = "✅ Đã hủy đơn hàng thành công.";
+    
+    if (detail.value?.paymentStatus === 'PAID') {
+      const totalAmount = detail.value.totalAmount || 0;
+      const penaltyPoints = Math.floor((totalAmount * 0.10) / 10000);
+      message = `✅ Đã hủy đơn. Điểm loyalty đã được điều chỉnh (bao gồm ${penaltyPoints} điểm phạt).`;
+    }
+    
+    toast(message, "success");
+    showCancelDialog.value = false;
+    cancelReason.value = "";
+    await reload();
+  } catch (e) {
+    const msg = e?.response?.data?.message || "Lỗi khi hủy đơn";
+    toast(msg, "error");
+  } finally {
+    cancelLoading.value = false;
+  }
 }
 
-function formatDate(date) {
-  if (!date) return "N/A";
-  return new Date(date).toLocaleString("vi-VN");
+async function submitReturn() {
+  if (!returnForm.orderItemId || !returnForm.reason) {
+    toast("Vui lòng điền đầy đủ thông tin", "warning");
+    return;
+  }
+
+  try {
+    await returnsApi.create({
+      orderId: Number(orderId.value),
+      orderItemId: returnForm.orderItemId,
+      quantity: returnForm.quantity,
+      reason: returnForm.reason,
+      refundAmount: returnForm.refundAmount
+    });
+
+    toast("✅ Đã gửi yêu cầu trả hàng", "success");
+    showReturnDialog.value = false;
+    
+    // Reset form
+    returnForm.orderItemId = null;
+    returnForm.quantity = 1;
+    returnForm.reason = "";
+    returnForm.refundAmount = 0;
+  } catch (e) {
+    toast("Lỗi khi gửi yêu cầu trả hàng", "error");
+  }
 }
 
-function getStatusType(status) {
-  const types = {
-    PENDING: "warning",
-    PAID: "success",
-    CANCELLED: "danger",
-    PROCESSING: "info",
-  };
-  return types[status] || "info";
-}
-
-function getPaymentStatusType(status) {
-  const types = {
-    UNPAID: "warning",
-    PAID: "success",
-    REFUNDED: "danger",
-  };
-  return types[status] || "info";
-}
-
-onMounted(reload);
+onMounted(() => reload());
 </script>
 
 <style scoped>
@@ -348,17 +559,25 @@ onMounted(reload);
   color: rgba(15, 23, 42, 0.62);
   font-size: 13px;
 }
-.h {
-  font-weight: 900;
-  font-size: 14px;
-}
-.json {
-  margin: 0;
-  font-size: 12px;
-  background: rgba(2, 6, 23, 0.04);
+.info-box {
+  background: rgba(2, 6, 23, 0.02);
   border: 1px solid rgba(2, 6, 23, 0.08);
-  border-radius: 10px;
-  padding: 12px;
-  overflow: auto;
+  border-radius: 8px;
+  padding: 16px;
+}
+.info-box h5 {
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+.info-box p {
+  margin-bottom: 8px;
+}
+.totals-box {
+  background: rgba(64, 158, 255, 0.05);
+  border: 1px solid rgba(64, 158, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 400px;
+  margin-left: auto;
 }
 </style>
