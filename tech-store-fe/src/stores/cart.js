@@ -5,23 +5,32 @@ import { cartApi } from "../api/cart.api";
 
 export const useCartStore = defineStore("cart", {
   state: () => ({
-    count: 0 // ADD: số lượng item trong giỏ
+    count: 0, // số lượng item trong giỏ
   }),
 
   actions: {
+    // =========================
+    // ADD TO CART
+    // =========================
     async addToCart(variantId, quantity = 1) {
-      // ADD: validate FE trước
       if (!variantId || quantity <= 0) {
         throw new Error("Invalid variantId or quantity");
       }
 
       await cartApi.addItem({
-  variantId: Number(variantId),   // ✅ ĐÚNG TÊN FIELD
-  quantity: Number(quantity),
-});
+        variantId: Number(variantId),
+        quantity: Number(quantity),
+      });
 
-      // ADD: reload badge sau khi add thành công
       await this.refreshCount();
+    },
+
+    // =========================
+    // CLEAR CART
+    // =========================
+    async clearCart() {
+      await cartApi.clear();
+      this.count = 0; // clear local state ngay
     },
 
     // =========================
@@ -31,5 +40,5 @@ export const useCartStore = defineStore("cart", {
       const res = await cartApi.count();
       this.count = Number(res?.data || 0);
     },
-  }
+  },
 });

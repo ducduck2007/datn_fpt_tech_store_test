@@ -59,14 +59,24 @@ public class OrderQueryService {
 
     private OrderListResponse toOrderListResponse(Order order) {
         OrderListResponse dto = new OrderListResponse();
+
         dto.setOrderId(order.getId());
         dto.setOrderNumber(order.getOrderNumber());
-        dto.setStatus(order.getStatus());
+
         dto.setCustomerId(order.getCustomer().getId());
+        dto.setCustomerName(order.getCustomer().getName()); // nếu có
+
+        dto.setChannel(order.getChannel());               // ✅ THÊM
+        dto.setPaymentMethod(order.getPaymentMethod());   // ✅ THÊM
+
         dto.setTotalAmount(order.getTotalAmount());
+        dto.setStatus(order.getStatus());
+        dto.setPaymentStatus(order.getPaymentStatus());   // nếu cần
         dto.setCreatedAt(order.getCreatedAt());
+
         return dto;
     }
+
 
 }
 

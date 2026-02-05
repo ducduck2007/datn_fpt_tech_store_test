@@ -9,6 +9,7 @@ import CustomerOrderCreate from "../pages/customer/OrderCreate.vue";
 import CustomerOrderDetail from "../pages/customer/OrderDetail.vue";
 import CustomerProfile from "../pages/customer/CustomerProfile.vue";
 import CartPage from "../pages/customer/CartPage.vue";
+import CustomerOrders from "../pages/customer/CustomerOrders.vue";
 
 // ===== System (Admin) =====
 import SystemLogin from "../pages/system/SystemLogin.vue";
@@ -75,6 +76,12 @@ const routes = [
     path: "/cart",
     name: "cart",
     component: CartPage,
+    meta: { portal: "customer", requiresAuth: true }
+  },
+  {
+    path: "/my-orders",
+    name: "my orders",
+    component: CustomerOrders,
     meta: { portal: "customer", requiresAuth: true }
   },
 

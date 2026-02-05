@@ -13,12 +13,22 @@
             </el-tag>
           </div>
         </div>
+        <div class="d-flex gap-2">
+          <el-button @click="$router.push('/orders/new')"
+            >Create another</el-button
+          >
+          <el-button @click="reload" :loading="loading">Reload</el-button>
 
-        <div class="d-flex gap-2 flex-wrap">
-          <el-button @click="$router.push('/')">Back</el-button>
-          <el-button :loading="loading" @click="reload">Refresh</el-button>
+          <el-button
+            type="danger"
+            v-if="canCancel"
+            @click="handleCancel"
+          >
+            Hủy đơn hàng
+          </el-button>
 
-          <!-- ✅ NÚT THANH TOÁN -->
+          
+          <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
           <el-button
             v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'"
             type="primary"
@@ -291,6 +301,7 @@ import { returnsApi } from "../../api/returns.api";
 import { paymentsApi } from "../../api/payments";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
+import { confirmModal } from "../../ui/confirm";
 import { Close, CreditCard, RefreshLeft } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -299,7 +310,8 @@ const auth = useAuthStore();
 
 const isCustomer = computed(() => auth.isCustomer);
 
-const orderId = ref(route.params.orderId || route.params.id);
+
+
 const loading = ref(false);
 const cancelLoading = ref(false);
 const paymentLoading = ref(false);
@@ -378,6 +390,43 @@ function getMaxReturnQuantity() {
   return item?.quantity || 1;
 }
 
+const canCancel = computed(() => {
+  return ['PENDING'].includes(order.value?.status)
+})
+
+const fetchOrder = async () => {
+  const res = await ordersApi.getById(route.params.orderId)
+  order.value = res.data
+}
+
+const handleCancel = async () => {
+  const ok = await confirmModal(
+    "Bạn có chắc chắn muốn hủy đơn hàng này?",
+    "Xác nhận hủy đơn",
+    "Hủy đơn",
+    true
+  );
+
+  if (!ok) return;
+
+  try {
+    await ordersApi.cancel(order.value.orderId);
+
+    toast("Đơn hàng đã được hủy", "success");
+
+    // load lại chi tiết đơn
+    await fetchOrder();
+  } catch (err) {
+    toast("Hủy đơn thất bại, vui lòng thử lại", "error");
+  }
+};
+
+
+
+const items = computed(() => {
+  const o = order.value || {};
+  const list = o.items ?? o.orderItems ?? o.lines ?? [];
+  return Array.isArray(list) ? list : [];
 watch(() => returnForm.orderItemId, (newItemId) => {
   if (!newItemId || !detail.value?.items) return;
   const item = detail.value.items.find(i => i.productId === newItemId);
