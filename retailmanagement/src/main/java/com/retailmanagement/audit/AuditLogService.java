@@ -7,9 +7,8 @@ import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.*;
+import java.time.temporal.ChronoField;
 import java.util.List;
 
 @Service
@@ -89,7 +88,7 @@ public class AuditLogService {
         return auditLogRepository.findByCreatedAtBetween(fromInstant,toInstant);
     }
 
-    public List<AuditLogResponse> getAuditLogsByChange_Role(){
+    public List<AuditLogResponse> getAuditLogsByActionChange_Role(){
         return auditLogRepository.findByActionOrderByCreatedAtDesc(AuditAction.CHANGE_ROLE.name())
                 .stream()
                 .map(this::toResponse)
@@ -98,6 +97,35 @@ public class AuditLogService {
 
     public List<AuditLogResponse> getAuditLogsByUser_Id(Integer id){
         return auditLogRepository.findByUserId(id)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getAuditLogsByModuleCustomer(){
+        return auditLogRepository.findByModuleOrderByCreatedAtDesc(AuditModule.CUSTOMER.name())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getAuditLogsByThisWeek(){
+        ZoneId zoneId = ZoneId.systemDefault();
+
+        LocalDate today = LocalDate.now();
+
+        Instant start = today
+                .with(DayOfWeek.MONDAY)
+                .atStartOfDay(zoneId)
+                .toInstant();
+
+        Instant end = today
+                .with(DayOfWeek.SUNDAY)
+                .atTime(LocalTime.MAX)
+                .atZone(zoneId)
+                .toInstant();
+
+        return auditLogRepository.findLogsThisWeek(start, end)
                 .stream()
                 .map(this::toResponse)
                 .toList();
