@@ -21,5 +21,11 @@ export const customersApi = {
   },
   listActiveLast30Days() {
     return http.get("/api/auth/customers/active-last-30-days");
+  },
+   getLoyaltyHistory(customerId) {
+    return http.get(`/api/auth/customers/${customerId}/loyalty-history`);
+  },
+  getTierHistory(customerId) {
+    return http.get(`/api/auth/customers/${customerId}/tier-history`);
   }
 };

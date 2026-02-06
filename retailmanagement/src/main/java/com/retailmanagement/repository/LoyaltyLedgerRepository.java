@@ -42,4 +42,9 @@ public interface LoyaltyLedgerRepository extends JpaRepository<LoyaltyLedger, Lo
             @Param("customerId") Integer customerId,
             @Param("reason") String reason
     );
+    @Query("SELECT ll FROM LoyaltyLedger ll WHERE ll.customer.id = :customerId " +
+            "AND ll.tierBefore IS NOT NULL AND ll.tierAfter IS NOT NULL " +
+            "ORDER BY ll.createdAt DESC")
+    List<LoyaltyLedger> findTierChanges(@Param("customerId") Integer customerId);
+    List<LoyaltyLedger> findTop10ByCustomerIdOrderByCreatedAtDesc(Integer customerId);
 }
