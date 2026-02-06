@@ -130,7 +130,7 @@ public class ProductService {
 
                 // 2. Nối chuỗi vào Description
                 StringBuilder attrStr = new StringBuilder();
-                attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT ---\n");
+                attrStr.append("\n--- THÔNG SỐ KỸ THUẬT ---\n");
                 for (AttributeRequest attr : attrList) {
                     attrStr.append("- ").append(attr.getName())
                             .append(": ").append(attr.getValue()).append("\n");
@@ -147,8 +147,10 @@ public class ProductService {
 
         if (request.getIdsToDelete() != null && !request.getIdsToDelete().isEmpty()) {
             imageRepository.deleteAllById(request.getIdsToDelete());
+            imageRepository.flush();
         }
 
+        boolean hasPrimary = imageRepository.existsByProductIdAndIsPrimaryTrue(product.getId());
         if (request.getGalleryImages() != null) {
             for (MultipartFile file : request.getGalleryImages()) {
                 if (!file.isEmpty()) {
@@ -156,6 +158,12 @@ public class ProductService {
                     Image image = new Image();
                     image.setProduct(product);
                     image.setUrl("/uploads/" + fileName);
+                    if (!hasPrimary) {
+                        image.setIsPrimary(true);
+                        hasPrimary = true;
+                    } else {
+                        image.setIsPrimary(false);
+                    }
                     image.setIsPrimary(false);
                     image.setSortOrder(1);
                     image.setCreatedAt(Instant.now());
@@ -166,10 +174,9 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    public Page<ProductResponse> getProducts(int page, Integer categoryId, String keyword, String sortBy) {
+    public Page<ProductResponse> getProducts(int page, List<Integer> categoryIds, String keyword, String sortBy) {
         String sortColumn = "created_at";
         Sort.Direction direction = Sort.Direction.DESC;
-
         if (sortBy != null) {
             if (sortBy.contains("name")) sortColumn = "name";
             if (sortBy.contains("asc")) direction = Sort.Direction.ASC;
@@ -178,16 +185,19 @@ public class ProductService {
                 direction = Sort.Direction.ASC;
             }
         }
-
         Pageable pageable = PageRequest.of(page, 20, Sort.by(direction, sortColumn));
-
-        if (keyword != null && !keyword.isEmpty()) {
-            return productRepository.searchProducts(keyword, true, pageable).map(this::mapToResponse);
-        }
-        if (categoryId != null) {
-            return productRepository.findByCategoryId(categoryId, pageable).map(this::mapToResponse);
-        }
-        return productRepository.searchProducts(null, true, pageable).map(this::mapToResponse);
+        String searchKey = (keyword != null && !keyword.trim().isEmpty())
+                ? "%" + keyword.trim() + "%"
+                : null;
+        boolean hasCategory = (categoryIds != null && !categoryIds.isEmpty());
+        List<Integer> filterIds = hasCategory ? categoryIds : List.of(-1);
+        return productRepository.searchProducts(
+                searchKey,
+                filterIds,
+                hasCategory,
+                true,
+                pageable
+        ).map(this::mapToResponse);
     }
 
     //CHI TIẾT SẢN PHẨM
