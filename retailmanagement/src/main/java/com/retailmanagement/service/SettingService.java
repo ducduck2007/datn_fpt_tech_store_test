@@ -1,29 +1,60 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.entity.SystemSetting;
+import com.retailmanagement.repository.SystemSettingRepository;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Service
 public class SettingService {
 
-    // Tạm thời lưu in-memory
-    // Có thể thay bằng DB / Redis / config sau
-    private String defaultCurrency = "VND";
+    private final SystemSettingRepository settingRepo;
 
-    public String getDefaultCurrency() {
-        return defaultCurrency;
+    public SettingService(SystemSettingRepository settingRepo) {
+        this.settingRepo = settingRepo;
     }
 
-    public String setDefaultCurrency(String currencyCode) {
-        if (currencyCode == null || currencyCode.isBlank()) {
-            throw new IllegalArgumentException("currencyCode không được rỗng");
-        }
+    /**
+     * Get default currency from system settings
+     * Falls back to "VND" if not set
+     */
+    public String getDefaultCurrency() {
+        return settingRepo.findById("DEFAULT_CURRENCY")
+                .map(SystemSetting::getValue)
+                .orElse("VND");
+    }
 
-        String c = currencyCode.trim().toUpperCase();
-        if (c.length() != 3) {
-            throw new IllegalArgumentException("currencyCode phải là ISO-4217 (3 ký tự)");
-        }
+    /**
+     * Set default currency
+     */
+    public void setDefaultCurrency(String currencyCode) {
+        SystemSetting setting = settingRepo.findById("DEFAULT_CURRENCY")
+                .orElse(new SystemSetting());
+        setting.setKey("DEFAULT_CURRENCY");
+        setting.setValue(currencyCode.toUpperCase());
+        setting.setUpdatedAt(LocalDateTime.now());
+        settingRepo.save(setting);
+    }
 
-        this.defaultCurrency = c;
-        return this.defaultCurrency;
+    /**
+     * Get any setting by key
+     */
+    public String getSetting(String key, String defaultValue) {
+        return settingRepo.findById(key)
+                .map(SystemSetting::getValue)
+                .orElse(defaultValue);
+    }
+
+    /**
+     * Set any setting
+     */
+    public void setSetting(String key, String value) {
+        SystemSetting setting = settingRepo.findById(key)
+                .orElse(new SystemSetting());
+        setting.setKey(key);
+        setting.setValue(value);
+        setting.setUpdatedAt(LocalDateTime.now());
+        settingRepo.save(setting);
     }
 }

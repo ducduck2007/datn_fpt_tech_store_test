@@ -2,13 +2,8 @@ package com.retailmanagement.service;
 
 import com.retailmanagement.dto.request.UpsertPriceRequest;
 import com.retailmanagement.dto.response.VariantPriceResponse;
-import com.retailmanagement.entity.PriceHistory;
-import com.retailmanagement.entity.ProductVariant;
-import com.retailmanagement.entity.Promotion;
-import com.retailmanagement.entity.User;
-import com.retailmanagement.repository.PriceHistoryRepository;
-import com.retailmanagement.repository.ProductVariantRepository;
-import com.retailmanagement.repository.UserRepository;
+import com.retailmanagement.entity.*;
+import com.retailmanagement.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,17 +22,20 @@ public class PricingService {
     private final SettingService settingService;
     private final PromotionService promotionService;
     private final UserRepository userRepository;
+    private final CustomRes customerRepository;
 
     public PricingService(ProductVariantRepository variantRepo,
                           PriceHistoryRepository priceHistoryRepo,
                           SettingService settingService,
                           PromotionService promotionService,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          CustomRes customerRepository) {
         this.variantRepo = variantRepo;
         this.priceHistoryRepo = priceHistoryRepo;
         this.settingService = settingService;
         this.promotionService = promotionService;
         this.userRepository = userRepository;
+        this.customerRepository = customerRepository;
     }
 
     @Transactional
@@ -91,26 +89,102 @@ public class PricingService {
         return ph;
     }
 
+    /**
+     * Get effective price for a variant considering customer group
+     */
+    public VariantPriceResponse getEffectivePriceForCustomer(Integer variantId, Integer customerId) {
+        ProductVariant v = variantRepo.findById(variantId)
+                .orElseThrow(() -> new NoSuchElementException("Variant not found"));
+
+        Customer customer = null;
+        if (customerId != null) {
+            customer = customerRepository.findById(customerId).orElse(null);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Get base price (considering customer group pricing if implemented)
+        BigDecimal basePrice = getBasePriceForCustomer(v, customer);
+
+        // Find best promotion applicable to this customer
+        Promotion best = promotionService.findBestPromotionForVariantAndCustomer(v, customer, now);
+
+        VariantPriceResponse r = new VariantPriceResponse();
+        r.setVariantId(v.getId());
+        r.setProductId(v.getProduct().getId());
+        r.setVariantName(v.getVariantName());
+        r.setSku(v.getSku());
+        r.setCurrencyCode(v.getCurrencyCode());
+        r.setPrice(basePrice);
+        r.setCostPrice(v.getCostPrice());
+
+        if (best != null) {
+            r.setPromotionCode(best.getCode());
+            r.setFinalPrice(promotionService.computeEffectiveUnitPrice(basePrice, best));
+        } else {
+            r.setFinalPrice(basePrice);
+        }
+        return r;
+    }
+
+    /**
+     * Get base price considering customer type/tier discounts
+     */
+    private BigDecimal getBasePriceForCustomer(ProductVariant variant, Customer customer) {
+        BigDecimal basePrice = variant.getPrice();
+        
+        if (customer == null) {
+            return basePrice;
+        }
+
+        // Apply VIP tier discount if applicable
+        VipTier tier = customer.getVipTier();
+        if (tier != null && tier.getDiscountRate() != null && tier.getDiscountRate() > 0) {
+            BigDecimal discountMultiplier = BigDecimal.ONE.subtract(
+                BigDecimal.valueOf(tier.getDiscountRate())
+            );
+            basePrice = basePrice.multiply(discountMultiplier).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return basePrice;
+    }
+
     public List<VariantPriceResponse> listCurrentPricesByProduct(Integer productId) {
+        return listCurrentPricesByProductForCustomer(productId, null);
+    }
+
+    /**
+     * List prices by product, optionally for a specific customer
+     */
+    public List<VariantPriceResponse> listCurrentPricesByProductForCustomer(Integer productId, Integer customerId) {
         List<ProductVariant> variants = variantRepo.findByProduct_Id(productId);
         LocalDateTime now = LocalDateTime.now();
 
+        Customer customer = null;
+        if (customerId != null) {
+            customer = customerRepository.findById(customerId).orElse(null);
+        }
+
+        final Customer finalCustomer = customer;
+
         return variants.stream().map(v -> {
+            BigDecimal basePrice = getBasePriceForCustomer(v, finalCustomer);
+            
             VariantPriceResponse r = new VariantPriceResponse();
             r.setVariantId(v.getId());
             r.setProductId(v.getProduct().getId());
             r.setVariantName(v.getVariantName());
             r.setSku(v.getSku());
             r.setCurrencyCode(v.getCurrencyCode());
-            r.setPrice(v.getPrice());
+            r.setPrice(basePrice);
             r.setCostPrice(v.getCostPrice());
 
-            Promotion best = promotionService.findBestPromotionForVariant(v, now);
+            Promotion best = promotionService.findBestPromotionForVariantAndCustomer(v, finalCustomer, now);
             if (best != null) {
                 r.setPromotionCode(best.getCode());
-                r.setFinalPrice(promotionService.computeEffectiveUnitPrice(v.getPrice(), best));
+                r.setFinalPrice(promotionService.computeEffectiveUnitPrice(basePrice, best));
             } else {
-                r.setFinalPrice(v.getPrice());
+                r.setFinalPrice(basePrice);
             }
             return r;
         }).toList();
@@ -192,28 +266,7 @@ public class PricingService {
     }
 
     public VariantPriceResponse getEffectivePrice(Integer variantId) {
-        ProductVariant v = variantRepo.findById(variantId)
-                .orElseThrow(() -> new NoSuchElementException("Variant not found"));
-
-        LocalDateTime now = LocalDateTime.now();
-        Promotion best = promotionService.findBestPromotionForVariant(v, now);
-
-        VariantPriceResponse r = new VariantPriceResponse();
-        r.setVariantId(v.getId());
-        r.setProductId(v.getProduct().getId());
-        r.setVariantName(v.getVariantName());
-        r.setSku(v.getSku());
-        r.setCurrencyCode(v.getCurrencyCode());
-        r.setPrice(v.getPrice());
-        r.setCostPrice(v.getCostPrice());
-
-        if (best != null) {
-            r.setPromotionCode(best.getCode());
-            r.setFinalPrice(promotionService.computeEffectiveUnitPrice(v.getPrice(), best));
-        } else {
-            r.setFinalPrice(v.getPrice());
-        }
-        return r;
+        return getEffectivePriceForCustomer(variantId, null);
     }
 
     private static BigDecimal scaleMoney(BigDecimal v) {

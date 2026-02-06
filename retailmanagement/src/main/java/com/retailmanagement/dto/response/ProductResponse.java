@@ -16,12 +16,16 @@ public class ProductResponse {
     private LocalDateTime createdAt;
     private String attributes;
 
-    // ✅ Added for "Display current price in product list"
-    // We return the MIN current price among variants (common storefront behavior).
+    // Price information
     private BigDecimal minPrice;
     private String currencyCode;
-
-    // ✅ THÊM
+    
+    // Promotion information (shown when there's an active promotion)
+    private BigDecimal promotionPrice;  // Final price after promotion
+    private String promotionName;       // Name of the promotion
+    private String promotionCode;       // Code of the promotion
+    
+    // Additional fields
     private Integer variantId;
     private Integer categoryId;
 }
