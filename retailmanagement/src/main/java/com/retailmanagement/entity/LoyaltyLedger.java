@@ -54,9 +54,17 @@ public class LoyaltyLedger {
     @Column(name = "note", length = 500)
     private String note;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
-    private User createdBy;
+
+    @Column(name = "created_by")
+    private Integer createdBy;
+    @Column(name = "transaction_type", length = 50)
+    private String transactionType; // EARN / DEDUCT / TIER_UPGRADE / TIER_DOWNGRADE / PENALTY
+
+    @Column(name = "tier_before", length = 30)
+    private String tierBefore;
+
+    @Column(name = "tier_after", length = 30)
+    private String tierAfter;
 
     @NotNull
     @ColumnDefault("sysdatetime()")

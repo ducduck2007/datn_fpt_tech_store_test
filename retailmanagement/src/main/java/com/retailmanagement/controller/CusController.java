@@ -3,8 +3,10 @@ package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.CustomerRequest;
 import com.retailmanagement.dto.response.CustomerResponse;
+import com.retailmanagement.dto.response.LoyaltyLedgerResponse;
 import com.retailmanagement.entity.CustomerType;
 import com.retailmanagement.service.CustomerService;
+import com.retailmanagement.service.LoyaltyHistoryService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,8 @@ import java.util.Map;
 public class CusController {
     @Autowired
     private CustomerService cusservice;
+    @Autowired
+    private LoyaltyHistoryService loyaltyHistoryService;
     @PostMapping("")
     public ResponseEntity<CustomerResponse> addCustomer(@Valid @RequestBody CustomerRequest cus) {
        CustomerResponse response= cusservice.create(cus);
@@ -107,4 +111,20 @@ public class CusController {
         List<CustomerResponse> activeCustomers = cusservice.findActiveInLast30Days();
         return ResponseEntity.ok(activeCustomers);
     }
+    @GetMapping("/{customerId}/loyalty-history")
+    public ResponseEntity<List<LoyaltyLedgerResponse>> getLoyaltyHistory(
+            @PathVariable Integer customerId) {
+        return ResponseEntity.ok(loyaltyHistoryService.getCustomerHistory(customerId));
+    }
+
+    /**
+     * Lấy lịch sử thay đổi hạng VIP
+     * GET /api/auth/customers/{customerId}/tier-history
+     */
+    @GetMapping("/{customerId}/tier-history")
+    public ResponseEntity<List<LoyaltyLedgerResponse>> getTierHistory(
+            @PathVariable Integer customerId) {
+        return ResponseEntity.ok(loyaltyHistoryService.getTierChanges(customerId));
+    }
+
 }
