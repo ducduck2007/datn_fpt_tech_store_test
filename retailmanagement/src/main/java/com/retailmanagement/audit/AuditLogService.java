@@ -5,6 +5,10 @@ import com.retailmanagement.entity.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -129,6 +133,13 @@ public class AuditLogService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public Page<AuditLogResponse> getAuditLogByModule(String module, int page, int size) {
+        Pageable pageable = PageRequest.of(page,size, Sort.by(Sort.Direction.DESC,"createdAt"));
+
+        return auditLogRepository.findByModule(module,pageable)
+                .map(this::toResponse);
     }
 
     private AuditLogResponse toResponse(AuditLog auditLog){
