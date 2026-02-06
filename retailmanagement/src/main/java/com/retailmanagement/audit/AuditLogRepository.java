@@ -1,5 +1,7 @@
 package com.retailmanagement.audit;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,6 +34,13 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
         order by l.createdAt DESC 
         """)
     List<AuditLog> findLogsThisWeek(@Param("start") Instant start,@Param("end") Instant end);
+
+    @Query("""
+        SELECT l
+        from AuditLog l
+        where l.module = :module
+        """)
+    public Page<AuditLog> findByModule(@Param("module") String module, Pageable pageable);
 
 
     List<AuditLog> findByModuleOrderByCreatedAtDesc(String module);

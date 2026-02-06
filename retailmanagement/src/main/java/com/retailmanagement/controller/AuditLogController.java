@@ -7,6 +7,7 @@ import com.retailmanagement.dto.response.AuditLogResponse;
 import com.retailmanagement.dto.response.ModuleLogReportResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,6 +53,15 @@ public class AuditLogController {
     @GetMapping("filter/this-week")
     public List<AuditLogResponse> filerByThisWeek(){
         return auditLogService.getAuditLogsByThisWeek();
+    }
+
+    @GetMapping("filter/module")
+    public Page<AuditLogResponse> filterByModule(
+            @RequestParam String module,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+            ) {
+        return auditLogService.getAuditLogByModule(module,page,size);
     }
 
     @GetMapping("report/module")
