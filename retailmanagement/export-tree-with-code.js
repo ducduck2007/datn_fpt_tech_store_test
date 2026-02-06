@@ -1,8 +1,5 @@
-// export-tree-with-code.js
 // Chạy:
 //   node export-tree-with-code.js
-//   node export-tree-with-code.js --module=6
-//   node export-tree-with-code.js --module=pricing --out=pricing.txt
 
 const fs = require("fs");
 const path = require("path");
@@ -36,38 +33,54 @@ const MODULE_PRESETS = {
 
   pricing: {
     key: "6",
-    label: "Pricing & Promotion",
+    label: "Pricing & Promotion (Minimal)",
     mode: "seed",
     seedFiles: [
-      // controllers
+      // Controllers (API entry)
       "controller/PriceController.java",
       "controller/PromotionController.java",
+      "controller/ProductController.java",
 
-      // services
+      // Services (business logic)
       "service/PricingService.java",
       "service/PromotionService.java",
+      "service/ProductService.java",
+      "service/CustomerService.java",
 
-      // repositories
+      // Repositories
       "repository/PriceHistoryRepository.java",
       "repository/PromotionRepository.java",
-
-      // dto
-      "dto/request/UpsertPriceRequest.java",
-      "dto/request/PromotionRequest.java",
-      "dto/response/VariantPriceResponse.java",
-      "dto/response/ApiResponse.java",
-
-      // entities
-      "entity/PriceHistory.java",
-      "entity/Promotion.java",
-
-      // pricing/promotion đụng tới product
-      "entity/ProductVariant.java",
-      "entity/Product.java",
+      "repository/PromotionRedemptionRepository.java",
       "repository/ProductVariantRepository.java",
       "repository/ProductRepository.java",
+      "repository/CustomRes.java",
+      "repository/LoyaltyLedgerRepository.java",
 
-      // infra
+      // DTO - Requests
+      "dto/request/UpsertPriceRequest.java",
+      "dto/request/PromotionRequest.java",
+
+      // DTO - Responses
+      "dto/response/ApiResponse.java",
+      "dto/response/VariantPriceResponse.java",
+      "dto/response/ProductResponse.java",
+      "dto/response/OrderDetailResponse.java",
+
+      // Entities (core domain)
+      "entity/PriceHistory.java",
+      "entity/Promotion.java",
+      "entity/PromotionRedemption.java",
+      "entity/ProductVariant.java",
+      "entity/Product.java",
+      "entity/Customer.java",
+      "entity/CustomerType.java",
+      "entity/VipTier.java",
+
+      // System setting (currency/defaults)
+      "entity/SystemSetting.java",
+      "repository/SystemSettingRepository.java",
+
+      // Exceptions
       "exception/ErrorResponse.java",
       "exception/GlobalExceptionHandler.java",
     ],
@@ -201,7 +214,7 @@ function buildIncludedSet(preset) {
   return { included, rootAbs, allFilesAbs, allJavaAbs };
 }
 
-// -------------------- tree writer (only included) --------------------
+// -------------------- tree writer (compact format) --------------------
 function writeTreeWithCode(rootAbs, includedSet) {
   function dirHasIncluded(dirAbs) {
     const d = dirAbs.endsWith(path.sep) ? dirAbs : dirAbs + path.sep;
@@ -227,20 +240,23 @@ function writeTreeWithCode(rootAbs, includedSet) {
       const isLast = idx === items.length - 1;
       const pointer = isLast ? "└── " : "├── ";
       const fullAbs = normalizeAbs(path.join(dirAbs, it.name));
-      result += `${prefix}${pointer}${it.name}\n`;
-
-      const childPrefix = prefix + (isLast ? "    " : "│   ");
 
       if (it.isDirectory()) {
+        result += `${prefix}${pointer}${it.name}\n`;
+        const childPrefix = prefix + (isLast ? "    " : "│   ");
         result += walk(fullAbs, childPrefix);
       } else {
-        const content = readTextSafe(fullAbs);
-        result += `${childPrefix}---- CODE ----\n`;
-        result += content
-          .split("\n")
-          .map((line) => `${childPrefix}  ${line}`)
-          .join("\n");
-        result += `\n${childPrefix}---- END ----\n`;
+        // File: hiển thị tên file và code ngay sau, không có separator
+        result += `${prefix}${pointer}${it.name}\n`;
+        const content = readTextSafe(fullAbs).trimEnd(); // Bỏ trailing whitespace
+        if (content) {
+          const childPrefix = prefix + (isLast ? "    " : "│   ");
+          result += content
+            .split("\n")
+            .map((line) => `${childPrefix}${line}`)
+            .join("\n");
+          result += "\n";
+        }
       }
     });
     return result;
@@ -264,12 +280,10 @@ function resolveModule(input) {
   if (!input) return null;
   const normalized = String(input).trim().toLowerCase();
 
-  // allow: 1,6
   for (const k of Object.keys(MODULE_PRESETS)) {
     if (MODULE_PRESETS[k].key === normalized) return k;
   }
 
-  // allow: all, pricing
   if (MODULE_PRESETS[normalized]) return normalized;
 
   return null;

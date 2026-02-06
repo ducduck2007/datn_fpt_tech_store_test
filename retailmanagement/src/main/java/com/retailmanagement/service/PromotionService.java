@@ -2,12 +2,8 @@ package com.retailmanagement.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.retailmanagement.dto.request.PromotionRequest;
-import com.retailmanagement.entity.ProductVariant;
-import com.retailmanagement.entity.Promotion;
-import com.retailmanagement.entity.PromotionRedemption;
-import com.retailmanagement.repository.ProductVariantRepository;
-import com.retailmanagement.repository.PromotionRedemptionRepository;
-import com.retailmanagement.repository.PromotionRepository;
+import com.retailmanagement.entity.*;
+import com.retailmanagement.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,14 +32,14 @@ public class PromotionService {
     // =========================
     // JSON models
     // =========================
-    // applicabilityJson: {"scope":"ALL"} or {"product_ids":[1,2]} or {"variant_ids":[10,11]}
     public static class Applicability {
-        public String scope;
+        public String scope; // ALL / PRODUCT / VARIANT
         public List<Integer> product_ids;
         public List<Integer> variant_ids;
+        public List<String> customer_types; // REGULAR, VIP
+        public List<String> vip_tiers; // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
     }
 
-    // rulesJson: {"usage_limit":100,"combo":{"buy_qty":2,"get_qty":1}}
     public static class Rules {
         public Integer usage_limit;
         public Combo combo;
@@ -61,6 +57,7 @@ public class PromotionService {
             a.scope = scope;
             a.product_ids = req.getProductIds();
             a.variant_ids = req.getVariantIds();
+            // Customer group support will be added via separate endpoint if needed
             return objectMapper.writeValueAsString(a);
         } catch (Exception e) {
             throw new IllegalArgumentException("applicabilityJson không hợp lệ");
@@ -103,7 +100,6 @@ public class PromotionService {
                 r.combo = c;
             }
 
-            // nếu r rỗng -> trả null để DB gọn
             if (r.usage_limit == null && r.combo == null) return null;
             return objectMapper.writeValueAsString(r);
         } catch (IllegalArgumentException ex) {
@@ -148,7 +144,6 @@ public class PromotionService {
             return !Collections.disjoint(aVariants, bVariants);
         }
 
-        // PRODUCT vs VARIANT => map variant->product
         if (!aProducts.isEmpty() && !bVariants.isEmpty()) {
             List<ProductVariant> vs = variantRepo.findAllById(bVariants);
             Set<Integer> bVariantProducts = vs.stream().map(v -> v.getProduct().getId()).collect(Collectors.toSet());
@@ -209,11 +204,9 @@ public class PromotionService {
         boolean hasCombo = rules != null && rules.combo != null;
 
         if (hasCombo) {
-            // combo không cần discountValue, nhưng nếu gửi thì phải hợp lệ (hoặc bỏ)
             if (discountValue != null && discountValue.compareTo(BigDecimal.ZERO) != 0) {
                 throw new IllegalArgumentException("Khuyến mãi combo (mua X tặng Y) không dùng discountValue");
             }
-            // discountType vẫn giữ PERCENT/AMOUNT trong schema hiện tại, nhưng sẽ ưu tiên combo khi tính giá
         } else {
             if (discountValue == null) throw new IllegalArgumentException("discountValue bắt buộc (trừ combo)");
             if (discountValue.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("discountValue phải >= 0");
@@ -245,7 +238,6 @@ public class PromotionService {
 
         Promotion saved = promoRepo.save(p);
 
-        // init redemption counter row (để check usageLimit)
         redemptionRepo.findByPromotionId(saved.getId()).orElseGet(() -> {
             PromotionRedemption r = new PromotionRedemption();
             r.setPromotionId(saved.getId());
@@ -257,7 +249,6 @@ public class PromotionService {
         return saved;
     }
 
-    // activeOnly=true => đang hoạt động theo thời gian (start<=now<=end) và isActive=true
     public List<Promotion> list(Boolean activeOnly) {
         if (activeOnly != null && activeOnly) {
             LocalDateTime now = LocalDateTime.now();
@@ -290,7 +281,6 @@ public class PromotionService {
             p.setApplicabilityJson(buildApplicabilityJson(req));
         }
 
-        // rules: nếu có bất kỳ field rules nào thì rebuild, nếu không thì giữ nguyên
         if (req.getUsageLimit() != null || req.getBuyQty() != null || req.getGetQty() != null) {
             p.setRulesJson(buildRulesJson(req));
         }
@@ -331,9 +321,21 @@ public class PromotionService {
     }
 
     // =========================
-    // Pricing logic
+    // Pricing logic with customer group support
     // =========================
+    
+    /**
+     * Find best promotion for variant without customer context (backwards compatibility)
+     */
     public Promotion findBestPromotionForVariant(ProductVariant v, LocalDateTime at) {
+        return findBestPromotionForVariantAndCustomer(v, null, at);
+    }
+
+    /**
+     * Find best promotion considering customer type/tier
+     * Priority mechanism: highest discount wins, if equal then highest priority number wins
+     */
+    public Promotion findBestPromotionForVariantAndCustomer(ProductVariant v, Customer customer, LocalDateTime at) {
         List<Promotion> active = promoRepo.findByIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(at, at);
 
         BigDecimal base = v.getPrice() == null ? BigDecimal.ZERO : v.getPrice();
@@ -342,19 +344,66 @@ public class PromotionService {
 
         for (Promotion p : active) {
             Applicability app = parseApplicability(p.getApplicabilityJson());
+            
+            // Check product/variant applicability
             if (!isApplicable(app, v)) continue;
+            
+            // Check customer group applicability
+            if (!isApplicableToCustomer(app, customer)) continue;
+            
+            // Check usage limit
             if (!isUsableByLimit(p)) continue;
 
             BigDecimal finalPrice = computeEffectiveUnitPrice(base, p);
 
+            // Priority mechanism: lower price wins, if equal then higher priority number wins
             if (finalPrice.compareTo(bestFinal) < 0) {
                 bestFinal = finalPrice;
                 best = p;
             } else if (finalPrice.compareTo(bestFinal) == 0 && best != null) {
-                if (p.getPriority() > best.getPriority()) best = p;
+                if (p.getPriority() > best.getPriority()) {
+                    best = p;
+                }
             }
         }
         return best;
+    }
+
+    /**
+     * Check if promotion is applicable to specific customer group
+     */
+    private boolean isApplicableToCustomer(Applicability app, Customer customer) {
+        // If no customer restrictions, apply to all
+        if (app.customer_types == null && app.vip_tiers == null) {
+            return true;
+        }
+
+        // If no customer provided but promotion has restrictions, don't apply
+        if (customer == null) {
+            return app.customer_types == null && app.vip_tiers == null;
+        }
+
+        // Check customer type
+        if (app.customer_types != null && !app.customer_types.isEmpty()) {
+            String customerTypeStr = customer.getCustomerType() != null 
+                ? customer.getCustomerType().name() 
+                : "REGULAR";
+            if (!app.customer_types.contains(customerTypeStr)) {
+                return false;
+            }
+        }
+
+        // Check VIP tier
+        if (app.vip_tiers != null && !app.vip_tiers.isEmpty()) {
+            String tierStr = customer.getVipTier() != null 
+                ? customer.getVipTier().name() 
+                : null;
+            if (tierStr == null || !app.vip_tiers.contains(tierStr)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public boolean isApplicable(Applicability app, ProductVariant v) {
@@ -370,9 +419,9 @@ public class PromotionService {
         return false;
     }
 
-    // Giá hiệu lực theo đơn vị (để hiển thị trên list sản phẩm)
-    // - Nếu có combo buyX getY => base * buy/(buy+get)
-    // - Ngược lại áp dụng discountType/discountValue
+    /**
+     * Compute effective unit price with combo support
+     */
     public BigDecimal computeEffectiveUnitPrice(BigDecimal base, Promotion p) {
         if (base == null) base = BigDecimal.ZERO;
         if (p == null) return money(base);
@@ -412,7 +461,7 @@ public class PromotionService {
     }
 
     // =========================
-    // Usage limit (giới hạn số lần dùng)
+    // Usage limit
     // =========================
     public boolean isUsableByLimit(Promotion p) {
         if (p == null) return false;
@@ -426,7 +475,6 @@ public class PromotionService {
         return used < limit;
     }
 
-    // Dự phòng cho flow đặt hàng: gọi khi order dùng khuyến mãi
     @Transactional
     public void recordRedemption(Integer promotionId, long delta) {
         if (promotionId == null) return;

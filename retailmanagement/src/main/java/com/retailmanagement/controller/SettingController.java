@@ -22,6 +22,7 @@ public class SettingController {
 
     @PutMapping("/currency/default")
     public ApiResponse<String> setDefaultCurrency(@RequestBody SetDefaultCurrencyRequest req) {
-        return ApiResponse.success(settingService.setDefaultCurrency(req.getCurrencyCode()));
+        settingService.setDefaultCurrency(req.getCurrencyCode());
+        return ApiResponse.success("OK");
     }
 }
