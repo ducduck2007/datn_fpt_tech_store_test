@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
@@ -19,11 +20,11 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getProducts(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) List<Integer> categoryIds,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String sortBy
     ) {
-        return ResponseEntity.ok(productService.getProducts(page, categoryId, keyword, sortBy));
+        return ResponseEntity.ok(productService.getProducts(page, categoryIds, keyword, sortBy));
     }
 
     @GetMapping("/{id}")
