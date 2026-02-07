@@ -15,6 +15,7 @@ public class ProductResponse {
     private String imageUrl;
     private LocalDateTime createdAt;
     private String attributes;
+    private java.util.List<ImageResponse> images;
 
     // Price information
     private BigDecimal minPrice;

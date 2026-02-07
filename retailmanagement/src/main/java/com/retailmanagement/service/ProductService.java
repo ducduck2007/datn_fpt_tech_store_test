@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.retailmanagement.dto.request.AttributeRequest;
 import com.retailmanagement.dto.request.ProductRequest;
+import com.retailmanagement.dto.response.ImageResponse;
 import com.retailmanagement.dto.response.ProductResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
@@ -111,35 +112,49 @@ public class ProductService {
         product.setUpdatedAt(LocalDateTime.now());
 
         String finalDescription = request.getDescription();
-
         if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
             try {
                 List<AttributeRequest> attrList = objectMapper.readValue(
                         request.getAttributes(),
                         new TypeReference<List<AttributeRequest>>(){}
                 );
-
                 StringBuilder attrStr = new StringBuilder();
-                attrStr.append("\n--- THÔNG SỐ KỸ THUẬT ---\n");
+                attrStr.append("\n\n--- THÔNG SỐ KỸ THUẬT ---\n");
                 for (AttributeRequest attr : attrList) {
                     attrStr.append("- ").append(attr.getName())
                             .append(": ").append(attr.getValue()).append("\n");
                 }
                 finalDescription += attrStr.toString();
-
             } catch (Exception e) {
-                System.err.println("Lỗi parse attributes JSON: " + e.getMessage());
+                System.err.println("Lỗi JSON: " + e.getMessage());
             }
         }
         product.setDescription(finalDescription);
         product.setAttributesJson(request.getAttributes());
+        List<Image> currentImages = imageRepository.findAll().stream()
+                .filter(img -> img.getProduct() != null && img.getProduct().getId().equals(id))
+                .toList();
 
+        boolean willHavePrimary = false;
+        if (currentImages != null) {
+            for (Image img : currentImages) {
+                String imgIdStr = String.valueOf(img.getId());
+
+                boolean isDeleted = false;
+                if (request.getIdsToDelete() != null) {
+                    isDeleted = request.getIdsToDelete().stream()
+                            .map(String::valueOf)
+                            .anyMatch(idStr -> idStr.equals(imgIdStr));
+                }
+                if (!isDeleted && Boolean.TRUE.equals(img.getIsPrimary())) {
+                    willHavePrimary = true;
+                    break;
+                }
+            }
+        }
         if (request.getIdsToDelete() != null && !request.getIdsToDelete().isEmpty()) {
             imageRepository.deleteAllById(request.getIdsToDelete());
-            imageRepository.flush();
         }
-
-        boolean hasPrimary = imageRepository.existsByProductIdAndIsPrimaryTrue(product.getId());
         if (request.getGalleryImages() != null) {
             for (MultipartFile file : request.getGalleryImages()) {
                 if (!file.isEmpty()) {
@@ -147,13 +162,12 @@ public class ProductService {
                     Image image = new Image();
                     image.setProduct(product);
                     image.setUrl("/uploads/" + fileName);
-                    if (!hasPrimary) {
+                    if (!willHavePrimary) {
                         image.setIsPrimary(true);
-                        hasPrimary = true;
+                        willHavePrimary = true;
                     } else {
                         image.setIsPrimary(false);
                     }
-                    image.setIsPrimary(false);
                     image.setSortOrder(1);
                     image.setCreatedAt(Instant.now());
                     imageRepository.save(image);
@@ -216,10 +230,22 @@ public class ProductService {
         dto.setCreatedAt(product.getCreatedAt());
         dto.setAttributes(product.getAttributesJson());
 
+        List<Image> images = imageRepository.findByProductId(product.getId());
+        if (images != null) {
+            dto.setImages(images.stream().map(img -> {
+                ImageResponse imgDto = new ImageResponse();
+                imgDto.setId(img.getId());
+                imgDto.setUrl(img.getUrl());
+                imgDto.setIsPrimary(img.getIsPrimary());
+                return imgDto;
+            }).toList());
+            images.stream().filter(Image::getIsPrimary).findFirst()
+                    .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+        }
+
         imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
                 .ifPresent(img -> dto.setImageUrl(img.getUrl()));
 
-        // Find cheapest variant with promotion price calculation
         LocalDateTime now = LocalDateTime.now();
         productVariantRepository.findByProduct_Id(product.getId()).stream()
                 .filter(v -> v.getPrice() != null)

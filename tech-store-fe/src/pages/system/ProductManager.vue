@@ -17,7 +17,7 @@
 
       <el-divider />
 
-      <!-- [UPDATE] KHU VỰC BỘ LỌC (FILTER) -->
+      <!-- KHU VỰC BỘ LỌC (FILTER) -->
       <div class="row g-3">
         <!-- 1. Ô Tìm kiếm (Search) -->
         <div class="col-12 col-md-4">
@@ -90,7 +90,6 @@
           </template>
         </el-table-column>
 
-        <!-- [UPDATE] Hiển thị thông số kỹ thuật từ Description (hoặc attributes nếu có) -->
         <el-table-column label="Specs" min-width="200">
           <template #default="{ row }">
             <div class="text-truncate-3" style="font-size: 12px; white-space: pre-wrap;">
@@ -107,7 +106,6 @@
           </template>
         </el-table-column>
 
-        <!-- [UPDATE] Cột thao tác (Edit/Delete) -->
         <el-table-column label="Actions" width="140" align="center">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="onEdit(row)">Edit</el-button>
@@ -132,7 +130,7 @@
       </div>
     </el-card>
 
-    <!-- [UPDATE] DIALOG TẠO MỚI / CẬP NHẬT -->
+    <!-- DIALOG TẠO MỚI / CẬP NHẬT -->
     <el-dialog v-model="dlg.open" :title="dlg.isEdit ? 'Update Product' : 'Create Product'" width="800px">
       <el-alert v-if="dlg.alert" :title="dlg.alert" type="error" show-icon class="mb-3" />
 
@@ -148,7 +146,6 @@
           </el-form-item>
         </div>
 
-        <!-- [UPDATE] Chọn Nhiều Danh Mục -->
         <div class="col-md-6">
           <el-form-item label="Categories">
             <el-select v-model="dlg.form.categoryIds" multiple placeholder="Select categories" style="width: 100%">
@@ -163,7 +160,7 @@
           </el-form-item>
         </div>
 
-        <!-- [UPDATE] Nhập Thuộc tính (Key - Value) -->
+        <!-- Nhập Thuộc tính (Key - Value) -->
         <div class="col-12">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <label class="el-form-item__label m-0">Attributes (Specs)</label>
@@ -182,12 +179,38 @@
           </el-form-item>
         </div>
 
-        <!-- [UPDATE] Upload Nhiều Ảnh -->
+        <!-- [SỬA] Hiển thị và Xóa Ảnh Cũ (Gallery) -->
+        <div class="col-12" v-if="dlg.isEdit && dlg.existingImages.length > 0">
+          <label class="el-form-item__label">Current Images</label>
+          <div class="d-flex gap-2 flex-wrap">
+            <div v-for="img in dlg.existingImages" :key="img.id" class="position-relative" style="width: 100px; height: 100px">
+              <el-image 
+                :src="fixImageUrl(img.url)" 
+                style="width: 100%; height: 100%; border-radius: 4px; border: 1px solid #ddd" 
+                fit="cover"
+              />
+              <!-- Nút Xóa Ảnh: Gọi hàm markImageForDelete -->
+              <el-button 
+                type="danger" 
+                icon="Delete" 
+                circle 
+                size="small" 
+                class="position-absolute top-0 end-0 m-1"
+                style="padding: 4px; min-height: auto;"
+                @click="markImageForDelete(img.id)"
+              />
+              <!-- Nhãn MAIN cho ảnh chính -->
+              <div v-if="img.isPrimary" class="position-absolute bottom-0 start-0 bg-success text-white px-1 small" style="font-size: 10px; border-radius: 0 4px 0 0">MAIN</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Nhiều Ảnh Mới -->
         <div class="col-12">
-          <el-form-item label="Gallery Images">
+          <el-form-item label="Upload New Images">
             <input type="file" multiple accept="image/*" class="form-control" @change="onPickFiles" />
             <div class="mt-2 text-muted small" v-if="dlg.form.galleryImages.length > 0">
-              Selected {{ dlg.form.galleryImages.length }} files.
+              Selected {{ dlg.form.galleryImages.length }} new files.
             </div>
           </el-form-item>
         </div>
@@ -208,7 +231,7 @@ import { onMounted, reactive, ref } from "vue";
 import { categoriesApi } from "../../api/categories.api";
 import { productsApi } from "../../api/products.api";
 import { toast } from "../../ui/toast";
-import axios from 'axios'; // Dùng axios trực tiếp hoặc qua productsApi wrapper
+import axios from 'axios'; 
 
 const loading = ref(false);
 const categories = ref([]);
@@ -218,23 +241,27 @@ const rows = ref([]);
 const page = ref(0);
 const totalElements = ref(0);
 const keyword = ref("");
-const categoryIds = ref([]); // [UPDATE] Đa chọn
+const categoryIds = ref([]); 
 const sortBy = ref("newest");
 
 // --- Helper Functions ---
 function normalizeProducts(list) {
   return (list || []).map((p) => ({
     ...p,
-    // Fix đường dẫn ảnh nếu cần
-    imageUrl: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `http://localhost:8080${p.imageUrl}`) : 'https://via.placeholder.com/150'
+    imageUrl: fixImageUrl(p.imageUrl)
   }));
+}
+
+function fixImageUrl(url) {
+  if (!url) return "https://via.placeholder.com/150?text=No+Image";
+  if (url.startsWith("http")) return url;
+  return `http://localhost:8080${url}`;
 }
 
 // --- API Calls ---
 async function loadCategories() {
   try {
     const res = await categoriesApi.list(false);
-    // Xử lý dữ liệu trả về tùy theo cấu trúc ApiResponse của bạn
     const data = res.data?.data || res.data || []; 
     categories.value = data;
   } catch (e) {
@@ -245,20 +272,17 @@ async function loadCategories() {
 async function load() {
   loading.value = true;
   try {
-    // [UPDATE] Gọi API với các tham số mới của Backend Tuần 4
-    // Chuẩn bị params
     const params = {
       page: page.value,
       keyword: keyword.value || undefined,
       sortBy: sortBy.value || undefined
     };
     
-    // Xử lý list categoryIds -> chuỗi "1,2,3"
     if (categoryIds.value && categoryIds.value.length > 0) {
       params.categoryIds = categoryIds.value.join(',');
     }
 
-    const res = await productsApi.list(params); // Đảm bảo api wrapper hỗ trợ truyền params object
+    const res = await productsApi.list(params); 
     
     const pageData = res.data?.data || res.data;
     rows.value = normalizeProducts(pageData.content || []);
@@ -289,21 +313,25 @@ const dlg = reactive({
   loading: false,
   alert: "",
   editId: null,
-  attributesList: [], // Danh sách tạm để nhập thuộc tính
+  attributesList: [], 
+  existingImages: [], // [THÊM] Chứa danh sách ảnh cũ lấy từ API
+  idsToDelete: [],    // [THÊM] Chứa ID ảnh muốn xóa
   form: {
     name: "",
     sku: "",
     description: "",
     isVisible: true,
     categoryIds: [],
-    galleryImages: [], // File objects
+    galleryImages: [], 
   },
 });
 
 function openCreateDialog() {
   dlg.isEdit = false;
   dlg.editId = null;
-  dlg.attributesList = [{ name: "", value: "" }]; // Mặc định 1 dòng trống
+  dlg.attributesList = [{ name: "", value: "" }];
+  dlg.existingImages = []; // Reset ảnh cũ
+  dlg.idsToDelete = [];    // Reset list xóa
   dlg.form = {
     name: "", sku: "", description: "", isVisible: true, 
     categoryIds: [], galleryImages: []
@@ -312,21 +340,50 @@ function openCreateDialog() {
   dlg.open = true;
 }
 
-function onEdit(row) {
-  // Logic hiển thị form edit (cần parse lại attributes nếu backend trả về JSON string)
-  // Tạm thời chỉ load thông tin cơ bản
+// [SỬA] Hàm Edit: Gọi API lấy chi tiết để hiển thị ảnh cũ
+async function onEdit(row) {
   dlg.isEdit = true;
   dlg.editId = row.id;
-  dlg.form = {
-    name: row.name,
-    sku: row.sku,
-    description: row.description, // Description này đã gộp text
-    isVisible: row.isVisible,
-    categoryIds: [], // Cần logic lấy category của sp (API detail)
-    galleryImages: []
-  };
-  dlg.attributesList = []; // Reset attribute list vì nó đã gộp vào description
+  dlg.idsToDelete = [];
+  dlg.existingImages = [];
+  
   dlg.open = true;
+  dlg.loading = true; 
+
+  try {
+    // Gọi API lấy chi tiết sản phẩm
+    const res = await productsApi.get(row.id);
+    const data = res.data?.data || res.data;
+
+    dlg.form = {
+      name: data.name,
+      sku: data.sku,
+      description: data.description, 
+      isVisible: data.isVisible,
+      // Fix: API trả về categoryId đơn hoặc list, ở đây giả sử đơn, cần xử lý thành mảng
+      categoryIds: data.categoryId ? [data.categoryId] : [], 
+      galleryImages: []
+    };
+    
+    // [QUAN TRỌNG] Gán danh sách ảnh cũ từ API vào biến state
+    dlg.existingImages = data.images || [];
+    
+    dlg.attributesList = []; 
+
+  } catch(e) {
+    console.error(e);
+    toast("Failed to load details", "error");
+  } finally {
+    dlg.loading = false;
+  }
+}
+
+// [SỬA] Hàm đánh dấu xóa ảnh
+function markImageForDelete(imageId) {
+  // Thêm ID vào danh sách cần xóa
+  dlg.idsToDelete.push(imageId);
+  // Ẩn ảnh đó khỏi giao diện ngay lập tức để người dùng thấy là đã xóa
+  dlg.existingImages = dlg.existingImages.filter(img => img.id !== imageId);
 }
 
 function addAttribute() {
@@ -338,10 +395,10 @@ function removeAttribute(index) {
 }
 
 function onPickFiles(e) {
-  // [UPDATE] Hỗ trợ chọn nhiều file
   dlg.form.galleryImages = Array.from(e.target.files);
 }
 
+// [SỬA] Hàm Submit: Gửi idsToDelete lên Server
 async function submitForm() {
   dlg.alert = "";
   if (!dlg.form.name || !dlg.form.sku) {
@@ -351,42 +408,40 @@ async function submitForm() {
 
   dlg.loading = true;
   try {
-    // 1. Chuẩn bị FormData
     const formData = new FormData();
     formData.append("name", dlg.form.name);
     formData.append("sku", dlg.form.sku);
     formData.append("description", dlg.form.description || "");
     formData.append("isVisible", dlg.form.isVisible);
 
-    // Append Category IDs
     dlg.form.categoryIds.forEach(id => {
       formData.append("categoryIds", id);
     });
 
-    // Append Gallery Images
     dlg.form.galleryImages.forEach(file => {
       formData.append("galleryImages", file);
     });
 
-    // [UPDATE] Chuyển đổi Attributes List -> JSON String
+    // [QUAN TRỌNG] Gửi danh sách ID ảnh cần xóa lên Backend
+    dlg.idsToDelete.forEach(id => {
+      formData.append("idsToDelete", id);
+    });
+
     const validAttrs = dlg.attributesList.filter(a => a.name && a.value);
     if (validAttrs.length > 0) {
       formData.append("attributes", JSON.stringify(validAttrs));
     }
 
-    // 2. Gọi API
     if (dlg.isEdit) {
-      // Gọi API PUT Update
       await axios.put(`http://localhost:8080/api/products/${dlg.editId}`, formData);
       toast("Product updated.", "success");
     } else {
-      // Gọi API POST Create
       await axios.post(`http://localhost:8080/api/products`, formData);
       toast("Product created.", "success");
     }
 
     dlg.open = false;
-    await load(); // Reload danh sách
+    await load(); 
 
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || "Operation failed";
@@ -424,31 +479,3 @@ onMounted(async () => {
 .title { font-weight: 900; font-size: 18px; }
 .muted { color: rgba(15, 23, 42, 0.62); font-size: 13px; }
 </style>
-```
-
----
-
-### 🟢 Hướng dẫn Cập nhật API Wrapper (Quan trọng)
-
-Để code Vue trên chạy được, bạn cần đảm bảo file `api/products.api.js` của bạn hỗ trợ truyền params.
-
-Hãy mở file `api/products.api.js` và kiểm tra hàm `list`. Nó nên trông như thế này (sử dụng `axios`):
-
-```javascript
-import axios from 'axios';
-
-const BASE_URL = 'http://localhost:8080/api'; // Hoặc cấu hình của bạn
-
-export const productsApi = {
-  // Hàm list nhận vào params object
-  list(params) {
-    return axios.get(`${BASE_URL}/products`, { params });
-  },
-  
-  // Hàm create (nếu bạn dùng wrapper này trong submitForm)
-  create(formData) {
-    return axios.post(`${BASE_URL}/products`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  }
-};

@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface ImageRepository extends JpaRepository<Image, Long> {
     Optional<Image> findFirstByProductIdAndIsPrimaryTrue(Integer productId);
     boolean existsByProductIdAndIsPrimaryTrue(Integer productId);
+    java.util.List<Image> findByProductId(Integer productId);
 }
