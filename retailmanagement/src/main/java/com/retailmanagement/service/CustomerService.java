@@ -14,7 +14,6 @@ import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.LoyaltyLedgerRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -28,9 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CustomerService {
 
-    @Autowired
     private final CustomRes customRes;
-    @Autowired
     private final LoyaltyLedgerRepository loyaltyLedgerRepository;
 
     private void saveLoyaltyLedger(
@@ -65,6 +62,7 @@ public class CustomerService {
                 " | Tier: " + (tierBefore != null ? tierBefore.name() : "NULL") +
                 " → " + (tierAfter != null ? tierAfter.name() : "NULL"));
     }
+
     private String formatMoney(BigDecimal amount) {
         return String.format("%,d VNĐ", amount.longValue());
     }
@@ -77,6 +75,7 @@ public class CustomerService {
             default -> "Trừ điểm: " + formatMoney(amount);
         };
     }
+
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.CREATE,
@@ -103,9 +102,9 @@ public class CustomerService {
                 .address(customerRequest.getAddress())
                 .notes(customerRequest.getNotes())
                 .customerType(type)
-                .vipTier(null)              // Mặc định chưa có hạng (Khách thường)
+                .vipTier(null)
                 .totalSpent(BigDecimal.ZERO)
-                .loyaltyPoints(0)           // Điểm bắt đầu = 0
+                .loyaltyPoints(0)
                 .isActive(true)
                 .build();
 
@@ -117,22 +116,18 @@ public class CustomerService {
         VipTier currentTier = customer.getVipTier();
         int currentPoints = customer.getLoyaltyPoints() != null ? customer.getLoyaltyPoints() : 0;
 
-        // --- Logic tính điểm lên hạng ---
         Integer pointsToNext = 0;
 
         if (currentTier == null) {
-            // Nếu chưa có hạng (Khách thường), đích đến là BRONZE
             pointsToNext = VipTier.BRONZE.getMinPoints() - currentPoints;
         } else {
-            // Nếu đã có hạng, lấy mốc của hạng tiếp theo
             Integer nextThreshold = currentTier.getNextTierThreshold();
             if (nextThreshold != null) {
                 pointsToNext = nextThreshold - currentPoints;
             } else {
-                pointsToNext = 0; // Đã là Max Level (DIAMOND)
+                pointsToNext = 0;
             }
         }
-        // Đảm bảo không hiển thị số âm
         if (pointsToNext < 0) pointsToNext = 0;
 
         return CustomerResponse.builder()
@@ -144,10 +139,10 @@ public class CustomerService {
                 .customerType(customer.getCustomerType())
                 .customerTypeDisplay(customer.getCustomerType().getDisplayname())
                 .vipTier(currentTier)
-                .vipTierDisplay(currentTier != null ? currentTier.getDisplayName() : "Member") // Hiển thị Member nếu null
+                .vipTierDisplay(currentTier != null ? currentTier.getDisplayName() : "Member")
                 .loyaltyPoints(currentPoints)
                 .pointsToNextTier(pointsToNext)
-                .discountRate(currentTier != null ? currentTier.getDiscountRate() : 0.0) // 0.0 nếu là khách thường
+                .discountRate(currentTier != null ? currentTier.getDiscountRate() : 0.0)
                 .lastLoginAt(customer.getLastLoginAt())
                 .totalSpent(customer.getTotalSpent())
                 .lastOrderAt(customer.getLastOrderAt())
@@ -165,26 +160,22 @@ public class CustomerService {
         Customer customer = customRes.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
 
-        // Lưu trạng thái trước khi thay đổi
         int pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         VipTier tierBefore = customer.getVipTier();
 
-        // 1. Quy đổi điểm
         int pointsEarned = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
         if (pointsEarned <= 0) return;
 
-        // 2. Cộng điểm
         int newTotalPoints = pointsBefore + pointsEarned;
         customer.setLoyaltyPoints(newTotalPoints);
 
         BigDecimal currentSpent = customer.getTotalSpent() == null ? BigDecimal.ZERO : customer.getTotalSpent();
         customer.setTotalSpent(currentSpent.add(orderTotal));
 
-        // 3. Cập nhật hạng
         VipTier newTier = VipTier.fromPoints(newTotalPoints);
         customer.setVipTier(newTier);
 
-        if(newTier == null || newTier == VipTier.BRONZE || newTier == VipTier.SILVER) {
+        if (newTier == null || newTier == VipTier.BRONZE || newTier == VipTier.SILVER) {
             customer.setCustomerType(CustomerType.REGULAR);
         } else {
             customer.setCustomerType(CustomerType.VIP);
@@ -192,7 +183,6 @@ public class CustomerService {
 
         customRes.save(customer);
 
-        // ✅ 4. GHI LỊCH SỬ CỘNG ĐIỂM
         saveLoyaltyLedger(
                 customer,
                 pointsEarned,
@@ -206,7 +196,6 @@ public class CustomerService {
                 null
         );
 
-        // ✅ 5. GHI LỊCH SỬ THAY ĐỔI HẠNG (nếu có)
         if (tierBefore != newTier) {
             String transactionType = (newTier != null && (tierBefore == null ||
                     newTier.ordinal() > tierBefore.ordinal())) ? "TIER_UPGRADE" : "TIER_DOWNGRADE";
@@ -218,7 +207,7 @@ public class CustomerService {
 
             saveLoyaltyLedger(
                     customer,
-                    0, // Không thay đổi điểm trong log này
+                    0,
                     transactionType,
                     tierBefore,
                     newTier,
@@ -293,7 +282,7 @@ public class CustomerService {
         Customer updated = customRes.save(customer);
         return mapToResponse(updated);
     }
-    // Trong CustomerService
+
     public CustomerResponse findByEmail(String email) {
         System.out.println("DEBUG Service: Đang tìm khách hàng với email: " + email);
 
@@ -301,7 +290,6 @@ public class CustomerService {
 
         if (customerOpt.isEmpty()) {
             System.out.println("DEBUG Service: Không tìm thấy với email: " + email);
-            // Thử tìm với username nếu email không tìm thấy
             customerOpt = customRes.findByName(email.trim());
 
             if (customerOpt.isEmpty()) {
@@ -314,55 +302,42 @@ public class CustomerService {
         System.out.println("DEBUG Service: Tìm thấy khách hàng: " + customer.getName() + ", email: " + customer.getEmail());
 
         return mapToResponse(customer);
-
     }
 
     public List<CustomerResponse> findActiveInLast30Days() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-
-        // ✅ Dùng method mới với last_login_at
         List<Customer> activeCustomers = customRes.findActiveCustomersSince(thirtyDaysAgo);
 
         return activeCustomers.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-    /**
-     * Trừ điểm loyalty khi hủy đơn hoặc trả hàng
-     */
-    /**
-     * Trừ điểm loyalty khi hủy đơn hoặc trả hàng
-     */
+
     @Transactional
     public void deductLoyaltyPoints(Integer customerId, BigDecimal orderTotal,
                                     String reason, String referenceType, Long referenceId) {
         Customer customer = customRes.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
 
-        // Lưu trạng thái trước khi thay đổi
         int pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         VipTier tierBefore = customer.getVipTier();
 
-        // 1. Tính điểm bị trừ
         int pointsToDeduct = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
         if (pointsToDeduct <= 0) return;
 
-        // 2. Trừ điểm
         int newTotalPoints = Math.max(0, pointsBefore - pointsToDeduct);
         customer.setLoyaltyPoints(newTotalPoints);
 
-        // 3. Trừ tổng chi tiêu (CHỈ KHI KHÔNG PHẢI PENALTY)
         if (!"CANCEL_PENALTY".equals(reason) && !"RETURN_PENALTY".equals(reason)) {
             BigDecimal currentSpent = customer.getTotalSpent() == null ? BigDecimal.ZERO : customer.getTotalSpent();
             BigDecimal newSpent = currentSpent.subtract(orderTotal);
             customer.setTotalSpent(newSpent.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newSpent);
         }
 
-        // 4. Cập nhật hạng
         VipTier newTier = VipTier.fromPoints(newTotalPoints);
         customer.setVipTier(newTier);
 
-        if(newTier == null || newTier == VipTier.BRONZE || newTier == VipTier.SILVER) {
+        if (newTier == null || newTier == VipTier.BRONZE || newTier == VipTier.SILVER) {
             customer.setCustomerType(CustomerType.REGULAR);
         } else {
             customer.setCustomerType(CustomerType.VIP);
@@ -370,7 +345,6 @@ public class CustomerService {
 
         customRes.save(customer);
 
-        // ✅ 5. GHI LỊCH SỬ TRỪ ĐIỂM
         String transactionType = "CANCEL_PENALTY".equals(reason) ? "PENALTY" : "DEDUCT";
         String note = getDeductNote(reason, orderTotal);
 
@@ -387,7 +361,6 @@ public class CustomerService {
                 null
         );
 
-        // ✅ 6. GHI LỊCH SỬ HẠ HẠNG (nếu có)
         if (tierBefore != newTier) {
             String note2 = String.format("⚠️ Hạ hạng từ %s → %s do trừ điểm (Điểm còn: %d)",
                     tierBefore != null ? tierBefore.getDisplayName() : "Member",
@@ -408,5 +381,4 @@ public class CustomerService {
             );
         }
     }
-
 }

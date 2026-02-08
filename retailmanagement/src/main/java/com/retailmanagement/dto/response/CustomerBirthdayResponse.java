@@ -13,7 +13,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class CustomerBirthdayResponse {
-    private Integer id;
+    private Integer customerId;
+    private Long id;
     private String name;
     private String email;
     private String phone;

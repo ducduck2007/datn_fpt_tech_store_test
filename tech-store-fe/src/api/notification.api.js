@@ -55,4 +55,17 @@ export const birthdayApi = {
       message,
     });
   },
+  getNotificationHistory(from, to) {
+    let url = "/api/auth/admin/birthdays/notification-history";
+    const params = new URLSearchParams();
+    
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    return http.get(url);
+  },
 };

@@ -1,7 +1,7 @@
-<!-- FILE: src/pages/system/BirthdayManager.vue -->
 <template>
   <div class="container-xl">
     <el-card shadow="never">
+      <!-- Header -->
       <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
         <div>
           <div class="kicker">Admin</div>
@@ -13,204 +13,333 @@
             <el-icon class="me-1"><Refresh /></el-icon>
             Reload
           </el-button>
-          <el-button type="primary" @click="viewMode = 'upcoming'">
-            <el-icon class="me-1"><Calendar /></el-icon>
-            Sắp tới
-          </el-button>
         </div>
       </div>
 
       <el-divider />
 
-      <!-- Tabs chọn chế độ xem -->
+      <!-- Tabs -->
       <el-tabs v-model="viewMode" @tab-change="handleTabChange">
+        <!-- Tab 1: Hôm nay -->
         <el-tab-pane label="📅 Hôm nay" name="today">
-          <el-alert
-            v-if="todayBirthdays.length > 0"
-            type="success"
-            show-icon
-            :closable="false"
-            class="mb-3"
-          >
-            <template #title>
-              <strong>{{ todayBirthdays.length }}</strong> khách hàng có sinh nhật hôm nay!
-            </template>
-          </el-alert>
-          <el-empty v-else description="Không có khách hàng nào sinh nhật hôm nay" />
-
-          <div v-if="todayBirthdays.length > 0" class="row g-3">
-            <div
-              v-for="customer in todayBirthdays"
-              :key="customer.id"
-              class="col-12 col-md-6 col-lg-4"
+          <div class="mb-3">
+            <el-alert
+              v-if="todayBirthdays.length > 0"
+              type="success"
+              show-icon
+              :closable="false"
             >
-              <CustomerBirthdayCard :customer="customer" @send-greeting="sendGreeting" />
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane label="🗓️ Theo tháng" name="monthly">
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-md-4">
-              <el-select
-                v-model="selectedMonth"
-                placeholder="Chọn tháng"
-                @change="loadMonthlyBirthdays"
-                class="w-100"
-              >
-                <el-option
-                  v-for="m in monthOptions"
-                  :key="m.value"
-                  :label="m.label"
-                  :value="m.value"
-                />
-              </el-select>
-            </div>
+              <template #title>
+                Hôm nay có <strong>{{ todayBirthdays.length }}</strong> khách hàng sinh nhật 🎉
+              </template>
+            </el-alert>
+            <el-alert v-else type="info" show-icon :closable="false">
+              <template #title>Hôm nay không có khách hàng nào sinh nhật</template>
+            </el-alert>
           </div>
 
-          <el-alert
-            v-if="monthlyBirthdays.length > 0"
-            type="info"
-            show-icon
-            :closable="false"
-            class="mb-3"
-          >
-            <template #title>
-              Tháng {{ selectedMonth }}: <strong>{{ monthlyBirthdays.length }}</strong> khách hàng
-            </template>
-          </el-alert>
+          <el-skeleton v-if="loading" :rows="5" animated />
 
-          <el-table
-            :data="monthlyBirthdays"
-            border
-            :loading="loading"
-            default-sort="{prop: 'birthDay', order: 'ascending'}"
-          >
-            <el-table-column prop="birthDay" label="Ngày" width="80" sortable />
+          <el-table v-else :data="todayBirthdays" border>
             <el-table-column prop="name" label="Tên khách hàng" min-width="180" />
             <el-table-column prop="email" label="Email" min-width="200" />
-            <el-table-column prop="phone" label="SĐT" width="140" />
+            <el-table-column prop="phone" label="Số điện thoại" width="140" />
             <el-table-column prop="age" label="Tuổi" width="80" align="center" />
-            <el-table-column prop="daysUntilBirthday" label="Còn" width="100" align="center">
-              <template #default="{ row }">
-                <el-tag v-if="row.isBirthdayToday" type="success" effect="dark">
-                  Hôm nay!
-                </el-tag>
-                <span v-else>{{ row.daysUntilBirthday }} ngày</span>
-              </template>
-            </el-table-column>
             <el-table-column prop="customerType" label="Loại KH" width="120">
               <template #default="{ row }">
-                <el-tag :type="row.customerType === 'VIP' ? 'warning' : 'info'" effect="light">
+                <el-tag :type="row.customerType === 'VIP' ? 'warning' : 'info'" size="small">
                   {{ row.customerType }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="Hành động" width="120" fixed="right">
+            <el-table-column prop="vipTier" label="Hạng VIP" width="120">
               <template #default="{ row }">
-                <el-button size="small" type="primary" @click="sendGreeting(row)">
-                  Chúc mừng
+                <el-tag v-if="row.vipTier" :type="getTierType(row.vipTier)" size="small">
+                  {{ row.vipTier }}
+                </el-tag>
+                <span v-else class="text-muted">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Hành động" width="150" align="center">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="sendGreeting(row)">
+                  <el-icon class="me-1"><Calendar /></el-icon>
+                  Gửi lời chúc
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
-        <el-tab-pane label="📊 Thống kê" name="statistics">
-          <div class="row g-3">
-            <div
-              v-for="(stat, month) in monthlyStats"
-              :key="month"
-              class="col-6 col-sm-4 col-md-3 col-lg-2"
+        <!-- Tab 2: Theo tháng -->
+        <el-tab-pane label="🗓️ Theo tháng" name="monthly">
+          <div class="mb-3 d-flex justify-content-between align-items-center">
+            <el-select v-model="selectedMonth" @change="loadMonthlyBirthdays" style="width: 200px">
+              <el-option
+                v-for="month in monthOptions"
+                :key="month.value"
+                :label="month.label"
+                :value="month.value"
+              />
+            </el-select>
+
+            <el-alert
+              v-if="monthlyBirthdays.length > 0"
+              type="info"
+              show-icon
+              :closable="false"
             >
-              <el-card
-                shadow="hover"
-                :class="{ 'border-primary': month == currentMonth }"
-                @click="viewMonthDetail(month)"
-                style="cursor: pointer"
-              >
-                <div class="text-center">
-                  <div class="month-name">Tháng {{ month }}</div>
-                  <div class="count">{{ stat }}</div>
-                  <div class="label">khách hàng</div>
-                </div>
-              </el-card>
-            </div>
+              <template #title>
+                Có <strong>{{ monthlyBirthdays.length }}</strong> khách hàng sinh nhật trong tháng này
+              </template>
+            </el-alert>
           </div>
+
+          <el-skeleton v-if="loading" :rows="5" animated />
+
+          <el-empty v-else-if="monthlyBirthdays.length === 0" description="Không có sinh nhật nào trong tháng này" />
+
+          <el-table v-else :data="monthlyBirthdays" border>
+            <el-table-column prop="name" label="Tên khách hàng" min-width="180" />
+            <el-table-column prop="email" label="Email" min-width="200" />
+            <el-table-column prop="phone" label="Số điện thoại" width="140" />
+            <el-table-column label="Ngày sinh" width="180">
+              <template #default="{ row }">
+                {{ formatBirthdayDate(row) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="age" label="Tuổi" width="80" align="center" />
+            <el-table-column prop="customerType" label="Loại KH" width="120">
+              <template #default="{ row }">
+                <el-tag :type="row.customerType === 'VIP' ? 'warning' : 'info'" size="small">
+                  {{ row.customerType }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Hành động" width="150" align="center">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="sendGreeting(row)">
+                  Gửi lời chúc
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </el-tab-pane>
 
-        <el-tab-pane label="⏰ Sắp tới (7 ngày)" name="upcoming">
-          <el-alert
-            v-if="upcomingBirthdays.length > 0"
-            type="warning"
-            show-icon
-            :closable="false"
-            class="mb-3"
-          >
-            <template #title>
-              <strong>{{ upcomingBirthdays.length }}</strong> khách hàng sẽ sinh nhật trong 7 ngày tới
-            </template>
-          </el-alert>
+        <!-- Tab 3: Thống kê -->
+        <el-tab-pane label="📊 Thống kê" name="statistics">
+          <div class="mb-3">
+            <el-alert type="info" show-icon :closable="false">
+              <template #title>Thống kê sinh nhật theo tháng trong năm</template>
+            </el-alert>
+          </div>
 
-          <el-timeline v-if="upcomingBirthdays.length > 0">
-            <el-timeline-item
-              v-for="customer in upcomingBirthdays"
-              :key="customer.id"
-              :timestamp="formatBirthdayDate(customer)"
-              placement="top"
-              :type="customer.isBirthdayToday ? 'success' : 'primary'"
-            >
-              <el-card>
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h4>{{ customer.name }}</h4>
-                    <p class="mb-1 text-muted">{{ customer.email }} • {{ customer.phone }}</p>
-                    <el-tag
-                      size="small"
-                      :type="customer.customerType === 'VIP' ? 'warning' : 'info'"
-                    >
-                      {{ customer.customerType }}
-                    </el-tag>
-                    <el-tag size="small" class="ms-2">
-                      {{ customer.age }} tuổi
-                    </el-tag>
-                  </div>
-                  <div>
-                    <el-button type="primary" @click="sendGreeting(customer)">
-                      Chúc mừng
-                    </el-button>
+          <el-skeleton v-if="loading" :rows="5" animated />
+
+          <el-table v-else :data="statsTableData" border>
+            <el-table-column prop="month" label="Tháng" width="120">
+              <template #default="{ row }">
+                <strong>{{ row.monthLabel }}</strong>
+              </template>
+            </el-table-column>
+            <el-table-column prop="count" label="Số lượng khách hàng" width="200" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.count > 0 ? 'success' : 'info'">
+                  {{ row.count }} người
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Biểu đồ" min-width="300">
+              <template #default="{ row }">
+                <div class="progress" style="height: 20px">
+                  <div
+                    class="progress-bar bg-primary"
+                    :style="{ width: getPercentage(row.count) + '%' }"
+                  >
+                    {{ row.count > 0 ? row.count : '' }}
                   </div>
                 </div>
-              </el-card>
-            </el-timeline-item>
-          </el-timeline>
-          <el-empty v-else description="Không có sinh nhật nào sắp tới" />
+              </template>
+            </el-table-column>
+            <el-table-column label="Hành động" width="150" align="center">
+              <template #default="{ row }">
+                <el-button
+                  v-if="row.count > 0"
+                  type="primary"
+                  size="small"
+                  @click="viewMonthDetail(row.month)"
+                >
+                  Xem chi tiết
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- Tab 4: Sắp tới (7 ngày) -->
+        <el-tab-pane label="⏰ Sắp tới (7 ngày)" name="upcoming">
+          <div class="mb-3">
+            <el-alert
+              v-if="upcomingBirthdays.length > 0"
+              type="warning"
+              show-icon
+              :closable="false"
+            >
+              <template #title>
+                Có <strong>{{ upcomingBirthdays.length }}</strong> khách hàng sắp sinh nhật trong 7 ngày tới
+              </template>
+            </el-alert>
+            <el-alert v-else type="info" show-icon :closable="false">
+              <template #title>Không có sinh nhật nào trong 7 ngày tới</template>
+            </el-alert>
+          </div>
+
+          <el-skeleton v-if="loading" :rows="5" animated />
+
+          <el-table v-else :data="upcomingBirthdays" border>
+            <el-table-column prop="name" label="Tên khách hàng" min-width="180" />
+            <el-table-column prop="email" label="Email" min-width="200" />
+            <el-table-column prop="phone" label="Số điện thoại" width="140" />
+            <el-table-column label="Ngày sinh" width="220">
+              <template #default="{ row }">
+                {{ formatBirthdayDate(row) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="daysUntilBirthday" label="Còn lại" width="100" align="center" sortable>
+              <template #default="{ row }">
+                <el-tag :type="row.daysUntilBirthday <= 3 ? 'danger' : 'warning'" size="small">
+                  {{ row.daysUntilBirthday }} ngày
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="customerType" label="Loại KH" width="120">
+              <template #default="{ row }">
+                <el-tag :type="row.customerType === 'VIP' ? 'warning' : 'info'" size="small">
+                  {{ row.customerType }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Hành động" width="150" align="center">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="sendGreeting(row)">
+                  Gửi lời chúc
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- Tab 5: Lịch sử gửi -->
+        <el-tab-pane label="📜 Lịch sử gửi" name="history">
+          <div class="mb-3 d-flex justify-content-between align-items-center">
+            <el-alert
+              v-if="notificationHistory.length > 0"
+              type="info"
+              show-icon
+              :closable="false"
+            >
+              <template #title>
+                Đã gửi <strong>{{ notificationHistory.length }}</strong> thông báo sinh nhật
+              </template>
+            </el-alert>
+            
+            <el-button @click="loadNotificationHistory" :loading="historyLoading">
+              <el-icon class="me-1"><Refresh /></el-icon>
+              Tải lại
+            </el-button>
+          </div>
+
+          <el-skeleton v-if="historyLoading" :rows="5" animated />
+
+          <el-empty 
+            v-else-if="notificationHistory.length === 0" 
+            description="Chưa có thông báo nào được gửi" 
+          />
+
+          <el-table
+            v-else
+            :data="notificationHistory"
+            border
+            default-sort="{prop: 'createdAt', order: 'descending'}"
+          >
+            <el-table-column prop="customerName" label="Khách hàng" min-width="180" />
+            <el-table-column prop="customerEmail" label="Email" min-width="200" />
+            <el-table-column prop="title" label="Tiêu đề" min-width="250">
+              <template #default="{ row }">
+                <div class="d-flex align-items-center gap-2">
+                  <span>{{ row.icon }}</span>
+                  <span>{{ row.title }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="message" label="Nội dung" min-width="300">
+              <template #default="{ row }">
+                <el-popover
+                  placement="top"
+                  :width="400"
+                  trigger="hover"
+                >
+                  <template #reference>
+                    <div class="message-preview">
+                      {{ row.message.substring(0, 50) }}{{ row.message.length > 50 ? '...' : '' }}
+                    </div>
+                  </template>
+                  <div class="message-full" v-html="formatMessage(row.message)"></div>
+                </el-popover>
+              </template>
+            </el-table-column>
+            <el-table-column prop="isRead" label="Trạng thái" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.isRead ? 'success' : 'info'" size="small">
+                  {{ row.isRead ? 'Đã đọc' : 'Chưa đọc' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createdAt" label="Thời gian gửi" width="180" sortable>
+              <template #default="{ row }">
+                {{ formatDateTime(row.createdAt) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="readAt" label="Thời gian đọc" width="180">
+              <template #default="{ row }">
+                {{ row.readAt ? formatDateTime(row.readAt) : '—' }}
+              </template>
+            </el-table-column>
+          </el-table>
         </el-tab-pane>
       </el-tabs>
     </el-card>
 
     <!-- Dialog gửi lời chúc -->
     <el-dialog v-model="greetingDialog.open" title="🎂 Gửi lời chúc sinh nhật" width="600px">
-      <el-form :model="greetingDialog.form" label-position="top">
-        <el-form-item label="Khách hàng">
-          <el-input :value="greetingDialog.customer?.name" disabled />
-        </el-form-item>
-        <el-form-item label="Lời chúc">
+      <div v-if="greetingDialog.customer" class="mb-3">
+        <el-alert type="info" :closable="false">
+          <template #title>
+            Gửi lời chúc đến: <strong>{{ greetingDialog.customer.name }}</strong>
+            ({{ greetingDialog.customer.email }})
+          </template>
+        </el-alert>
+      </div>
+
+      <el-form label-position="top">
+        <el-form-item label="Nội dung lời chúc">
           <el-input
             v-model="greetingDialog.form.message"
             type="textarea"
-            :rows="5"
-            placeholder="Nhập lời chúc sinh nhật..."
+            :rows="8"
+            placeholder="Nhập nội dung lời chúc sinh nhật..."
           />
         </el-form-item>
       </el-form>
+
       <template #footer>
         <el-button @click="greetingDialog.open = false">Hủy</el-button>
-        <el-button 
-          type="primary" 
-          @click="confirmSendGreeting"
+        <el-button
+          type="primary"
           :loading="greetingDialog.sending"
+          @click="confirmSendGreeting"
         >
+          <el-icon class="me-1"><Calendar /></el-icon>
           Gửi lời chúc
         </el-button>
       </template>
@@ -223,17 +352,18 @@ import { ref, reactive, onMounted, computed } from "vue";
 import { Refresh, Calendar } from "@element-plus/icons-vue";
 import http from "../../api/http";
 import { toast } from "../../ui/toast";
-import { ElMessageBox } from 'element-plus';
 
 const loading = ref(false);
+const historyLoading = ref(false);
 const viewMode = ref("today");
 const selectedMonth = ref(new Date().getMonth() + 1);
-const currentMonth = new Date().getMonth() + 1;
+const currentMonth = ref(new Date().getMonth() + 1);
 
 const todayBirthdays = ref([]);
 const monthlyBirthdays = ref([]);
 const upcomingBirthdays = ref([]);
 const monthlyStats = ref({});
+const notificationHistory = ref([]);
 
 const monthOptions = [
   { value: 1, label: "Tháng 1" },
@@ -259,6 +389,33 @@ const greetingDialog = reactive({
   },
 });
 
+const statsTableData = computed(() => {
+  return monthOptions.map((month) => ({
+    month: month.value,
+    monthLabel: month.label,
+    count: monthlyStats.value[month.value] || 0,
+  }));
+});
+
+const maxCount = computed(() => {
+  return Math.max(...Object.values(monthlyStats.value), 1);
+});
+
+function getPercentage(count) {
+  return (count / maxCount.value) * 100;
+}
+
+function getTierType(tier) {
+  const types = {
+    BRONZE: 'info',
+    SILVER: '',
+    GOLD: 'warning',
+    PLATINUM: 'danger',
+    DIAMOND: 'success'
+  };
+  return types[tier] || 'info';
+}
+
 async function loadData() {
   loading.value = true;
   try {
@@ -269,6 +426,9 @@ async function loadData() {
     ]);
     if (viewMode.value === "monthly") {
       await loadMonthlyBirthdays();
+    }
+    if (viewMode.value === "history") {
+      await loadNotificationHistory();
     }
   } catch (error) {
     console.error("Load error:", error);
@@ -306,9 +466,25 @@ async function loadUpcomingBirthdays() {
   upcomingBirthdays.value = res.data || [];
 }
 
+async function loadNotificationHistory() {
+  historyLoading.value = true;
+  try {
+    const res = await http.get("/api/auth/admin/birthdays/notification-history");
+    notificationHistory.value = res.data || [];
+  } catch (error) {
+    console.error("Load history error:", error);
+    toast("Không thể tải lịch sử thông báo", "error");
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
 function handleTabChange(name) {
   if (name === "monthly" && monthlyBirthdays.value.length === 0) {
     loadMonthlyBirthdays();
+  }
+  if (name === "history" && notificationHistory.value.length === 0) {
+    loadNotificationHistory();
   }
 }
 
@@ -347,6 +523,10 @@ async function confirmSendGreeting() {
       greetingDialog.open = false;
       greetingDialog.customer = null;
       greetingDialog.form.message = "";
+      
+      if (viewMode.value === 'history') {
+        loadNotificationHistory();
+      }
     } else {
       toast(response.data.message || "Không thể gửi lời chúc", "error");
     }
@@ -360,18 +540,8 @@ async function confirmSendGreeting() {
 
 function formatBirthdayDate(customer) {
   const months = [
-    "Tháng 1",
-    "Tháng 2",
-    "Tháng 3",
-    "Tháng 4",
-    "Tháng 5",
-    "Tháng 6",
-    "Tháng 7",
-    "Tháng 8",
-    "Tháng 9",
-    "Tháng 10",
-    "Tháng 11",
-    "Tháng 12",
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
   ];
 
   if (customer.isBirthdayToday) {
@@ -381,127 +551,59 @@ function formatBirthdayDate(customer) {
   return `${customer.birthDay} ${months[customer.birthMonth - 1]} (còn ${customer.daysUntilBirthday} ngày)`;
 }
 
+function formatMessage(message) {
+  return message.replace(/\n/g, '<br>');
+}
+
+function formatDateTime(dateString) {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 onMounted(() => {
   loadData();
 });
 </script>
 
-<script>
-// Customer Birthday Card Component
-import { defineComponent, h } from "vue";
-import { ElCard, ElTag, ElButton, ElIcon } from "element-plus";
-import { User, Phone, Message } from "@element-plus/icons-vue";
-
-const CustomerBirthdayCard = defineComponent({
-  name: "CustomerBirthdayCard",
-  props: {
-    customer: {
-      type: Object,
-      required: true,
-    },
-  },
-  emits: ['send-greeting'],
-  setup(props, { emit }) {
-    return () =>
-      h(
-        ElCard,
-        { shadow: "hover", class: "h-100 birthday-card" },
-        {
-          default: () => [
-            h("div", { class: "text-center" }, [
-              h("div", { class: "birthday-icon" }, "🎂"),
-              h("h4", { class: "mt-2 mb-1" }, props.customer.name),
-              h("p", { class: "text-muted small mb-2" }, [
-                h("strong", {}, `${props.customer.age} tuổi`),
-                " • ",
-                props.customer.birthdayDisplay,
-              ]),
-              h("div", { class: "mb-2" }, [
-                h(
-                  ElTag,
-                  {
-                    type: props.customer.customerType === "VIP" ? "warning" : "info",
-                    size: "small",
-                    effect: "light",
-                  },
-                  () => props.customer.customerType
-                ),
-              ]),
-              h("div", { class: "small text-muted mb-3" }, [
-                h("div", {}, props.customer.email),
-                h("div", {}, props.customer.phone),
-              ]),
-              h(
-                ElButton,
-                {
-                  type: "primary",
-                  size: "default",
-                  onClick: () => emit('send-greeting', props.customer)
-                },
-                () => "Gửi lời chúc 🎁"
-              ),
-            ]),
-          ],
-        }
-      );
-  },
-});
-
-export { CustomerBirthdayCard };
-</script>
-
 <style scoped>
 .kicker {
-  font-size: 12px;
-  opacity: 0.75;
-  font-weight: 900;
   text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
+  color: #909399;
+  margin-bottom: 4px;
 }
 
 .title {
-  font-weight: 900;
-  font-size: 18px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #303133;
+  margin-bottom: 4px;
 }
 
 .muted {
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 13px;
-}
-
-.month-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 8px;
-}
-
-.count {
-  font-size: 32px;
-  font-weight: bold;
-  color: #409eff;
-  line-height: 1;
-}
-
-.label {
-  font-size: 12px;
   color: #909399;
-  margin-top: 4px;
+  font-size: 14px;
 }
 
-.border-primary {
-  border: 2px solid #409eff;
+.message-preview {
+  cursor: pointer;
+  color: #606266;
+  font-size: 14px;
 }
 
-.birthday-card {
-  transition: all 0.3s ease;
+.message-preview:hover {
+  color: #409eff;
 }
 
-.birthday-card:hover {
-  transform: translateY(-4px);
-}
-
-.birthday-icon {
-  font-size: 48px;
-  line-height: 1;
+.message-full {
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 </style>

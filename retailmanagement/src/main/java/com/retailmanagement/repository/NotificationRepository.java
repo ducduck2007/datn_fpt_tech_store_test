@@ -40,4 +40,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      * Tìm thông báo theo loại
      */
     List<Notification> findByCustomerIdAndTypeOrderByCreatedAtDesc(Integer customerId, NotificationType type);
+
+
+
+
+    // ✅ THÊM: Lấy thông báo theo loại
+    List<Notification> findByTypeOrderByCreatedAtDesc(NotificationType type);
+
+    // ✅ THÊM: Lấy thông báo theo loại và khoảng thời gian
+    List<Notification> findByTypeAndCreatedAtBetweenOrderByCreatedAtDesc(
+            NotificationType type, LocalDateTime from, LocalDateTime to);
 }
