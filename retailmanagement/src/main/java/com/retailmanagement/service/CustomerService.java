@@ -14,12 +14,16 @@ import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.LoyaltyLedgerRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -380,5 +384,146 @@ public class CustomerService {
                     null
             );
         }
+    }
+    public List<CustomerResponse> findByPointsRange(int minPoints, int maxPoints) {
+        List<Customer> customers = customRes.findByLoyaltyPointsBetween(minPoints, maxPoints);
+        return customers.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+    public List<CustomerResponse> findByVipTier(String tierName) {
+        try {
+            VipTier tier = VipTier.valueOf(tierName.toUpperCase());
+            List<Customer> customers = customRes.findByVipTier(tier);
+            return customers.stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid VIP tier: " + tierName);
+        }
+    }
+    public List<CustomerResponse> findByVipTierAndPointsRange(
+            String tierName,
+            int minPoints,
+            int maxPoints
+    ) {
+        try {
+            VipTier tier = VipTier.valueOf(tierName.toUpperCase());
+            List<Customer> customers = customRes.findByVipTierAndLoyaltyPointsBetween(
+                    tier, minPoints, maxPoints
+            );
+            return customers.stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid VIP tier: " + tierName);
+        }
+    }
+    /**
+     * Tìm khách hàng theo khoảng chi tiêu
+     */
+    public List<CustomerResponse> findBySpendingRange(BigDecimal minSpent, BigDecimal maxSpent) {
+        List<Customer> customers = customRes.findByTotalSpentBetween(minSpent, maxSpent);
+        return customers.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Tìm top N khách hàng theo tổng chi tiêu
+     */
+    public List<CustomerResponse> findTopSpenders(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Customer> customers = customRes.findTopByTotalSpent(pageable);
+        return customers.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Tìm top N khách hàng theo VIP tier và chi tiêu
+     */
+    public List<CustomerResponse> findTopSpendersByVipTier(String tierName, int limit) {
+        try {
+            VipTier tier = VipTier.valueOf(tierName.toUpperCase());
+            Pageable pageable = PageRequest.of(0, limit);
+            List<Customer> customers = customRes.findTopByVipTierAndTotalSpent(tier, pageable);
+            return customers.stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid VIP tier: " + tierName);
+        }
+    }
+
+    /**
+     * Lấy thống kê chi tiêu
+     */
+    public Map<String, Object> getSpendingStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Tổng chi tiêu của tất cả khách hàng
+        BigDecimal totalSpent = customRes.getTotalSpentAllCustomers();
+        stats.put("totalSpent", totalSpent != null ? totalSpent : BigDecimal.ZERO);
+
+        // Tổng số khách hàng đang hoạt động
+        long totalCustomers = customRes.findAll().stream()
+                .filter(Customer::getIsActive)
+                .count();
+        stats.put("totalCustomers", totalCustomers);
+
+        // Chi tiêu trung bình
+        BigDecimal avgSpent = BigDecimal.ZERO;
+        if (totalCustomers > 0 && totalSpent != null) {
+            avgSpent = totalSpent.divide(
+                    BigDecimal.valueOf(totalCustomers),
+                    2,
+                    BigDecimal.ROUND_HALF_UP
+            );
+        }
+        stats.put("averageSpent", avgSpent);
+
+        // Thống kê theo VIP tier
+        Map<String, Object> tierStats = new HashMap<>();
+        for (VipTier tier : VipTier.values()) {
+            BigDecimal tierTotal = customRes.getTotalSpentByVipTier(tier);
+            long tierCount = customRes.findByVipTier(tier).size();
+
+            Map<String, Object> tierData = new HashMap<>();
+            tierData.put("totalSpent", tierTotal != null ? tierTotal : BigDecimal.ZERO);
+            tierData.put("customerCount", tierCount);
+            tierData.put("averageSpent", tierCount > 0 && tierTotal != null
+                    ? tierTotal.divide(BigDecimal.valueOf(tierCount), 2, BigDecimal.ROUND_HALF_UP)
+                    : BigDecimal.ZERO);
+
+            tierStats.put(tier.name(), tierData);
+        }
+        stats.put("byTier", tierStats);
+
+        // Phân loại theo khoảng chi tiêu
+        Map<String, Long> spendingRanges = new HashMap<>();
+        spendingRanges.put("under1M", customRes.countByTotalSpentBetween(
+                BigDecimal.ZERO,
+                BigDecimal.valueOf(1000000)
+        ));
+        spendingRanges.put("1M-5M", customRes.countByTotalSpentBetween(
+                BigDecimal.valueOf(1000000),
+                BigDecimal.valueOf(5000000)
+        ));
+        spendingRanges.put("5M-10M", customRes.countByTotalSpentBetween(
+                BigDecimal.valueOf(5000000),
+                BigDecimal.valueOf(10000000)
+        ));
+        spendingRanges.put("10M-50M", customRes.countByTotalSpentBetween(
+                BigDecimal.valueOf(10000000),
+                BigDecimal.valueOf(50000000)
+        ));
+        spendingRanges.put("over50M", customRes.countByTotalSpentBetween(
+                BigDecimal.valueOf(50000000),
+                BigDecimal.valueOf(999999999)
+        ));
+        stats.put("spendingRanges", spendingRanges);
+
+        return stats;
     }
 }
