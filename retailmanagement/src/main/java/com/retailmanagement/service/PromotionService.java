@@ -57,7 +57,11 @@ public class PromotionService {
             a.scope = scope;
             a.product_ids = req.getProductIds();
             a.variant_ids = req.getVariantIds();
-            // Customer group support will be added via separate endpoint if needed
+
+            // ✅ ADD VIP SUPPORT
+            a.customer_types = req.getCustomerTypes();
+            a.vip_tiers = req.getVipTiers();
+
             return objectMapper.writeValueAsString(a);
         } catch (Exception e) {
             throw new IllegalArgumentException("applicabilityJson không hợp lệ");
@@ -496,4 +500,5 @@ public class PromotionService {
     private static BigDecimal money(BigDecimal v) {
         return v.setScale(2, RoundingMode.HALF_UP);
     }
+
 }
