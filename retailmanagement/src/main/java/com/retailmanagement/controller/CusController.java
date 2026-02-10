@@ -126,5 +126,107 @@ public class CusController {
             @PathVariable Integer customerId) {
         return ResponseEntity.ok(loyaltyHistoryService.getTierChanges(customerId));
     }
+    @GetMapping("/points")
+    public ResponseEntity<List<CustomerResponse>> getCustomersByPointsRange(
+            @RequestParam(defaultValue = "0") int min,
+            @RequestParam(defaultValue = "999999") int max
+    ) {
+        if (min < 0 || max < min) {
+            return ResponseEntity.badRequest().build();
+        }
 
+        List<CustomerResponse> customers = cusservice.findByPointsRange(min, max);
+        return ResponseEntity.ok(customers);
+    }
+
+    @GetMapping("/vip-tier/{tier}/points")
+    public ResponseEntity<List<CustomerResponse>> getCustomersByVipTierAndPoints(
+            @PathVariable String tier,
+            @RequestParam(defaultValue = "0") int min,
+            @RequestParam(defaultValue = "999999") int max
+    ) {
+        try {
+            List<CustomerResponse> customers = cusservice.findByVipTierAndPointsRange(tier, min, max);
+            return ResponseEntity.ok(customers);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    @GetMapping("/vip-tier/{tier}")
+    public ResponseEntity<List<CustomerResponse>> getCustomersByVipTier(
+            @PathVariable String tier
+    ) {
+        try {
+            List<CustomerResponse> customers = cusservice.findByVipTier(tier);
+            return ResponseEntity.ok(customers);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    // Add these endpoints to CusController.java
+
+    /**
+     * Lấy khách hàng theo khoảng chi tiêu
+     * GET /api/auth/customers/spending?min=0&max=10000000
+     */
+    @GetMapping("/spending")
+    public ResponseEntity<List<CustomerResponse>> getCustomersBySpendingRange(
+            @RequestParam(defaultValue = "0") BigDecimal min,
+            @RequestParam(defaultValue = "999999999") BigDecimal max
+    ) {
+        if (min.compareTo(BigDecimal.ZERO) < 0 || max.compareTo(min) < 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<CustomerResponse> customers = cusservice.findBySpendingRange(min, max);
+        return ResponseEntity.ok(customers);
+    }
+
+    /**
+     * Lấy top N khách hàng theo tổng chi tiêu
+     * GET /api/auth/customers/top-spenders?limit=10
+     */
+    @GetMapping("/top-spenders")
+    public ResponseEntity<List<CustomerResponse>> getTopSpenders(
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        if (limit <= 0 || limit > 100) {
+            return ResponseEntity.badRequest()
+                    .body(null);
+        }
+
+        List<CustomerResponse> topCustomers = cusservice.findTopSpenders(limit);
+        return ResponseEntity.ok(topCustomers);
+    }
+
+    /**
+     * Lấy top N khách hàng theo VIP tier và chi tiêu
+     * GET /api/auth/customers/vip-tier/{tier}/top-spenders?limit=10
+     */
+    @GetMapping("/vip-tier/{tier}/top-spenders")
+    public ResponseEntity<List<CustomerResponse>> getTopSpendersByVipTier(
+            @PathVariable String tier,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        try {
+            if (limit <= 0 || limit > 100) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            List<CustomerResponse> customers = cusservice.findTopSpendersByVipTier(tier, limit);
+            return ResponseEntity.ok(customers);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Lấy thống kê chi tiêu theo VIP tier
+     * GET /api/auth/customers/spending-stats
+     */
+    @GetMapping("/spending-stats")
+    public ResponseEntity<Map<String, Object>> getSpendingStatistics() {
+        Map<String, Object> stats = cusservice.getSpendingStatistics();
+        return ResponseEntity.ok(stats);
+    }
 }

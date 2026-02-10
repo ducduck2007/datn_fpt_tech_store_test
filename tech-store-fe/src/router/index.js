@@ -28,6 +28,7 @@ import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue"
 import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
 import Birthday from "../pages/system/BirthdayManager.vue"
+import Customerspendinganalytics from "../pages/system/Customerspendinganalytics.vue";
 const routes = [
   // ===== CUSTOMER PORTAL =====
   {
@@ -113,6 +114,12 @@ const routes = [
         name: "system-users",
         component: UserManager,
         meta: { title: "User Management" },
+      },
+       {
+     path: "customer-spending",
+        name: "system-customers-spend",
+        component: Customerspendinganalytics,
+        meta: { title: "Customers & Loyalty" },
       },
       {
         path: "customers",

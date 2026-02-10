@@ -82,6 +82,11 @@ const cards = [
    title: "Birthday Manager",
   desc: "View all birthday",
   to: "/system/birthday",
+},
+{
+   title: "Customer-spending",
+  desc: "Customer Spending",
+  to: "/system/customer-spending",
 }
 ];
 
