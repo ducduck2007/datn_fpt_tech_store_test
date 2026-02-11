@@ -6,27 +6,22 @@ export const returnsApi = {
     return http.post("/api/returns", payload);
   },
 
-  // Lấy danh sách trả hàng của tôi
-  getMyReturns() {
-    return http.get("/api/returns/my-returns");
-  },
-
-  // Lấy trả hàng theo đơn hàng
+  // Lấy trả hàng theo đơn
   getByOrder(orderId) {
     return http.get(`/api/returns/order/${orderId}`);
   },
 
-  // Chi tiết trả hàng
+  // Chi tiết
   getDetail(returnId) {
     return http.get(`/api/returns/${returnId}`);
   },
 
-  // Hủy yêu cầu trả hàng (customer)
+  // Customer hủy yêu cầu trả hàng
   cancel(returnId) {
-    return http.delete(`/api/returns/${returnId}`);
+    return http.put(`/api/returns/${returnId}/cancel`);
   },
 
-  // Admin/Staff
+  // Staff / Admin
   getAll() {
     return http.get("/api/returns");
   },
@@ -35,19 +30,15 @@ export const returnsApi = {
     return http.get("/api/returns/pending");
   },
 
-  getApproved() {
-    return http.get("/api/returns/approved");
-  },
-
-  getRejected() {
-    return http.get("/api/returns/rejected");
-  },
-
   approve(returnId) {
     return http.put(`/api/returns/${returnId}/approve`);
   },
 
   reject(returnId, reason) {
     return http.put(`/api/returns/${returnId}/reject`, { reason });
-  }
+  },
+
+  getByStatus(status) {
+    return http.get(`/api/returns/status/${status}`);
+  },
 };

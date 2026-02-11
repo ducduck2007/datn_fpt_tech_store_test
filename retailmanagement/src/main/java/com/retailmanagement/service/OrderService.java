@@ -386,9 +386,9 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (!OrderStatuses.PENDING.equals(order.getStatus())) {
-            throw new IllegalStateException("Only PENDING orders can be shipped");
-        }
+//        if (!OrderStatuses.PENDING.equals(order.getStatus()) || !OrderStatuses.PAID.equals(order.getStatus())) {
+//            throw new IllegalStateException("Only PENDING or PAID orders can be shipped");
+//        }
 
         order.setStatus(OrderStatuses.SHIPPING);
         order.setUpdatedAt(Instant.now());
