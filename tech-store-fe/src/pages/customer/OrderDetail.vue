@@ -2,14 +2,27 @@
   <div class="container-xl">
     <el-card shadow="never">
       <!-- Header -->
-      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
+      <div
+        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
+      >
         <div>
           <div class="kicker">Order</div>
           <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
           <div class="muted">
-            <el-tag :type="statusType" size="large">{{ detail?.status }}</el-tag>
+            <el-tag :type="statusType" size="large">{{
+              detail?.status
+            }}</el-tag>
             <el-tag class="ms-2" :type="paymentStatusType" size="large">
               Payment: {{ detail?.paymentStatus }}
+            </el-tag>
+            <!-- 🔄 TRẠNG THÁI TRẢ HÀNG (NEW – KHÔNG ĐỤNG LOGIC CŨ) -->
+            <el-tag
+              v-if="isReturned(detail?.status)"
+              type="warning"
+              size="large"
+              class="ms-2"
+            >
+              Returned
             </el-tag>
           </div>
         </div>
@@ -19,11 +32,11 @@
           >
           <el-button @click="reload" :loading="loading">Reload</el-button>
 
-        
-          
           <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
           <el-button
-            v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'"
+            v-if="
+              detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'
+            "
             type="primary"
             @click="showPaymentDialog = true"
           >
@@ -33,7 +46,11 @@
 
           <!-- ✅ NÚT HỦY ĐƠN - Cho phép hủy cả đơn đã thanh toán -->
           <el-button
-            v-if="detail?.status === 'PENDING' || detail?.status === 'PAID' || detail?.status === 'SHIPPING'"
+            v-if="
+              detail?.status === 'PENDING' ||
+              detail?.status === 'PAID' ||
+              detail?.status === 'SHIPPING'
+            "
             type="danger"
             @click="showCancelDialog = true"
           >
@@ -43,7 +60,7 @@
 
           <!-- Nút yêu cầu trả hàng -->
           <el-button
-            v-if="detail?.status === 'DELIVERED'"
+            v-if="detail?.status === 'DELIVERED' && !isReturned(detail?.status)"
             type="warning"
             @click="showReturnDialog = true"
           >
@@ -72,7 +89,7 @@
             <h5>Thanh toán & Giao hàng</h5>
             <p><strong>Phương thức:</strong> {{ detail.paymentMethod }}</p>
             <p><strong>Kênh:</strong> {{ detail.channel }}</p>
-            <p><strong>Ghi chú:</strong> {{ detail.notes || '—' }}</p>
+            <p><strong>Ghi chú:</strong> {{ detail.notes || "—" }}</p>
           </div>
         </div>
 
@@ -123,7 +140,9 @@
             </div>
             <div class="d-flex justify-content-between">
               <span>Giảm giá:</span>
-              <strong class="text-danger">- {{ formatMoney(detail.discountTotal) }}</strong>
+              <strong class="text-danger"
+                >- {{ formatMoney(detail.discountTotal) }}</strong
+              >
             </div>
             <div class="d-flex justify-content-between">
               <span>Phí ship:</span>
@@ -132,7 +151,9 @@
             <el-divider />
             <div class="d-flex justify-content-between fs-5">
               <span><strong>Tổng cộng:</strong></span>
-              <strong class="text-primary">{{ formatMoney(detail.totalAmount) }}</strong>
+              <strong class="text-primary">{{
+                formatMoney(detail.totalAmount)
+              }}</strong>
             </div>
           </div>
         </div>
@@ -140,7 +161,11 @@
     </el-card>
 
     <!-- ✅ PAYMENT DIALOG -->
-    <el-dialog v-model="showPaymentDialog" title="💳 Thanh toán đơn hàng" width="500px">
+    <el-dialog
+      v-model="showPaymentDialog"
+      title="💳 Thanh toán đơn hàng"
+      width="500px"
+    >
       <el-alert
         title="Thông tin thanh toán"
         type="info"
@@ -151,17 +176,28 @@
         <ul class="mb-0">
           <li>✅ Đơn hàng sẽ chuyển sang trạng thái <strong>PAID</strong></li>
           <li>✅ Xuất kho tự động</li>
-          <li>✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn</li>
+          <li>
+            ✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn
+          </li>
         </ul>
       </el-alert>
 
       <el-form :model="paymentForm" label-position="top">
         <el-form-item label="Số tiền thanh toán">
-          <el-input :value="formatMoney(detail?.totalAmount)" disabled size="large" />
+          <el-input
+            :value="formatMoney(detail?.totalAmount)"
+            disabled
+            size="large"
+          />
         </el-form-item>
 
         <el-form-item label="Phương thức thanh toán" required>
-          <el-select v-model="paymentForm.method" placeholder="Chọn phương thức" class="w-100" size="large">
+          <el-select
+            v-model="paymentForm.method"
+            placeholder="Chọn phương thức"
+            class="w-100"
+            size="large"
+          >
             <el-option label="💵 Tiền mặt" value="CASH" />
             <el-option label="🏦 Chuyển khoản" value="BANK_TRANSFER" />
             <el-option label="💳 Thẻ tín dụng" value="CREDIT_CARD" />
@@ -170,15 +206,17 @@
         </el-form-item>
 
         <el-form-item label="Mã giao dịch (tùy chọn)">
-          <el-input 
-            v-model="paymentForm.transactionRef" 
-            placeholder="Ví dụ: TXN-123456" 
+          <el-input
+            v-model="paymentForm.transactionRef"
+            placeholder="Ví dụ: TXN-123456"
           />
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="showPaymentDialog = false" size="large">Hủy</el-button>
+        <el-button @click="showPaymentDialog = false" size="large"
+          >Hủy</el-button
+        >
         <el-button
           type="primary"
           @click="confirmPayment"
@@ -216,8 +254,8 @@
 
       <template #footer>
         <el-button @click="showCancelDialog = false">Đóng</el-button>
-        <el-button 
-          type="danger" 
+        <el-button
+          type="danger"
           @click="confirmCancel"
           :loading="cancelLoading"
         >
@@ -227,12 +265,16 @@
     </el-dialog>
 
     <!-- Return Dialog -->
-    <el-dialog v-model="showReturnDialog" title="🔄 Yêu cầu trả hàng" width="600px">
+    <el-dialog
+      v-model="showReturnDialog"
+      title="🔄 Yêu cầu trả hàng"
+      width="600px"
+    >
       <el-form :model="returnForm" label-position="top">
         <el-form-item label="Chọn sản phẩm">
-          <el-select 
-            v-model="returnForm.orderItemId" 
-            placeholder="Chọn sản phẩm muốn trả" 
+          <el-select
+            v-model="returnForm.orderItemId"
+            placeholder="Chọn sản phẩm muốn trả"
             class="w-100"
           >
             <el-option
@@ -268,12 +310,7 @@
           </el-input>
         </el-form-item>
 
-        <el-alert
-          title="⚠️ Lưu ý"
-          type="info"
-          show-icon
-          :closable="false"
-        >
+        <el-alert title="⚠️ Lưu ý" type="info" show-icon :closable="false">
           Điểm loyalty đã được cộng sẽ bị trừ lại khi trả hàng được duyệt.
         </el-alert>
       </el-form>
@@ -294,7 +331,7 @@ import { paymentsApi } from "../../api/payments";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
-import { Close, CreditCard, RefreshLeft } from '@element-plus/icons-vue';
+import { Close, CreditCard, RefreshLeft } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -304,7 +341,7 @@ const auth = useAuthStore();
 const loading = ref(false);
 const cancelLoading = ref(false);
 const paymentLoading = ref(false);
-const detail = ref(null); 
+const detail = ref(null);
 const orderId = computed(() => route.params.orderId);
 
 // Dialog controls
@@ -317,12 +354,12 @@ const returnForm = reactive({
   orderItemId: null,
   quantity: 1,
   reason: "",
-  refundAmount: 0
+  refundAmount: 0,
 });
 
 const paymentForm = reactive({
   method: "CASH",
-  transactionRef: ""
+  transactionRef: "",
 });
 
 // --- Computed Properties ---
@@ -344,7 +381,7 @@ const paymentStatusType = computed(() => {
 });
 
 const canCancel = computed(() => {
-  return ['PENDING'].includes(detail.value?.status);
+  return ["PENDING"].includes(detail.value?.status);
 });
 
 const items = computed(() => {
@@ -355,22 +392,30 @@ const items = computed(() => {
 
 // --- Watchers ---
 
-watch(() => returnForm.orderItemId, (newItemId) => {
-  if (!newItemId || !detail.value?.items) return;
-  const item = detail.value.items.find(i => i.productId === newItemId);
-  if (item) {
-    returnForm.quantity = 1;
-    returnForm.refundAmount = item.price;
-  }
-});
+watch(
+  () => returnForm.orderItemId,
+  (newItemId) => {
+    if (!newItemId || !detail.value?.items) return;
+    const item = detail.value.items.find((i) => i.productId === newItemId);
+    if (item) {
+      returnForm.quantity = 1;
+      returnForm.refundAmount = item.price;
+    }
+  },
+);
 
-watch(() => returnForm.quantity, (newQty) => {
-  if (!returnForm.orderItemId || !detail.value?.items) return;
-  const item = detail.value.items.find(i => i.productId === returnForm.orderItemId);
-  if (item) {
-    returnForm.refundAmount = item.price * newQty;
-  }
-});
+watch(
+  () => returnForm.quantity,
+  (newQty) => {
+    if (!returnForm.orderItemId || !detail.value?.items) return;
+    const item = detail.value.items.find(
+      (i) => i.productId === returnForm.orderItemId,
+    );
+    if (item) {
+      returnForm.refundAmount = item.price * newQty;
+    }
+  },
+);
 
 // --- Methods ---
 
@@ -378,7 +423,7 @@ function formatMoney(val) {
   if (!val) return "0 ₫";
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency: "VND"
+    currency: "VND",
   }).format(val);
 }
 
@@ -396,16 +441,16 @@ async function reload() {
 }
 
 function getCancelWarningTitle() {
-  if (detail.value?.paymentStatus === 'PAID') {
-    return '⚠️ Cảnh báo: Hủy đơn đã thanh toán';
+  if (detail.value?.paymentStatus === "PAID") {
+    return "⚠️ Cảnh báo: Hủy đơn đã thanh toán";
   }
-  return 'Xác nhận hủy đơn';
+  return "Xác nhận hủy đơn";
 }
 
 function getCancelWarningMessage() {
-  if (detail.value?.paymentStatus === 'PAID') {
+  if (detail.value?.paymentStatus === "PAID") {
     const totalAmount = detail.value.totalAmount || 0;
-    const penaltyAmount = totalAmount * 0.10;
+    const penaltyAmount = totalAmount * 0.1;
     const penaltyPoints = Math.floor(penaltyAmount / 10000);
     return `
       <p><strong>Đơn hàng đã thanh toán. Nếu hủy sẽ bị phạt:</strong></p>
@@ -415,12 +460,14 @@ function getCancelWarningMessage() {
       </ul>
     `;
   }
-  return '<p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>';
+  return "<p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>";
 }
 
 function getMaxReturnQuantity() {
   if (!returnForm.orderItemId || !detail.value?.items) return 1;
-  const item = detail.value.items.find(i => i.productId === returnForm.orderItemId);
+  const item = detail.value.items.find(
+    (i) => i.productId === returnForm.orderItemId,
+  );
   return item?.quantity || 1;
 }
 
@@ -431,7 +478,7 @@ async function confirmPayment() {
     const payload = {
       orderId: Number(orderId.value),
       method: paymentForm.method,
-      transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`
+      transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`,
     };
     await paymentsApi.create(payload);
     toast("✅ Thanh toán thành công!", "success");
@@ -465,13 +512,17 @@ async function submitReturn() {
   try {
     await returnsApi.create({
       orderId: Number(orderId.value),
-      ...returnForm
+      ...returnForm,
     });
     toast("✅ Đã gửi yêu cầu trả hàng", "success");
     showReturnDialog.value = false;
   } catch (e) {
     toast("Lỗi khi gửi yêu cầu", "error");
   }
+}
+
+function isReturned(status) {
+  return ["PARTIALLY_RETURNED", "RETURNED"].includes(status);
 }
 
 onMounted(() => reload());

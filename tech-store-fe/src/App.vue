@@ -62,6 +62,12 @@
                   >
                     Create Order
                   </el-dropdown-item>
+                  <el-dropdown-item
+                    v-if="isCustomer"
+                    @click="router.push('/orders/my-orders')"
+                  >
+                    My Orders
+                  </el-dropdown-item>
                   <el-dropdown-item divided @click="logout">
                     Logout
                   </el-dropdown-item>

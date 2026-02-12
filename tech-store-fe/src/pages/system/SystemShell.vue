@@ -34,6 +34,20 @@
           <el-menu-item index="/system/orders/processing"
             >Processing</el-menu-item
           >
+          <el-menu-item index="/system/orders/paid"> Paid </el-menu-item>
+          <el-menu-item index="/system/orders/delivered">
+            Delivered
+          </el-menu-item>
+          <el-menu-item index="/system/orders/shipping">Shipping</el-menu-item>
+          <el-menu-item index="/system/orders/filter">
+            Order Filter
+          </el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="returns">
+          <template #title>Returns</template>
+          <el-menu-item index="/system/returns/pending"> Pending </el-menu-item>
+          <el-menu-item index="/system/returns/all"> All Returns </el-menu-item>
         </el-sub-menu>
 
         <el-menu-item index="/system/pricing">Pricing</el-menu-item>
@@ -99,7 +113,7 @@ async function logout() {
     "Do you want to log out?",
     "Confirm",
     "Log out",
-    true
+    true,
   );
   if (!ok) return;
 

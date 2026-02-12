@@ -5,6 +5,7 @@ import com.retailmanagement.dto.request.UpdateOrderRequest;
 import com.retailmanagement.dto.response.CreateOrderResponse;
 import com.retailmanagement.dto.response.OrderDetailResponse;
 import com.retailmanagement.dto.response.OrderListResponse;
+import com.retailmanagement.dto.response.RevenueByCustomerResponse;
 import com.retailmanagement.security.CustomUserDetails;
 import com.retailmanagement.service.OrderQueryService;
 import com.retailmanagement.service.OrderService;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -64,10 +66,15 @@ public class OrderController {
         return ResponseEntity.ok(orderQueryService.getDeliveredOrders());
     }
 
+    @GetMapping("/shipping")
+    public ResponseEntity<List<OrderListResponse>> getShippingOrders() {
+        return ResponseEntity.ok(orderQueryService.getShippingOrders());
+    }
+
     // =========================================================
     // LIST ORDERS BY CUSTOMER
     // =========================================================
-    @GetMapping("/my")
+    @GetMapping("/my-orders")
     public ResponseEntity<List<OrderListResponse>> getMyOrders(
             @AuthenticationPrincipal CustomUserDetails user) {
         return ResponseEntity.ok(
@@ -147,4 +154,34 @@ public class OrderController {
         orderService.deleteOrder(orderId);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/by-date")
+    public ResponseEntity<List<OrderListResponse>> getOrdersByDate(
+            @RequestParam Instant from,
+            @RequestParam Instant to
+    ) {
+        return ResponseEntity.ok(
+                orderQueryService.getOrdersByDate(from, to)
+        );
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<List<OrderListResponse>> filterOrders(
+            @RequestParam Integer customerId,
+            @RequestParam Instant from,
+            @RequestParam Instant to
+    ) {
+        return ResponseEntity.ok(
+                orderQueryService.filterOrders(customerId, from, to)
+        );
+    }
+
+    @GetMapping("/revenue-by-customer")
+    public ResponseEntity<List<RevenueByCustomerResponse>> revenueByCustomer() {
+        return ResponseEntity.ok(
+                orderQueryService.getRevenueByCustomer()
+        );
+    }
+
+
 }

@@ -1,5 +1,6 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.constants.OrderStatuses;
 import com.retailmanagement.dto.request.CreateReturnRequest;
 import com.retailmanagement.dto.response.ReturnResponse;
 import com.retailmanagement.entity.*;
@@ -25,37 +26,71 @@ public class ReturnService {
     private final ProductVariantRepository variantRepository;
 
     @Transactional
-    public ReturnResponse createReturn(CreateReturnRequest request, Integer userId) {
-        Order order = orderRepository.findById(request.getOrderId())
+    public ReturnResponse createReturn(CreateReturnRequest req, Integer userId) {
+
+        Order order = orderRepository.findById(req.getOrderId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        OrderItem orderItem = orderItemRepository.findById(request.getOrderItemId())
+        if (!OrderStatuses.DELIVERED.equals(order.getStatus())) {
+            throw new RuntimeException("Order is not eligible for return");
+        }
+
+        OrderItem item = orderItemRepository.findById(req.getOrderItemId())
                 .orElseThrow(() -> new RuntimeException("Order item not found"));
 
-        if (!order.getId().equals(orderItem.getOrder().getId())) {
-            throw new RuntimeException("Order item does not belong to this order");
+        // Tổng đã trả trước đó
+        int returnedQty = returnRepository
+                .findByOrderIdOrderByCreatedAtDesc(order.getId())
+                .stream()
+                .filter(r -> r.getOrderItem().getId().equals(item.getId()))
+                .mapToInt(Return::getQuantity)
+                .sum();
+
+        if (returnedQty + req.getQuantity() > item.getQuantity()) {
+            throw new RuntimeException("Return quantity exceeds purchased quantity");
         }
 
-        if (request.getQuantity() > orderItem.getQuantity()) {
-            throw new RuntimeException("Return quantity exceeds order quantity");
-        }
+        Return ret = Return.builder()
+                .order(order)
+                .orderItem(item)
+                .quantity(req.getQuantity())
+                .reason(req.getReason())
+                .refundAmount(req.getRefundAmount())
+                .refundStatus("PENDING")
+                .status("PENDING")
+                .processedBy(userId)
+                .createdAt(Instant.now())
+                .build();
 
-        Return returnEntity = new Return();
-        returnEntity.setOrder(order);
-        returnEntity.setOrderItem(orderItem);
-        returnEntity.setQuantity(request.getQuantity());
-        returnEntity.setReason(request.getReason());
-        returnEntity.setRefundAmount(request.getRefundAmount() != null
-                ? request.getRefundAmount()
-                : orderItem.getUnitPrice().multiply(BigDecimal.valueOf(request.getQuantity())));
-        returnEntity.setRefundMethod(order.getPaymentMethod());
-        returnEntity.setRefundStatus("PENDING");
-        returnEntity.setStatus("PENDING");
-        returnEntity.setCreatedAt(Instant.now());
+        returnRepository.save(ret);
 
-        Return saved = returnRepository.save(returnEntity);
-        return mapToResponse(saved);
+        // ✅ update order status
+        order.setStatus(OrderStatuses.RETURN_REQUESTED);
+        orderRepository.save(order);
+
+        return mapToResponse(ret);
     }
+
+    @Transactional
+    public ReturnResponse processReturn(Long returnId, String note, Integer staffId) {
+
+        Return ret = returnRepository.findById(returnId)
+                .orElseThrow(() -> new RuntimeException("Return not found"));
+
+        ret.setStatus("APPROVED");
+        ret.setRefundStatus("REFUNDED");
+        ret.setRefundedAt(Instant.now());
+        ret.setNote(note);
+        ret.setProcessedBy(staffId);
+
+        returnRepository.save(ret);
+
+        updateOrderStatusAfterReturn(ret.getOrder());
+
+        return mapToResponse(ret);
+    }
+
+
 
     @Transactional
     public void approveReturn(Long returnId, Integer userId) {
@@ -68,16 +103,18 @@ public class ReturnService {
 
         Order order = returnEntity.getOrder();
 
-        // 1. Cập nhật trạng thái
+        // 1. Update return
         returnEntity.setStatus("APPROVED");
         returnEntity.setRefundStatus("REFUNDED");
         returnEntity.setRefundedAt(Instant.now());
         returnEntity.setProcessedBy(userId);
 
-        // 2. Hoàn kho
+        returnRepository.save(returnEntity);
+
+        // 2. Restore stock
         restoreStockForReturn(returnEntity);
 
-        // 3. TRỪ ĐIỂM (nếu đơn đã thanh toán)
+        // 3. Deduct loyalty
         if ("PAID".equals(order.getPaymentStatus()) && order.getCustomer() != null) {
             customerService.deductLoyaltyPoints(
                     order.getCustomer().getId(),
@@ -88,8 +125,10 @@ public class ReturnService {
             );
         }
 
-        returnRepository.save(returnEntity);
+        // 4. ❗ UPDATE ORDER STATUS
+        updateOrderStatusAfterReturn(order);
     }
+
 
     @Transactional
     public void rejectReturn(Long returnId, String reason, Integer userId) {
@@ -100,12 +139,20 @@ public class ReturnService {
             throw new IllegalStateException("Only pending returns can be rejected");
         }
 
+        Order order = returnEntity.getOrder();
+
+        // 1. Update return
         returnEntity.setStatus("REJECTED");
         returnEntity.setNote(reason);
-        returnEntity.setProcessedBy(userId); // ✅ CHỈ TRUYỀN userId (Integer)
+        returnEntity.setProcessedBy(userId);
 
         returnRepository.save(returnEntity);
+
+        // 2. ❗ ROLLBACK ORDER STATUS
+        order.setStatus(OrderStatuses.DELIVERED);
+        orderRepository.save(order);
     }
+
 
     @Transactional
     public void cancelReturn(Long returnId, Integer userId) {
@@ -168,6 +215,31 @@ public class ReturnService {
         variant.setStockQuantity(variant.getStockQuantity() + returnEntity.getQuantity());
         variantRepository.save(variant);
     }
+
+    private void updateOrderStatusAfterReturn(Order order) {
+
+        int totalOrdered = order.getOrderItems()
+                .stream()
+                .mapToInt(OrderItem::getQuantity)
+                .sum();
+
+        int totalReturned = returnRepository
+                .findByOrderIdOrderByCreatedAtDesc(order.getId())
+                .stream()
+                .filter(r -> "APPROVED".equals(r.getStatus()))
+                .mapToInt(Return::getQuantity)
+                .sum();
+
+        if (totalReturned == totalOrdered) {
+            order.setStatus(OrderStatuses.RETURNED);
+        } else {
+            order.setStatus(OrderStatuses.PARTIALLY_RETURNED);
+        }
+
+        order.setReturnedAt(Instant.now());
+        orderRepository.save(order);
+    }
+
 
     private ReturnResponse mapToResponse(Return r) {
         return ReturnResponse.builder()

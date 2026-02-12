@@ -1,7 +1,9 @@
 <template>
   <div class="container-xl">
     <el-card shadow="never">
-      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
+      <div
+        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
+      >
         <div>
           <div class="kicker">System Admin</div>
           <div class="title">Order Detail #{{ orderId }}</div>
@@ -9,7 +11,7 @@
         </div>
         <div class="d-flex gap-2">
           <el-button @click="reload" :loading="loading">Reload</el-button>
-          
+
           <el-button
             v-if="order && order.status === 'PENDING'"
             type="primary"
@@ -18,6 +20,23 @@
           >
             <i class="bi bi-credit-card me-1"></i>
             Process Payment
+          </el-button>
+          <!-- 🚚 MARK AS SHIPPING -->
+          <el-button
+            v-if="order?.status === 'PAID'"
+            type="warning"
+            @click="markShipping"
+          >
+            Mark as Shipping
+          </el-button>
+
+          <!-- 📦 MARK AS DELIVERED -->
+          <el-button
+            v-if="order?.status === 'SHIPPING'"
+            type="success"
+            @click="markDelivered"
+          >
+            Mark as Delivered
           </el-button>
         </div>
       </div>
@@ -86,7 +105,12 @@
         <el-table :data="items" border>
           <el-table-column prop="variantId" label="Variant ID" width="120" />
           <el-table-column prop="productName" label="Product" min-width="200" />
-          <el-table-column prop="quantity" label="Quantity" width="100" align="center" />
+          <el-table-column
+            prop="quantity"
+            label="Quantity"
+            width="100"
+            align="center"
+          />
           <el-table-column prop="price" label="Unit Price" width="150">
             <template #default="{ row }">
               {{ formatCurrency(row.price) }}
@@ -122,7 +146,11 @@
           <el-input :value="formatCurrency(order?.totalAmount)" disabled />
         </el-form-item>
         <el-form-item label="Payment Method" required>
-          <el-select v-model="paymentForm.method" placeholder="Select payment method" style="width: 100%">
+          <el-select
+            v-model="paymentForm.method"
+            placeholder="Select payment method"
+            style="width: 100%"
+          >
             <el-option label="Cash" value="CASH" />
             <el-option label="Bank Transfer" value="BANK_TRANSFER" />
             <el-option label="Credit Card" value="CREDIT_CARD" />
@@ -130,7 +158,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="Transaction Ref">
-          <el-input v-model="paymentForm.transactionRef" placeholder="Optional transaction reference" />
+          <el-input
+            v-model="paymentForm.transactionRef"
+            placeholder="Optional transaction reference"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -201,13 +232,13 @@ async function reload() {
 
 function handlePayment() {
   if (!order.value) return;
-  
+
   // Reset form
   paymentForm.value = {
     method: "CASH",
     transactionRef: `TXN-${Date.now()}`,
   };
-  
+
   paymentDialog.value = true;
 }
 
@@ -226,7 +257,7 @@ async function confirmPayment() {
     };
 
     const { data } = await paymentsApi.create(payload);
-    
+
     toast("Payment processed successfully!", "success");
     paymentDialog.value = false;
     reload(); // Admin thì reload lại trang để thấy trạng thái mới
@@ -250,6 +281,35 @@ function formatCurrency(amount) {
 function formatDate(date) {
   if (!date) return "N/A";
   return new Date(date).toLocaleString("vi-VN");
+}
+
+// =========================
+// ORDER STATUS – SYSTEM (ADD ONLY)
+// =========================
+async function markShipping() {
+  try {
+    await ordersApi.markAsShipping(orderId.value);
+    toast("✅ Đơn hàng đã chuyển sang SHIPPING", "success");
+    reload();
+  } catch (e) {
+    toast(
+      e?.response?.data?.message || "Không thể chuyển trạng thái SHIPPING",
+      "error",
+    );
+  }
+}
+
+async function markDelivered() {
+  try {
+    await ordersApi.markAsDelivered(orderId.value);
+    toast("✅ Đơn hàng đã chuyển sang DELIVERED", "success");
+    reload();
+  } catch (e) {
+    toast(
+      e?.response?.data?.message || "Không thể chuyển trạng thái DELIVERED",
+      "error",
+    );
+  }
 }
 
 function getStatusType(status) {

@@ -21,11 +21,17 @@ import CategoryManager from "../pages/system/CategoryManager.vue";
 import ProductManager from "../pages/system/ProductManager.vue";
 import OrderListNew from "../pages/system/OrderListNew.vue";
 import OrderListProcessing from "../pages/system/OrderListProcessing.vue";
+import OrderListPaid from "../pages/system/OrderListPaid.vue";
+import OrderListDelivered from "../pages/system/OrderListDelivered.vue";
+import OrderListShipping from "../pages/system/OrderListShipping.vue";
+import ReturnListPending from "../pages/system/ReturnListPending.vue";
+import ReturnListAll from "../pages/system/ReturnListAll.vue";
+import OrderFilter from "../pages/system/OrderFilter.vue";
 import SystemOrderDetail from "../pages/system/OrderDetail.vue";
 import PricingManager from "../pages/system/PricingManager.vue";
 import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
-import PaymentManagement from "../pages/system/PaymentManagement.vue"
+import PaymentManagement from "../pages/system/PaymentManagement.vue";
 import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
 import Birthday from "../pages/system/BirthdayManager.vue"
 import Customerspendinganalytics from "../pages/system/Customerspendinganalytics.vue";
@@ -49,7 +55,7 @@ const routes = [
     component: CustomerRegister,
     meta: { portal: "customer", hideHeader: true },
   },
-   {
+  {
     path: "/profile",
     name: "customer-profile",
     component: CustomerProfile,
@@ -77,13 +83,13 @@ const routes = [
     path: "/cart",
     name: "cart",
     component: CartPage,
-    meta: { portal: "customer", requiresAuth: true }
+    meta: { portal: "customer", requiresAuth: true },
   },
   {
     path: "/my-orders",
     name: "my orders",
     component: CustomerOrders,
-    meta: { portal: "customer", requiresAuth: true }
+    meta: { portal: "customer", requiresAuth: true },
   },
 
   // ===== SYSTEM LOGIN =====
@@ -154,10 +160,47 @@ const routes = [
         meta: { title: "Orders (Processing)" },
       },
       {
+        path: "orders/paid",
+        name: "system-orders-paid",
+        component: OrderListPaid,
+        meta: { title: "Orders (Paid)" },
+      },
+      {
+        path: "orders/delivered",
+        name: "system-orders-delivered",
+        component: OrderListDelivered,
+        meta: { title: "Orders (Delivered)" },
+      },
+      {
+        path: "orders/shipping",
+        name: "system-orders-shipping",
+        component: OrderListShipping,
+        meta: { title: "Orders (Shipping)" },
+      },
+      {
+        path: "returns/pending",
+        name: "system-returns-pending",
+        component: ReturnListPending,
+        meta: { title: "Returns (Pending)" },
+      },
+      {
+        path: "orders/filter",
+        name: "order-filter",
+        component: OrderFilter,
+        meta: { title: "Order Filter" },
+      },
+      {
+        path: "returns/all",
+        name: "system-returns-all",
+        component: ReturnListAll,
+        meta: { title: "All Returns" },
+      },
+
+      {
         path: "orders/:orderId",
         name: "system-order-detail",
         component: SystemOrderDetail,
-        meta: { title: "Order Detail" },
+        meta: { title: "Return Requests" },
       },
 
       // Pricing / Promotions / Settings
@@ -180,19 +223,18 @@ const routes = [
         meta: { title: "Settings - Currency" },
       },
       // Payments
-   {
-  path: "payments",
-  name: "system-payments",
-  component: PaymentManagement,
-  meta: { title: "Payment History" },
-},
- {
+      {
+        path: "payments",
+        name: "system-payments",
+        component: PaymentManagement,
+        meta: { title: "Payment History" },
+      },
+      {
         path: "birthday",
         name: "Birthday Manager",
         component: Birthday,
         meta: { title: "Settings - Birthday Manager" },
-      }
-
+      },
     ],
   },
 
