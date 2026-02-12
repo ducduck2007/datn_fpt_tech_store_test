@@ -27,6 +27,12 @@ public class PromotionRequest {
     private List<Integer> productIds;
     private List<Integer> variantIds;
 
+    // ✅ VIP SUPPORT - Customer Groups
+    private List<String> customerTypes;  // REGULAR, VIP
+    private List<String> vipTiers;       // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
+
+    private BigDecimal minOrderAmount;
+
     private Integer priority = 0;
     private Boolean stackable = false;
     private Boolean isActive = true;
@@ -37,4 +43,5 @@ public class PromotionRequest {
     // Combo mua X tặng Y (ví dụ mua 2 tặng 1 => buyQty=2, getQty=1). Null/0 = không áp dụng
     private Integer buyQty;
     private Integer getQty;
+    
 }

@@ -2,11 +2,14 @@ package com.retailmanagement.repository;
 
 import com.retailmanagement.entity.Customer;
 import com.retailmanagement.entity.CustomerType;
+import com.retailmanagement.entity.VipTier;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.*;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -61,4 +64,85 @@ public interface CustomRes extends JpaRepository<Customer, Integer> {
             "AND MONTH(date_of_birth) = :month",
             nativeQuery = true)
     long countCustomersWithBirthdayInMonth(@Param("month") int month);
+
+
+    @Query("SELECT c FROM Customer c WHERE c.isActive = true " +
+            "AND c.loyaltyPoints >= :minPoints " +
+            "AND c.loyaltyPoints <= :maxPoints " +
+            "ORDER BY c.loyaltyPoints DESC")
+    List<Customer> findByLoyaltyPointsBetween(
+            @Param("minPoints") int minPoints,
+            @Param("maxPoints") int maxPoints
+    );
+    @Query("SELECT c FROM Customer c WHERE c.isActive = true " +
+            "AND c.vipTier = :vipTier " +
+            "ORDER BY c.loyaltyPoints DESC")
+    List<Customer> findByVipTier(@Param("vipTier") VipTier vipTier);
+
+    @Query("SELECT c FROM Customer c WHERE c.isActive = true " +
+            "AND c.vipTier = :vipTier " +
+            "AND c.loyaltyPoints >= :minPoints " +
+            "AND c.loyaltyPoints <= :maxPoints " +
+            "ORDER BY c.loyaltyPoints DESC")
+    List<Customer> findByVipTierAndLoyaltyPointsBetween(
+            @Param("vipTier") VipTier vipTier,
+            @Param("minPoints") int minPoints,
+            @Param("maxPoints") int maxPoints
+    );
+    // Add these methods to CustomRes.java interface
+
+    /**
+     * Tìm khách hàng theo khoảng chi tiêu
+     */
+    @Query("SELECT c FROM Customer c WHERE c.isActive = true " +
+            "AND c.totalSpent >= :minSpent " +
+            "AND c.totalSpent <= :maxSpent " +
+            "ORDER BY c.totalSpent DESC")
+    List<Customer> findByTotalSpentBetween(
+            @Param("minSpent") BigDecimal minSpent,
+            @Param("maxSpent") BigDecimal maxSpent
+    );
+
+    /**
+     * Tìm top N khách hàng theo tổng chi tiêu
+     */
+    @Query("SELECT c FROM Customer c WHERE c.isActive = true " +
+            "ORDER BY c.totalSpent DESC")
+    List<Customer> findTopByTotalSpent(Pageable pageable);
+
+    /**
+     * Tìm top N khách hàng theo VIP tier và chi tiêu
+     */
+    @Query("SELECT c FROM Customer c WHERE c.isActive = true " +
+            "AND c.vipTier = :vipTier " +
+            "ORDER BY c.totalSpent DESC")
+    List<Customer> findTopByVipTierAndTotalSpent(
+            @Param("vipTier") VipTier vipTier,
+            Pageable pageable
+    );
+
+    /**
+     * Lấy tổng chi tiêu của tất cả khách hàng
+     */
+    @Query("SELECT SUM(c.totalSpent) FROM Customer c WHERE c.isActive = true")
+    BigDecimal getTotalSpentAllCustomers();
+
+    /**
+     * Lấy tổng chi tiêu theo VIP tier
+     */
+    @Query("SELECT SUM(c.totalSpent) FROM Customer c WHERE c.isActive = true " +
+            "AND c.vipTier = :vipTier")
+    BigDecimal getTotalSpentByVipTier(@Param("vipTier") VipTier vipTier);
+
+    /**
+     * Đếm khách hàng theo khoảng chi tiêu
+     */
+    @Query("SELECT COUNT(c) FROM Customer c WHERE c.isActive = true " +
+            "AND c.totalSpent >= :minSpent " +
+            "AND c.totalSpent <= :maxSpent")
+    long countByTotalSpentBetween(
+            @Param("minSpent") BigDecimal minSpent,
+            @Param("maxSpent") BigDecimal maxSpent
+    );
+
 }

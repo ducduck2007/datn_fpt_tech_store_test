@@ -187,15 +187,20 @@ const cards = [
     to: "/system/settings/currency",
   },
   {
-    title: "Payment History",
-    desc: "View all payment transactions",
-    to: "/system/payments",
-  },
-  {
-    title: "Birthday Manager",
-    desc: "View all birthday",
-    to: "/system/birthday",
-  },
+  title: "Payment History",
+  desc: "View all payment transactions",
+  to: "/system/payments",
+},
+{
+   title: "Birthday Manager",
+  desc: "View all birthday",
+  to: "/system/birthday",
+},
+{
+   title: "Customer-spending",
+  desc: "Customer Spending",
+  to: "/system/customer-spending",
+}
 ];
 
 function reload() {

@@ -27,5 +27,34 @@ export const customersApi = {
   },
   getTierHistory(customerId) {
     return http.get(`/api/auth/customers/${customerId}/tier-history`);
+  },
+  listByPointsRange(minPoints, maxPoints) {
+    return http.get(`/api/auth/customers/points?min=${minPoints}&max=${maxPoints}`);
+  },
+  listByPointsRange(minPoints, maxPoints) {
+    return http.get(`/api/auth/customers/points?min=${minPoints}&max=${maxPoints}`);
+  },
+  listByVipTier(tier) {
+    return http.get(`/api/auth/customers/vip-tier/${tier}`);
+  },
+   listBySpendingRange(minSpent, maxSpent) {
+    return http.get(`/api/auth/customers/spending?min=${minSpent}&max=${maxSpent}`);
+  },
+  
+  listTopSpenders(limit = 10) {
+    return http.get(`/api/auth/customers/top-spenders?limit=${limit}`);
+  },
+  
+  listTopSpendersByVipTier(tier, limit = 10) {
+    return http.get(`/api/auth/customers/vip-tier/${tier}/top-spenders?limit=${limit}`);
+  },
+  
+  getSpendingStatistics() {
+    return http.get(`/api/auth/customers/spending-stats`);
+  },
+
+  // Fixed duplicate method
+  listByVipTierAndPoints(tier, minPoints, maxPoints) {
+    return http.get(`/api/auth/customers/vip-tier/${tier}/points?min=${minPoints}&max=${maxPoints}`);
   }
 };
