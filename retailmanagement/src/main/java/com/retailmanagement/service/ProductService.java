@@ -10,6 +10,7 @@ import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -178,29 +179,42 @@ public class ProductService {
     }
 
     public Page<ProductResponse> getProducts(int page, List<Integer> categoryIds, String keyword, String sortBy) {
-        String sortColumn = "created_at";
-        Sort.Direction direction = Sort.Direction.DESC;
-        if (sortBy != null) {
-            if (sortBy.contains("name")) sortColumn = "name";
-            if (sortBy.contains("asc")) direction = Sort.Direction.ASC;
-            if ("oldest".equals(sortBy)) {
-                sortColumn = "created_at";
-                direction = Sort.Direction.ASC;
-            }
-        }
-        Pageable pageable = PageRequest.of(page, 20, Sort.by(direction, sortColumn));
-        String searchKey = (keyword != null && !keyword.trim().isEmpty())
-                ? "%" + keyword.trim() + "%"
-                : null;
+        Pageable pageable = PageRequest.of(page, 20, Sort.by("created_at").descending());
+        String searchKey = (keyword != null && !keyword.trim().isEmpty()) ? "%" + keyword.trim() + "%" : null;
         boolean hasCategory = (categoryIds != null && !categoryIds.isEmpty());
         List<Integer> filterIds = hasCategory ? categoryIds : List.of(-1);
-        return productRepository.searchProducts(
+        Page<Product> productPage = productRepository.searchProducts(
                 searchKey,
                 filterIds,
                 hasCategory,
                 true,
                 pageable
-        ).map(this::mapToResponse);
+        );
+        Page<ProductResponse> responsePage = productPage.map(this::mapToResponse);
+        if (sortBy != null && !sortBy.equals("newest") && !sortBy.equals("oldest")) {
+            List<ProductResponse> content = new java.util.ArrayList<>(responsePage.getContent());
+            if ("price_asc".equals(sortBy)) {
+                content.sort(java.util.Comparator.comparing(p ->
+                        p.getMinPrice() != null ? p.getMinPrice() : java.math.BigDecimal.valueOf(Double.MAX_VALUE)));
+            } else if ("price_desc".equals(sortBy)) {
+                content.sort(java.util.Comparator.comparing((ProductResponse p) ->
+                        p.getMinPrice() != null ? p.getMinPrice() : java.math.BigDecimal.ZERO).reversed());
+            }
+            else if ("best_selling".equals(sortBy)) {
+                List<Product> products = new java.util.ArrayList<>(productPage.getContent());
+                products.sort(java.util.Comparator.comparing((Product p) ->
+                        p.getSoldCount() != null ? p.getSoldCount() : 0).reversed());
+                content = products.stream().map(this::mapToResponse).toList();
+            }
+            else if ("name_asc".equals(sortBy)) {
+                content.sort(java.util.Comparator.comparing(ProductResponse::getName));
+            }
+            else if ("name_desc".equals(sortBy)) {
+                content.sort(java.util.Comparator.comparing(ProductResponse::getName).reversed());
+            }
+            return new PageImpl<>(content, pageable, responsePage.getTotalElements());
+        }
+        return responsePage;
     }
 
     public ProductResponse getProductById(Integer id) {
@@ -215,6 +229,24 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
         product.setIsVisible(false);
         productRepository.save(product);
+    }
+
+    public Page<ProductResponse> getTrashProducts(int page) {
+        Pageable pageable = PageRequest.of(page, 20, Sort.by("updatedAt").descending());
+        return productRepository.findByIsVisibleFalse(pageable).map(this::mapToResponse);
+    }
+
+    @Transactional
+    public void restoreProduct(Integer id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+        product.setIsVisible(true);
+        productRepository.save(product);
+    }
+
+    @Transactional
+    public void hardDeleteProduct(Integer id) {
+        productRepository.deleteById(id);
     }
 
     /**
@@ -239,12 +271,14 @@ public class ProductService {
                 imgDto.setIsPrimary(img.getIsPrimary());
                 return imgDto;
             }).toList());
-            images.stream().filter(Image::getIsPrimary).findFirst()
+            images.stream().filter(img -> Boolean.TRUE.equals(img.getIsPrimary())).findFirst()
                     .ifPresent(img -> dto.setImageUrl(img.getUrl()));
         }
 
-        imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
-                .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+        if (dto.getImageUrl() == null) {
+            imageRepository.findFirstByProductIdAndIsPrimaryTrue(product.getId())
+                    .ifPresent(img -> dto.setImageUrl(img.getUrl()));
+        }
 
         LocalDateTime now = LocalDateTime.now();
         productVariantRepository.findByProduct_Id(product.getId()).stream()
@@ -303,4 +337,27 @@ public class ProductService {
         Files.copy(file.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
         return fileName;
     }
+
+    @Transactional
+    public void setPrimaryImage(Integer productId, Long imageId) {
+        List<Image> images = imageRepository.findByProductId(productId);
+
+        boolean exists = images.stream().anyMatch(img -> img.getId().equals(imageId));
+        if (!exists) {
+            throw new RuntimeException("Hình ảnh không thuộc sản phẩm này!");
+        }
+
+        for (Image img : images) {
+            if (img.getId().equals(imageId)) {
+                img.setIsPrimary(true);
+                img.setSortOrder(0);
+            } else {
+                img.setIsPrimary(false);
+                img.setSortOrder(1);
+            }
+        }
+        imageRepository.saveAll(images);
+    }
+
+
 }

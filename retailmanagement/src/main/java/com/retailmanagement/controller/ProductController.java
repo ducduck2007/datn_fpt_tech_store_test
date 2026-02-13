@@ -49,4 +49,27 @@ public class ProductController {
         productService.softDeleteProduct(id);
         return ResponseEntity.ok("Đã ẩn sản phẩm thành công (Soft Delete)");
     }
+
+    @GetMapping("/trash")
+    public ResponseEntity<Page<ProductResponse>> getTrash(@RequestParam(defaultValue = "0") int page) {
+        return ResponseEntity.ok(productService.getTrashProducts(page));
+    }
+
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restoreProduct(@PathVariable Integer id) {
+        productService.restoreProduct(id);
+        return ResponseEntity.ok("Khôi phục sản phẩm thành công");
+    }
+
+    @DeleteMapping("/{id}/hard")
+    public ResponseEntity<?> hardDeleteProduct(@PathVariable Integer id) {
+        productService.hardDeleteProduct(id);
+        return ResponseEntity.ok("Đã xóa vĩnh viễn sản phẩm");
+    }
+
+    @PutMapping("/{id}/images/{imageId}/primary")
+    public ResponseEntity<?> setPrimaryImage(@PathVariable Integer id, @PathVariable Long imageId) {
+        productService.setPrimaryImage(id, imageId);
+        return ResponseEntity.ok("Đã đặt làm ảnh đại diện thành công");
+    }
 }

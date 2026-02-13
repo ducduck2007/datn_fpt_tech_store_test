@@ -6,19 +6,27 @@
           <div class="kicker">Admin</div>
           <div class="title">Products Management</div>
           <div class="muted">
-            Supports: Search, Multi-Category Filter, Sort, Soft Delete
+            Supports: Search, Multi-Category Filter, Sort, Soft Delete & Trash
           </div>
         </div>
         <div class="d-flex gap-2">
+          <!-- [MỚI] Bộ chuyển đổi: Danh sách chính <-> Thùng rác -->
+          <el-radio-group v-model="viewMode" size="small" @change="load" style="margin-right: 10px;">
+            <el-radio-button label="active">Active</el-radio-button>
+            <el-radio-button label="trash">Trash Bin</el-radio-button>
+          </el-radio-group>
+
           <el-button @click="load" :loading="loading">Reload</el-button>
-          <el-button type="primary" @click="openCreateDialog">Add product</el-button>
+          
+          <!-- [MỚI] Chỉ hiện nút Add khi ở chế độ Active -->
+          <el-button v-if="viewMode === 'active'" type="primary" @click="openCreateDialog">Add product</el-button>
         </div>
       </div>
 
       <el-divider />
 
-      <!-- KHU VỰC BỘ LỌC (FILTER) -->
-      <div class="row g-3">
+      <!-- KHU VỰC BỘ LỌC (Chỉ hiện khi ở chế độ Active) -->
+      <div class="row g-3" v-if="viewMode === 'active'">
         <!-- 1. Ô Tìm kiếm (Search) -->
         <div class="col-12 col-md-4">
           <el-input
@@ -58,15 +66,19 @@
         <!-- 3. Sắp xếp (Sort) -->
         <div class="col-12 col-md-4">
           <el-select v-model="sortBy" placeholder="Sort by" @change="onFilter" style="width: 100%">
-            <el-option label="Newest" value="newest" />
-            <el-option label="Oldest" value="oldest" />
-            <el-option label="Name A-Z" value="name_asc" />
-            <el-option label="Name Z-A" value="name_desc" />
+            <el-option label="Newest (Mới nhất)" value="newest" />
+            <el-option label="Oldest (Cũ nhất)" value="oldest" />
+            <!-- [MỚI] Thêm các option sắp xếp tuần 5 -->
+            <el-option label="Best Selling (Bán chạy)" value="best_selling" />
+            <el-option label="Price: Low -> High" value="price_asc" />
+            <el-option label="Price: High -> Low" value="price_desc" />
+            <el-option label="Name: A -> Z" value="name_asc" />
+            <el-option label="Name: Z -> A" value="name_desc" />
           </el-select>
         </div>
       </div>
 
-      <el-divider />
+      <el-divider v-if="viewMode === 'active'" />
 
       <!-- DANH SÁCH SẢN PHẨM -->
       <el-table :data="rows" border :loading="loading" style="width: 100%">
@@ -87,6 +99,10 @@
           <template #default="{ row }">
             <div class="fw-bold">{{ row.name }}</div>
             <div class="small text-muted">{{ row.sku }}</div>
+            <!-- [MỚI] Hiển thị giá Min nếu có -->
+            <div v-if="row.minPrice" class="small text-danger fw-bold">
+               From: {{ formatCurrency(row.minPrice) }}
+            </div>
           </template>
         </el-table-column>
 
@@ -101,19 +117,36 @@
         <el-table-column prop="isVisible" label="Status" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.isVisible ? 'success' : 'danger'" size="small">
-              {{ row.isVisible ? "Active" : "Hidden" }}
+              {{ row.isVisible ? "Active" : "Deleted" }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column label="Actions" width="140" align="center">
+        <el-table-column label="Actions" width="160" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="onEdit(row)">Edit</el-button>
-            <el-popconfirm title="Hide this product?" @confirm="onDelete(row.id)">
-              <template #reference>
-                <el-button type="danger" link size="small">Delete</el-button>
-              </template>
-            </el-popconfirm>
+            <!-- [MỚI] Chế độ Active: Hiện nút Sửa / Xóa mềm -->
+            <div v-if="viewMode === 'active'">
+              <el-button type="primary" link size="small" @click="onEdit(row)">Edit</el-button>
+              <el-popconfirm title="Move to Trash?" @confirm="onDelete(row.id)">
+                <template #reference>
+                  <el-button type="danger" link size="small">Delete</el-button>
+                </template>
+              </el-popconfirm>
+            </div>
+
+            <!-- [MỚI] Chế độ Trash: Hiện nút Khôi phục / Xóa cứng -->
+            <div v-else>
+              <el-popconfirm title="Restore this product?" @confirm="onRestore(row.id)">
+                <template #reference>
+                  <el-button type="success" link size="small">Restore</el-button>
+                </template>
+              </el-popconfirm>
+              <el-popconfirm title="Permanently delete?" @confirm="onHardDelete(row.id)">
+                <template #reference>
+                  <el-button type="danger" link size="small">Kill</el-button>
+                </template>
+              </el-popconfirm>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -179,28 +212,44 @@
           </el-form-item>
         </div>
 
-        <!-- [SỬA] Hiển thị và Xóa Ảnh Cũ (Gallery) -->
+        <!-- [MỚI] Hiển thị và Quản lý Gallery (Set Primary / Delete) -->
         <div class="col-12" v-if="dlg.isEdit && dlg.existingImages.length > 0">
-          <label class="el-form-item__label">Current Images</label>
-          <div class="d-flex gap-2 flex-wrap">
-            <div v-for="img in dlg.existingImages" :key="img.id" class="position-relative" style="width: 100px; height: 100px">
+          <label class="el-form-item__label">Gallery Manager</label>
+          <div class="d-flex gap-2 flex-wrap p-2 border rounded bg-light">
+            <div v-for="img in dlg.existingImages" :key="img.id" class="position-relative text-center" style="width: 110px;">
               <el-image 
                 :src="fixImageUrl(img.url)" 
-                style="width: 100%; height: 100%; border-radius: 4px; border: 1px solid #ddd" 
+                style="width: 100px; height: 100px; border-radius: 4px; border: 2px solid"
+                :style="{ borderColor: img.isPrimary ? '#67c23a' : '#dcdfe6' }"
                 fit="cover"
               />
-              <!-- Nút Xóa Ảnh: Gọi hàm markImageForDelete -->
-              <el-button 
-                type="danger" 
-                icon="Delete" 
-                circle 
-                size="small" 
-                class="position-absolute top-0 end-0 m-1"
-                style="padding: 4px; min-height: auto;"
-                @click="markImageForDelete(img.id)"
-              />
-              <!-- Nhãn MAIN cho ảnh chính -->
-              <div v-if="img.isPrimary" class="position-absolute bottom-0 start-0 bg-success text-white px-1 small" style="font-size: 10px; border-radius: 0 4px 0 0">MAIN</div>
+              
+              <!-- Toolbar -->
+              <div class="d-flex justify-content-between px-1 mt-1">
+                 <!-- Nút Set Primary -->
+                 <el-button 
+                    v-if="!img.isPrimary"
+                    type="warning" 
+                    icon="Star" 
+                    circle 
+                    size="small" 
+                    title="Set as Main"
+                    @click="setPrimaryImage(img.id)"
+                  />
+                  
+                  <!-- Nút Xóa -->
+                  <el-button 
+                    type="danger" 
+                    icon="Delete" 
+                    circle 
+                    size="small" 
+                    title="Delete"
+                    @click="markImageForDelete(img.id)"
+                  />
+              </div>
+
+              <!-- Nhãn MAIN -->
+              <div v-if="img.isPrimary" class="position-absolute top-0 start-0 bg-success text-white px-1 small" style="font-size: 10px; border-radius: 4px 0 4px 0;">MAIN</div>
             </div>
           </div>
         </div>
@@ -233,9 +282,15 @@ import { productsApi } from "../../api/products.api";
 import { toast } from "../../ui/toast";
 import axios from 'axios'; 
 
+// [MỚI] Biến cấu hình URL API gốc (dùng cho các lệnh gọi axios trực tiếp)
+const BASE_URL_API = 'http://localhost:8080/api/products';
+
 const loading = ref(false);
 const categories = ref([]);
 const rows = ref([]);
+
+// [MỚI] Biến viewMode: 'active' (DS chính) hoặc 'trash' (Thùng rác)
+const viewMode = ref('active'); 
 
 // Filter params
 const page = ref(0);
@@ -258,6 +313,12 @@ function fixImageUrl(url) {
   return `http://localhost:8080${url}`;
 }
 
+// [MỚI] Format tiền tệ VNĐ
+function formatCurrency(val) {
+  if (!val) return '0 ₫';
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+}
+
 // --- API Calls ---
 async function loadCategories() {
   try {
@@ -272,18 +333,26 @@ async function loadCategories() {
 async function load() {
   loading.value = true;
   try {
-    const params = {
-      page: page.value,
-      keyword: keyword.value || undefined,
-      sortBy: sortBy.value || undefined
-    };
+    let res;
     
-    if (categoryIds.value && categoryIds.value.length > 0) {
-      params.categoryIds = categoryIds.value.join(',');
+    // [MỚI] Logic phân luồng Active / Trash
+    if (viewMode.value === 'trash') {
+        // Gọi API thùng rác
+        res = await axios.get(`${BASE_URL_API}/trash`, { params: { page: page.value } });
+    } else {
+        // Gọi API danh sách thường
+        const params = {
+          page: page.value,
+          keyword: keyword.value || undefined,
+          sortBy: sortBy.value || undefined
+        };
+        
+        if (categoryIds.value && categoryIds.value.length > 0) {
+          params.categoryIds = categoryIds.value.join(',');
+        }
+        res = await productsApi.list(params); 
     }
 
-    const res = await productsApi.list(params); 
-    
     const pageData = res.data?.data || res.data;
     rows.value = normalizeProducts(pageData.content || []);
     totalElements.value = pageData.totalElements || 0;
@@ -306,6 +375,38 @@ function onPageChange(val) {
   load();
 }
 
+// --- [MỚI] Các hành động Thùng Rác / Restore ---
+async function onRestore(id) {
+    try {
+        await axios.put(`${BASE_URL_API}/${id}/restore`);
+        toast("Product restored!", "success");
+        load();
+    } catch(e) { toast("Restore failed", "error"); }
+}
+
+async function onHardDelete(id) {
+    try {
+        await axios.delete(`${BASE_URL_API}/${id}/hard`);
+        toast("Product permanently deleted!", "success");
+        load();
+    } catch(e) { toast("Delete failed", "error"); }
+}
+
+// --- [MỚI] Hành động Gallery (Set Primary) ---
+async function setPrimaryImage(imgId) {
+    try {
+        // Gọi API set primary
+        await axios.put(`${BASE_URL_API}/${dlg.editId}/images/${imgId}/primary`);
+        toast("Set as Main Image success", "success");
+        // Reload lại form edit để cập nhật giao diện
+        const res = await productsApi.get(dlg.editId);
+        const data = res.data?.data || res.data;
+        dlg.existingImages = data.images || [];
+    } catch(e) {
+        toast("Set primary failed", "error");
+    }
+}
+
 // --- Create / Edit Dialog ---
 const dlg = reactive({
   open: false,
@@ -314,8 +415,8 @@ const dlg = reactive({
   alert: "",
   editId: null,
   attributesList: [], 
-  existingImages: [], // [THÊM] Chứa danh sách ảnh cũ lấy từ API
-  idsToDelete: [],    // [THÊM] Chứa ID ảnh muốn xóa
+  existingImages: [], // Chứa danh sách ảnh cũ lấy từ API
+  idsToDelete: [],    // Chứa ID ảnh muốn xóa
   form: {
     name: "",
     sku: "",
@@ -340,7 +441,7 @@ function openCreateDialog() {
   dlg.open = true;
 }
 
-// [SỬA] Hàm Edit: Gọi API lấy chi tiết để hiển thị ảnh cũ
+// Hàm Edit: Gọi API lấy chi tiết
 async function onEdit(row) {
   dlg.isEdit = true;
   dlg.editId = row.id;
@@ -351,7 +452,6 @@ async function onEdit(row) {
   dlg.loading = true; 
 
   try {
-    // Gọi API lấy chi tiết sản phẩm
     const res = await productsApi.get(row.id);
     const data = res.data?.data || res.data;
 
@@ -360,15 +460,24 @@ async function onEdit(row) {
       sku: data.sku,
       description: data.description, 
       isVisible: data.isVisible,
-      // Fix: API trả về categoryId đơn hoặc list, ở đây giả sử đơn, cần xử lý thành mảng
       categoryIds: data.categoryId ? [data.categoryId] : [], 
       galleryImages: []
     };
     
-    // [QUAN TRỌNG] Gán danh sách ảnh cũ từ API vào biến state
+    // Gán danh sách ảnh cũ từ API
     dlg.existingImages = data.images || [];
     
-    dlg.attributesList = []; 
+    // Parse attributes từ JSON string
+    if (data.attributes) {
+      try {
+        const attrs = JSON.parse(data.attributes);
+        dlg.attributesList = Array.isArray(attrs) ? attrs : [];
+      } catch {
+        dlg.attributesList = [];
+      }
+    } else {
+        dlg.attributesList = []; 
+    }
 
   } catch(e) {
     console.error(e);
@@ -378,11 +487,9 @@ async function onEdit(row) {
   }
 }
 
-// [SỬA] Hàm đánh dấu xóa ảnh
+// Hàm đánh dấu xóa ảnh
 function markImageForDelete(imageId) {
-  // Thêm ID vào danh sách cần xóa
   dlg.idsToDelete.push(imageId);
-  // Ẩn ảnh đó khỏi giao diện ngay lập tức để người dùng thấy là đã xóa
   dlg.existingImages = dlg.existingImages.filter(img => img.id !== imageId);
 }
 
@@ -398,7 +505,7 @@ function onPickFiles(e) {
   dlg.form.galleryImages = Array.from(e.target.files);
 }
 
-// [SỬA] Hàm Submit: Gửi idsToDelete lên Server
+// Hàm Submit
 async function submitForm() {
   dlg.alert = "";
   if (!dlg.form.name || !dlg.form.sku) {
@@ -422,7 +529,7 @@ async function submitForm() {
       formData.append("galleryImages", file);
     });
 
-    // [QUAN TRỌNG] Gửi danh sách ID ảnh cần xóa lên Backend
+    // Gửi danh sách ID ảnh cần xóa lên Backend
     dlg.idsToDelete.forEach(id => {
       formData.append("idsToDelete", id);
     });
@@ -433,10 +540,10 @@ async function submitForm() {
     }
 
     if (dlg.isEdit) {
-      await axios.put(`http://localhost:8080/api/products/${dlg.editId}`, formData);
+      await axios.put(`${BASE_URL_API}/${dlg.editId}`, formData);
       toast("Product updated.", "success");
     } else {
-      await axios.post(`http://localhost:8080/api/products`, formData);
+      await axios.post(`${BASE_URL_API}`, formData);
       toast("Product created.", "success");
     }
 
@@ -453,8 +560,9 @@ async function submitForm() {
 
 async function onDelete(id) {
   try {
-    await axios.delete(`http://localhost:8080/api/products/${id}`);
-    toast("Product hidden (soft deleted).", "success");
+    // Gọi API xóa mềm (chuyển vào trash)
+    await axios.delete(`${BASE_URL_API}/${id}`);
+    toast("Moved to Trash.", "success");
     await load();
   } catch (e) {
     toast("Delete failed.", "error");
