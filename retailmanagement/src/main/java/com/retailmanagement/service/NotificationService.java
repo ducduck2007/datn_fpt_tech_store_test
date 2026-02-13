@@ -2,9 +2,7 @@ package com.retailmanagement.service;
 
 
 import com.retailmanagement.dto.response.CustomerBirthdayResponse;
-import com.retailmanagement.entity.Customer;
-import com.retailmanagement.entity.Notification;
-import com.retailmanagement.entity.NotificationType;
+import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -344,5 +342,147 @@ public class NotificationService {
                 .loyaltyPoints(customer.getLoyaltyPoints())
                 .totalSpent(customer.getTotalSpent())
                 .build();
+    }
+    @Transactional
+    public void createTierUpgradeNotification(Integer customerId, String tierName, int pointsGap) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+
+        // Kiểm tra xem đã có thông báo tương tự trong 7 ngày chưa
+        LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
+        boolean exists = notificationRepository.existsByCustomerIdAndTypeAndCreatedAtBetween(
+                customer.getId(),
+                NotificationType.VIP_TIER_UPGRADE,
+                weekAgo,
+                LocalDateTime.now()
+        );
+
+        if (!exists) {
+            String message;
+            if (pointsGap <= 500) {
+                message = String.format(
+                        "🔥 Bạn chỉ còn thiếu %,d điểm nữa là lên hạng %s! " +
+                                "Hoàn tất một đơn hàng nhỏ để nhận ưu đãi tốt hơn ngay!",
+                        pointsGap, tierName
+                );
+            } else {
+                message = String.format(
+                        "⭐ Bạn sắp đạt hạng %s với %,d điểm nữa! " +
+                                "Tiếp tục mua sắm để tận hưởng nhiều đặc quyền hơn.",
+                        pointsGap, tierName
+                );
+            }
+
+            Notification notification = Notification.builder()
+                    .customer(customer)
+                    .type(NotificationType.VIP_TIER_UPGRADE)
+                    .title("🎯 Bạn sắp lên hạng!")
+                    .message(message)
+                    .isRead(false)
+                    .build();
+
+            notificationRepository.save(notification);
+        }
+    }
+
+    /**
+     * Tạo thông báo lên VIP
+     */
+    @Transactional
+    public void createUpgradeToVipNotification(Integer customerId, int pointsNeeded) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+
+        // Chỉ gửi nếu khách hàng chưa phải VIP
+        if (customer.getCustomerType() == CustomerType.REGULAR) {
+            LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
+            boolean exists = notificationRepository.existsByCustomerIdAndTypeAndCreatedAtBetween(
+                    customer.getId(),
+                    NotificationType.VIP_TIER_UPGRADE,
+                    weekAgo,
+                    LocalDateTime.now()
+            );
+
+            if (!exists) {
+                String message = String.format(
+                        "👑 Chỉ còn %,d điểm nữa, bạn sẽ trở thành khách hàng VIP! " +
+                                "Khách VIP được giảm giá cao hơn, ưu đãi độc quyền và nhiều đặc quyền khác. " +
+                                "Mua sắm ngay để nâng cấp!",
+                        pointsNeeded
+                );
+
+                Notification notification = Notification.builder()
+                        .customer(customer)
+                        .type(NotificationType.VIP_TIER_UPGRADE)
+                        .title("👑 Sắp trở thành VIP!")
+                        .message(message)
+                        .isRead(false)
+                        .build();
+
+                notificationRepository.save(notification);
+            }
+        }
+    }
+
+    /**
+     * Tự động kiểm tra và gửi thông báo lên hạng
+     * (Gọi định kỳ hoặc sau mỗi giao dịch)
+     */
+    @Transactional
+    public void checkAndSendTierUpgradeNotifications() {
+        // Tìm khách hàng sắp lên hạng (trong 20% cuối)
+        List<Customer> customers = customerRepository.findAll().stream()
+                .filter(Customer::getIsActive)
+                .toList();
+
+        for (Customer customer : customers) {
+            int currentPoints = customer.getLoyaltyPoints() != null ? customer.getLoyaltyPoints() : 0;
+            VipTier currentTier = customer.getVipTier();
+
+            // Kiểm tra lên hạng VIP tier
+            VipTier nextTier = getNextTier(currentTier);
+            if (nextTier != null) {
+                int pointsGap = nextTier.getMinPoints() - currentPoints;
+                int tierRange = currentTier != null
+                        ? nextTier.getMinPoints() - currentTier.getMinPoints()
+                        : nextTier.getMinPoints();
+
+                double progress = tierRange > 0
+                        ? (double)(tierRange - pointsGap) / tierRange * 100
+                        : 0;
+
+                // Nếu đã hoàn thành >= 80% (trong 20% cuối)
+                if (progress >= 80 && pointsGap > 0) {
+                    createTierUpgradeNotification(customer.getId(), nextTier.getDisplayName(), pointsGap);
+                }
+            }
+
+            // Kiểm tra lên VIP
+            if (customer.getCustomerType() == CustomerType.REGULAR) {
+                int goldMinPoints = VipTier.GOLD.getMinPoints();
+                if (currentPoints >= goldMinPoints * 0.7 && currentPoints < goldMinPoints) {
+                    // Đã đạt 70% điểm cần thiết để lên VIP
+                    createUpgradeToVipNotification(customer.getId(), goldMinPoints - currentPoints);
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper method: Lấy hạng tiếp theo
+     */
+    private VipTier getNextTier(VipTier currentTier) {
+        if (currentTier == null) {
+            return VipTier.BRONZE;
+        }
+
+        VipTier[] tiers = VipTier.values();
+        int currentIndex = currentTier.ordinal();
+
+        if (currentIndex < tiers.length - 1) {
+            return tiers[currentIndex + 1];
+        }
+
+        return null;
     }
 }

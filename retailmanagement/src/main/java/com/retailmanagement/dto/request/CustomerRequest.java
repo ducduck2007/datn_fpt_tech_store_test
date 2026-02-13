@@ -16,6 +16,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class CustomerRequest {
+    private Integer userId;
     @NotBlank(message = "Không được để trống tên khách hàng")
     @Size(max = 200, message = "Tên không được vượt quá 200 ký tự")
     private String fullName;

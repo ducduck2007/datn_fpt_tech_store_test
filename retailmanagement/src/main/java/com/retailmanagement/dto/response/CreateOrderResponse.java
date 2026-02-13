@@ -1,7 +1,9 @@
 package com.retailmanagement.dto.response;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -9,6 +11,8 @@ import java.util.List;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class CreateOrderResponse {
 
     private Long orderId;
@@ -35,7 +39,12 @@ public class CreateOrderResponse {
 
     // Items (list đơn giản)
     private List<Item> items;
-
+    //
+    private BigDecimal vipDiscountRate;    // VIP tier discount percentage
+    private BigDecimal vipDiscount;         // VIP tier discount amount
+    private BigDecimal spinDiscountRate;    // Spin wheel discount percentage
+    private BigDecimal spinDiscount;        // Spin wheel discount amount
+    private boolean hasSpinBonus;
     @Data
     @AllArgsConstructor
     public static class Item {
@@ -54,5 +63,3 @@ public class CreateOrderResponse {
         private BigDecimal lineTotal;
     }
 }
-
-
