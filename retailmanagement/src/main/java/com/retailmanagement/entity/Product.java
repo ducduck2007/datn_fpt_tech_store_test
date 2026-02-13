@@ -47,4 +47,7 @@ public class Product {
 
     @Column(name = "attributes_json", columnDefinition = "nvarchar(max)")
     private String attributesJson;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
 }

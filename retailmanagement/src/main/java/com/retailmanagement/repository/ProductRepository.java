@@ -25,26 +25,31 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     Page<Product> findByCategoryId(@Param("categoryId") Integer categoryId, Pageable pageable);
 
     // Tìm kiếm Nâng cao: Tên, SKU, Thuộc tính, Lọc nhiều danh mục
-    @Query(value = "SELECT DISTINCT p.* FROM products p " +
-            "LEFT JOIN product_categories pc ON p.id = pc.product_id " +
-            "WHERE " +
-            "(:keyword IS NULL OR :keyword = '' OR " +
-            "p.name LIKE :keyword% OR " +
-            "p.sku LIKE :keyword% OR " +
-            "p.attributes_json LIKE :keyword%) " +
-            // Logic: Nếu hasCategory = 0 (false) -> bỏ qua lọc IN. Nếu = 1 (true) -> lọc IN
-            "AND (:hasCategory = 0 OR pc.category_id IN (:categoryIds)) " +
-            "AND (:isVisible IS NULL OR p.is_visible = :isVisible)",
+    @Query(value = """
+            SELECT DISTINCT p.*, 
+                   (SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1) as min_price
+            FROM products p 
+            LEFT JOIN product_categories pc ON p.id = pc.product_id 
+            WHERE 
+            (:keyword IS NULL OR :keyword = '' OR 
+            p.name LIKE :keyword OR 
+            p.sku LIKE :keyword OR 
+            p.attributes_json LIKE :keyword) 
+            AND (:hasCategory = 0 OR pc.category_id IN (:categoryIds)) 
+            AND (:isVisible IS NULL OR p.is_visible = :isVisible)
+            """,
 
-            countQuery = "SELECT count(DISTINCT p.id) FROM products p " +
-                    "LEFT JOIN product_categories pc ON p.id = pc.product_id " +
-                    "WHERE " +
-                    "(:keyword IS NULL OR :keyword = '' OR " +
-                    "p.name LIKE :keyword% OR " +
-                    "p.sku LIKE :keyword% OR " +
-                    "p.attributes_json LIKE :keyword%) " +
-                    "AND (:hasCategory = 0 OR pc.category_id IN (:categoryIds)) " +
-                    "AND (:isVisible IS NULL OR p.is_visible = :isVisible)",
+            countQuery = """
+            SELECT count(DISTINCT p.id) FROM products p 
+            LEFT JOIN product_categories pc ON p.id = pc.product_id 
+            WHERE 
+            (:keyword IS NULL OR :keyword = '' OR 
+            p.name LIKE :keyword OR 
+            p.sku LIKE :keyword OR 
+            p.attributes_json LIKE :keyword) 
+            AND (:hasCategory = 0 OR pc.category_id IN (:categoryIds)) 
+            AND (:isVisible IS NULL OR p.is_visible = :isVisible)
+            """,
             nativeQuery = true
     )
     Page<Product> searchProducts(@Param("keyword") String keyword,
@@ -52,4 +57,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
                                  @Param("hasCategory") boolean hasCategory,
                                  @Param("isVisible") Boolean isVisible,
                                  Pageable pageable);
+
+    // Tìm danh sách sản phẩm trong thùng rác (đã xóa mềm)
+    Page<Product> findByIsVisibleFalse(Pageable pageable);
 }
