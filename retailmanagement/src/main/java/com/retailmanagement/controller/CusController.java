@@ -7,6 +7,7 @@ import com.retailmanagement.dto.response.LoyaltyLedgerResponse;
 import com.retailmanagement.entity.CustomerType;
 import com.retailmanagement.service.CustomerService;
 import com.retailmanagement.service.LoyaltyHistoryService;
+import com.retailmanagement.service.SpinWheelService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,8 @@ public class CusController {
     private CustomerService cusservice;
     @Autowired
     private LoyaltyHistoryService loyaltyHistoryService;
+    @Autowired
+    private SpinWheelService spinWheelService;
     @PostMapping("")
     public ResponseEntity<CustomerResponse> addCustomer(@Valid @RequestBody CustomerRequest cus) {
        CustomerResponse response= cusservice.create(cus);
@@ -228,5 +231,81 @@ public class CusController {
     public ResponseEntity<Map<String, Object>> getSpendingStatistics() {
         Map<String, Object> stats = cusservice.getSpendingStatistics();
         return ResponseEntity.ok(stats);
+    }
+    @GetMapping("/spin-wheel/status")
+    public ResponseEntity<Map<String, Object>> getSpinWheelStatus() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String currentUsername = authentication.getName();
+        CustomerResponse profile = cusservice.findByEmail(currentUsername);
+
+        if (profile == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        Map<String, Object> status = spinWheelService.getSpinStatus(profile.getId());
+        return ResponseEntity.ok(status);
+    }
+
+    /**
+     * Perform spin wheel
+     * POST /api/auth/customers/spin-wheel/spin
+     */
+    @PostMapping("/spin-wheel/spin")
+    public ResponseEntity<Map<String, Object>> spinWheel() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String currentUsername = authentication.getName();
+        CustomerResponse profile = cusservice.findByEmail(currentUsername);
+
+        if (profile == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        try {
+            Map<String, Object> result = spinWheelService.spin(profile.getId());
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get spin wheel history for current customer
+     * GET /api/auth/customers/spin-wheel/history
+     */
+    @GetMapping("/spin-wheel/history")
+    public ResponseEntity<List<Map<String, Object>>> getSpinWheelHistory() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String currentUsername = authentication.getName();
+        CustomerResponse profile = cusservice.findByEmail(currentUsername);
+
+        if (profile == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        List<Map<String, Object>> history = spinWheelService.getSpinHistory(profile.getId());
+        return ResponseEntity.ok(history);
+    }
+
+    /**
+     * Get prize options for spin wheel display
+     * GET /api/auth/customers/spin-wheel/prizes
+     */
+    @GetMapping("/spin-wheel/prizes")
+    public ResponseEntity<List<Map<String, Object>>> getPrizeOptions() {
+        List<Map<String, Object>> prizes = spinWheelService.getPrizeOptions();
+        return ResponseEntity.ok(prizes);
     }
 }

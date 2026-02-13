@@ -2,20 +2,15 @@
   <div class="container-xl">
     <el-card shadow="never">
       <!-- Header -->
-      <div
-        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
-      >
+      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
         <div>
           <div class="kicker">Order</div>
           <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
           <div class="muted">
-            <el-tag :type="statusType" size="large">{{
-              detail?.status
-            }}</el-tag>
+            <el-tag :type="statusType" size="large">{{ detail?.status }}</el-tag>
             <el-tag class="ms-2" :type="paymentStatusType" size="large">
               Payment: {{ detail?.paymentStatus }}
             </el-tag>
-            <!-- 🔄 TRẠNG THÁI TRẢ HÀNG (NEW – KHÔNG ĐỤNG LOGIC CŨ) -->
             <el-tag
               v-if="isReturned(detail?.status)"
               type="warning"
@@ -27,16 +22,11 @@
           </div>
         </div>
         <div class="d-flex gap-2">
-          <el-button @click="$router.push('/orders/new')"
-            >Create another</el-button
-          >
+          <el-button @click="$router.push('/orders/new')">Create another</el-button>
           <el-button @click="reload" :loading="loading">Reload</el-button>
 
-          <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
           <el-button
-            v-if="
-              detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'
-            "
+            v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'"
             type="primary"
             @click="showPaymentDialog = true"
           >
@@ -44,13 +34,8 @@
             Thanh toán
           </el-button>
 
-          <!-- ✅ NÚT HỦY ĐƠN - Cho phép hủy cả đơn đã thanh toán -->
           <el-button
-            v-if="
-              detail?.status === 'PENDING' ||
-              detail?.status === 'PAID' ||
-              detail?.status === 'SHIPPING'
-            "
+            v-if="detail?.status === 'PENDING' || detail?.status === 'PAID' || detail?.status === 'SHIPPING'"
             type="danger"
             @click="showCancelDialog = true"
           >
@@ -58,7 +43,6 @@
             Hủy đơn
           </el-button>
 
-          <!-- Nút yêu cầu trả hàng -->
           <el-button
             v-if="detail?.status === 'DELIVERED' && !isReturned(detail?.status)"
             type="warning"
@@ -93,6 +77,27 @@
           </div>
         </div>
 
+        <!-- Discount Breakdown Alert -->
+        <div v-if="hasDiscountInfo" class="col-12">
+          <el-alert
+            :title="`💰 Ưu đãi áp dụng: Tổng giảm ${formatMoney(detail.discountTotal)}`"
+            type="success"
+            :closable="false"
+            show-icon
+          >
+            <div class="discount-details">
+              <div v-if="detail.vipDiscountRate > 0" class="discount-item">
+                <span class="discount-label">🏆 VIP {{ detail.vipDiscountRate }}%:</span>
+                <span class="discount-value">-{{ formatMoney(detail.vipDiscount) }}</span>
+              </div>
+              <div v-if="detail.spinDiscountRate > 0" class="discount-item">
+                <span class="discount-label">🎡 Vòng quay {{ detail.spinDiscountRate }}%:</span>
+                <span class="discount-value">-{{ formatMoney(detail.spinDiscount) }}</span>
+              </div>
+            </div>
+          </el-alert>
+        </div>
+
         <!-- Items Table -->
         <div class="col-12">
           <h5 class="mb-2">Chi tiết sản phẩm</h5>
@@ -119,7 +124,10 @@
 
             <el-table-column label="Giảm giá" width="150" align="right">
               <template #default="{ row }">
-                {{ formatMoney(row.discount) }}
+                <span v-if="row.discount > 0" class="text-danger">
+                  -{{ formatMoney(row.discount) }}
+                </span>
+                <span v-else class="text-muted">—</span>
               </template>
             </el-table-column>
 
@@ -138,11 +146,17 @@
               <span>Tạm tính:</span>
               <strong>{{ formatMoney(detail.subtotal) }}</strong>
             </div>
-            <div class="d-flex justify-content-between">
+            <div class="d-flex justify-content-between text-success">
               <span>Giảm giá:</span>
-              <strong class="text-danger"
-                >- {{ formatMoney(detail.discountTotal) }}</strong
-              >
+              <strong>- {{ formatMoney(detail.discountTotal) }}</strong>
+            </div>
+            <div v-if="detail.vipDiscountRate > 0" class="d-flex justify-content-between ps-3 small">
+              <span class="text-muted">└ VIP {{ detail.vipDiscountRate }}%:</span>
+              <span class="text-muted">-{{ formatMoney(detail.vipDiscount) }}</span>
+            </div>
+            <div v-if="detail.spinDiscountRate > 0" class="d-flex justify-content-between ps-3 small">
+              <span class="text-muted">└ Spin {{ detail.spinDiscountRate }}%:</span>
+              <span class="text-muted">-{{ formatMoney(detail.spinDiscount) }}</span>
             </div>
             <div class="d-flex justify-content-between">
               <span>Phí ship:</span>
@@ -151,16 +165,14 @@
             <el-divider />
             <div class="d-flex justify-content-between fs-5">
               <span><strong>Tổng cộng:</strong></span>
-              <strong class="text-primary">{{
-                formatMoney(detail.totalAmount)
-              }}</strong>
+              <strong class="text-primary">{{ formatMoney(detail.totalAmount) }}</strong>
             </div>
           </div>
         </div>
       </div>
     </el-card>
 
-    <!-- ✅ PAYMENT DIALOG -->
+    <!-- Payment Dialog -->
     <el-dialog
       v-model="showPaymentDialog"
       title="💳 Thanh toán đơn hàng"
@@ -176,9 +188,7 @@
         <ul class="mb-0">
           <li>✅ Đơn hàng sẽ chuyển sang trạng thái <strong>PAID</strong></li>
           <li>✅ Xuất kho tự động</li>
-          <li>
-            ✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn
-          </li>
+          <li>✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn</li>
         </ul>
       </el-alert>
 
@@ -214,9 +224,7 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="showPaymentDialog = false" size="large"
-          >Hủy</el-button
-        >
+        <el-button @click="showPaymentDialog = false" size="large">Hủy</el-button>
         <el-button
           type="primary"
           @click="confirmPayment"
@@ -229,7 +237,7 @@
       </template>
     </el-dialog>
 
-    <!-- ✅ CANCEL DIALOG - Cập nhật cảnh báo -->
+    <!-- Cancel Dialog -->
     <el-dialog v-model="showCancelDialog" title="❌ Hủy đơn hàng" width="550px">
       <el-alert
         :title="getCancelWarningTitle()"
@@ -322,6 +330,7 @@
     </el-dialog>
   </div>
 </template>
+
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -330,21 +339,18 @@ import { returnsApi } from "../../api/returns.api";
 import { paymentsApi } from "../../api/payments";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
-import { confirmModal } from "../../ui/confirm";
 import { Close, CreditCard, RefreshLeft } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 
-// Trạng thái dữ liệu
 const loading = ref(false);
 const cancelLoading = ref(false);
 const paymentLoading = ref(false);
 const detail = ref(null);
 const orderId = computed(() => route.params.orderId);
 
-// Dialog controls
 const showCancelDialog = ref(false);
 const cancelReason = ref("");
 const showReturnDialog = ref(false);
@@ -362,8 +368,6 @@ const paymentForm = reactive({
   transactionRef: "",
 });
 
-// --- Computed Properties ---
-
 const statusType = computed(() => {
   const s = detail.value?.status;
   if (s === "DELIVERED") return "success";
@@ -380,17 +384,12 @@ const paymentStatusType = computed(() => {
   return "info";
 });
 
-const canCancel = computed(() => {
-  return ["PENDING"].includes(detail.value?.status);
+const hasDiscountInfo = computed(() => {
+  return detail.value && (
+    (detail.value.vipDiscountRate && detail.value.vipDiscountRate > 0) ||
+    (detail.value.spinDiscountRate && detail.value.spinDiscountRate > 0)
+  );
 });
-
-const items = computed(() => {
-  const o = detail.value || {};
-  const list = o.items ?? o.orderItems ?? o.lines ?? [];
-  return Array.isArray(list) ? list : [];
-});
-
-// --- Watchers ---
 
 watch(
   () => returnForm.orderItemId,
@@ -401,7 +400,7 @@ watch(
       returnForm.quantity = 1;
       returnForm.refundAmount = item.price;
     }
-  },
+  }
 );
 
 watch(
@@ -409,15 +408,13 @@ watch(
   (newQty) => {
     if (!returnForm.orderItemId || !detail.value?.items) return;
     const item = detail.value.items.find(
-      (i) => i.productId === returnForm.orderItemId,
+      (i) => i.productId === returnForm.orderItemId
     );
     if (item) {
       returnForm.refundAmount = item.price * newQty;
     }
-  },
+  }
 );
-
-// --- Methods ---
 
 function formatMoney(val) {
   if (!val) return "0 ₫";
@@ -431,7 +428,6 @@ async function reload() {
   loading.value = true;
   try {
     const res = await ordersApi.getById(orderId.value);
-    // Xử lý bóc tách dữ liệu tùy theo cấu trúc API của bạn
     detail.value = res?.data?.data || res?.data;
   } catch (e) {
     toast("Không thể tải chi tiết đơn hàng", "error");
@@ -466,7 +462,7 @@ function getCancelWarningMessage() {
 function getMaxReturnQuantity() {
   if (!returnForm.orderItemId || !detail.value?.items) return 1;
   const item = detail.value.items.find(
-    (i) => i.productId === returnForm.orderItemId,
+    (i) => i.productId === returnForm.orderItemId
   );
   return item?.quantity || 1;
 }
@@ -491,11 +487,9 @@ async function confirmPayment() {
   }
 }
 
-// Trong confirmCancel() - dòng 343
 async function confirmCancel() {
   cancelLoading.value = true;
   try {
-    // ✅ Truyền STRING trực tiếp, không phải object
     await ordersApi.cancel(orderId.value, cancelReason.value);
     toast("✅ Đã hủy đơn hàng thành công.", "success");
     showCancelDialog.value = false;
@@ -527,3 +521,77 @@ function isReturned(status) {
 
 onMounted(() => reload());
 </script>
+
+<style scoped>
+.info-box {
+  padding: 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.info-box h5 {
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+
+.info-box p {
+  margin: 8px 0;
+}
+
+.totals-box {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.totals-box > div {
+  padding: 8px 0;
+}
+
+.kicker {
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.title {
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.muted {
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 13px;
+}
+
+.small {
+  font-size: 12px;
+}
+
+/* Discount Details */
+.discount-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.discount-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+}
+
+.discount-label {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.discount-value {
+  font-weight: 700;
+  color: #67c23a;
+}
+</style>

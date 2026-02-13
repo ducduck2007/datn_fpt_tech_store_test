@@ -58,6 +58,9 @@ public class Customer {
     @Column(name = "address", length = 500)
     private String address;
 
+    @Column(name = "user_id", unique = true)
+    private Integer userId;
+
     @Column(name = "notes", columnDefinition = "NVARCHAR(MAX)")
     private String notes;
 
@@ -70,10 +73,13 @@ public class Customer {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+    @Column(name = "spin_discount_bonus", precision = 5, scale = 2)
+    private BigDecimal spinDiscountBonus = BigDecimal.ZERO;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-
+    public void setSpinDiscountBonus(BigDecimal discountBonus) {
+    }
 }

@@ -56,5 +56,45 @@ export const customersApi = {
   // Fixed duplicate method
   listByVipTierAndPoints(tier, minPoints, maxPoints) {
     return http.get(`/api/auth/customers/vip-tier/${tier}/points?min=${minPoints}&max=${maxPoints}`);
+  },
+  getSpinWheelStatus() {
+    return http.get("/api/auth/customers/spin-wheel/status");
+  },
+  
+  spinWheel() {
+    return http.post("/api/auth/customers/spin-wheel/spin");
+  },
+  
+  getSpinWheelHistory() {
+    return http.get("/api/auth/customers/spin-wheel/history");
+  },
+  
+  getSpinWheelPrizes() {
+    return http.get("/api/auth/customers/spin-wheel/prizes");
+  },
+  // ✅ SPIN WHEEL
+  getSpinWheelStatus() {
+    return http.get("/api/auth/customers/spin-wheel/status");
+  },
+
+  spin() {
+    return http.post("/api/auth/customers/spin-wheel/spin");
+  },
+
+  getSpinHistory() {
+    return http.get("/api/auth/customers/spin-wheel/history");
+  },
+
+  getSpinPrizes() {
+    return http.get("/api/auth/customers/spin-wheel/prizes");
+  },
+  getTierProgress() {
+    return http.get("/api/auth/tier-progress/me");
+  },
+  checkTierProgressWithCart(cartTotal) {
+    return http.post("/api/auth/tier-progress/check-cart", { cartTotal });
+  },
+  getCustomerTierProgress(customerId) {
+    return http.get(`/api/auth/tier-progress/customer/${customerId}`);
   }
 };

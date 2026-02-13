@@ -4,17 +4,17 @@ import lombok.Getter;
 
 @Getter
 public enum VipTier {
-    // Sửa discountRate thành dạng thập phân: 0.05 = 5%
-    BRONZE("BRONZE", 100, 499, 0.05),      
-    SILVER("SILVER", 500, 999, 0.10),       
-    GOLD("GOLD", 1000, 2499, 0.15),      
-    PLATINUM("PLATINUM", 2500, 4999, 0.20), 
-    DIAMOND("DIAMOND", 5000, Integer.MAX_VALUE, 0.25); 
+    // Nâng mức điểm lên cao hơn
+    BRONZE("BRONZE", 1000   , 1999, 0.03),       // Từ 500 điểm mới lên Bronze
+    SILVER("SILVER", 2000, 4999, 0.05),      // 2000 điểm lên Silver
+    GOLD("GOLD", 5000, 9999, 0.07),          // 5000 điểm lên Gold
+    PLATINUM("PLATINUM", 10000, 19999, 0.10), // 10000 điểm lên Platinum
+    DIAMOND("DIAMOND", 20000, Integer.MAX_VALUE, 0.15); // 20000 điểm mới đạt Diamond
 
     private final String displayName;
     private final Integer minPoints;
     private final Integer maxPoints;
-    private final Double discountRate; // Đổi tên cho rõ nghĩa
+    private final Double discountRate;
 
     VipTier(String displayName, Integer minPoints, Integer maxPoints, Double discountRate) {
         this.displayName = displayName;
@@ -24,7 +24,9 @@ public enum VipTier {
     }
 
     public static VipTier fromPoints(Integer points) {
-        if (points == null || points < 100) return null; // < 100 điểm là khách thường
+        // Cần cập nhật lại điều kiện check ở đây tương ứng với BRONZE minPoints
+        if (points == null || points < 500) return null;
+
         for (VipTier tier : values()) {
             if (points >= tier.minPoints && points <= tier.maxPoints) {
                 return tier;
@@ -33,13 +35,12 @@ public enum VipTier {
         return DIAMOND;
     }
 
-    // Lấy mốc điểm của hạng tiếp theo
     public Integer getNextTierThreshold() {
         VipTier[] tiers = values();
         int currentIndex = this.ordinal();
         if (currentIndex < tiers.length - 1) {
             return tiers[currentIndex + 1].minPoints;
         }
-        return null; // Đã max cấp
+        return null;
     }
 }

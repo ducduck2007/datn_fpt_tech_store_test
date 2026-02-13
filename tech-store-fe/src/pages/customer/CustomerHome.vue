@@ -1,6 +1,29 @@
-<!-- FILE: src/pages/customer/CustomerHome.vue -->
+<!-- 
+============================================================
+FILE: src/pages/customer/CustomerHome.vue
+FINAL VERSION - ĐÃ TÍCH HỢP TIER PROGRESS BAR
+============================================================
+
+THAY ĐỔI:
+1. ✅ Import TierProgressBar component (dòng 332)
+2. ✅ Thêm tierProgressRef (dòng 350)
+3. ✅ Thêm <TierProgressBar> vào template (dòng 4-8)
+4. ✅ Refresh progress sau khi add to cart (dòng 430-433)
+
+============================================================
+-->
 <template>
   <div class="container-xl">
+    <!-- ============================================================
+         TIER PROGRESS BAR - THÊM MỚI ⭐
+         ============================================================ -->
+    <TierProgressBar 
+      v-if="isCustomer" 
+      ref="tierProgressRef"
+      class="mb-4"
+    />
+    <!-- ============================================================ -->
+
     <!-- Birthday Notification Banner -->
     <div v-if="birthdayNotifications.length > 0" class="mb-4">
       <el-card 
@@ -102,6 +125,15 @@
               >
                 <el-icon class="me-1"><User /></el-icon>
                 Profile
+              </el-button>
+
+               <el-button
+                v-if="isCustomer"
+                type="info"
+                @click="$router.push('/spin-wheel')"
+              >
+                <el-icon class="me-1"><User /></el-icon>
+                Event
               </el-button>
 
               <!-- Notification Badge -->
@@ -283,6 +315,12 @@ import { User, Bell, Close } from '@element-plus/icons-vue';
 import { useCartStore } from "../../stores/cart";
 import http from "../../api/http";
 
+// ============================================================
+// IMPORT TIER PROGRESS BAR - THÊM MỚI ⭐
+// ============================================================
+import TierProgressBar from "../../components/TierProgressBar.vue";
+// ============================================================
+
 const auth = useAuthStore();
 const isCustomer = computed(() => auth.isCustomer);
 
@@ -309,6 +347,12 @@ const birthdayNotifications = ref([]);
 const allNotifications = ref([]);
 const unreadNotificationCount = ref(0);
 const notificationsDialog = ref(false);
+
+// ============================================================
+// TIER PROGRESS REF - THÊM MỚI ⭐
+// ============================================================
+const tierProgressRef = ref(null);
+// ============================================================
 
 function extractList(payload) {
   if (!payload) return [];
@@ -425,15 +469,24 @@ function onSelectCategory(key) {
   reloadProducts();
 }
 
+// ============================================================
+// CẬP NHẬT goOrder - REFRESH TIER PROGRESS ⭐
+// ============================================================
 async function goOrder(p) {
   try {
     await cartStore.addToCart(p.defaultVariantId, 1);
     toast("Đã thêm vào giỏ hàng", "success");
+    
+    // Refresh tier progress after adding to cart
+    if (tierProgressRef.value) {
+      tierProgressRef.value.refresh();
+    }
   } catch (e) {
     toast("Không thể thêm vào giỏ hàng", "error");
     console.error(e);
   }
 }
+// ============================================================
 
 async function reloadCategories() {
   try {

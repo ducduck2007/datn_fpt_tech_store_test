@@ -35,6 +35,7 @@ import PaymentManagement from "../pages/system/PaymentManagement.vue";
 import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
 import Birthday from "../pages/system/BirthdayManager.vue"
 import Customerspendinganalytics from "../pages/system/Customerspendinganalytics.vue";
+import Spinwheel from "../pages/customer/Spinwheel.vue";
 const routes = [
   // ===== CUSTOMER PORTAL =====
   {
@@ -59,6 +60,12 @@ const routes = [
     path: "/profile",
     name: "customer-profile",
     component: CustomerProfile,
+    meta: { portal: "customer", requiresAuth: true },
+  },
+  {
+    path: "/Spin-wheel",
+    name: "Spin-Wheel",
+    component: Spinwheel,
     meta: { portal: "customer", requiresAuth: true },
   },
   {
