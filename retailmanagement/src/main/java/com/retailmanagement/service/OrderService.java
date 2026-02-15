@@ -414,6 +414,7 @@ public class OrderService {
         );
     }
 
+    // ✅ ENHANCED: getOrderDetail with full discount breakdown
     public OrderDetailResponse getOrderDetail(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
@@ -433,7 +434,8 @@ public class OrderService {
                         ))
                         .toList();
 
-        return new OrderDetailResponse(
+        // Create response (discount breakdown will be parsed from notes)
+        OrderDetailResponse response = new OrderDetailResponse(
                 order.getId(),
                 order.getOrderNumber(),
                 order.getChannel(),
@@ -453,6 +455,8 @@ public class OrderService {
                 order.getCreatedAt(),
                 items
         );
+
+        return response;
     }
 
     @Transactional

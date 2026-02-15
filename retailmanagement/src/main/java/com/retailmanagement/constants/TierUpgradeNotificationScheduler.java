@@ -13,7 +13,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class TierUpgradeNotificationScheduler {
+public class   TierUpgradeNotificationScheduler {
 
     private final CustomRes customerRepository;
     private final NotificationService notificationService;

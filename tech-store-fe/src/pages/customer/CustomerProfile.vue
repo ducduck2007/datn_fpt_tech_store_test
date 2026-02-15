@@ -39,7 +39,7 @@
           </div>
         </el-card>
 
-        <!-- ✅ THÊM TABS -->
+        <!-- ✅ TABS -->
         <el-tabs v-model="activeTab" class="mb-3">
           <el-tab-pane label="Thông tin" name="info">
             <div class="row g-3">
@@ -183,54 +183,314 @@
 
           <!-- ✅ TAB LỊCH SỬ ĐIỂM -->
           <el-tab-pane label="Lịch sử điểm" name="loyalty">
+            <!-- Statistics Summary -->
+            <el-row :gutter="16" class="mb-3">
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card earn-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><CirclePlus /></el-icon>
+                    <div>
+                      <div class="stats-value">+{{ loyaltyStats.totalEarned }}</div>
+                      <div class="stats-label">Tổng điểm cộng</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card deduct-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><Remove /></el-icon>
+                    <div>
+                      <div class="stats-value">{{ loyaltyStats.totalDeducted }}</div>
+                      <div class="stats-label">Tổng điểm trừ</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card transactions-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><List /></el-icon>
+                    <div>
+                      <div class="stats-value">{{ loyaltyStats.totalTransactions }}</div>
+                      <div class="stats-label">Giao dịch</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+
             <el-card shadow="never">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3 class="mb-0 fw-bold">
-                  <el-icon class="me-2"><TrendCharts /></el-icon>
-                  Lịch sử giao dịch điểm
-                </h3>
-                <el-button @click="loadLoyaltyHistory" :loading="historyLoading">
-                  <el-icon><Refresh /></el-icon>
-                  Tải lại
-                </el-button>
+              <!-- Header with filters -->
+              <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-3">
+                <div>
+                  <h3 class="mb-2 fw-bold">
+                    <el-icon class="me-2"><TrendCharts /></el-icon>
+                    Lịch sử giao dịch điểm
+                  </h3>
+                  <div class="d-flex gap-2 flex-wrap" v-if="activeHistoryFilters.length">
+                    <el-tag 
+                      v-for="filter in activeHistoryFilters" 
+                      :key="filter.type"
+                      :type="filter.tagType"
+                      closable
+                      @close="removeHistoryFilter(filter.type)"
+                    >
+                      {{ filter.label }}
+                    </el-tag>
+                  </div>
+                </div>
+                
+                <div class="d-flex gap-2 flex-wrap">
+                  <el-select 
+                    v-model="historyTransactionFilter" 
+                    placeholder="Loại giao dịch"
+                    clearable
+                    style="width: 160px"
+                    @change="filterLoyaltyHistory"
+                  >
+                    <el-option label="Cộng điểm" value="EARN">
+                      <el-tag type="success" size="small">Cộng điểm</el-tag>
+                    </el-option>
+                    <el-option label="Trừ điểm" value="DEDUCT">
+                      <el-tag type="warning" size="small">Trừ điểm</el-tag>
+                    </el-option>
+                    <el-option label="Phạt" value="PENALTY">
+                      <el-tag type="danger" size="small">Phạt</el-tag>
+                    </el-option>
+                    <el-option label="Thăng hạng" value="TIER_UPGRADE">
+                      <el-tag type="success" size="small">Thăng hạng</el-tag>
+                    </el-option>
+                    <el-option label="Hạ hạng" value="TIER_DOWNGRADE">
+                      <el-tag type="info" size="small">Hạ hạng</el-tag>
+                    </el-option>
+                  </el-select>
+
+                  <el-date-picker
+                    v-model="historyDateRange"
+                    type="daterange"
+                    range-separator="-"
+                    start-placeholder="Từ ngày"
+                    end-placeholder="Đến ngày"
+                    format="DD/MM/YYYY"
+                    value-format="YYYY-MM-DD"
+                    style="width: 280px"
+                    @change="filterLoyaltyHistory"
+                  />
+
+                  <el-button @click="clearHistoryFilters" v-if="hasActiveHistoryFilters">
+                    <el-icon><Close /></el-icon>
+                    Xóa bộ lọc
+                  </el-button>
+
+                  <el-button @click="loadLoyaltyHistory" :loading="historyLoading">
+                    <el-icon><Refresh /></el-icon>
+                    Tải lại
+                  </el-button>
+                </div>
               </div>
+
+              <el-divider />
 
               <el-skeleton v-if="historyLoading" :rows="5" animated />
               
-              <el-empty v-else-if="!loyaltyHistory.length" description="Chưa có lịch sử giao dịch" />
+              <el-empty v-else-if="!filteredLoyaltyHistory.length" description="Không có giao dịch nào">
+                <el-button type="primary" @click="clearHistoryFilters" v-if="hasActiveHistoryFilters">
+                  Xóa bộ lọc
+                </el-button>
+              </el-empty>
 
+              <!-- Timeline with enhanced cards -->
               <el-timeline v-else>
                 <el-timeline-item
-                  v-for="item in loyaltyHistory"
+                  v-for="item in filteredLoyaltyHistory"
                   :key="item.id"
                   :timestamp="formatDateTime(item.createdAt)"
                   placement="top"
                   :type="getTimelineType(item.transactionType)"
-                  :icon="getTimelineIcon(item.transactionType)"
                 >
-                  <el-card>
-                    <div class="d-flex justify-content-between align-items-start">
-                      <div>
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          <el-tag :type="getTransactionTagType(item.transactionType)" size="large">
+                  <el-card class="history-card" :class="getHistoryCardClass(item.transactionType)">
+                    <div class="history-card-content">
+                      <!-- Left: Icon & Type -->
+                      <div class="history-icon-wrapper">
+                        <el-icon :size="28" :color="getTransactionIconColor(item.transactionType)">
+                          <component :is="getTransactionIcon(item.transactionType)" />
+                        </el-icon>
+                      </div>
+
+                      <!-- Middle: Details -->
+                      <div class="history-details flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                          <el-tag :type="getTransactionTagType(item.transactionType)" effect="dark">
                             {{ item.transactionTypeDisplay }}
                           </el-tag>
-                          <span 
-                            class="points-change fw-bold"
-                            :class="item.pointsDelta > 0 ? 'text-success' : 'text-danger'"
-                          >
-                            {{ item.pointsDelta > 0 ? '+' : '' }}{{ item.pointsDelta }} điểm
-                          </span>
+                          <span class="text-muted small" v-if="item.reason">{{ item.reason }}</span>
                         </div>
-                        <p class="mb-1 text-muted small">{{ item.note }}</p>
-                        <div v-if="item.tierBefore || item.tierAfter" class="tier-change mt-2">
-                          <el-tag size="small" :type="getTierTagType(item.tierBefore)">
+                        
+                        <p class="mb-2 history-note">{{ item.note }}</p>
+                        
+                        <!-- Tier change indicator -->
+                        <div v-if="item.tierBefore || item.tierAfter" class="tier-change-indicator">
+                          <el-tag size="small" :type="getTierTagType(item.tierBefore)" effect="plain">
                             {{ item.tierBeforeDisplay || 'Member' }}
                           </el-tag>
-                          <el-icon class="mx-2"><Right /></el-icon>
-                          <el-tag size="small" :type="getTierTagType(item.tierAfter)">
+                          <el-icon class="mx-2" :size="16">
+                            <Right />
+                          </el-icon>
+                          <el-tag size="small" :type="getTierTagType(item.tierAfter)" effect="dark">
                             {{ item.tierAfterDisplay || 'Member' }}
                           </el-tag>
+                        </div>
+
+                        <!-- Reference info with expand button -->
+                        <div v-if="item.referenceType" class="reference-info mt-2">
+                          <el-tag size="small" type="info" effect="plain">
+                            <el-icon class="me-1"><Link /></el-icon>
+                            {{ item.referenceType }}: #{{ item.referenceId }}
+                          </el-tag>
+                          
+                          <!-- ✅ EXPAND BUTTON FOR ORDERS -->
+                          <el-button 
+                            v-if="item.referenceType === 'orders'"
+                            size="small"
+                            type="primary"
+                            text
+                            @click="toggleOrderDetail(item)"
+                            :loading="item.loading"
+                            class="ms-2"
+                          >
+                            <el-icon v-if="!item.loading">
+                              <component :is="item.expanded ? 'ArrowUp' : 'ArrowDown'" />
+                            </el-icon>
+                            {{ item.loading ? 'Đang tải...' : (item.expanded ? 'Thu gọn' : 'Xem chi tiết đơn hàng') }}
+                          </el-button>
+                        </div>
+
+                        <!-- ✅ ORDER DETAILS EXPANSION -->
+                        <el-collapse-transition>
+                          <div v-if="item.expanded && item.orderDetail" class="order-details-section mt-3">
+                            <el-divider class="my-2" />
+                            
+                            <!-- Order Summary -->
+                            <div class="order-summary mb-3">
+                              <div class="row g-2">
+                                <div class="col-6">
+                                  <span class="text-muted small">Đơn hàng:</span>
+                                  <span class="fw-bold ms-1">{{ item.orderDetail.orderNumber }}</span>
+                                </div>
+                                <div class="col-6">
+                                  <span class="text-muted small">Trạng thái:</span>
+                                  <el-tag size="small" :type="getOrderStatusType(item.orderDetail.status)" class="ms-1">
+                                    {{ item.orderDetail.status }}
+                                  </el-tag>
+                                </div>
+                                <div class="col-6">
+                                  <span class="text-muted small">Kênh:</span>
+                                  <span class="ms-1">{{ item.orderDetail.channel }}</span>
+                                </div>
+                                <div class="col-6">
+                                  <span class="text-muted small">Thanh toán:</span>
+                                  <span class="ms-1">{{ item.orderDetail.paymentMethod }}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Order Items -->
+                            <div class="order-items-list">
+                              <div class="fw-bold mb-2 small">Sản phẩm đã mua:</div>
+                              <div 
+                                v-for="orderItem in item.orderDetail.items" 
+                                :key="orderItem.variantId"
+                                class="order-item-row"
+                              >
+                                <div class="d-flex justify-content-between align-items-start">
+                                  <div class="flex-grow-1">
+                                    <div class="product-name">{{ orderItem.productName }}</div>
+                                    <div class="variant-info">
+                                      <span class="text-muted small">{{ orderItem.variantName }}</span>
+                                      <span class="text-muted small ms-2">SKU: {{ orderItem.sku }}</span>
+                                    </div>
+                                    <div class="quantity-price">
+                                      <span class="quantity">{{ orderItem.quantity }}x</span>
+                                      <span class="unit-price">{{ formatCurrency(orderItem.unitPrice) }}</span>
+                                      <span v-if="orderItem.discount && orderItem.discount > 0" class="discount-badge">
+                                        -{{ formatCurrency(orderItem.discount) }}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div class="line-total">
+                                    {{ formatCurrency(orderItem.lineTotal) }}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Order Totals -->
+                            <el-divider class="my-2" />
+                            <div class="order-totals">
+                              <div class="total-row">
+                                <span class="text-muted small">Tạm tính:</span>
+                                <span>{{ formatCurrency(item.orderDetail.subtotal) }}</span>
+                              </div>
+                              
+                              <!-- VIP Discount -->
+                              <div 
+                                v-if="item.orderDetail.vipDiscount && item.orderDetail.vipDiscount > 0" 
+                                class="total-row discount-row"
+                              >
+                                <span class="text-success small">
+                                  Giảm VIP ({{ item.orderDetail.vipDiscountRate }}%):
+                                </span>
+                                <span class="text-success">
+                                  -{{ formatCurrency(item.orderDetail.vipDiscount) }}
+                                </span>
+                              </div>
+                              
+                              <!-- Spin Discount -->
+                              <div 
+                                v-if="item.orderDetail.spinDiscount && item.orderDetail.spinDiscount > 0" 
+                                class="total-row discount-row"
+                              >
+                                <span class="text-success small">
+                                  Giảm Spin ({{ item.orderDetail.spinDiscountRate }}%):
+                                </span>
+                                <span class="text-success">
+                                  -{{ formatCurrency(item.orderDetail.spinDiscount) }}
+                                </span>
+                              </div>
+                              
+                              <div v-if="item.orderDetail.discountTotal && item.orderDetail.discountTotal > 0" class="total-row">
+                                <span class="text-muted small">Tổng giảm:</span>
+                                <span class="text-success">-{{ formatCurrency(item.orderDetail.discountTotal) }}</span>
+                              </div>
+                              
+                              <div v-if="item.orderDetail.shippingFee && item.orderDetail.shippingFee > 0" class="total-row">
+                                <span class="text-muted small">Phí ship:</span>
+                                <span>{{ formatCurrency(item.orderDetail.shippingFee) }}</span>
+                              </div>
+                              
+                              <el-divider class="my-2" />
+                              
+                              <div class="total-row final-total">
+                                <span class="fw-bold">Tổng cộng:</span>
+                                <span class="fw-bold text-primary">
+                                  {{ formatCurrency(item.orderDetail.totalAmount) }}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </el-collapse-transition>
+                      </div>
+
+                      <!-- Right: Points -->
+                      <div class="history-points">
+                        <div 
+                          class="points-badge"
+                          :class="item.pointsDelta > 0 ? 'points-positive' : 'points-negative'"
+                        >
+                          <span class="points-sign">{{ item.pointsDelta > 0 ? '+' : '' }}</span>
+                          <span class="points-value">{{ Math.abs(item.pointsDelta) }}</span>
+                          <span class="points-unit">điểm</span>
                         </div>
                       </div>
                     </div>
@@ -292,7 +552,7 @@
                           {{ item.tierBeforeDisplay || 'Member' }}
                         </el-tag>
                         <el-icon :size="20" class="mx-2">
-                          <component :is="item.transactionType === 'TIER_UPGRADE' ? 'Right' : 'Right'" />
+                          <Right />
                         </el-icon>
                         <el-tag size="large" :type="getTierTagType(item.tierAfter)" effect="dark">
                           {{ item.tierAfterDisplay || 'Member' }}
@@ -313,14 +573,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { 
   Star, Present, Wallet, TrendCharts, Trophy, Refresh, 
-  Right, TopRight, BottomRight 
+  Right, TopRight, BottomRight, CirclePlus, Remove, List,
+  Close, Link, ArrowDown, ArrowUp
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { customersApi } from '../../api/customers.api';
+import { ordersApi } from '../../api/orders.api';
 
 const router = useRouter();
 const loading = ref(true);
@@ -329,11 +591,15 @@ const saving = ref(false);
 const customer = ref(null);
 const activeTab = ref('info');
 
-// ✅ THÊM: State cho lịch sử
+// ✅ State cho lịch sử
 const historyLoading = ref(false);
 const tierLoading = ref(false);
 const loyaltyHistory = ref([]);
 const tierHistory = ref([]);
+
+// ✅ Filters cho lịch sử
+const historyTransactionFilter = ref('');
+const historyDateRange = ref(null);
 
 const formData = ref({
   fullName: '',
@@ -344,6 +610,80 @@ const formData = ref({
   birthDate: ''
 });
 
+// ✅ Computed: Loyalty Statistics
+const loyaltyStats = computed(() => {
+  const earned = loyaltyHistory.value
+    .filter(h => h.pointsDelta > 0)
+    .reduce((sum, h) => sum + h.pointsDelta, 0);
+  
+  const deducted = loyaltyHistory.value
+    .filter(h => h.pointsDelta < 0)
+    .reduce((sum, h) => sum + Math.abs(h.pointsDelta), 0);
+  
+  return {
+    totalEarned: earned.toLocaleString(),
+    totalDeducted: deducted.toLocaleString(),
+    totalTransactions: loyaltyHistory.value.length
+  };
+});
+
+// ✅ Computed: Filtered History
+const filteredLoyaltyHistory = computed(() => {
+  let result = [...loyaltyHistory.value];
+  
+  // Filter by transaction type
+  if (historyTransactionFilter.value) {
+    result = result.filter(h => h.transactionType === historyTransactionFilter.value);
+  }
+  
+  // Filter by date range
+  if (historyDateRange.value && historyDateRange.value.length === 2) {
+    const [start, end] = historyDateRange.value;
+    result = result.filter(h => {
+      const date = new Date(h.createdAt);
+      return date >= new Date(start) && date <= new Date(end + 'T23:59:59');
+    });
+  }
+  
+  return result;
+});
+
+// ✅ Computed: Active Filters Display
+const activeHistoryFilters = computed(() => {
+  const filters = [];
+  
+  if (historyTransactionFilter.value) {
+    const labels = {
+      EARN: 'Cộng điểm',
+      DEDUCT: 'Trừ điểm',
+      PENALTY: 'Phạt',
+      TIER_UPGRADE: 'Thăng hạng',
+      TIER_DOWNGRADE: 'Hạ hạng'
+    };
+    filters.push({
+      type: 'transaction',
+      label: labels[historyTransactionFilter.value],
+      tagType: getTransactionTagType(historyTransactionFilter.value)
+    });
+  }
+  
+  if (historyDateRange.value) {
+    const [start, end] = historyDateRange.value;
+    filters.push({
+      type: 'date',
+      label: `${formatDate(start)} - ${formatDate(end)}`,
+      tagType: 'info'
+    });
+  }
+  
+  return filters;
+});
+
+const hasActiveHistoryFilters = computed(() => {
+  return historyTransactionFilter.value || historyDateRange.value;
+});
+
+// ✅ Load customer data
 const loadCustomerData = async () => {
   loading.value = true;
   try {
@@ -381,14 +721,19 @@ const loadCustomerData = async () => {
   }
 };
 
-// ✅ THÊM: Load lịch sử điểm
+// ✅ Load lịch sử điểm (không tự động load order details)
 const loadLoyaltyHistory = async () => {
   if (!customer.value?.id) return;
   
   historyLoading.value = true;
   try {
     const { data } = await customersApi.getLoyaltyHistory(customer.value.id);
-    loyaltyHistory.value = data || [];
+    loyaltyHistory.value = (data || []).map(item => ({
+      ...item,
+      expanded: false,
+      loading: false,
+      orderDetail: null
+    }));
   } catch (error) {
     console.error('Error loading loyalty history:', error);
     ElMessage.error('Lỗi khi tải lịch sử điểm');
@@ -397,7 +742,39 @@ const loadLoyaltyHistory = async () => {
   }
 };
 
-// ✅ THÊM: Load lịch sử thăng hạng
+// ✅ Toggle order detail - Load on demand
+const toggleOrderDetail = async (item) => {
+  console.log('🔍 Toggle order detail for:', item.referenceId);
+  
+  // If already expanded, just collapse
+  if (item.expanded) {
+    item.expanded = false;
+    return;
+  }
+  
+  // If not loaded yet, load it
+  if (!item.orderDetail) {
+    item.loading = true;
+    try {
+      console.log('📡 Fetching order detail:', item.referenceId);
+      const response = await ordersApi.getOrderDetail(item.referenceId);
+      console.log('✅ Order detail received:', response.data);
+      
+      item.orderDetail = response.data;
+      item.expanded = true;
+    } catch (error) {
+      console.error('❌ Error loading order:', error);
+      ElMessage.error('Không thể tải chi tiết đơn hàng');
+    } finally {
+      item.loading = false;
+    }
+  } else {
+    // Already loaded, just expand
+    item.expanded = true;
+  }
+};
+
+// ✅ Load lịch sử thăng hạng
 const loadTierHistory = async () => {
   if (!customer.value?.id) return;
   
@@ -413,6 +790,25 @@ const loadTierHistory = async () => {
   }
 };
 
+// ✅ Filter functions
+const filterLoyaltyHistory = () => {
+  // Filtering is handled by computed property
+};
+
+const removeHistoryFilter = (type) => {
+  if (type === 'transaction') {
+    historyTransactionFilter.value = '';
+  } else if (type === 'date') {
+    historyDateRange.value = null;
+  }
+};
+
+const clearHistoryFilters = () => {
+  historyTransactionFilter.value = '';
+  historyDateRange.value = null;
+};
+
+// ✅ Edit functions
 const startEdit = () => { editing.value = true; };
 const handleCancel = () => { editing.value = false; loadCustomerData(); };
 
@@ -431,6 +827,7 @@ const handleSave = async () => {
   }
 };
 
+// ✅ Helper functions
 const getTierTagType = (tier) => {
   const types = { 
     BRONZE: 'warning', 
@@ -442,7 +839,6 @@ const getTierTagType = (tier) => {
   return types[tier] || 'info';
 };
 
-// ✅ THÊM: Helper functions cho timeline
 const getTransactionTagType = (type) => {
   const types = {
     EARN: 'success',
@@ -465,7 +861,7 @@ const getTimelineType = (type) => {
   return types[type] || 'primary';
 };
 
-const getTimelineIcon = (type) => {
+const getTransactionIcon = (type) => {
   const icons = {
     EARN: 'CirclePlus',
     DEDUCT: 'Remove',
@@ -476,11 +872,48 @@ const getTimelineIcon = (type) => {
   return icons[type] || 'More';
 };
 
+const getTransactionIconColor = (type) => {
+  const colors = {
+    EARN: '#67c23a',
+    DEDUCT: '#e6a23c',
+    PENALTY: '#f56c6c',
+    TIER_UPGRADE: '#67c23a',
+    TIER_DOWNGRADE: '#909399'
+  };
+  return colors[type] || '#409eff';
+};
+
+const getHistoryCardClass = (type) => {
+  const classes = {
+    EARN: 'history-earn',
+    DEDUCT: 'history-deduct',
+    PENALTY: 'history-penalty',
+    TIER_UPGRADE: 'history-upgrade',
+    TIER_DOWNGRADE: 'history-downgrade'
+  };
+  return classes[type] || '';
+};
+
+const getOrderStatusType = (status) => {
+  const types = {
+    PENDING: 'warning',
+    PAID: 'success',
+    SHIPPING: 'primary',
+    DELIVERED: 'success',
+    CANCELLED: 'danger'
+  };
+  return types[status] || 'info';
+};
+
 const formatCurrency = (val) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 };
 
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+const formatDate = (d) => {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('vi-VN');
+};
+
 const formatDateTime = (d) => {
   if (!d) return '—';
   return new Date(d).toLocaleString('vi-VN', {
@@ -516,41 +949,49 @@ onMounted(async () => {
   background: #f0f2f5;
   padding: 20px 0;
 }
+
 .profile-avatar {
   width: 80px; height: 80px; border-radius: 50%;
   background: #409eff; color: white;
   display: flex; align-items: center; justify-content: center;
   font-size: 32px; font-weight: bold;
 }
+
 .points-display { 
   font-size: 48px; 
   font-weight: 900; 
   color: #f59e0b; 
 }
+
 .discount-card { 
   background: linear-gradient(135deg, #67c23a 0%, #5daf34 100%); 
   color: white; 
   border: none;
 }
+
 .discount-display {
   font-size: 48px;
   font-weight: 900;
   color: white;
 }
+
 .discount-desc {
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   margin-top: 8px;
 }
+
 .total-spent { 
   font-size: 32px; 
   font-weight: bold; 
   color: #9333ea; 
 }
+
 .muted {
   color: #909399;
   font-size: 14px;
 }
+
 .form-static, .form-static-info {
   padding: 8px 12px; 
   background: #f5f7fa; 
@@ -559,24 +1000,185 @@ onMounted(async () => {
   display: flex;
   align-items: center;
 }
+
 .notes-static {
   white-space: pre-wrap;
   word-wrap: break-word;
   min-height: 60px;
   align-items: flex-start;
 }
+
 .text-dark { color: #303133; }
 
-/* ✅ STYLES MỚI CHO LỊCH SỬ */
-.points-change {
-  font-size: 18px;
+/* ✅ STATS CARDS */
+.stats-card {
+  border-radius: 12px;
+  transition: all 0.3s;
 }
 
-.tier-change {
+.stats-card:hover {
+  transform: translateY(-4px);
+}
+
+.stats-content {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
 
+.stats-icon {
+  flex-shrink: 0;
+}
+
+.stats-value {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stats-label {
+  font-size: 13px;
+  color: #909399;
+  font-weight: 600;
+}
+
+.earn-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+}
+
+.earn-card .stats-value {
+  color: #67c23a;
+}
+
+.deduct-card {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+}
+
+.deduct-card .stats-value {
+  color: #e6a23c;
+}
+
+.transactions-card {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+}
+
+.transactions-card .stats-value {
+  color: #409eff;
+}
+
+/* ✅ HISTORY CARDS */
+.history-card {
+  transition: all 0.3s;
+  border-radius: 12px;
+}
+
+.history-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.history-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.history-icon-wrapper {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.history-earn .history-icon-wrapper {
+  background: rgba(103, 194, 58, 0.1);
+}
+
+.history-deduct .history-icon-wrapper {
+  background: rgba(230, 162, 60, 0.1);
+}
+
+.history-penalty .history-icon-wrapper {
+  background: rgba(245, 108, 108, 0.1);
+}
+
+.history-upgrade .history-icon-wrapper {
+  background: rgba(103, 194, 58, 0.1);
+}
+
+.history-downgrade .history-icon-wrapper {
+  background: rgba(144, 147, 153, 0.1);
+}
+
+.history-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-note {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tier-change-indicator {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.history-points {
+  flex-shrink: 0;
+}
+
+.points-badge {
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.points-positive {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border: 2px solid #67c23a;
+}
+
+.points-negative {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border: 2px solid #e6a23c;
+}
+
+.points-sign {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.points-value {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0 4px;
+}
+
+.points-positive .points-value {
+  color: #67c23a;
+}
+
+.points-negative .points-value {
+  color: #e6a23c;
+}
+
+.points-unit {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* ✅ TIER HISTORY */
 .tier-history-card {
   transition: all 0.3s;
 }
@@ -611,5 +1213,124 @@ onMounted(async () => {
 .tier-change-display {
   display: flex;
   align-items: center;
+}
+
+/* ✅ ORDER DETAILS EXPANSION */
+.order-details-section {
+  background: rgba(0, 0, 0, 0.02);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.order-summary {
+  font-size: 13px;
+}
+
+.order-items-list {
+  background: white;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.order-item-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.order-item-row:last-child {
+  border-bottom: none;
+}
+
+.product-name {
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.variant-info {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.quantity-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.quantity {
+  color: #909399;
+  font-weight: 600;
+}
+
+.unit-price {
+  color: #606266;
+}
+
+.discount-badge {
+  background: #f0f9ff;
+  color: #67c23a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.line-total {
+  font-weight: 700;
+  color: #303133;
+  white-space: nowrap;
+}
+
+.order-totals {
+  background: white;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.total-row.discount-row {
+  color: #67c23a;
+}
+
+.total-row.final-total {
+  font-size: 16px;
+  padding-top: 8px;
+}
+
+.reference-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ✅ RESPONSIVE */
+@media (max-width: 768px) {
+  .stats-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .history-card-content {
+    flex-direction: column;
+  }
+  
+  .history-points {
+    width: 100%;
+  }
+  
+  .points-badge {
+    width: 100%;
+  }
 }
 </style>

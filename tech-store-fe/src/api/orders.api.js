@@ -83,5 +83,10 @@ filter(customerId, from, to) {
 getRevenueByCustomer() {
   return http.get("/api/orders/revenue-by-customer");
 },
-
+getOrderDetail(orderId) {
+    return http.get(`/api/orders/${orderId}`);
+  },
+  getOrderDetail(orderId) {
+    return http.get(`/api/orders/${orderId}`);
+  }
 };
