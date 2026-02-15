@@ -446,17 +446,23 @@ function getCancelWarningTitle() {
 function getCancelWarningMessage() {
   if (detail.value?.paymentStatus === "PAID") {
     const totalAmount = detail.value.totalAmount || 0;
-    const penaltyAmount = totalAmount * 0.1;
-    const penaltyPoints = Math.floor(penaltyAmount / 10000);
+    const loyaltyPoints = Math.floor(totalAmount / 10000);
+    
     return `
-      <p><strong>Đơn hàng đã thanh toán. Nếu hủy sẽ bị phạt:</strong></p>
+      <p><strong>Đơn hàng đã thanh toán. Nếu hủy:</strong></p>
       <ul>
-        <li>❌ Trừ điểm loyalty: <strong class="text-danger">${Math.floor(totalAmount / 10000)} điểm</strong></li>
-        <li>⚠️ Phạt 10% giá trị: <strong class="text-danger">${penaltyPoints} điểm</strong></li>
+        <li>❌ Điểm loyalty đã cộng sẽ bị trừ lại: <strong class="text-danger">${loyaltyPoints} điểm</strong></li>
+        <li>💰 Số tiền sẽ được hoàn trả</li>
+        <li>📦 Sản phẩm sẽ được nhập lại kho</li>
       </ul>
+      <p class="mb-0 mt-2"><em>Lưu ý: Không có phí phạt khi hủy đơn.</em></p>
     `;
   }
-  return "<p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>";
+  
+  return `
+    <p><strong>Xác nhận hủy đơn hàng này?</strong></p>
+    <p class="mb-0">Đơn hàng chưa thanh toán sẽ được hủy miễn phí.</p>
+  `;
 }
 
 function getMaxReturnQuantity() {

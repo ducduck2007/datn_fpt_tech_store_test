@@ -88,7 +88,6 @@ public class CustomerService {
     private String getDeductNote(String reason, BigDecimal amount) {
         return switch (reason) {
             case "CANCEL_ORDER" -> "Trừ điểm do hủy đơn: " + formatMoney(amount);
-            case "CANCEL_PENALTY" -> "⚠️ Phạt 10% do hủy đơn đã thanh toán: " + formatMoney(amount);
             case "RETURN" -> "Trừ điểm do trả hàng: " + formatMoney(amount);
             default -> "Trừ điểm: " + formatMoney(amount);
         };
@@ -341,17 +340,17 @@ public class CustomerService {
         int pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         VipTier tierBefore = customer.getVipTier();
 
+        // ✅ Calculate points to deduct (no penalty multiplication)
         int pointsToDeduct = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
         if (pointsToDeduct <= 0) return;
 
         int newTotalPoints = Math.max(0, pointsBefore - pointsToDeduct);
         customer.setLoyaltyPoints(newTotalPoints);
 
-        if (!"CANCEL_PENALTY".equals(reason) && !"RETURN_PENALTY".equals(reason)) {
-            BigDecimal currentSpent = customer.getTotalSpent() == null ? BigDecimal.ZERO : customer.getTotalSpent();
-            BigDecimal newSpent = currentSpent.subtract(orderTotal);
-            customer.setTotalSpent(newSpent.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newSpent);
-        }
+        // ✅ Always subtract from total spent when canceling/returning
+        BigDecimal currentSpent = customer.getTotalSpent() == null ? BigDecimal.ZERO : customer.getTotalSpent();
+        BigDecimal newSpent = currentSpent.subtract(orderTotal);
+        customer.setTotalSpent(newSpent.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newSpent);
 
         VipTier newTier = VipTier.fromPoints(newTotalPoints);
         customer.setVipTier(newTier);
@@ -364,12 +363,13 @@ public class CustomerService {
 
         customRes.save(customer);
 
-        String transactionType = "CANCEL_PENALTY".equals(reason) ? "PENALTY" : "DEDUCT";
+        // ✅ Determine transaction type (no more PENALTY type)
+        String transactionType = "DEDUCT";
         String note = getDeductNote(reason, orderTotal);
 
         saveLoyaltyLedger(
                 customer,
-                -pointsToDeduct,
+                -pointsToDeduct,  // ✅ Simple negative points (no penalty)
                 transactionType,
                 tierBefore,
                 newTier,
@@ -380,6 +380,7 @@ public class CustomerService {
                 null
         );
 
+        // Handle tier downgrade if applicable
         if (tierBefore != newTier) {
             String note2 = String.format("⚠️ Hạ hạng từ %s → %s do trừ điểm (Điểm còn: %d)",
                     tierBefore != null ? tierBefore.getDisplayName() : "Member",

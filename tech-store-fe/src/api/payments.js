@@ -29,5 +29,13 @@ export const paymentsApi = {
   // Hoàn tiền
   refund(paymentId) {
     return http.put(`/api/auth/payments/${paymentId}/refund`);
+  },
+  softDelete(paymentId) {
+    return http.delete(`/api/auth/payments/${paymentId}/soft-delete`);
+  },
+
+  // Khôi phục payment đã xóa
+  restore(paymentId) {
+    return http.post(`/api/auth/payments/${paymentId}/restore`);
   }
 };

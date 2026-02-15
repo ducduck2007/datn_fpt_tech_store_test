@@ -85,4 +85,22 @@ public class PaymentController {
         paymentService.refundPayment(id, user.getUserId());
         return ResponseEntity.ok().build();
     }
+    @DeleteMapping("/{id}/soft-delete")
+    public ResponseEntity<String> softDeletePayment(@PathVariable Long id) {
+        // TODO: Get current user ID from security context
+        Integer userId = 1; // Placeholder
+
+        String message = paymentService.softDeletePayment(id, userId);
+        return ResponseEntity.ok(message);
+    }
+
+    /**
+     * Restore a soft-deleted payment
+     * POST /api/auth/payments/{id}/restore
+     */
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<String> restorePayment(@PathVariable Long id) {
+        String message = paymentService.restorePayment(id);
+        return ResponseEntity.ok(message);
+    }
 }

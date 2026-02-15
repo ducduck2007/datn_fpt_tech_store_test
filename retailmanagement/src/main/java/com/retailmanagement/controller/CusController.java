@@ -4,11 +4,14 @@ package com.retailmanagement.controller;
 import com.retailmanagement.dto.request.CustomerRequest;
 import com.retailmanagement.dto.response.CustomerResponse;
 import com.retailmanagement.dto.response.LoyaltyLedgerResponse;
+import com.retailmanagement.dto.response.PaymentResponse;
 import com.retailmanagement.entity.CustomerType;
 import com.retailmanagement.service.CustomerService;
 import com.retailmanagement.service.LoyaltyHistoryService;
+import com.retailmanagement.service.PaymentService;
 import com.retailmanagement.service.SpinWheelService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +26,7 @@ import java.util.Map;
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping("/api/auth/customers")
+@RequiredArgsConstructor
 public class CusController {
     @Autowired
     private CustomerService cusservice;
@@ -30,6 +34,8 @@ public class CusController {
     private LoyaltyHistoryService loyaltyHistoryService;
     @Autowired
     private SpinWheelService spinWheelService;
+    @Autowired
+    private PaymentService paymentService;
     @PostMapping("")
     public ResponseEntity<CustomerResponse> addCustomer(@Valid @RequestBody CustomerRequest cus) {
        CustomerResponse response= cusservice.create(cus);
@@ -308,4 +314,41 @@ public class CusController {
         List<Map<String, Object>> prizes = spinWheelService.getPrizeOptions();
         return ResponseEntity.ok(prizes);
     }
+    @GetMapping("/{customerId}/payments")
+    public ResponseEntity<List<PaymentResponse>> getCustomerPayments(
+            @PathVariable Integer customerId) {
+
+        // TODO: Add authorization check - only the customer or admin can access
+
+        List<PaymentResponse> payments = paymentService.getPaymentsByCustomerId(customerId);
+        return ResponseEntity.ok(payments);
+    }
+
+    /**
+     * Lấy danh sách payments của customer (bao gồm đã xóa)
+     * GET /api/auth/customers/{customerId}/payments/all
+     */
+    @GetMapping("/{customerId}/payments/all")
+    public ResponseEntity<List<PaymentResponse>> getCustomerPaymentsIncludingDeleted(
+            @PathVariable Integer customerId) {
+
+        // TODO: Add authorization check - only admin can see deleted
+
+        List<PaymentResponse> payments = paymentService.getAllPaymentsByCustomerIdIncludingDeleted(customerId);
+        return ResponseEntity.ok(payments);
+    }
+
+    /**
+     * Lấy danh sách payments đã xóa của customer
+     * GET /api/auth/customers/{customerId}/payments/deleted
+     */
+    @GetMapping("/{customerId}/payments/deleted")
+    public ResponseEntity<List<PaymentResponse>> getDeletedCustomerPayments(
+            @PathVariable Integer customerId) {
+
+        // TODO: Add authorization check - only admin can see delete
+        List<PaymentResponse> payments = paymentService.getDeletedPaymentsByCustomerId(customerId);
+        return ResponseEntity.ok(payments);
+    }
 }
+

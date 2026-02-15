@@ -39,7 +39,7 @@
           </div>
         </el-card>
 
-        <!-- ✅ TABS -->
+        <!-- ✅ THÊM TABS -->
         <el-tabs v-model="activeTab" class="mb-3">
           <el-tab-pane label="Thông tin" name="info">
             <div class="row g-3">
@@ -181,7 +181,7 @@
             </div>
           </el-tab-pane>
 
-          <!-- ✅ TAB LỊCH SỬ ĐIỂM -->
+          <!-- ✅ TAB LỊCH SỬ ĐIỂM - ENHANCED -->
           <el-tab-pane label="Lịch sử điểm" name="loyalty">
             <!-- Statistics Summary -->
             <el-row :gutter="16" class="mb-3">
@@ -342,144 +342,13 @@
                           </el-tag>
                         </div>
 
-                        <!-- Reference info with expand button -->
+                        <!-- Reference info -->
                         <div v-if="item.referenceType" class="reference-info mt-2">
                           <el-tag size="small" type="info" effect="plain">
                             <el-icon class="me-1"><Link /></el-icon>
                             {{ item.referenceType }}: #{{ item.referenceId }}
                           </el-tag>
-                          
-                          <!-- ✅ EXPAND BUTTON FOR ORDERS -->
-                          <el-button 
-                            v-if="item.referenceType === 'orders'"
-                            size="small"
-                            type="primary"
-                            text
-                            @click="toggleOrderDetail(item)"
-                            :loading="item.loading"
-                            class="ms-2"
-                          >
-                            <el-icon v-if="!item.loading">
-                              <component :is="item.expanded ? 'ArrowUp' : 'ArrowDown'" />
-                            </el-icon>
-                            {{ item.loading ? 'Đang tải...' : (item.expanded ? 'Thu gọn' : 'Xem chi tiết đơn hàng') }}
-                          </el-button>
                         </div>
-
-                        <!-- ✅ ORDER DETAILS EXPANSION -->
-                        <el-collapse-transition>
-                          <div v-if="item.expanded && item.orderDetail" class="order-details-section mt-3">
-                            <el-divider class="my-2" />
-                            
-                            <!-- Order Summary -->
-                            <div class="order-summary mb-3">
-                              <div class="row g-2">
-                                <div class="col-6">
-                                  <span class="text-muted small">Đơn hàng:</span>
-                                  <span class="fw-bold ms-1">{{ item.orderDetail.orderNumber }}</span>
-                                </div>
-                                <div class="col-6">
-                                  <span class="text-muted small">Trạng thái:</span>
-                                  <el-tag size="small" :type="getOrderStatusType(item.orderDetail.status)" class="ms-1">
-                                    {{ item.orderDetail.status }}
-                                  </el-tag>
-                                </div>
-                                <div class="col-6">
-                                  <span class="text-muted small">Kênh:</span>
-                                  <span class="ms-1">{{ item.orderDetail.channel }}</span>
-                                </div>
-                                <div class="col-6">
-                                  <span class="text-muted small">Thanh toán:</span>
-                                  <span class="ms-1">{{ item.orderDetail.paymentMethod }}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <!-- Order Items -->
-                            <div class="order-items-list">
-                              <div class="fw-bold mb-2 small">Sản phẩm đã mua:</div>
-                              <div 
-                                v-for="orderItem in item.orderDetail.items" 
-                                :key="orderItem.variantId"
-                                class="order-item-row"
-                              >
-                                <div class="d-flex justify-content-between align-items-start">
-                                  <div class="flex-grow-1">
-                                    <div class="product-name">{{ orderItem.productName }}</div>
-                                    <div class="variant-info">
-                                      <span class="text-muted small">{{ orderItem.variantName }}</span>
-                                      <span class="text-muted small ms-2">SKU: {{ orderItem.sku }}</span>
-                                    </div>
-                                    <div class="quantity-price">
-                                      <span class="quantity">{{ orderItem.quantity }}x</span>
-                                      <span class="unit-price">{{ formatCurrency(orderItem.unitPrice) }}</span>
-                                      <span v-if="orderItem.discount && orderItem.discount > 0" class="discount-badge">
-                                        -{{ formatCurrency(orderItem.discount) }}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div class="line-total">
-                                    {{ formatCurrency(orderItem.lineTotal) }}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <!-- Order Totals -->
-                            <el-divider class="my-2" />
-                            <div class="order-totals">
-                              <div class="total-row">
-                                <span class="text-muted small">Tạm tính:</span>
-                                <span>{{ formatCurrency(item.orderDetail.subtotal) }}</span>
-                              </div>
-                              
-                              <!-- VIP Discount -->
-                              <div 
-                                v-if="item.orderDetail.vipDiscount && item.orderDetail.vipDiscount > 0" 
-                                class="total-row discount-row"
-                              >
-                                <span class="text-success small">
-                                  Giảm VIP ({{ item.orderDetail.vipDiscountRate }}%):
-                                </span>
-                                <span class="text-success">
-                                  -{{ formatCurrency(item.orderDetail.vipDiscount) }}
-                                </span>
-                              </div>
-                              
-                              <!-- Spin Discount -->
-                              <div 
-                                v-if="item.orderDetail.spinDiscount && item.orderDetail.spinDiscount > 0" 
-                                class="total-row discount-row"
-                              >
-                                <span class="text-success small">
-                                  Giảm Spin ({{ item.orderDetail.spinDiscountRate }}%):
-                                </span>
-                                <span class="text-success">
-                                  -{{ formatCurrency(item.orderDetail.spinDiscount) }}
-                                </span>
-                              </div>
-                              
-                              <div v-if="item.orderDetail.discountTotal && item.orderDetail.discountTotal > 0" class="total-row">
-                                <span class="text-muted small">Tổng giảm:</span>
-                                <span class="text-success">-{{ formatCurrency(item.orderDetail.discountTotal) }}</span>
-                              </div>
-                              
-                              <div v-if="item.orderDetail.shippingFee && item.orderDetail.shippingFee > 0" class="total-row">
-                                <span class="text-muted small">Phí ship:</span>
-                                <span>{{ formatCurrency(item.orderDetail.shippingFee) }}</span>
-                              </div>
-                              
-                              <el-divider class="my-2" />
-                              
-                              <div class="total-row final-total">
-                                <span class="fw-bold">Tổng cộng:</span>
-                                <span class="fw-bold text-primary">
-                                  {{ formatCurrency(item.orderDetail.totalAmount) }}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </el-collapse-transition>
                       </div>
 
                       <!-- Right: Points -->
@@ -577,12 +446,11 @@ import { ref, onMounted, computed } from 'vue';
 import { 
   Star, Present, Wallet, TrendCharts, Trophy, Refresh, 
   Right, TopRight, BottomRight, CirclePlus, Remove, List,
-  Close, Link, ArrowDown, ArrowUp
+  Close, Link
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { customersApi } from '../../api/customers.api';
-import { ordersApi } from '../../api/orders.api';
 
 const router = useRouter();
 const loading = ref(true);
@@ -721,56 +589,19 @@ const loadCustomerData = async () => {
   }
 };
 
-// ✅ Load lịch sử điểm (không tự động load order details)
+// ✅ Load lịch sử điểm
 const loadLoyaltyHistory = async () => {
   if (!customer.value?.id) return;
   
   historyLoading.value = true;
   try {
     const { data } = await customersApi.getLoyaltyHistory(customer.value.id);
-    loyaltyHistory.value = (data || []).map(item => ({
-      ...item,
-      expanded: false,
-      loading: false,
-      orderDetail: null
-    }));
+    loyaltyHistory.value = data || [];
   } catch (error) {
     console.error('Error loading loyalty history:', error);
     ElMessage.error('Lỗi khi tải lịch sử điểm');
   } finally {
     historyLoading.value = false;
-  }
-};
-
-// ✅ Toggle order detail - Load on demand
-const toggleOrderDetail = async (item) => {
-  console.log('🔍 Toggle order detail for:', item.referenceId);
-  
-  // If already expanded, just collapse
-  if (item.expanded) {
-    item.expanded = false;
-    return;
-  }
-  
-  // If not loaded yet, load it
-  if (!item.orderDetail) {
-    item.loading = true;
-    try {
-      console.log('📡 Fetching order detail:', item.referenceId);
-      const response = await ordersApi.getOrderDetail(item.referenceId);
-      console.log('✅ Order detail received:', response.data);
-      
-      item.orderDetail = response.data;
-      item.expanded = true;
-    } catch (error) {
-      console.error('❌ Error loading order:', error);
-      ElMessage.error('Không thể tải chi tiết đơn hàng');
-    } finally {
-      item.loading = false;
-    }
-  } else {
-    // Already loaded, just expand
-    item.expanded = true;
   }
 };
 
@@ -892,17 +723,6 @@ const getHistoryCardClass = (type) => {
     TIER_DOWNGRADE: 'history-downgrade'
   };
   return classes[type] || '';
-};
-
-const getOrderStatusType = (status) => {
-  const types = {
-    PENDING: 'warning',
-    PAID: 'success',
-    SHIPPING: 'primary',
-    DELIVERED: 'success',
-    CANCELLED: 'danger'
-  };
-  return types[status] || 'info';
 };
 
 const formatCurrency = (val) => {
@@ -1133,6 +953,11 @@ onMounted(async () => {
   margin-top: 8px;
 }
 
+.reference-info {
+  display: flex;
+  align-items: center;
+}
+
 .history-points {
   flex-shrink: 0;
 }
@@ -1213,105 +1038,6 @@ onMounted(async () => {
 .tier-change-display {
   display: flex;
   align-items: center;
-}
-
-/* ✅ ORDER DETAILS EXPANSION */
-.order-details-section {
-  background: rgba(0, 0, 0, 0.02);
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 12px;
-}
-
-.order-summary {
-  font-size: 13px;
-}
-
-.order-items-list {
-  background: white;
-  border-radius: 6px;
-  padding: 12px;
-}
-
-.order-item-row {
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.order-item-row:last-child {
-  border-bottom: none;
-}
-
-.product-name {
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 4px;
-}
-
-.variant-info {
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.quantity-price {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.quantity {
-  color: #909399;
-  font-weight: 600;
-}
-
-.unit-price {
-  color: #606266;
-}
-
-.discount-badge {
-  background: #f0f9ff;
-  color: #67c23a;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.line-total {
-  font-weight: 700;
-  color: #303133;
-  white-space: nowrap;
-}
-
-.order-totals {
-  background: white;
-  border-radius: 6px;
-  padding: 12px;
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  font-size: 14px;
-}
-
-.total-row.discount-row {
-  color: #67c23a;
-}
-
-.total-row.final-total {
-  font-size: 16px;
-  padding-top: 8px;
-}
-
-.reference-info {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 /* ✅ RESPONSIVE */
