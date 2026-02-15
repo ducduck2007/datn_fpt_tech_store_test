@@ -24,8 +24,9 @@ public class LoyaltyLedgerResponse {
     private String reason;
     private String note;
 
-    private String referenceType;
-    private Long referenceId;
+    // ✅ CRITICAL: Đảm bảo referenceType và referenceId có trong response
+    private String referenceType;  // "orders", "returns", etc.
+    private Long referenceId;      // ID của đơn hàng, đơn trả, etc.
 
     private Instant createdAt;
 }

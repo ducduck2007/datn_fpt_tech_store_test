@@ -22,9 +22,24 @@ public class LoyaltyHistoryService {
      * Lấy toàn bộ lịch sử của khách hàng
      */
     public List<LoyaltyLedgerResponse> getCustomerHistory(Integer customerId) {
-        return loyaltyLedgerRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)
-                .stream()
-                .map(this::mapToResponse)
+        List<LoyaltyLedger> ledgers = loyaltyLedgerRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
+
+        System.out.println("=== DEBUG: Loyalty History ===");
+        System.out.println("Total records: " + ledgers.size());
+
+        return ledgers.stream()
+                .map(ledger -> {
+                    LoyaltyLedgerResponse response = mapToResponse(ledger);
+                    System.out.println(String.format(
+                            "ID: %d | Type: %s | RefType: %s | RefId: %d | Points: %d",
+                            response.getId(),
+                            response.getTransactionType(),
+                            response.getReferenceType(),
+                            response.getReferenceId(),
+                            response.getPointsDelta()
+                    ));
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -48,7 +63,16 @@ public class LoyaltyHistoryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * ✅ CRITICAL: Map LoyaltyLedger entity to Response DTO
+     * Đảm bảo referenceType và referenceId được trả về đầy đủ
+     */
     private LoyaltyLedgerResponse mapToResponse(LoyaltyLedger ledger) {
+        // Debug log
+        System.out.println("Mapping ledger: " + ledger.getId() +
+                " | RefType: " + ledger.getReferenceType() +
+                " | RefId: " + ledger.getReferenceId());
+
         return LoyaltyLedgerResponse.builder()
                 .id(ledger.getId())
                 .customerId(ledger.getCustomer().getId())
@@ -62,25 +86,35 @@ public class LoyaltyHistoryService {
                 .tierAfterDisplay(getTierDisplay(ledger.getTierAfter()))
                 .reason(ledger.getReason())
                 .note(ledger.getNote())
+                // ✅ CRITICAL: Đảm bảo referenceType và referenceId được map
                 .referenceType(ledger.getReferenceType())
                 .referenceId(ledger.getReferenceId())
                 .createdAt(ledger.getCreatedAt())
                 .build();
     }
 
+    /**
+     * Get display name for transaction type
+     */
     private String getTransactionTypeDisplay(String type) {
         if (type == null) return "—";
+
         Map<String, String> displayMap = new HashMap<>();
         displayMap.put("EARN", "Cộng điểm");
         displayMap.put("DEDUCT", "Trừ điểm");
         displayMap.put("TIER_UPGRADE", "Thăng hạng");
         displayMap.put("TIER_DOWNGRADE", "Hạ hạng");
         displayMap.put("PENALTY", "Phạt");
+
         return displayMap.getOrDefault(type, type);
     }
 
+    /**
+     * Get display name for VIP tier
+     */
     private String getTierDisplay(String tier) {
         if (tier == null) return "Member";
+
         try {
             return VipTier.valueOf(tier).getDisplayName();
         } catch (Exception e) {
