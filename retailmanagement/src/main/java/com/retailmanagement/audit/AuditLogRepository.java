@@ -1,8 +1,10 @@
 package com.retailmanagement.audit;
 
+import com.retailmanagement.dto.response.UserActionReportResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
+public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSpecificationExecutor<AuditLog> {
     List<AuditLog> findByCreatedAtBetween(Instant from, Instant to);
     List<AuditLog> findByActionOrderByCreatedAtDesc(String action);
     List<AuditLog> findByUserId(Integer userId);
@@ -26,6 +28,20 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
         order by total DESC 
     """, nativeQuery = true)
     List<Object[]> reportByModule();
+
+    //Báo cáo theo user
+    @Query("""
+        select new com.retailmanagement.dto.response.UserActionReportResponse(
+                u.id,
+                u.username,
+                COUNT(l)
+                )
+        FROM User u
+        LEFT JOIN AuditLog l ON l.user.id = u.id
+        group by u.id, u.username
+        order by COUNT(l) DESC 
+        """)
+    List<UserActionReportResponse> countTotalActionByUser();
 
     @Query("""
         SELECT l
