@@ -2,13 +2,8 @@ package com.retailmanagement.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import lombok.*;
+import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,7 +12,13 @@ import java.time.Instant;
 @Setter
 @Entity
 @Table(name = "payments")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+// ✅ Hibernate will automatically filter out soft-deleted records
+@Where(clause = "deleted_at IS NULL")
 public class Payment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -25,7 +26,6 @@ public class Payment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
@@ -33,30 +33,74 @@ public class Payment {
     @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
-    @Size(max = 50)
     @NotNull
-    @Nationalized
-    @Column(name = "method", nullable = false, length = 50)
+    @Column(name = "method", length = 50, nullable = false)
     private String method;
 
-    @Size(max = 100)
-    @Nationalized
     @Column(name = "transaction_ref", length = 100)
     private String transactionRef;
 
-    @Size(max = 20)
     @NotNull
-    @Nationalized
-    @ColumnDefault("'PENDING'")
-    @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    @Column(name = "status", length = 20, nullable = false)
+    private String status; // PENDING, SUCCESS, FAILED, REFUNDED
 
     @Column(name = "paid_at")
     private Instant paidAt;
 
     @NotNull
-    @ColumnDefault("sysdatetime()")
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    // ============================================================
+    // SOFT DELETE FIELDS
+    // ============================================================
+
+    /**
+     * Timestamp when this payment was soft-deleted
+     * NULL = active (not deleted)
+     * NOT NULL = soft-deleted
+     */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    /**
+     * User who performed the soft delete
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
+
+    // ============================================================
+    // HELPER METHODS
+    // ============================================================
+
+    /**
+     * Check if this payment is soft-deleted
+     */
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    /**
+     * Check if this payment is active (not deleted)
+     */
+    public boolean isActive() {
+        return deletedAt == null;
+    }
+
+    /**
+     * Soft delete this payment
+     */
+    public void softDelete(User deletedByUser) {
+        this.deletedAt = Instant.now();
+        this.deletedBy = deletedByUser;
+    }
+
+    /**
+     * Restore this soft-deleted payment
+     */
+    public void restore() {
+        this.deletedAt = null;
+        this.deletedBy = null;
+    }
 }

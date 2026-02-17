@@ -96,5 +96,14 @@ export const customersApi = {
   },
   getCustomerTierProgress(customerId) {
     return http.get(`/api/auth/tier-progress/customer/${customerId}`);
+  },
+    getPayments(customerId) {
+    return http.get(`/api/auth/customers/${customerId}/payments`);
+  },
+  getPaymentsIncludingDeleted(customerId) {
+    return http.get(`/api/auth/customers/${customerId}/payments/all`);
+  },
+  getDeletedPayments(customerId) {
+    return http.get(`/api/auth/customers/${customerId}/payments/deleted`);
   }
 };

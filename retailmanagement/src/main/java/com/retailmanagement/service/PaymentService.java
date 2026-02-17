@@ -1,7 +1,6 @@
 package com.retailmanagement.service;
 
 import com.retailmanagement.dto.request.PaymentRequest;
-import com.retailmanagement.dto.response.PaymentItem;
 import com.retailmanagement.dto.response.PaymentResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
@@ -21,10 +20,14 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final ProductVariantRepository variantRepository;
-
     private final StockTransactionRepository stockTransactionRepository;
     private final CustomerService customerService;
-    private final ImageRepository imageRepository; // THÊM MỚI
+    private final ImageRepository imageRepository;
+    private final UserRepository userRepository;
+
+    // ============================================================
+    // PAYMENT CREATION & PROCESSING
+    // ============================================================
 
     /**
      * Tạo payment và xử lý thanh toán đơn hàng
@@ -54,14 +57,17 @@ public class PaymentService {
         }
 
         // 4. Tạo payment record
-        Payment payment = new Payment();
-        payment.setOrder(order);
-        payment.setAmount(paymentAmount); // Tự động lấy từ order
-        payment.setMethod(request.getMethod());
-        payment.setTransactionRef(request.getTransactionRef());
-        payment.setStatus("SUCCESS"); // Thanh toán ảo luôn thành công
-        payment.setPaidAt(Instant.now());
-        payment.setCreatedAt(Instant.now());
+        Payment payment = Payment.builder()
+                .order(order)
+                .amount(paymentAmount)
+                .method(request.getMethod())
+                .transactionRef(request.getTransactionRef())
+                .status("SUCCESS")
+                .paidAt(Instant.now())
+                .createdAt(Instant.now())
+                .deletedAt(null) // ✅ Explicitly set as not deleted
+                .deletedBy(null)
+                .build();
 
         payment = paymentRepository.save(payment);
 
@@ -81,7 +87,9 @@ public class PaymentService {
             );
 
             // Cập nhật last_order_at
-            order.getCustomer().setLastOrderAt(Instant.now().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
+            order.getCustomer().setLastOrderAt(
+                    Instant.now().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+            );
         }
 
         order.setUpdatedAt(Instant.now());
@@ -141,8 +149,13 @@ public class PaymentService {
         }
     }
 
+    // ============================================================
+    // QUERY OPERATIONS (Active Payments Only)
+    // ============================================================
+
     /**
-     * Lấy danh sách payment của một order
+     * Lấy danh sách payment của một order (chỉ active)
+     * @Where annotation tự động filter deleted_at IS NULL
      */
     public List<PaymentResponse> getPaymentsByOrderId(Long orderId) {
         return paymentRepository.findByOrderId(orderId).stream()
@@ -151,7 +164,7 @@ public class PaymentService {
     }
 
     /**
-     * Lấy chi tiết một payment
+     * Lấy chi tiết một payment (chỉ active)
      */
     public PaymentResponse getPaymentById(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
@@ -160,15 +173,13 @@ public class PaymentService {
     }
 
     /**
-     * Lấy tất cả payments - THÔNG TIN CƠ BẢN
+     * Lấy tất cả active payments
      */
     public List<PaymentResponse> getAllPayments() {
         return paymentRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-
-    // ========== THÊM MỚI: PHẦN CHI TIẾT ==========
 
     /**
      * Lấy chi tiết payment ĐẦY ĐỦ (kèm items)
@@ -178,6 +189,169 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy payment"));
         return mapToDetailResponse(payment);
+    }
+
+    // ============================================================
+    // QUERY OPERATIONS (Including Deleted)
+    // ============================================================
+
+    /**
+     * Lấy TẤT CẢ payments của một order (bao gồm cả đã xóa)
+     */
+    public List<PaymentResponse> getAllPaymentsByOrderIdIncludingDeleted(Long orderId) {
+        return paymentRepository.findAllByOrderIdIncludingDeleted(orderId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy chỉ các payments đã soft-delete của một order
+     */
+    public List<PaymentResponse> getDeletedPaymentsByOrderId(Long orderId) {
+        return paymentRepository.findDeletedByOrderId(orderId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ============================================================
+    // REFUND OPERATION
+    // ============================================================
+
+    /**
+     * Hủy payment (hoàn tiền)
+     */
+    @Transactional
+    public void refundPayment(Long paymentId, Integer userId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy payment"));
+
+        if (!"SUCCESS".equals(payment.getStatus())) {
+            throw new RuntimeException("Chỉ có thể hoàn tiền cho payment đã thành công");
+        }
+
+        Order order = payment.getOrder();
+
+        if (!"PAID".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể hoàn tiền cho đơn hàng đã thanh toán");
+        }
+
+        // Cập nhật status payment
+        payment.setStatus("REFUNDED");
+        paymentRepository.save(payment);
+
+        // Cập nhật lại order về PENDING
+        order.setPaymentStatus("UNPAID");
+        order.setStatus("PENDING");
+        order.setPaidAt(null);
+
+        // Hoàn lại tồn kho (IMPORT)
+        for (OrderItem item : order.getOrderItems()) {
+            ProductVariant variant = item.getVariant();
+
+            // Hoàn lại stock_quantity
+            variant.setStockQuantity(
+                    variant.getStockQuantity() + item.getQuantity()
+            );
+
+            // Hoàn lại reserved
+            variant.setReservedQty(
+                    variant.getReservedQty() + item.getQuantity()
+            );
+
+            variantRepository.save(variant);
+
+            // Tạo RETURN transaction
+            StockTransaction returnTx = new StockTransaction();
+            returnTx.setVariant(variant);
+            returnTx.setQuantity(item.getQuantity()); // Số dương = nhập
+            returnTx.setType("RETURN");
+            returnTx.setReferenceType("orders");
+            returnTx.setReferenceId(order.getId());
+            returnTx.setNote("Hoàn kho do refund payment " + payment.getId());
+
+            if (userId != null) {
+                returnTx.setCreatedBy(order.getUser());
+            }
+
+            returnTx.setCreatedAt(Instant.now());
+            stockTransactionRepository.save(returnTx);
+        }
+
+        orderRepository.save(order);
+    }
+
+    // ============================================================
+    // SOFT DELETE OPERATIONS
+    // ============================================================
+
+    /**
+     * Soft delete một payment
+     */
+    @Transactional
+    public String softDeletePayment(Long paymentId, Integer userId) {
+        Payment payment = paymentRepository.findActiveById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found or already deleted"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        payment.softDelete(user);
+        paymentRepository.save(payment);
+
+        return "Payment #" + paymentId + " soft deleted successfully";
+    }
+
+    /**
+     * Restore một payment đã soft-delete
+     */
+    @Transactional
+    public String restorePayment(Long paymentId) {
+        Payment payment = paymentRepository.findDeletedById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Deleted payment not found"));
+
+        payment.restore();
+        paymentRepository.save(payment);
+
+        return "Payment #" + paymentId + " restored successfully";
+    }
+
+    /**
+     * Kiểm tra xem payment có bị soft-delete không
+     */
+    public boolean isPaymentDeleted(Long paymentId) {
+        return paymentRepository.findById(paymentId)
+                .map(Payment::isDeleted)
+                .orElse(false);
+    }
+
+    // ============================================================
+    // MAPPING METHODS
+    // ============================================================
+
+    /**
+     * Map Payment → Response CƠ BẢN (không có items)
+     */
+    private PaymentResponse mapToResponse(Payment payment) {
+        Order order = payment.getOrder();
+
+        PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
+                .id(payment.getId())
+                .orderId(order.getId())
+                .amount(payment.getAmount())
+                .method(payment.getMethod())
+                .transactionRef(payment.getTransactionRef())
+                .status(payment.getStatus())
+                .paidAt(payment.getPaidAt())
+                .createdAt(payment.getCreatedAt());
+
+        // Thêm thông tin customer
+        Customer customer = order.getCustomer();
+        if (customer != null) {
+            builder.customerId(customer.getId())
+                    .customerName(customer.getName());
+        }
+
+        return builder.build();
     }
 
     /**
@@ -193,7 +367,7 @@ public class PaymentService {
                 .collect(Collectors.toList());
 
         PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
-                // Fields cũ
+                // Fields cơ bản
                 .id(payment.getId())
                 .orderId(order.getId())
                 .amount(payment.getAmount())
@@ -262,94 +436,38 @@ public class PaymentService {
                 .imageUrl(imageUrl)
                 .build();
     }
-    // ========== KẾT THÚC PHẦN THÊM MỚI ==========
+    public List<PaymentResponse> getPaymentsByCustomerId(Integer customerId) {
+        // Query payments where order.customer_id = customerId AND deleted_at IS NULL
+        List<Payment> payments = paymentRepository.findAll().stream()
+                .filter(p -> p.getOrder().getCustomer() != null
+                        && p.getOrder().getCustomer().getId().equals(customerId))
+                .collect(Collectors.toList());
 
-    /**
-     * Map Payment entity sang PaymentResponse (CƠ BẢN - không có items)
-     */
-    private PaymentResponse mapToResponse(Payment payment) {
-        Order order = payment.getOrder();
-
-        PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
-                .id(payment.getId())
-                .orderId(order.getId())
-                .amount(payment.getAmount())
-                .method(payment.getMethod())
-                .transactionRef(payment.getTransactionRef())
-                .status(payment.getStatus())
-                .paidAt(payment.getPaidAt())
-                .createdAt(payment.getCreatedAt());
-
-        // Thêm thông tin customer
-        Customer customer = order.getCustomer();
-        if (customer != null) {
-            builder.customerId(customer.getId())
-                    .customerName(customer.getName());
-        }
-
-        return builder.build();
+        return payments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Hủy payment (hoàn tiền)
+     * Lấy TẤT CẢ payments của customer (bao gồm đã xóa)
      */
-    @Transactional
-    public void refundPayment(Long paymentId, Integer userId) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy payment"));
+    public List<PaymentResponse> getAllPaymentsByCustomerIdIncludingDeleted(Integer customerId) {
+        // Use native query to bypass @Where annotation
+        List<Payment> payments = paymentRepository.findAllByCustomerIdIncludingDeleted(customerId);
 
-        if (!"SUCCESS".equals(payment.getStatus())) {
-            throw new RuntimeException("Chỉ có thể hoàn tiền cho payment đã thành công");
-        }
+        return payments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
-        Order order = payment.getOrder();
+    /**
+     * Lấy chỉ các payments đã xóa của customer
+     */
+    public List<PaymentResponse> getDeletedPaymentsByCustomerId(Integer customerId) {
+        List<Payment> payments = paymentRepository.findDeletedByCustomerId(customerId);
 
-        if (!"PAID".equals(order.getStatus())) {
-            throw new RuntimeException("Chỉ có thể hoàn tiền cho đơn hàng đã thanh toán");
-        }
-
-        // Cập nhật status payment
-        payment.setStatus("REFUNDED");
-        paymentRepository.save(payment);
-
-        // Cập nhật lại order về PENDING
-        order.setPaymentStatus("UNPAID");
-        order.setStatus("PENDING");
-        order.setPaidAt(null);
-
-        // Hoàn lại tồn kho (IMPORT)
-        for (OrderItem item : order.getOrderItems()) {
-            ProductVariant variant = item.getVariant();
-
-            // Hoàn lại stock_quantity
-            variant.setStockQuantity(
-                    variant.getStockQuantity() + item.getQuantity()
-            );
-
-            // Hoàn lại reserved
-            variant.setReservedQty(
-                    variant.getReservedQty() + item.getQuantity()
-            );
-
-            variantRepository.save(variant);
-
-            // Tạo RETURN transaction
-            StockTransaction returnTx = new StockTransaction();
-            returnTx.setVariant(variant);
-            returnTx.setQuantity(item.getQuantity()); // Số dương = nhập
-            returnTx.setType("RETURN");
-            returnTx.setReferenceType("orders");
-            returnTx.setReferenceId(order.getId());
-            returnTx.setNote("Hoàn kho do refund payment " + payment.getId());
-
-            if (userId != null) {
-                returnTx.setCreatedBy(order.getUser());
-            }
-
-            returnTx.setCreatedAt(Instant.now());
-            stockTransactionRepository.save(returnTx);
-        }
-
-        orderRepository.save(order);
+        return payments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 }
