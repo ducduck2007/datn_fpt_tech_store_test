@@ -142,6 +142,27 @@ public class AuditLogService {
                 .map(this::toResponse);
     }
 
+    public Page<AuditLog> filterLogs(
+            AuditLogFilterRequest request,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
+
+        Sort sort = Sort.by(
+                Sort.Direction.fromString(sortDir),
+                sortBy
+        );
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return auditLogRepository.findAll(
+                AuditLogSpecification.filter(request),
+                pageable
+        );
+    }
+
     private AuditLogResponse toResponse(AuditLog auditLog){
 
         Integer userId = auditLog.getUser() != null

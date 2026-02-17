@@ -1,14 +1,17 @@
 package com.retailmanagement.controller;
 
 import com.retailmanagement.audit.AuditLog;
+import com.retailmanagement.audit.AuditLogFilterRequest;
 import com.retailmanagement.audit.AuditLogService;
 import com.retailmanagement.audit.AuditReportService;
 import com.retailmanagement.dto.response.AuditLogResponse;
 import com.retailmanagement.dto.response.ModuleLogReportResponse;
+import com.retailmanagement.dto.response.UserActionReportResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -67,6 +70,20 @@ public class AuditLogController {
     @GetMapping("report/module")
     public List<ModuleLogReportResponse> reportByModule(){
         return reportService.reportByModule();
+    }
+
+    @GetMapping("report/user")
+    public List<UserActionReportResponse> reportByUser() {return reportService.getUserActionReport();}
+
+    @PostMapping("search")
+    public Page<AuditLog> search(
+            @RequestBody AuditLogFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir
+    ) {
+        return  auditLogService.filterLogs(request,page,size,sortBy,sortDir);
     }
 
     @GetMapping("export")

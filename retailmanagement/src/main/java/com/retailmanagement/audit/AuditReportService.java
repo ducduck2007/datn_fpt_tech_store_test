@@ -1,6 +1,7 @@
 package com.retailmanagement.audit;
 
 import com.retailmanagement.dto.response.ModuleLogReportResponse;
+import com.retailmanagement.dto.response.UserActionReportResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,5 +21,9 @@ public class AuditReportService {
                         ((Number) r[1]).longValue()
                 ))
                 .toList();
+    }
+
+    public List<UserActionReportResponse> getUserActionReport() {
+        return auditLogRepository.countTotalActionByUser();
     }
 }
