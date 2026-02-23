@@ -1344,3 +1344,133 @@ WHERE NOT EXISTS (
 );
 
 PRINT N'Seed fix completed.';
+
+
+-- ============================================================================
+-- MIGRATION: Add missing columns to loyalty_ledger table
+-- ============================================================================
+USE retail_management_v5;
+GO
+
+-- Kiểm tra và thêm cột transaction_type
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.loyalty_ledger') AND name = 'transaction_type')
+BEGIN
+    ALTER TABLE dbo.loyalty_ledger
+    ADD transaction_type NVARCHAR(30) NULL;
+    
+    PRINT 'Added column: transaction_type';
+END
+GO
+
+-- Kiểm tra và thêm cột tier_before
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.loyalty_ledger') AND name = 'tier_before')
+BEGIN
+    ALTER TABLE dbo.loyalty_ledger
+    ADD tier_before NVARCHAR(30) NULL;
+    
+    PRINT 'Added column: tier_before';
+END
+GO
+
+-- Kiểm tra và thêm cột tier_after
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.loyalty_ledger') AND name = 'tier_after')
+BEGIN
+    ALTER TABLE dbo.loyalty_ledger
+    ADD tier_after NVARCHAR(30) NULL;
+    
+    PRINT 'Added column: tier_after';
+END
+GO
+
+-- ============================================================================
+-- UPDATE EXISTING DATA: Set transaction_type based on points_delta
+-- ============================================================================
+UPDATE dbo.loyalty_ledger
+SET transaction_type = CASE 
+    WHEN points_delta > 0 THEN 'EARN'
+    WHEN points_delta < 0 THEN 'DEDUCT'
+    ELSE 'ADJUST'
+END
+WHERE transaction_type IS NULL;
+
+PRINT 'Updated existing loyalty_ledger records with transaction_type';
+GO
+
+-- ============================================================================
+-- UPDATE EXISTING DATA: Fix reference_type values (case sensitive)
+-- ============================================================================
+UPDATE dbo.loyalty_ledger
+SET reference_type = 'orders'
+WHERE reference_type = 'ORDER' OR reference_type = 'order';
+
+PRINT 'Fixed reference_type to lowercase "orders"';
+GO
+
+-- ============================================================================
+-- CREATE SAMPLE DATA WITH ORDER REFERENCES
+-- ============================================================================
+-- Xóa seed data cũ
+DELETE FROM dbo.loyalty_ledger WHERE note = N'Seed loyalty points';
+
+-- Tạo loyalty ledger mới với reference đến orders
+DECLARE @salesId INT = (SELECT TOP 1 id FROM dbo.users WHERE username = N'sales01');
+
+;WITH OrderCustomers AS (
+    SELECT TOP (10)
+        o.id AS order_id,
+        o.customer_id,
+        o.total_amount,
+        o.created_at,
+        ROW_NUMBER() OVER (ORDER BY o.id) AS rn
+    FROM dbo.orders o
+    WHERE o.customer_id IS NOT NULL
+    ORDER BY o.id DESC
+)
+INSERT INTO dbo.loyalty_ledger (
+    customer_id, 
+    points_delta, 
+    transaction_type,
+    reason, 
+    reference_type, 
+    reference_id, 
+    note, 
+    created_by, 
+    created_at
+)
+SELECT
+    oc.customer_id,
+    -- Tính điểm: 1% giá trị đơn hàng (làm tròn)
+    CAST(ROUND(oc.total_amount * 0.01, 0) AS INT),
+    'EARN',
+    N'Purchase reward from order',
+    'orders',  -- ✅ LOWERCASE và số nhiều
+    oc.order_id,  -- ✅ REFERENCE_ID trỏ đến order.id
+    CONCAT(N'Earned ', CAST(ROUND(oc.total_amount * 0.01, 0) AS INT), N' points from order #', oc.order_id),
+    @salesId,
+    oc.created_at
+FROM OrderCustomers oc;
+
+PRINT 'Created loyalty ledger entries linked to orders';
+GO
+
+-- ============================================================================
+-- VERIFY DATA
+-- ============================================================================
+SELECT 
+    ll.id,
+    ll.customer_id,
+    c.name AS customer_name,
+    ll.points_delta,
+    ll.transaction_type,
+    ll.reason,
+    ll.reference_type,
+    ll.reference_id,
+    ll.tier_before,
+    ll.tier_after,
+    ll.note,
+    ll.created_at
+FROM dbo.loyalty_ledger ll
+JOIN dbo.customers c ON c.id = ll.customer_id
+ORDER BY ll.created_at DESC;
+
+PRINT 'Migration completed successfully!';

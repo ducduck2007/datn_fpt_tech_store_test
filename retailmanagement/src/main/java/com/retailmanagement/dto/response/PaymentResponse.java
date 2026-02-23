@@ -32,6 +32,7 @@ public class PaymentResponse {
     private String customerPhone;
     private String customerType;
     private String vipTier;
+    private Instant deletedAt;
 
     // Thông tin đơn hàng
     private String orderStatus;

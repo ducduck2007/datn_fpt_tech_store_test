@@ -2,31 +2,58 @@ package com.retailmanagement.entity;
 
 import lombok.Getter;
 
+import java.math.BigDecimal;
+
 @Getter
 public enum VipTier {
-    // Nâng mức điểm lên cao hơn
-    BRONZE("BRONZE", 1000   , 1999, 0.03),       // Từ 500 điểm mới lên Bronze
-    SILVER("SILVER", 2000, 4999, 0.05),      // 2000 điểm lên Silver
-    GOLD("GOLD", 5000, 9999, 0.07),          // 5000 điểm lên Gold
-    PLATINUM("PLATINUM", 10000, 19999, 0.10), // 10000 điểm lên Platinum
-    DIAMOND("DIAMOND", 20000, Integer.MAX_VALUE, 0.15); // 20000 điểm mới đạt Diamond
+    // DiscountRate: dùng cho PLATINUM & DIAMOND (theo %)
+    // DiscountAmount: dùng cho BRONZE, SILVER, GOLD (số tiền cố định)
+    BRONZE("Bronze",   1000,   1999, 0.0,  BigDecimal.valueOf(100_000)),
+    SILVER("Silver",   2000,   4999, 0.0,  BigDecimal.valueOf(200_000)),
+    GOLD("Gold",       5000,   9999, 0.0,  BigDecimal.valueOf(500_000)),
+    PLATINUM("Platinum", 10000, 19999, 0.03, BigDecimal.ZERO),
+    DIAMOND("Diamond",   20000, Integer.MAX_VALUE, 0.05, BigDecimal.ZERO);
 
     private final String displayName;
     private final Integer minPoints;
     private final Integer maxPoints;
+
+    /**
+     * Tỷ lệ % giảm giá — chỉ dùng cho PLATINUM & DIAMOND.
+     * Với BRONZE/SILVER/GOLD = 0.0 (dùng discountAmount thay thế).
+     */
     private final Double discountRate;
 
-    VipTier(String displayName, Integer minPoints, Integer maxPoints, Double discountRate) {
-        this.displayName = displayName;
-        this.minPoints = minPoints;
-        this.maxPoints = maxPoints;
-        this.discountRate = discountRate;
+    /**
+     * Số tiền giảm cố định — chỉ dùng cho BRONZE, SILVER, GOLD.
+     * Với PLATINUM/DIAMOND = 0.
+     */
+    private final BigDecimal discountAmount;
+
+    VipTier(String displayName, Integer minPoints, Integer maxPoints,
+            Double discountRate, BigDecimal discountAmount) {
+        this.displayName   = displayName;
+        this.minPoints     = minPoints;
+        this.maxPoints     = maxPoints;
+        this.discountRate  = discountRate;
+        this.discountAmount = discountAmount;
+    }
+
+    /** Đơn từ bao nhiêu mới được hưởng ưu đãi của tier này */
+    public BigDecimal getMinOrderToApply() {
+        return switch (this) {
+            case BRONZE, SILVER, GOLD       -> BigDecimal.valueOf(5_000_000);
+            case PLATINUM, DIAMOND          -> BigDecimal.valueOf(10_000_000);
+        };
+    }
+
+    /** Tier dùng giảm theo % hay theo số tiền cố định? */
+    public boolean isPercentageDiscount() {
+        return discountRate > 0;
     }
 
     public static VipTier fromPoints(Integer points) {
-        // Cần cập nhật lại điều kiện check ở đây tương ứng với BRONZE minPoints
-        if (points == null || points < 500) return null;
-
+        if (points == null || points < 1000) return null;
         for (VipTier tier : values()) {
             if (points >= tier.minPoints && points <= tier.maxPoints) {
                 return tier;

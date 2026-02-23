@@ -11,12 +11,7 @@
             <el-tag class="ms-2" :type="paymentStatusType" size="large">
               Payment: {{ detail?.paymentStatus }}
             </el-tag>
-            <el-tag
-              v-if="isReturned(detail?.status)"
-              type="warning"
-              size="large"
-              class="ms-2"
-            >
+            <el-tag v-if="isReturned(detail?.status)" type="warning" size="large" class="ms-2">
               Returned
             </el-tag>
           </div>
@@ -28,7 +23,7 @@
           <el-button
             v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'"
             type="primary"
-            @click="showPaymentDialog = true"
+            @click="openPaymentDialog"
           >
             <el-icon class="me-1"><CreditCard /></el-icon>
             Thanh toán
@@ -109,28 +104,18 @@
                 <div class="muted small">SKU: {{ row.sku }}</div>
               </template>
             </el-table-column>
-
             <el-table-column label="Số lượng" width="100" align="center">
-              <template #default="{ row }">
-                {{ row.quantity }}
-              </template>
+              <template #default="{ row }">{{ row.quantity }}</template>
             </el-table-column>
-
             <el-table-column label="Đơn giá" width="150" align="right">
-              <template #default="{ row }">
-                {{ formatMoney(row.price) }}
-              </template>
+              <template #default="{ row }">{{ formatMoney(row.price) }}</template>
             </el-table-column>
-
             <el-table-column label="Giảm giá" width="150" align="right">
               <template #default="{ row }">
-                <span v-if="row.discount > 0" class="text-danger">
-                  -{{ formatMoney(row.discount) }}
-                </span>
+                <span v-if="row.discount > 0" class="text-danger">-{{ formatMoney(row.discount) }}</span>
                 <span v-else class="text-muted">—</span>
               </template>
             </el-table-column>
-
             <el-table-column label="Tổng" width="150" align="right">
               <template #default="{ row }">
                 <strong>{{ formatMoney(row.lineTotal) }}</strong>
@@ -158,6 +143,12 @@
               <span class="text-muted">└ Spin {{ detail.spinDiscountRate }}%:</span>
               <span class="text-muted">-{{ formatMoney(detail.spinDiscount) }}</span>
             </div>
+            <!-- Spin bonus ước tính (chỉ hiện khi có active bonus chưa áp vào đơn) -->
+            <div v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0" class="d-flex justify-content-between ps-3 small spin-estimated-row">
+              <span>└ 🎡 Spin {{ spinStatus.bonusRate }}% <em>(ước tính)</em>:</span>
+              <span>-{{ formatMoney(estimatedSpinDiscount) }}</span>
+            </div>
+
             <div class="d-flex justify-content-between">
               <span>Phí ship:</span>
               <strong>{{ formatMoney(detail.shippingFee) }}</strong>
@@ -167,47 +158,106 @@
               <span><strong>Tổng cộng:</strong></span>
               <strong class="text-primary">{{ formatMoney(detail.totalAmount) }}</strong>
             </div>
+
+            <!-- Tổng ước tính sau khi trừ spin -->
+            <div v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0" class="estimated-total-row">
+              <div class="d-flex justify-content-between">
+                <span class="estimated-total-label">🎡 Ước tính sau giảm Spin:</span>
+                <strong class="estimated-total-value">{{ formatMoney(detail.totalAmount - estimatedSpinDiscount) }}</strong>
+              </div>
+              <div class="estimated-total-note">* Giá ước tính, sẽ được tính chính xác khi xử lý thanh toán</div>
+            </div>
           </div>
         </div>
       </div>
     </el-card>
 
-    <!-- Payment Dialog -->
+    <!-- ================================================================ -->
+    <!-- Payment Dialog                                                    -->
+    <!-- ================================================================ -->
     <el-dialog
       v-model="showPaymentDialog"
       title="💳 Thanh toán đơn hàng"
-      width="500px"
+      width="520px"
+      :close-on-click-modal="false"
     >
-      <el-alert
-        title="Thông tin thanh toán"
-        type="info"
-        :closable="false"
-        class="mb-3"
-      >
+      <!-- ── Loading skeleton khi đang fetch spin ── -->
+      <div v-if="spinStatus.loading" class="spin-loading-wrap mb-3">
+        <div class="spin-loading-inner">
+          <span class="spin-loading-icon">🎡</span>
+          <span class="spin-loading-text">Đang kiểm tra ưu đãi vòng quay...</span>
+        </div>
+      </div>
+
+      <!-- ── Spin Bonus Banner ── -->
+      <transition name="spin-bonus-fade">
+        <div v-if="!spinStatus.loading && spinStatus.hasActiveBonus" class="spin-bonus-banner mb-3">
+          <div class="spin-bonus-inner">
+            <div class="spin-bonus-left">
+              <div class="spin-bonus-icon">🎡</div>
+              <div>
+                <div class="spin-bonus-title">Mã giảm giá vòng quay đã được áp dụng!</div>
+                <div class="spin-bonus-sub">
+                  Giảm thêm
+                  <strong class="spin-bonus-rate">{{ spinStatus.bonusRate }}%</strong>
+                  <span v-if="spinStatus.bonusExpiresAt">
+                    · Hết hạn {{ formatExpiry(spinStatus.bonusExpiresAt) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="spin-bonus-badge">-{{ spinStatus.bonusRate }}%</div>
+          </div>
+
+          <div class="spin-bonus-breakdown">
+            <div class="breakdown-row">
+              <span class="breakdown-label">Tạm tính</span>
+              <span>{{ formatMoney(detail?.subtotal) }}</span>
+            </div>
+            <div v-if="detail?.vipDiscount > 0" class="breakdown-row">
+              <span class="breakdown-label">🏆 Giảm VIP</span>
+              <span class="text-success">-{{ formatMoney(detail.vipDiscount) }}</span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-label">🎡 Giảm Spin ({{ spinStatus.bonusRate }}%)</span>
+              <span class="text-success">-{{ formatMoney(estimatedSpinDiscount) }}</span>
+            </div>
+            <div class="breakdown-row breakdown-total">
+              <span class="breakdown-label"><strong>Tổng thanh toán</strong></span>
+              <span><strong>{{ formatMoney((detail?.totalAmount || 0) - estimatedSpinDiscount + (detail?.spinDiscount || 0)) }}</strong></span>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ── Không có spin bonus (sau khi đã check xong) ── -->
+      <transition name="spin-bonus-fade">
+        <div
+          v-if="!spinStatus.loading && !spinStatus.hasActiveBonus && spinStatus.checked"
+          class="spin-no-bonus mb-3"
+        >
+          <span class="spin-no-bonus-icon">🎡</span>
+          <span class="spin-no-bonus-text">Khách hàng chưa có ưu đãi vòng quay tuần này</span>
+        </div>
+      </transition>
+
+      <!-- ── Thông tin thanh toán ── -->
+      <el-alert title="Thông tin thanh toán" type="info" :closable="false" class="mb-3">
         <p>Sau khi thanh toán thành công:</p>
         <ul class="mb-0">
           <li>✅ Đơn hàng sẽ chuyển sang trạng thái <strong>PAID</strong></li>
           <li>✅ Xuất kho tự động</li>
-          <li>✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn</li>
+          <li>✅ <strong class="text-success">Cộng điểm loyalty</strong> cho khách hàng</li>
         </ul>
       </el-alert>
 
       <el-form :model="paymentForm" label-position="top">
         <el-form-item label="Số tiền thanh toán">
-          <el-input
-            :value="formatMoney(detail?.totalAmount)"
-            disabled
-            size="large"
-          />
+          <el-input :value="formatMoney(detail?.totalAmount)" disabled size="large" />
         </el-form-item>
 
         <el-form-item label="Phương thức thanh toán" required>
-          <el-select
-            v-model="paymentForm.method"
-            placeholder="Chọn phương thức"
-            class="w-100"
-            size="large"
-          >
+          <el-select v-model="paymentForm.method" placeholder="Chọn phương thức" class="w-100" size="large">
             <el-option label="💵 Tiền mặt" value="CASH" />
             <el-option label="🏦 Chuyển khoản" value="BANK_TRANSFER" />
             <el-option label="💳 Thẻ tín dụng" value="CREDIT_CARD" />
@@ -216,10 +266,7 @@
         </el-form-item>
 
         <el-form-item label="Mã giao dịch (tùy chọn)">
-          <el-input
-            v-model="paymentForm.transactionRef"
-            placeholder="Ví dụ: TXN-123456"
-          />
+          <el-input v-model="paymentForm.transactionRef" placeholder="Ví dụ: TXN-123456" />
         </el-form-item>
       </el-form>
 
@@ -248,7 +295,6 @@
       >
         <div v-html="getCancelWarningMessage()"></div>
       </el-alert>
-
       <el-form>
         <el-form-item label="Lý do hủy">
           <el-input
@@ -259,32 +305,17 @@
           />
         </el-form-item>
       </el-form>
-
       <template #footer>
         <el-button @click="showCancelDialog = false">Đóng</el-button>
-        <el-button
-          type="danger"
-          @click="confirmCancel"
-          :loading="cancelLoading"
-        >
-          Xác nhận hủy
-        </el-button>
+        <el-button type="danger" @click="confirmCancel" :loading="cancelLoading">Xác nhận hủy</el-button>
       </template>
     </el-dialog>
 
     <!-- Return Dialog -->
-    <el-dialog
-      v-model="showReturnDialog"
-      title="🔄 Yêu cầu trả hàng"
-      width="600px"
-    >
+    <el-dialog v-model="showReturnDialog" title="🔄 Yêu cầu trả hàng" width="600px">
       <el-form :model="returnForm" label-position="top">
         <el-form-item label="Chọn sản phẩm">
-          <el-select
-            v-model="returnForm.orderItemId"
-            placeholder="Chọn sản phẩm muốn trả"
-            class="w-100"
-          >
+          <el-select v-model="returnForm.orderItemId" placeholder="Chọn sản phẩm muốn trả" class="w-100">
             <el-option
               v-for="item in detail?.items"
               :key="item.productId"
@@ -293,36 +324,21 @@
             />
           </el-select>
         </el-form-item>
-
         <el-form-item label="Số lượng">
-          <el-input-number
-            v-model="returnForm.quantity"
-            :min="1"
-            :max="getMaxReturnQuantity()"
-            class="w-100"
-          />
+          <el-input-number v-model="returnForm.quantity" :min="1" :max="getMaxReturnQuantity()" class="w-100" />
         </el-form-item>
-
         <el-form-item label="Lý do trả hàng">
-          <el-input
-            v-model="returnForm.reason"
-            type="textarea"
-            :rows="3"
-            placeholder="Nhập lý do trả hàng..."
-          />
+          <el-input v-model="returnForm.reason" type="textarea" :rows="3" placeholder="Nhập lý do trả hàng..." />
         </el-form-item>
-
         <el-form-item label="Số tiền hoàn">
           <el-input v-model="returnForm.refundAmount" disabled>
             <template #prefix>₫</template>
           </el-input>
         </el-form-item>
-
         <el-alert title="⚠️ Lưu ý" type="info" show-icon :closable="false">
           Điểm loyalty đã được cộng sẽ bị trừ lại khi trả hàng được duyệt.
         </el-alert>
       </el-form>
-
       <template #footer>
         <el-button @click="showReturnDialog = false">Đóng</el-button>
         <el-button type="primary" @click="submitReturn">Gửi yêu cầu</el-button>
@@ -334,96 +350,101 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ordersApi } from "../../api/orders.api";
-import { returnsApi } from "../../api/returns.api";
-import { paymentsApi } from "../../api/payments";
+import { ordersApi }    from "../../api/orders.api";
+import { returnsApi }   from "../../api/returns.api";
+import { paymentsApi }  from "../../api/payments";
+import { spinWheelApi } from "../../api/spinWheel.api";
 import { useAuthStore } from "../../stores/auth";
-import { toast } from "../../ui/toast";
+import { toast }        from "../../ui/toast";
 import { Close, CreditCard, RefreshLeft } from "@element-plus/icons-vue";
 
-const route = useRoute();
+const route  = useRoute();
 const router = useRouter();
-const auth = useAuthStore();
+const auth   = useAuthStore();
 
-const loading = ref(false);
-const cancelLoading = ref(false);
+const loading        = ref(false);
+const cancelLoading  = ref(false);
 const paymentLoading = ref(false);
-const detail = ref(null);
-const orderId = computed(() => route.params.orderId);
+const detail         = ref(null);
+const orderId        = computed(() => route.params.orderId);
 
-const showCancelDialog = ref(false);
-const cancelReason = ref("");
-const showReturnDialog = ref(false);
+const showCancelDialog  = ref(false);
+const cancelReason      = ref("");
+const showReturnDialog  = ref(false);
 const showPaymentDialog = ref(false);
 
-const returnForm = reactive({
-  orderItemId: null,
-  quantity: 1,
-  reason: "",
-  refundAmount: 0,
+// ── Spin Bonus State ──────────────────────────────────────────────────
+const spinStatus = reactive({
+  loading:        false,
+  checked:        false,   // true sau khi fetch xong (dù có bonus hay không)
+  hasActiveBonus: false,
+  bonusRate:      0,
+  bonusExpiresAt: null,
 });
 
-const paymentForm = reactive({
-  method: "CASH",
-  transactionRef: "",
-});
+const returnForm  = reactive({ orderItemId: null, quantity: 1, reason: "", refundAmount: 0 });
+const paymentForm = reactive({ method: "CASH", transactionRef: "" });
 
+// ── Computed ──────────────────────────────────────────────────────────
 const statusType = computed(() => {
   const s = detail.value?.status;
   if (s === "DELIVERED") return "success";
-  if (s === "SHIPPING") return "warning";
+  if (s === "SHIPPING")  return "warning";
   if (s === "CANCELLED") return "danger";
-  if (s === "PAID") return "success";
+  if (s === "PAID")      return "success";
   return "info";
 });
 
 const paymentStatusType = computed(() => {
   const ps = detail.value?.paymentStatus;
-  if (ps === "PAID") return "success";
+  if (ps === "PAID")    return "success";
   if (ps === "PARTIAL") return "warning";
   return "info";
 });
 
-const hasDiscountInfo = computed(() => {
-  return detail.value && (
-    (detail.value.vipDiscountRate && detail.value.vipDiscountRate > 0) ||
+const hasDiscountInfo = computed(() =>
+  detail.value && (
+    (detail.value.vipDiscountRate  && detail.value.vipDiscountRate  > 0) ||
     (detail.value.spinDiscountRate && detail.value.spinDiscountRate > 0)
-  );
+  )
+);
+
+// Tính spin discount ước tính từ subtotal × bonusRate (dùng khi đơn cũ chưa có spinDiscount)
+const estimatedSpinDiscount = computed(() => {
+  if (!detail.value?.subtotal || !spinStatus.bonusRate) return 0;
+  const actual = detail.value?.spinDiscount || 0;
+  if (actual > 0) return actual; // nếu đơn đã có sẵn → dùng luôn
+  return Math.round(detail.value.subtotal * spinStatus.bonusRate / 100);
 });
 
-watch(
-  () => returnForm.orderItemId,
-  (newItemId) => {
-    if (!newItemId || !detail.value?.items) return;
-    const item = detail.value.items.find((i) => i.productId === newItemId);
-    if (item) {
-      returnForm.quantity = 1;
-      returnForm.refundAmount = item.price;
-    }
-  }
-);
+// ── Watchers ──────────────────────────────────────────────────────────
+watch(() => returnForm.orderItemId, (newItemId) => {
+  if (!newItemId || !detail.value?.items) return;
+  const item = detail.value.items.find((i) => i.productId === newItemId);
+  if (item) { returnForm.quantity = 1; returnForm.refundAmount = item.price; }
+});
 
-watch(
-  () => returnForm.quantity,
-  (newQty) => {
-    if (!returnForm.orderItemId || !detail.value?.items) return;
-    const item = detail.value.items.find(
-      (i) => i.productId === returnForm.orderItemId
-    );
-    if (item) {
-      returnForm.refundAmount = item.price * newQty;
-    }
-  }
-);
+watch(() => returnForm.quantity, (newQty) => {
+  if (!returnForm.orderItemId || !detail.value?.items) return;
+  const item = detail.value.items.find((i) => i.productId === returnForm.orderItemId);
+  if (item) returnForm.refundAmount = item.price * newQty;
+});
 
+// ── Helpers ───────────────────────────────────────────────────────────
 function formatMoney(val) {
-  if (!val) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(val);
+  if (val === null || val === undefined) return "0 ₫";
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
 }
 
+function formatExpiry(dateStr) {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString("vi-VN", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+// ── Data loading ──────────────────────────────────────────────────────
 async function reload() {
   loading.value = true;
   try {
@@ -436,53 +457,86 @@ async function reload() {
   }
 }
 
-function getCancelWarningTitle() {
-  if (detail.value?.paymentStatus === "PAID") {
-    return "⚠️ Cảnh báo: Hủy đơn đã thanh toán";
+// ── Spin Bonus ────────────────────────────────────────────────────────
+async function fetchSpinStatus() {
+  const customerId = detail.value?.customerId;
+  if (!customerId) return;
+
+  // Reset
+  spinStatus.loading        = true;
+  spinStatus.checked        = false;
+  spinStatus.hasActiveBonus = false;
+  spinStatus.bonusRate      = 0;
+  spinStatus.bonusExpiresAt = null;
+
+  try {
+    const res = await spinWheelApi.getStatus(customerId);
+
+    // Hỗ trợ cả 2 cấu trúc: { data: { data: {...} } } hoặc { data: {...} }
+    const data = res?.data?.data ?? res?.data ?? res;
+
+    console.log("🎡 [SpinWheel] raw response:", JSON.stringify(data));
+
+    // SpinWheelService trả về Map với key "currentBonus" (BigDecimal → number sau JSON)
+    const bonus = Number(data?.currentBonus ?? 0);
+    console.log("🎡 [SpinWheel] currentBonus parsed:", bonus);
+
+    if (bonus > 0) {
+      spinStatus.hasActiveBonus = true;
+      spinStatus.bonusRate      = bonus;
+      spinStatus.bonusExpiresAt = data?.bonusExpiresAt ?? null;
+    }
+  } catch (err) {
+    console.warn("🎡 [SpinWheel] error:", err?.response?.status, err?.message);
+  } finally {
+    spinStatus.loading = false;
+    spinStatus.checked = true;
   }
-  return "Xác nhận hủy đơn";
+}
+
+async function openPaymentDialog() {
+  showPaymentDialog.value = true;
+  await fetchSpinStatus();
+}
+
+// ── Cancel ────────────────────────────────────────────────────────────
+function getCancelWarningTitle() {
+  return detail.value?.paymentStatus === "PAID"
+    ? "⚠️ Cảnh báo: Hủy đơn đã thanh toán"
+    : "Xác nhận hủy đơn";
 }
 
 function getCancelWarningMessage() {
   if (detail.value?.paymentStatus === "PAID") {
-    const totalAmount = detail.value.totalAmount || 0;
-    const loyaltyPoints = Math.floor(totalAmount / 10000);
-    
+    const pts = Math.floor((detail.value.totalAmount || 0) / 10000);
     return `
       <p><strong>Đơn hàng đã thanh toán. Nếu hủy:</strong></p>
       <ul>
-        <li>❌ Điểm loyalty đã cộng sẽ bị trừ lại: <strong class="text-danger">${loyaltyPoints} điểm</strong></li>
+        <li>❌ Điểm loyalty đã cộng sẽ bị trừ lại: <strong class="text-danger">${pts} điểm</strong></li>
         <li>💰 Số tiền sẽ được hoàn trả</li>
         <li>📦 Sản phẩm sẽ được nhập lại kho</li>
       </ul>
       <p class="mb-0 mt-2"><em>Lưu ý: Không có phí phạt khi hủy đơn.</em></p>
     `;
   }
-  
-  return `
-    <p><strong>Xác nhận hủy đơn hàng này?</strong></p>
-    <p class="mb-0">Đơn hàng chưa thanh toán sẽ được hủy miễn phí.</p>
-  `;
+  return `<p><strong>Xác nhận hủy đơn hàng này?</strong></p><p class="mb-0">Đơn hàng chưa thanh toán sẽ được hủy miễn phí.</p>`;
 }
 
 function getMaxReturnQuantity() {
   if (!returnForm.orderItemId || !detail.value?.items) return 1;
-  const item = detail.value.items.find(
-    (i) => i.productId === returnForm.orderItemId
-  );
-  return item?.quantity || 1;
+  return detail.value.items.find((i) => i.productId === returnForm.orderItemId)?.quantity || 1;
 }
 
+// ── Payment ───────────────────────────────────────────────────────────
 async function confirmPayment() {
   if (!paymentForm.method) return;
   paymentLoading.value = true;
   try {
-    const payload = {
-      orderId: Number(orderId.value),
-      method: paymentForm.method,
+    await paymentsApi.create({
+      orderId:        Number(orderId.value),
+      method:         paymentForm.method,
       transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`,
-    };
-    await paymentsApi.create(payload);
+    });
     toast("✅ Thanh toán thành công!", "success");
     showPaymentDialog.value = false;
     await reload();
@@ -510,10 +564,7 @@ async function confirmCancel() {
 async function submitReturn() {
   if (!returnForm.orderItemId || !returnForm.reason) return;
   try {
-    await returnsApi.create({
-      orderId: Number(orderId.value),
-      ...returnForm,
-    });
+    await returnsApi.create({ orderId: Number(orderId.value), ...returnForm });
     toast("✅ Đã gửi yêu cầu trả hàng", "success");
     showReturnDialog.value = false;
   } catch (e) {
@@ -529,75 +580,164 @@ onMounted(() => reload());
 </script>
 
 <style scoped>
-.info-box {
-  padding: 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
-}
+.info-box { padding: 16px; background: #f5f7fa; border-radius: 8px; }
+.info-box h5 { margin-bottom: 12px; color: #2c3e50; }
+.info-box p  { margin: 8px 0; }
 
-.info-box h5 {
-  margin-bottom: 12px;
-  color: #2c3e50;
-}
+.totals-box { padding: 20px; background: #f8f9fa; border-radius: 8px; }
+.totals-box > div { padding: 8px 0; }
 
-.info-box p {
-  margin: 8px 0;
-}
+.kicker { font-size: 12px; opacity: 0.75; font-weight: 900; text-transform: uppercase; }
+.title  { font-weight: 900; font-size: 18px; }
+.muted  { color: rgba(15, 23, 42, 0.62); font-size: 13px; }
+.small  { font-size: 12px; }
 
-.totals-box {
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.totals-box > div {
-  padding: 8px 0;
-}
-
-.kicker {
-  font-size: 12px;
-  opacity: 0.75;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.title {
-  font-weight: 900;
-  font-size: 18px;
-}
-
-.muted {
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 13px;
-}
-
-.small {
-  font-size: 12px;
-}
-
-/* Discount Details */
-.discount-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
+.discount-details { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .discount-item {
   display: flex;
   justify-content: space-between;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255,255,255,0.6);
   border-radius: 6px;
 }
+.discount-label { font-weight: 600; color: #2c3e50; }
+.discount-value { font-weight: 700; color: #67c23a; }
 
-.discount-label {
+/* ── Spin Loading ─────────────────────────────────────────── */
+.spin-loading-wrap {
+  background: #f5f7fa;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.spin-loading-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #888;
+  font-size: 14px;
+}
+.spin-loading-icon {
+  font-size: 20px;
+  animation: spin-rotate 1.2s linear infinite;
+}
+@keyframes spin-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── No Bonus Notice ──────────────────────────────────────── */
+.spin-no-bonus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  border: 1px dashed #dcdfe6;
+  font-size: 13px;
+  color: #909399;
+}
+.spin-no-bonus-icon { font-size: 18px; }
+
+/* ── Spin Bonus Banner ────────────────────────────────────── */
+.spin-bonus-banner {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #f0a500;
+  background: linear-gradient(135deg, #fffbec 0%, #fff8db 100%);
+  box-shadow: 0 4px 16px rgba(240, 165, 0, 0.18);
+}
+.spin-bonus-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  gap: 12px;
+}
+.spin-bonus-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.spin-bonus-icon {
+  font-size: 28px;
+  line-height: 1;
+  animation: spin-pulse 2s ease-in-out infinite;
+}
+@keyframes spin-pulse {
+  0%, 100% { transform: rotate(0deg)   scale(1); }
+  50%       { transform: rotate(15deg) scale(1.1); }
+}
+.spin-bonus-title { font-weight: 700; font-size: 14px; color: #7c5200; }
+.spin-bonus-sub   { font-size: 12px; color: #9d6f0a; margin-top: 2px; }
+.spin-bonus-rate  { color: #e67e00; font-size: 15px; }
+.spin-bonus-badge {
+  background: linear-gradient(135deg, #f0a500, #e67e00);
+  color: white;
+  font-weight: 900;
+  font-size: 18px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(230, 126, 0, 0.4);
+}
+
+.spin-bonus-breakdown {
+  border-top: 1px solid #f0d58a;
+  padding: 10px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 2px 0;
+  color: #5a3d00;
+}
+.breakdown-label { opacity: 0.85; }
+.breakdown-total {
+  border-top: 1px dashed #f0d58a;
+  margin-top: 4px;
+  padding-top: 6px;
+  font-size: 14px;
+  color: #3d2800;
+}
+
+/* ── Spin Estimated Row (totals box) ─────────────────────── */
+.spin-estimated-row {
+  color: #e67e00;
+  font-style: italic;
+}
+.spin-estimated-row span { opacity: 1 !important; color: #e67e00; }
+
+.estimated-total-row {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #fffbec, #fff3cd);
+  border: 1.5px dashed #f0a500;
+  border-radius: 8px;
+}
+.estimated-total-label {
+  font-size: 14px;
+  color: #7c5200;
   font-weight: 600;
-  color: #2c3e50;
+}
+.estimated-total-value {
+  font-size: 15px;
+  color: #e67e00;
+}
+.estimated-total-note {
+  font-size: 11px;
+  color: #9d6f0a;
+  margin-top: 4px;
+  font-style: italic;
 }
 
-.discount-value {
-  font-weight: 700;
-  color: #67c23a;
-}
+/* ── Transition ───────────────────────────────────────────── */
+.spin-bonus-fade-enter-active,
+.spin-bonus-fade-leave-active { transition: all 0.35s ease; }
+.spin-bonus-fade-enter-from,
+.spin-bonus-fade-leave-to     { opacity: 0; transform: translateY(-8px); }
 </style>
