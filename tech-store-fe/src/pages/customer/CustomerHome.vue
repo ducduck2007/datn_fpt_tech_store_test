@@ -165,13 +165,7 @@ THAY ĐỔI:
                 </el-button>
               </el-badge>
 
-              <el-button
-                type="primary"
-                :disabled="!isCustomer"
-                @click="$router.push('/orders/new')"
-              >
-                Create Order
-              </el-button>
+              
             </div>
           </div>
 
