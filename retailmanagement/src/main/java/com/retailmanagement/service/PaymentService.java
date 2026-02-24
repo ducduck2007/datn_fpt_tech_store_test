@@ -29,34 +29,20 @@ public class PaymentService {
     // PAYMENT CREATION & PROCESSING
     // ============================================================
 
-    /**
-     * Tạo payment và xử lý thanh toán đơn hàng
-     * - Tự động lấy số tiền từ order.totalAmount
-     * - Tạo bản ghi payment
-     * - Cập nhật trạng thái order thành PAID
-     * - Xuất kho (EXPORT) và giải phóng reserved
-     * - Cộng điểm loyalty và totalSpent cho customer
-     */
     @Transactional
     public PaymentResponse createPayment(PaymentRequest request, Integer userId) {
-
-        // 1. Kiểm tra order tồn tại
         Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
-        // 2. Kiểm tra trạng thái order
         if (!"PENDING".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể thanh toán đơn hàng ở trạng thái PENDING");
         }
 
-        // 3. Tự động lấy số tiền cần thanh toán = totalAmount của order
         BigDecimal paymentAmount = order.getTotalAmount();
-
         if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Số tiền đơn hàng không hợp lệ");
         }
 
-        // 4. Tạo payment record
         Payment payment = Payment.builder()
                 .order(order)
                 .amount(paymentAmount)
@@ -65,28 +51,23 @@ public class PaymentService {
                 .status("SUCCESS")
                 .paidAt(Instant.now())
                 .createdAt(Instant.now())
-                .deletedAt(null) // ✅ Explicitly set as not deleted
+                .deletedAt(null)
                 .deletedBy(null)
                 .build();
 
         payment = paymentRepository.save(payment);
 
-        // 5. Cập nhật trạng thái order thành PAID
         order.setPaymentStatus("PAID");
         order.setStatus("PAID");
         order.setPaidAt(Instant.now());
 
-        // 6. XỬ LÝ XUẤT KHO (EXPORT)
         processStockExport(order, userId);
 
-        // 7. CỘNG ĐIỂM VÀ TOTALSPENT CHO CUSTOMER
         if (order.getCustomer() != null) {
             customerService.addLoyaltyPoints(
                     order.getCustomer().getId(),
                     order.getTotalAmount()
             );
-
-            // Cập nhật last_order_at
             order.getCustomer().setLastOrderAt(
                     Instant.now().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
             );
@@ -95,56 +76,33 @@ public class PaymentService {
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
 
-        // 8. Trả response
         return mapToResponse(payment);
     }
 
-    /**
-     * Xử lý xuất kho sau khi thanh toán thành công
-     * - Giảm stock_quantity
-     * - Giảm reserved_qty
-     * - Tạo EXPORT transaction
-     */
     private void processStockExport(Order order, Integer userId) {
-
         for (OrderItem item : order.getOrderItems()) {
             ProductVariant variant = item.getVariant();
 
-            // 1. Kiểm tra tồn kho
             int availableStock = variant.getStockQuantity() - variant.getReservedQty();
             if (availableStock < 0) {
-                throw new RuntimeException(
-                        "Lỗi tồn kho: variant " + variant.getSku() + " không đủ hàng"
-                );
+                throw new RuntimeException("Lỗi tồn kho: variant " + variant.getSku() + " không đủ hàng");
             }
 
-            // 2. Xuất kho: giảm stock_quantity
-            variant.setStockQuantity(
-                    variant.getStockQuantity() - item.getQuantity()
-            );
-
-            // 3. Giải phóng reserved
-            variant.setReservedQty(
-                    variant.getReservedQty() - item.getQuantity()
-            );
-
+            variant.setStockQuantity(variant.getStockQuantity() - item.getQuantity());
+            variant.setReservedQty(variant.getReservedQty() - item.getQuantity());
             variantRepository.save(variant);
 
-            // 4. Tạo EXPORT transaction
             StockTransaction exportTx = new StockTransaction();
             exportTx.setVariant(variant);
-            exportTx.setQuantity(-item.getQuantity()); // Số âm = xuất
+            exportTx.setQuantity(-item.getQuantity());
             exportTx.setType("EXPORT");
             exportTx.setReferenceType("orders");
             exportTx.setReferenceId(order.getId());
             exportTx.setNote("Xuất kho sau thanh toán đơn " + order.getOrderNumber());
-
             if (userId != null) {
                 exportTx.setCreatedBy(order.getUser());
             }
-
             exportTx.setCreatedAt(Instant.now());
-
             stockTransactionRepository.save(exportTx);
         }
     }
@@ -153,37 +111,24 @@ public class PaymentService {
     // QUERY OPERATIONS (Active Payments Only)
     // ============================================================
 
-    /**
-     * Lấy danh sách payment của một order (chỉ active)
-     * @Where annotation tự động filter deleted_at IS NULL
-     */
     public List<PaymentResponse> getPaymentsByOrderId(Long orderId) {
         return paymentRepository.findByOrderId(orderId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lấy chi tiết một payment (chỉ active)
-     */
     public PaymentResponse getPaymentById(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy payment"));
         return mapToResponse(payment);
     }
 
-    /**
-     * Lấy tất cả active payments
-     */
     public List<PaymentResponse> getAllPayments() {
         return paymentRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lấy chi tiết payment ĐẦY ĐỦ (kèm items)
-     */
     @Transactional
     public PaymentResponse getPaymentDetail(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
@@ -195,18 +140,12 @@ public class PaymentService {
     // QUERY OPERATIONS (Including Deleted)
     // ============================================================
 
-    /**
-     * Lấy TẤT CẢ payments của một order (bao gồm cả đã xóa)
-     */
     public List<PaymentResponse> getAllPaymentsByOrderIdIncludingDeleted(Long orderId) {
         return paymentRepository.findAllByOrderIdIncludingDeleted(orderId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lấy chỉ các payments đã soft-delete của một order
-     */
     public List<PaymentResponse> getDeletedPaymentsByOrderId(Long orderId) {
         return paymentRepository.findDeletedByOrderId(orderId).stream()
                 .map(this::mapToResponse)
@@ -214,12 +153,43 @@ public class PaymentService {
     }
 
     // ============================================================
-    // REFUND OPERATION
+    // CUSTOMER PAYMENT QUERIES
     // ============================================================
 
     /**
-     * Hủy payment (hoàn tiền)
+     * ✅ FIXED: Only active (non-deleted) payments for customer
      */
+    public List<PaymentResponse> getPaymentsByCustomerId(Integer customerId) {
+        List<Payment> payments = paymentRepository.findActiveByCustomerId(customerId);
+        return payments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ ALL payments including deleted - maps deletedAt to response
+     */
+    public List<PaymentResponse> getAllPaymentsByCustomerIdIncludingDeleted(Integer customerId) {
+        List<Payment> payments = paymentRepository.findAllByCustomerIdIncludingDeleted(customerId);
+        return payments.stream()
+                .map(this::mapToResponseWithDeleted)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ Only deleted payments for customer
+     */
+    public List<PaymentResponse> getDeletedPaymentsByCustomerId(Integer customerId) {
+        List<Payment> payments = paymentRepository.findDeletedByCustomerId(customerId);
+        return payments.stream()
+                .map(this::mapToResponseWithDeleted)
+                .collect(Collectors.toList());
+    }
+
+    // ============================================================
+    // REFUND OPERATION
+    // ============================================================
+
     @Transactional
     public void refundPayment(Long paymentId, Integer userId) {
         Payment payment = paymentRepository.findById(paymentId)
@@ -230,49 +200,33 @@ public class PaymentService {
         }
 
         Order order = payment.getOrder();
-
         if (!"PAID".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể hoàn tiền cho đơn hàng đã thanh toán");
         }
 
-        // Cập nhật status payment
         payment.setStatus("REFUNDED");
         paymentRepository.save(payment);
 
-        // Cập nhật lại order về PENDING
         order.setPaymentStatus("UNPAID");
         order.setStatus("PENDING");
         order.setPaidAt(null);
 
-        // Hoàn lại tồn kho (IMPORT)
         for (OrderItem item : order.getOrderItems()) {
             ProductVariant variant = item.getVariant();
-
-            // Hoàn lại stock_quantity
-            variant.setStockQuantity(
-                    variant.getStockQuantity() + item.getQuantity()
-            );
-
-            // Hoàn lại reserved
-            variant.setReservedQty(
-                    variant.getReservedQty() + item.getQuantity()
-            );
-
+            variant.setStockQuantity(variant.getStockQuantity() + item.getQuantity());
+            variant.setReservedQty(variant.getReservedQty() + item.getQuantity());
             variantRepository.save(variant);
 
-            // Tạo RETURN transaction
             StockTransaction returnTx = new StockTransaction();
             returnTx.setVariant(variant);
-            returnTx.setQuantity(item.getQuantity()); // Số dương = nhập
+            returnTx.setQuantity(item.getQuantity());
             returnTx.setType("RETURN");
             returnTx.setReferenceType("orders");
             returnTx.setReferenceId(order.getId());
             returnTx.setNote("Hoàn kho do refund payment " + payment.getId());
-
             if (userId != null) {
                 returnTx.setCreatedBy(order.getUser());
             }
-
             returnTx.setCreatedAt(Instant.now());
             stockTransactionRepository.save(returnTx);
         }
@@ -285,39 +239,40 @@ public class PaymentService {
     // ============================================================
 
     /**
-     * Soft delete một payment
+     * ✅ FIXED: Uses findActiveById so it correctly fails if already deleted
      */
     @Transactional
     public String softDeletePayment(Long paymentId, Integer userId) {
         Payment payment = paymentRepository.findActiveById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found or already deleted"));
+                .orElseThrow(() -> new RuntimeException(
+                        "Payment not found or already deleted: " + paymentId));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         payment.softDelete(user);
         paymentRepository.save(payment);
 
-        return "Payment #" + paymentId + " soft deleted successfully";
+        System.out.println("✅ Soft deleted payment #" + paymentId + " by user " + user.getUsername());
+        return "Payment #" + paymentId + " deleted successfully";
     }
 
     /**
-     * Restore một payment đã soft-delete
+     * ✅ FIXED: Uses findDeletedById to only restore actually deleted payments
      */
     @Transactional
     public String restorePayment(Long paymentId) {
         Payment payment = paymentRepository.findDeletedById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Deleted payment not found"));
+                .orElseThrow(() -> new RuntimeException(
+                        "Deleted payment not found: " + paymentId));
 
         payment.restore();
         paymentRepository.save(payment);
 
+        System.out.println("✅ Restored payment #" + paymentId);
         return "Payment #" + paymentId + " restored successfully";
     }
 
-    /**
-     * Kiểm tra xem payment có bị soft-delete không
-     */
     public boolean isPaymentDeleted(Long paymentId) {
         return paymentRepository.findById(paymentId)
                 .map(Payment::isDeleted)
@@ -329,7 +284,7 @@ public class PaymentService {
     // ============================================================
 
     /**
-     * Map Payment → Response CƠ BẢN (không có items)
+     * Basic response - active payment (no deletedAt field needed)
      */
     private PaymentResponse mapToResponse(Payment payment) {
         Order order = payment.getOrder();
@@ -344,7 +299,6 @@ public class PaymentService {
                 .paidAt(payment.getPaidAt())
                 .createdAt(payment.getCreatedAt());
 
-        // Thêm thông tin customer
         Customer customer = order.getCustomer();
         if (customer != null) {
             builder.customerId(customer.getId())
@@ -355,19 +309,43 @@ public class PaymentService {
     }
 
     /**
-     * Map Payment → Response CHI TIẾT (có items)
+     * ✅ NEW: Response WITH deletedAt - used when fetching all including deleted
+     */
+    private PaymentResponse mapToResponseWithDeleted(Payment payment) {
+        Order order = payment.getOrder();
+
+        PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
+                .id(payment.getId())
+                .orderId(order.getId())
+                .amount(payment.getAmount())
+                .method(payment.getMethod())
+                .transactionRef(payment.getTransactionRef())
+                .status(payment.getStatus())
+                .paidAt(payment.getPaidAt())
+                .createdAt(payment.getCreatedAt())
+                .deletedAt(payment.getDeletedAt()); // ✅ Include deletedAt
+
+        Customer customer = order.getCustomer();
+        if (customer != null) {
+            builder.customerId(customer.getId())
+                    .customerName(customer.getName());
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Detail response with items
      */
     private PaymentResponse mapToDetailResponse(Payment payment) {
         Order order = payment.getOrder();
         Customer customer = order.getCustomer();
 
-        // Lấy danh sách items
         List<PaymentResponse.PaymentItem> items = order.getOrderItems().stream()
                 .map(this::mapToPaymentItem)
                 .collect(Collectors.toList());
 
         PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
-                // Fields cơ bản
                 .id(payment.getId())
                 .orderId(order.getId())
                 .amount(payment.getAmount())
@@ -377,7 +355,6 @@ public class PaymentService {
                 .paidAt(payment.getPaidAt())
                 .createdAt(payment.getCreatedAt());
 
-        // Customer info
         if (customer != null) {
             builder.customerId(customer.getId())
                     .customerName(customer.getName())
@@ -387,7 +364,6 @@ public class PaymentService {
                     .vipTier(customer.getVipTier() != null ? customer.getVipTier().name() : null);
         }
 
-        // Order info
         builder.orderNumber(order.getOrderNumber())
                 .orderStatus(order.getStatus())
                 .channel(order.getChannel())
@@ -398,18 +374,14 @@ public class PaymentService {
                 .totalAmount(order.getTotalAmount())
                 .appliedPromotionCode(order.getAppliedPromotionCode())
                 .notes(order.getNotes())
-                .items(items); // DANH SÁCH SẢN PHẨM
+                .items(items);
 
         return builder.build();
     }
 
-    /**
-     * Map OrderItem → PaymentItem
-     */
     private PaymentResponse.PaymentItem mapToPaymentItem(OrderItem item) {
         String imageUrl = null;
 
-        // Lấy ảnh từ variant hoặc product
         if (item.getVariant() != null) {
             imageUrl = imageRepository.findFirstByProductIdAndIsPrimaryTrue(item.getVariant().getId())
                     .map(Image::getUrl)
@@ -435,39 +407,5 @@ public class PaymentService {
                 .lineTotal(item.getLineTotal())
                 .imageUrl(imageUrl)
                 .build();
-    }
-    public List<PaymentResponse> getPaymentsByCustomerId(Integer customerId) {
-        // Query payments where order.customer_id = customerId AND deleted_at IS NULL
-        List<Payment> payments = paymentRepository.findAll().stream()
-                .filter(p -> p.getOrder().getCustomer() != null
-                        && p.getOrder().getCustomer().getId().equals(customerId))
-                .collect(Collectors.toList());
-
-        return payments.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Lấy TẤT CẢ payments của customer (bao gồm đã xóa)
-     */
-    public List<PaymentResponse> getAllPaymentsByCustomerIdIncludingDeleted(Integer customerId) {
-        // Use native query to bypass @Where annotation
-        List<Payment> payments = paymentRepository.findAllByCustomerIdIncludingDeleted(customerId);
-
-        return payments.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Lấy chỉ các payments đã xóa của customer
-     */
-    public List<PaymentResponse> getDeletedPaymentsByCustomerId(Integer customerId) {
-        List<Payment> payments = paymentRepository.findDeletedByCustomerId(customerId);
-
-        return payments.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
     }
 }

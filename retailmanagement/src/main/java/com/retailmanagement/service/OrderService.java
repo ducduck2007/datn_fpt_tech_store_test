@@ -28,98 +28,117 @@ import java.util.List;
 @Transactional
 public class OrderService {
 
+    // ================================================================
+    // INNER CLASS: Discount Breakdown
+    // ================================================================
     @lombok.Data
     private static class DiscountCalculation {
-        private BigDecimal vipDiscountRate = BigDecimal.ZERO;
-        private BigDecimal vipDiscount = BigDecimal.ZERO;
-        private BigDecimal spinDiscountRate = BigDecimal.ZERO;
-        private BigDecimal spinDiscount = BigDecimal.ZERO;
-        private BigDecimal totalDiscount = BigDecimal.ZERO;
-        private boolean hasSpinBonus = false;
+        private BigDecimal vipDiscountRate   = BigDecimal.ZERO;  // % (chỉ cho Platinum/Diamond)
+        private BigDecimal vipDiscount       = BigDecimal.ZERO;  // Số tiền giảm VIP
+        private BigDecimal spinDiscountRate  = BigDecimal.ZERO;  // % spin
+        private BigDecimal spinDiscount      = BigDecimal.ZERO;  // Số tiền giảm spin
+        private BigDecimal totalDiscount     = BigDecimal.ZERO;
+        private boolean    hasSpinBonus      = false;
+        private String     discountType      = "NONE";           // "FIXED" | "PERCENTAGE" | "NONE"
     }
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final ProductVariantRepository variantRepository;
+    private final OrderRepository           orderRepository;
+    private final OrderItemRepository       orderItemRepository;
+    private final ProductVariantRepository  variantRepository;
     private final StockTransactionRepository stockTransactionRepository;
-    private final CustomRes customerRepository;
-    private final UserRepository userRepository;
-    private final CustomerService customerService;
-    private final SpinWheelService spinWheelService;
+    private final CustomRes                 customerRepository;
+    private final UserRepository            userRepository;
+    private final CustomerService           customerService;
+    private final SpinWheelService          spinWheelService;
 
+    // ================================================================
+    // ORDER NUMBER GENERATOR
+    // ================================================================
     private String generateOrderNumber() {
         LocalDate today = LocalDate.now();
-        LocalDateTime startOfDay = today.atStartOfDay();
-        LocalDateTime endOfDay = today.atTime(23, 59, 59);
-
-        Instant start = startOfDay.atZone(ZoneId.systemDefault()).toInstant();
-        Instant end = endOfDay.atZone(ZoneId.systemDefault()).toInstant();
-
+        Instant start = today.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant end   = today.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
         long countToday = orderRepository.countByCreatedAtBetween(start, end);
-
-        String datePart = today.format(DateTimeFormatter.BASIC_ISO_DATE);
-        String sequencePart = String.format("%06d", countToday + 1);
-
-        return "ORD-" + datePart + "-" + sequencePart;
+        return "ORD-" + today.format(DateTimeFormatter.BASIC_ISO_DATE)
+                + "-" + String.format("%06d", countToday + 1);
     }
 
+    // ================================================================
+    // DISCOUNT CALCULATION
+    //
+    // Luật mới:
+    //   BRONZE / SILVER / GOLD  → giảm số tiền cố định (100k / 200k / 500k)
+    //                             CHỈ áp dụng khi subtotal >= 5.000.000
+    //   PLATINUM / DIAMOND      → giảm theo % (3% / 5%)
+    //                             CHỈ áp dụng khi subtotal >= 10.000.000
+    // ================================================================
     private DiscountCalculation calculateDiscount(Customer customer, BigDecimal subtotal) {
         DiscountCalculation result = new DiscountCalculation();
 
-        // 1. VIP Tier Discount
-        BigDecimal vipDiscountRate = BigDecimal.ZERO;
-        BigDecimal vipDiscount = BigDecimal.ZERO;
+        // ── 1. VIP discount ──────────────────────────────────────────
+        BigDecimal vipDiscount    = BigDecimal.ZERO;
+        BigDecimal vipRate        = BigDecimal.ZERO;   // chỉ có giá trị cho Platinum/Diamond
+        String     discountType   = "NONE";
 
-        if (customer.getVipTier() != null) {
-            vipDiscountRate = BigDecimal.valueOf(customer.getVipTier().getDiscountRate())
-                    .multiply(BigDecimal.valueOf(100));
-            vipDiscount = subtotal
-                    .multiply(BigDecimal.valueOf(customer.getVipTier().getDiscountRate()))
-                    .setScale(0, RoundingMode.HALF_UP);
+        VipTier tier = customer.getVipTier();
+        if (tier != null) {
+            BigDecimal minOrder = tier.getMinOrderToApply();
+
+            if (subtotal.compareTo(minOrder) >= 0) {
+                if (tier.isPercentageDiscount()) {
+                    // PLATINUM / DIAMOND: theo %
+                    vipRate    = BigDecimal.valueOf(tier.getDiscountRate() * 100);  // e.g. 3.0 or 5.0
+                    vipDiscount = subtotal
+                            .multiply(BigDecimal.valueOf(tier.getDiscountRate()))
+                            .setScale(0, RoundingMode.HALF_UP);
+                    discountType = "PERCENTAGE";
+                } else {
+                    // BRONZE / SILVER / GOLD: số tiền cố định
+                    vipDiscount  = tier.getDiscountAmount();
+                    discountType = "FIXED";
+                }
+            }
+            // else: đơn không đủ điều kiện → không giảm
         }
 
-        // 2. Spin Wheel Discount
-        BigDecimal spinDiscountRate = BigDecimal.ZERO;
+        // ── 2. Spin Wheel discount (luôn theo %) ────────────────────
         BigDecimal spinDiscount = BigDecimal.ZERO;
-        boolean hasSpinBonus = false;
+        BigDecimal spinRate     = BigDecimal.ZERO;
+        boolean    hasSpinBonus = false;
 
-        if (customer.getSpinDiscountBonus() != null &&
-                customer.getSpinDiscountBonus().compareTo(BigDecimal.ZERO) > 0) {
-            spinDiscountRate = customer.getSpinDiscountBonus();
+        if (customer.getSpinDiscountBonus() != null
+                && customer.getSpinDiscountBonus().compareTo(BigDecimal.ZERO) > 0) {
+            spinRate    = customer.getSpinDiscountBonus();
             spinDiscount = subtotal
-                    .multiply(spinDiscountRate.divide(BigDecimal.valueOf(100)))
+                    .multiply(spinRate.divide(BigDecimal.valueOf(100)))
                     .setScale(0, RoundingMode.HALF_UP);
             hasSpinBonus = true;
         }
 
-        // 3. Total discount
-        BigDecimal totalDiscount = vipDiscount.add(spinDiscount);
-
-        result.setVipDiscountRate(vipDiscountRate);
+        // ── 3. Tổng ─────────────────────────────────────────────────
+        result.setVipDiscountRate(vipRate);
         result.setVipDiscount(vipDiscount);
-        result.setSpinDiscountRate(spinDiscountRate);
+        result.setSpinDiscountRate(spinRate);
         result.setSpinDiscount(spinDiscount);
-        result.setTotalDiscount(totalDiscount);
+        result.setTotalDiscount(vipDiscount.add(spinDiscount));
         result.setHasSpinBonus(hasSpinBonus);
+        result.setDiscountType(discountType);
 
         return result;
     }
 
-    @Audit(
-            module = AuditModule.ORDER,
-            action = AuditAction.CREATE,
-            targetType = TargetType.ORDER
-    )
+    // ================================================================
+    // CREATE ORDER
+    // ================================================================
+    @Audit(module = AuditModule.ORDER, action = AuditAction.CREATE, targetType = TargetType.ORDER)
     public CreateOrderResponse createOrder(CreateOrderRequest request, Integer userId) {
 
-        // ===== GET CUSTOMER & USER =====
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // ===== CREATE ORDER =====
+        // ── Init order ──────────────────────────────────────────────
         Order order = new Order();
         order.setCustomer(customer);
         order.setUser(user);
@@ -128,45 +147,43 @@ public class OrderService {
         order.setStatus(OrderStatuses.PENDING);
         order.setPaymentStatus("UNPAID");
         order.setNotes(request.getNotes());
-
         order.setSubtotal(BigDecimal.ZERO);
         order.setDiscountTotal(BigDecimal.ZERO);
         order.setTaxTotal(BigDecimal.ZERO);
         order.setShippingFee(BigDecimal.ZERO);
         order.setTotalAmount(BigDecimal.ZERO);
-
         order.setOrderNumber(generateOrderNumber());
         order.setCreatedAt(Instant.now());
         order.setUpdatedAt(Instant.now());
-
         order = orderRepository.save(order);
 
-        // ===== CALCULATE SUBTOTAL FIRST =====
+        // ── Pass 1: tính subtotal ───────────────────────────────────
         BigDecimal subtotal = BigDecimal.ZERO;
-        List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
-
-        // First pass: calculate subtotal
         for (CreateOrderItemRequest itemReq : request.getItems()) {
             ProductVariant variant = variantRepository.findById(itemReq.getVariantId())
                     .orElseThrow(() -> new RuntimeException("Variant not found"));
-
-            BigDecimal lineTotal = variant.getPrice()
-                    .multiply(BigDecimal.valueOf(itemReq.getQuantity()));
-
-            subtotal = subtotal.add(lineTotal);
+            subtotal = subtotal.add(
+                    variant.getPrice().multiply(BigDecimal.valueOf(itemReq.getQuantity()))
+            );
         }
 
-        // ===== CALCULATE DISCOUNT =====
+        // ── Tính discount ───────────────────────────────────────────
         DiscountCalculation discountCalc = calculateDiscount(customer, subtotal);
 
-        // Calculate discount rate to apply per item
+        /*
+         * Để phân bổ giảm giá về từng dòng sản phẩm ta dùng tỷ lệ:
+         *   totalDiscountRate = totalDiscount / subtotal
+         * Nếu discount là FIXED (e.g. 100k), tỷ lệ này vẫn tính đúng.
+         */
         BigDecimal totalDiscountRate = BigDecimal.ZERO;
         if (subtotal.compareTo(BigDecimal.ZERO) > 0) {
             totalDiscountRate = discountCalc.getTotalDiscount()
                     .divide(subtotal, 4, RoundingMode.HALF_UP);
         }
 
-        // ===== PROCESS ITEMS WITH DISCOUNT =====
+        // ── Pass 2: tạo order items ─────────────────────────────────
+        List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
+
         for (CreateOrderItemRequest itemReq : request.getItems()) {
             ProductVariant variant = variantRepository.findById(itemReq.getVariantId())
                     .orElseThrow(() -> new RuntimeException("Variant not found"));
@@ -178,15 +195,11 @@ public class OrderService {
 
             BigDecimal lineSubtotal = variant.getPrice()
                     .multiply(BigDecimal.valueOf(itemReq.getQuantity()));
-
-            // ✅ APPLY DISCOUNT TO THIS LINE
             BigDecimal lineDiscount = lineSubtotal
                     .multiply(totalDiscountRate)
                     .setScale(0, RoundingMode.HALF_UP);
-
             BigDecimal lineTotal = lineSubtotal.subtract(lineDiscount);
 
-            // ----- CREATE ORDER ITEM -----
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setVariant(variant);
@@ -196,13 +209,11 @@ public class OrderService {
             item.setSku(variant.getSku());
             item.setQuantity(itemReq.getQuantity());
             item.setUnitPrice(variant.getPrice());
-            item.setDiscount(lineDiscount);  // ✅ SET DISCOUNT
+            item.setDiscount(lineDiscount);
             item.setLineTotal(lineTotal);
             item.setCreatedAt(Instant.now());
-
             orderItemRepository.save(item);
 
-            // ----- RESERVE STOCK -----
             variant.setReservedQty(variant.getReservedQty() + itemReq.getQuantity());
             variantRepository.save(variant);
 
@@ -216,7 +227,6 @@ public class OrderService {
             st.setCreatedAt(Instant.now());
             stockTransactionRepository.save(st);
 
-            // ----- MAP RESPONSE ITEM -----
             responseItems.add(new CreateOrderResponse.Item(
                     item.getProduct().getId(),
                     item.getVariant().getId(),
@@ -230,46 +240,52 @@ public class OrderService {
             ));
         }
 
-        // ===== UPDATE ORDER TOTALS =====
+        // ── Cập nhật tổng đơn ───────────────────────────────────────
         order.setSubtotal(subtotal);
         order.setDiscountTotal(discountCalc.getTotalDiscount());
+        order.setTotalAmount(
+                subtotal.subtract(discountCalc.getTotalDiscount()).add(order.getShippingFee())
+        );
 
-        BigDecimal finalTotal = subtotal
-                .subtract(discountCalc.getTotalDiscount())
-                .add(order.getShippingFee());
-
-        order.setTotalAmount(finalTotal);
-
-        // ✅ CREATE DETAILED NOTES
-        StringBuilder notesBuilder = new StringBuilder();
+        // ── Ghi chú chiết khấu ──────────────────────────────────────
+        StringBuilder notes = new StringBuilder();
         if (order.getNotes() != null && !order.getNotes().isEmpty()) {
-            notesBuilder.append(order.getNotes()).append(" | ");
+            notes.append(order.getNotes()).append(" | ");
         }
 
-        notesBuilder.append("Discount: VIP: ")
-                .append(String.format("%.1f%%", discountCalc.getVipDiscountRate()))
-                .append(" (-")
-                .append(formatMoney(discountCalc.getVipDiscount()))
-                .append(")");
+        VipTier tier = customer.getVipTier();
+        if (tier != null && discountCalc.getVipDiscount().compareTo(BigDecimal.ZERO) > 0) {
+            if ("FIXED".equals(discountCalc.getDiscountType())) {
+                notes.append("VIP ").append(tier.getDisplayName())
+                        .append(": -").append(formatMoney(discountCalc.getVipDiscount()))
+                        .append(" (đơn từ ").append(formatMoney(tier.getMinOrderToApply())).append(")");
+            } else {
+                notes.append("VIP ").append(tier.getDisplayName())
+                        .append(": -").append(String.format("%.0f%%", discountCalc.getVipDiscountRate()))
+                        .append(" (-").append(formatMoney(discountCalc.getVipDiscount())).append(")");
+            }
+        } else if (tier != null) {
+            // Tier có nhưng đơn không đủ điều kiện
+            notes.append("VIP ").append(tier.getDisplayName())
+                    .append(": không áp dụng (đơn < ").append(formatMoney(tier.getMinOrderToApply())).append(")");
+        }
 
         if (discountCalc.isHasSpinBonus()) {
-            notesBuilder.append(" | Spin: ")
-                    .append(String.format("%.1f%%", discountCalc.getSpinDiscountRate()))
-                    .append(" (-")
-                    .append(formatMoney(discountCalc.getSpinDiscount()))
-                    .append(")");
+            if (notes.length() > 0) notes.append(" | ");
+            notes.append("Spin: -").append(String.format("%.0f%%", discountCalc.getSpinDiscountRate()))
+                    .append(" (-").append(formatMoney(discountCalc.getSpinDiscount())).append(")");
         }
 
-        order.setNotes(notesBuilder.toString());
+        order.setNotes(notes.toString());
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
 
-        // ✅ MARK SPIN BONUS AS USED (if applicable)
+        // ── Đánh dấu spin bonus đã dùng ────────────────────────────
         if (discountCalc.isHasSpinBonus()) {
             spinWheelService.useBonus(customer.getId(), order.getId());
         }
 
-        // ===== CREATE RESPONSE =====
+        // ── Build response ──────────────────────────────────────────
         CreateOrderResponse response = new CreateOrderResponse();
         response.setOrderId(order.getId());
         response.setOrderNumber(order.getOrderNumber());
@@ -286,8 +302,6 @@ public class OrderService {
         response.setTotalAmount(order.getTotalAmount());
         response.setCreatedAt(order.getCreatedAt());
         response.setItems(responseItems);
-
-        // ✅ ADD DISCOUNT BREAKDOWN
         response.setVipDiscountRate(discountCalc.getVipDiscountRate());
         response.setVipDiscount(discountCalc.getVipDiscount());
         response.setSpinDiscountRate(discountCalc.getSpinDiscountRate());
@@ -302,63 +316,49 @@ public class OrderService {
         return String.format("%,d", amount.longValue());
     }
 
-    @Audit(
-            module = AuditModule.ORDER,
-            action = AuditAction.UPDATE,
-            targetType = TargetType.ORDER
-    )
+    // ================================================================
+    // UPDATE ORDER
+    // ================================================================
+    @Audit(module = AuditModule.ORDER, action = AuditAction.UPDATE, targetType = TargetType.ORDER)
     public void updateOrder(Long orderId, UpdateOrderRequest request) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         if (!OrderStatuses.PENDING.equals(order.getStatus())) {
             throw new RuntimeException("Chỉ được chỉnh sửa đơn PENDING");
         }
-
         order.setPaymentMethod(request.getPaymentMethod());
         order.setNotes(request.getNotes());
         order.setUpdatedAt(Instant.now());
-
         orderRepository.save(order);
     }
 
+    // ================================================================
+    // CANCEL ORDER
+    // ================================================================
     @Transactional
     public void cancelOrder(Long orderId, String reason) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (OrderStatuses.CANCELLED.equals(order.getStatus())) {
+        if (OrderStatuses.CANCELLED.equals(order.getStatus()))
             throw new IllegalStateException("Order already cancelled");
-        }
-
-        if (OrderStatuses.DELIVERED.equals(order.getStatus())) {
+        if (OrderStatuses.DELIVERED.equals(order.getStatus()))
             throw new IllegalStateException("Delivered order cannot be cancelled");
-        }
 
-        // 1. RELEASE RESERVED QTY
         order.getOrderItems().forEach(item -> {
-            ProductVariant variant = variantRepository
-                    .findById(item.getVariant().getId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: " + item.getVariant().getId()));
-
-            int currentReserved = variant.getReservedQty();
-            int newReserved = Math.max(0, currentReserved - item.getQuantity());
-
-            variant.setReservedQty(newReserved);
+            ProductVariant variant = variantRepository.findById(item.getVariant().getId())
+                    .orElseThrow(() -> new RuntimeException("Variant not found: " + item.getVariant().getId()));
+            variant.setReservedQty(Math.max(0, variant.getReservedQty() - item.getQuantity()));
             variantRepository.save(variant);
         });
 
-        // 2. UPDATE ORDER STATUS
         order.setStatus(OrderStatuses.CANCELLED);
         order.setCancelledAt(Instant.now());
         order.setUpdatedAt(Instant.now());
         order.setNotes(reason);
 
-        // 3. RESTORE STOCK
         restoreStock(order);
 
-        // 4. DEDUCT LOYALTY POINTS + PENALTY (if paid)
         if ("PAID".equals(order.getPaymentStatus()) && order.getCustomer() != null) {
             customerService.deductLoyaltyPoints(
                     order.getCustomer().getId(),
@@ -367,75 +367,45 @@ public class OrderService {
                     "orders",
                     orderId
             );
-
-            BigDecimal penaltyAmount = order.getTotalAmount()
-                    .multiply(BigDecimal.valueOf(0.10));
-
-            customerService.deductLoyaltyPoints(
-                    order.getCustomer().getId(),
-                    penaltyAmount,
-                    "CANCEL_PENALTY",
-                    "orders",
-                    orderId
-            );
         }
 
         orderRepository.save(order);
     }
 
-    @Audit(
-            module = AuditModule.ORDER,
-            action = AuditAction.DELETE,
-            targetType = TargetType.ORDER
-    )
+    // ================================================================
+    // DELETE ORDER
+    // ================================================================
+    @Audit(module = AuditModule.ORDER, action = AuditAction.DELETE, targetType = TargetType.ORDER)
     public void deleteOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        if (!OrderStatuses.PENDING.equals(order.getStatus())) {
+        if (!OrderStatuses.PENDING.equals(order.getStatus()))
             throw new RuntimeException("Chỉ được xóa đơn PENDING");
-        }
-
         orderItemRepository.deleteAll(order.getOrderItems());
         orderRepository.delete(order);
     }
 
-    private void recalcOrderTotal(Order order) {
-        BigDecimal subtotal = order.getOrderItems().stream()
-                .map(OrderItem::getLineTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        order.setSubtotal(subtotal);
-        order.setTotalAmount(
-                subtotal
-                        .subtract(order.getDiscountTotal())
-                        .add(order.getTaxTotal())
-                        .add(order.getShippingFee())
-        );
-    }
-
-    // ✅ ENHANCED: getOrderDetail with full discount breakdown
+    // ================================================================
+    // GET ORDER DETAIL
+    // ================================================================
     public OrderDetailResponse getOrderDetail(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        List<CreateOrderResponse.Item> items =
-                order.getOrderItems().stream()
-                        .map(i -> new CreateOrderResponse.Item(
-                                i.getProduct().getId(),
-                                i.getVariant().getId(),
-                                i.getProductName(),
-                                i.getVariantName(),
-                                i.getSku(),
-                                i.getQuantity(),
-                                i.getUnitPrice(),
-                                i.getDiscount(),
-                                i.getLineTotal()
-                        ))
-                        .toList();
+        List<CreateOrderResponse.Item> items = order.getOrderItems().stream()
+                .map(i -> new CreateOrderResponse.Item(
+                        i.getProduct().getId(),
+                        i.getVariant().getId(),
+                        i.getProductName(),
+                        i.getVariantName(),
+                        i.getSku(),
+                        i.getQuantity(),
+                        i.getUnitPrice(),
+                        i.getDiscount(),
+                        i.getLineTotal()
+                )).toList();
 
-        // Create response (discount breakdown will be parsed from notes)
-        OrderDetailResponse response = new OrderDetailResponse(
+        return new OrderDetailResponse(
                 order.getId(),
                 order.getOrderNumber(),
                 order.getChannel(),
@@ -455,18 +425,17 @@ public class OrderService {
                 order.getCreatedAt(),
                 items
         );
-
-        return response;
     }
 
+    // ================================================================
+    // STATUS TRANSITIONS
+    // ================================================================
     @Transactional
     public void markAsShipping(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         order.setStatus(OrderStatuses.SHIPPING);
         order.setUpdatedAt(Instant.now());
-
         orderRepository.save(order);
     }
 
@@ -474,16 +443,26 @@ public class OrderService {
     public void markAsDelivered(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        if (!OrderStatuses.SHIPPING.equals(order.getStatus())) {
+        if (!OrderStatuses.SHIPPING.equals(order.getStatus()))
             throw new IllegalStateException("Only SHIPPING orders can be delivered");
-        }
-
         order.setStatus(OrderStatuses.DELIVERED);
         order.setDeliveredAt(Instant.now());
         order.setUpdatedAt(Instant.now());
-
         orderRepository.save(order);
+    }
+
+    // ================================================================
+    // HELPERS
+    // ================================================================
+    private void recalcOrderTotal(Order order) {
+        BigDecimal subtotal = order.getOrderItems().stream()
+                .map(OrderItem::getLineTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        order.setSubtotal(subtotal);
+        order.setTotalAmount(subtotal
+                .subtract(order.getDiscountTotal())
+                .add(order.getTaxTotal())
+                .add(order.getShippingFee()));
     }
 
     private void restoreStock(Order order) {
@@ -494,7 +473,6 @@ public class OrderService {
             tx.setType("IN");
             tx.setNote("CANCEL_ORDER");
             tx.setCreatedAt(Instant.now());
-
             stockTransactionRepository.save(tx);
         }
     }

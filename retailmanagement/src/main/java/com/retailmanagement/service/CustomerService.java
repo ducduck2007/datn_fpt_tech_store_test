@@ -35,12 +35,8 @@ public class CustomerService {
 
     private final CustomRes customRes;
     private final LoyaltyLedgerRepository loyaltyLedgerRepository;
-    private final UserRepository userRepository; // ✅ NEW: For User lookup
+    private final UserRepository userRepository;
 
-    /**
-     * ✅ UPDATED: Save loyalty ledger with User relationship
-     * @param createdBy User ID (nullable)
-     */
     private void saveLoyaltyLedger(
             Customer customer,
             int pointsDelta,
@@ -53,7 +49,6 @@ public class CustomerService {
             Long referenceId,
             Integer createdBy) {
 
-        // ✅ Lookup User if createdBy is provided
         User createdByUser = null;
         if (createdBy != null) {
             createdByUser = userRepository.findById(createdBy).orElse(null);
@@ -69,7 +64,7 @@ public class CustomerService {
                 .note(note)
                 .referenceType(referenceType)
                 .referenceId(referenceId)
-                .createdBy(createdByUser) // ✅ CHANGED: Now User object instead of Integer
+                .createdBy(createdByUser)
                 .createdAt(Instant.now())
                 .build();
 
@@ -173,8 +168,20 @@ public class CustomerService {
                 .build();
     }
 
+    // ================================================================
+    // OVERLOAD: gọi từ chỗ không có orderId (backward compatible)
+    // ================================================================
     @Transactional
     public void addLoyaltyPoints(Integer customerId, BigDecimal orderTotal) {
+        addLoyaltyPoints(customerId, orderTotal, null);
+    }
+
+    // ================================================================
+    // MAIN: gọi từ PaymentService khi thanh toán thành công
+    //       truyền orderId để lưu referenceId vào loyalty ledger
+    // ================================================================
+    @Transactional
+    public void addLoyaltyPoints(Integer customerId, BigDecimal orderTotal, Long orderId) {
         Customer customer = customRes.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
 
@@ -210,7 +217,7 @@ public class CustomerService {
                 "PURCHASE",
                 "Cộng điểm từ thanh toán: " + formatMoney(orderTotal),
                 "orders",
-                null,
+                orderId,  // ✅ lưu orderId để hiển thị "orders: #123"
                 null
         );
 
@@ -340,14 +347,12 @@ public class CustomerService {
         int pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         VipTier tierBefore = customer.getVipTier();
 
-        // ✅ Calculate points to deduct (no penalty multiplication)
         int pointsToDeduct = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
         if (pointsToDeduct <= 0) return;
 
         int newTotalPoints = Math.max(0, pointsBefore - pointsToDeduct);
         customer.setLoyaltyPoints(newTotalPoints);
 
-        // ✅ Always subtract from total spent when canceling/returning
         BigDecimal currentSpent = customer.getTotalSpent() == null ? BigDecimal.ZERO : customer.getTotalSpent();
         BigDecimal newSpent = currentSpent.subtract(orderTotal);
         customer.setTotalSpent(newSpent.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newSpent);
@@ -363,13 +368,12 @@ public class CustomerService {
 
         customRes.save(customer);
 
-        // ✅ Determine transaction type (no more PENALTY type)
         String transactionType = "DEDUCT";
         String note = getDeductNote(reason, orderTotal);
 
         saveLoyaltyLedger(
                 customer,
-                -pointsToDeduct,  // ✅ Simple negative points (no penalty)
+                -pointsToDeduct,
                 transactionType,
                 tierBefore,
                 newTier,
@@ -380,7 +384,6 @@ public class CustomerService {
                 null
         );
 
-        // Handle tier downgrade if applicable
         if (tierBefore != newTier) {
             String note2 = String.format("⚠️ Hạ hạng từ %s → %s do trừ điểm (Điểm còn: %d)",
                     tierBefore != null ? tierBefore.getDisplayName() : "Member",

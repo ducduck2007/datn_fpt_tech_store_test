@@ -1,28 +1,15 @@
 <!-- 
 ============================================================
 FILE: src/pages/customer/CustomerHome.vue
-FINAL VERSION - ĐÃ TÍCH HỢP TIER PROGRESS BAR
-============================================================
-
-THAY ĐỔI:
-1. ✅ Import TierProgressBar component (dòng 332)
-2. ✅ Thêm tierProgressRef (dòng 350)
-3. ✅ Thêm <TierProgressBar> vào template (dòng 4-8)
-4. ✅ Refresh progress sau khi add to cart (dòng 430-433)
-
 ============================================================
 -->
 <template>
   <div class="container-xl">
-    <!-- ============================================================
-         TIER PROGRESS BAR - THÊM MỚI ⭐
-         ============================================================ -->
     <TierProgressBar 
       v-if="isCustomer" 
       ref="tierProgressRef"
       class="mb-4"
     />
-    <!-- ============================================================ -->
 
     <!-- Birthday Notification Banner -->
     <div v-if="birthdayNotifications.length > 0" class="mb-4">
@@ -38,26 +25,15 @@ THAY ĐỔI:
             <h3 class="mb-2">{{ notif.title }}</h3>
             <div class="birthday-message" v-html="formatMessage(notif.message)"></div>
             <div class="mt-3 d-flex gap-2">
-              <el-button 
-                type="primary" 
-                size="large"
-                @click="markNotificationAsRead(notif.id)"
-              >
+              <el-button type="primary" size="large" @click="markNotificationAsRead(notif.id)">
                 Cảm ơn! 🎉
               </el-button>
-              <el-button 
-                size="large"
-                @click="viewAllNotifications"
-              >
+              <el-button size="large" @click="viewAllNotifications">
                 Xem tất cả thông báo
               </el-button>
             </div>
           </div>
-          <el-icon 
-            class="close-icon" 
-            @click="markNotificationAsRead(notif.id)"
-            :size="20"
-          >
+          <el-icon class="close-icon" @click="markNotificationAsRead(notif.id)" :size="20">
             <Close />
           </el-icon>
         </div>
@@ -72,26 +48,12 @@ THAY ĐỔI:
               <div class="kicker">Categories</div>
               <div class="title">Browse</div>
             </div>
-            <el-switch
-              v-model="activeOnly"
-              active-text="Active only"
-              @change="reloadAll"
-            />
+            <el-switch v-model="activeOnly" active-text="Active only" @change="reloadAll" />
           </div>
-
           <el-divider />
-
-          <el-menu
-            :default-active="String(activeKey)"
-            class="w-100"
-            @select="onSelectCategory"
-          >
+          <el-menu :default-active="String(activeKey)" class="w-100" @select="onSelectCategory">
             <el-menu-item index="all">All</el-menu-item>
-            <el-menu-item
-              v-for="c in categories"
-              :key="c.id"
-              :index="String(c.id)"
-            >
+            <el-menu-item v-for="c in categories" :key="c.id" :index="String(c.id)">
               {{ c.name }}
             </el-menu-item>
           </el-menu>
@@ -100,72 +62,65 @@ THAY ĐỔI:
 
       <div class="col-12 col-lg-9">
         <el-card shadow="never">
-          <div
-            class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
-          >
+          <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
             <div>
               <div class="kicker">Products</div>
               <div class="title">{{ titleText }}</div>
               <div class="muted">
                 Page: <b>{{ page + 1 }}</b>
-                <span v-if="searchTerm">
-                  • Search: <b>{{ searchTerm }}</b></span
-                >
+                <span v-if="searchTerm"> • Search: <b>{{ searchTerm }}</b></span>
               </div>
             </div>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <el-button :loading="loading" @click="reloadProducts"
-                >Reload</el-button
-              >
+              <el-button :loading="loading" @click="reloadProducts">Reload</el-button>
+
               <el-button
                 v-if="isCustomer"
                 type="info"
+                plain
                 @click="$router.push('/profile')"
               >
                 <el-icon class="me-1"><User /></el-icon>
                 Profile
               </el-button>
 
-               <el-button
+              <!-- ✨ Event Button redesigned -->
+              <button
                 v-if="isCustomer"
-                type="info"
+                class="event-btn"
                 @click="$router.push('/spin-wheel')"
               >
-                <el-icon class="me-1"><User /></el-icon>
-                Event
-              </el-button>
+                <span class="event-icon">🎡</span>
+                <span class="event-text">Sự kiện</span>
+                <span class="event-ping"></span>
+              </button>
 
               <!-- Notification Badge -->
               <el-badge
                 v-if="isCustomer"
                 :value="unreadNotificationCount"
                 :hidden="unreadNotificationCount === 0"
-                class="me-1"
               >
-                <el-button
-                  type="warning"
-                  @click="viewAllNotifications"
-                >
+                <el-button type="warning" plain @click="viewAllNotifications">
                   <el-icon class="me-1"><Bell /></el-icon>
                   Thông báo
                 </el-button>
               </el-badge>
 
-              <el-badge
-                v-if="isCustomer"
-                :value="cartStore.count"
-                class="me-1"
-              >
-                <el-button
-                  type="success"
-                  @click="$router.push('/cart')"
-                >
-                  Cart
+              <el-badge v-if="isCustomer" :value="cartStore.count">
+                <el-button type="success" plain @click="$router.push('/cart')">
+                  🛒 Giỏ hàng
                 </el-button>
               </el-badge>
 
-              
+              <el-button
+                type="primary"
+                :disabled="!isCustomer"
+                @click="$router.push('/orders/new')"
+              >
+                Tạo đơn hàng
+              </el-button>
             </div>
           </div>
 
@@ -173,10 +128,7 @@ THAY ĐỔI:
 
           <el-skeleton v-if="loading" :rows="6" animated />
           <template v-else>
-            <el-empty
-              v-if="filteredProducts.length === 0"
-              description="No products"
-            />
+            <el-empty v-if="filteredProducts.length === 0" description="No products" />
 
             <div v-else class="row g-3">
               <div
@@ -186,15 +138,10 @@ THAY ĐỔI:
               >
                 <el-card shadow="hover" class="h-100">
                   <template #header>
-                    <div
-                      class="d-flex align-items-center justify-content-between"
-                    >
-                      <span
-                        class="fw-bold text-truncate"
-                        style="max-width: 220px"
-                        :title="p.name"
-                        >{{ p.name }}</span
-                      >
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="fw-bold text-truncate" style="max-width: 220px" :title="p.name">
+                        {{ p.name }}
+                      </span>
                       <el-tag size="small" effect="light">Laptop</el-tag>
                     </div>
                   </template>
@@ -207,9 +154,7 @@ THAY ĐỔI:
                     {{ p.description || "—" }}
                   </div>
 
-                  <div
-                    class="mt-3 d-flex align-items-center justify-content-between"
-                  >
+                  <div class="mt-3 d-flex align-items-center justify-content-between">
                     <div class="fw-bold">{{ p.priceText }}</div>
                     <el-button
                       size="small"
@@ -255,8 +200,8 @@ THAY ĐỔI:
     </div>
 
     <!-- Notifications Dialog -->
-    <el-dialog 
-      v-model="notificationsDialog" 
+    <el-dialog
+      v-model="notificationsDialog"
       title="🔔 Thông báo của bạn"
       width="600px"
       @close="loadNotifications"
@@ -265,8 +210,8 @@ THAY ĐỔI:
         <el-empty description="Không có thông báo nào" />
       </div>
       <div v-else class="notifications-list">
-        <div 
-          v-for="notif in allNotifications" 
+        <div
+          v-for="notif in allNotifications"
           :key="notif.id"
           class="notification-item"
           :class="{ 'unread': !notif.isRead }"
@@ -278,9 +223,9 @@ THAY ĐỔI:
               <p class="mb-1" v-html="formatMessage(notif.message)"></p>
               <small class="text-muted">{{ formatDate(notif.createdAt) }}</small>
             </div>
-            <el-button 
+            <el-button
               v-if="!notif.isRead"
-              size="small" 
+              size="small"
               type="primary"
               @click="markNotificationAsRead(notif.id)"
             >
@@ -291,9 +236,7 @@ THAY ĐỔI:
       </div>
       <template #footer>
         <el-button @click="notificationsDialog = false">Đóng</el-button>
-        <el-button type="primary" @click="markAllAsRead">
-          Đánh dấu tất cả đã đọc
-        </el-button>
+        <el-button type="primary" @click="markAllAsRead">Đánh dấu tất cả đã đọc</el-button>
       </template>
     </el-dialog>
   </div>
@@ -308,58 +251,36 @@ import { toast } from "../../ui/toast";
 import { User, Bell, Close } from '@element-plus/icons-vue';
 import { useCartStore } from "../../stores/cart";
 import http from "../../api/http";
-
-// ============================================================
-// IMPORT TIER PROGRESS BAR - THÊM MỚI ⭐
-// ============================================================
 import TierProgressBar from "../../components/TierProgressBar.vue";
-// ============================================================
 
 const auth = useAuthStore();
 const isCustomer = computed(() => auth.isCustomer);
 
 const loading = ref(false);
 const activeOnly = ref(true);
-
 const categories = ref([]);
 const products = ref([]);
-
 const activeKey = ref("all");
 const categoryId = ref(null);
-
 const page = ref(0);
 const serverTotalPages = ref(1);
-
 const searchTerm = ref("");
 const clientPage = ref(1);
 const clientPageSize = 9;
-
 const cartStore = useCartStore();
 
-// Notification states
 const birthdayNotifications = ref([]);
 const allNotifications = ref([]);
 const unreadNotificationCount = ref(0);
 const notificationsDialog = ref(false);
-
-// ============================================================
-// TIER PROGRESS REF - THÊM MỚI ⭐
-// ============================================================
 const tierProgressRef = ref(null);
-// ============================================================
 
 function extractList(payload) {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
   const root = payload?.data ?? payload;
   if (Array.isArray(root)) return root;
-  const candidates = [
-    root,
-    root?.data,
-    root?.data?.data,
-    payload?.data,
-    payload?.data?.data,
-  ].filter(Boolean);
+  const candidates = [root, root?.data, root?.data?.data, payload?.data, payload?.data?.data].filter(Boolean);
   for (const c of candidates) {
     if (Array.isArray(c)) return c;
     for (const k of ["content", "items", "results", "rows", "list"]) {
@@ -371,23 +292,12 @@ function extractList(payload) {
 
 function pickTotalPages(payload) {
   const root = payload?.data ?? payload;
-  const totalPages =
-    root?.totalPages ??
-    root?.data?.totalPages ??
-    payload?.totalPages ??
-    payload?.data?.totalPages ??
-    null;
+  const totalPages = root?.totalPages ?? root?.data?.totalPages ?? payload?.totalPages ?? payload?.data?.totalPages ?? null;
   return typeof totalPages === "number" && totalPages > 0 ? totalPages : 1;
 }
 
 function getDefaultVariantId(raw) {
-  const v =
-    raw?.defaultVariantId ??
-    raw?.variantId ??
-    raw?.variants?.[0]?.id ??
-    raw?.variants?.[0]?.variantId ??
-    raw?.variant?.id ??
-    null;
+  const v = raw?.defaultVariantId ?? raw?.variantId ?? raw?.variants?.[0]?.id ?? raw?.variants?.[0]?.variantId ?? raw?.variant?.id ?? null;
   return v != null ? Number(v) : null;
 }
 
@@ -396,32 +306,12 @@ function normalizeProducts(list) {
     const id = p?.id ?? p?.productId ?? idx + 1;
     const name = p?.name ?? p?.title ?? `Product ${id}`;
     const description = p?.description ?? p?.shortDescription ?? "";
-    const imageUrl =
-      p?.imageUrl ||
-      p?.thumbnailUrl ||
-      `https://placehold.co/640x420/png?text=${encodeURIComponent(name)}`;
-
+    const imageUrl = p?.imageUrl || p?.thumbnailUrl || `https://placehold.co/640x420/png?text=${encodeURIComponent(name)}`;
     const price = p?.finalPrice ?? p?.price ?? p?.minPrice ?? null;
-
-    const priceText =
-      typeof price === "number"
-        ? new Intl.NumberFormat("vi-VN", {
-            style: "currency",
-            currency: "VND",
-          }).format(price)
-        : price != null
-          ? String(price)
-          : "—";
-
-    return {
-      id,
-      name,
-      description,
-      imageUrl,
-      priceText,
-      defaultVariantId: getDefaultVariantId(p),
-      raw: p,
-    };
+    const priceText = typeof price === "number"
+      ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+      : price != null ? String(price) : "—";
+    return { id, name, description, imageUrl, priceText, defaultVariantId: getDefaultVariantId(p), raw: p };
   });
 }
 
@@ -435,9 +325,7 @@ function normalizeCategories(list) {
 
 const titleText = computed(() => {
   if (!categoryId.value) return "All products";
-  const c = categories.value.find(
-    (x) => String(x.id) === String(categoryId.value)
-  );
+  const c = categories.value.find((x) => String(x.id) === String(categoryId.value));
   return c?.name || `Category #${categoryId.value}`;
 });
 
@@ -445,9 +333,7 @@ const filteredProducts = computed(() => {
   const kw = (searchTerm.value || "").trim().toLowerCase();
   const list = products.value || [];
   if (!kw) return list;
-  return list.filter((p) =>
-    `${p.name} ${p.description || ""}`.toLowerCase().includes(kw)
-  );
+  return list.filter((p) => `${p.name} ${p.description || ""}`.toLowerCase().includes(kw));
 });
 
 const pagedClientProducts = computed(() => {
@@ -463,24 +349,16 @@ function onSelectCategory(key) {
   reloadProducts();
 }
 
-// ============================================================
-// CẬP NHẬT goOrder - REFRESH TIER PROGRESS ⭐
-// ============================================================
 async function goOrder(p) {
   try {
     await cartStore.addToCart(p.defaultVariantId, 1);
     toast("Đã thêm vào giỏ hàng", "success");
-    
-    // Refresh tier progress after adding to cart
-    if (tierProgressRef.value) {
-      tierProgressRef.value.refresh();
-    }
+    if (tierProgressRef.value) tierProgressRef.value.refresh();
   } catch (e) {
     toast("Không thể thêm vào giỏ hàng", "error");
     console.error(e);
   }
 }
-// ============================================================
 
 async function reloadCategories() {
   try {
@@ -495,14 +373,9 @@ async function reloadCategories() {
 async function reloadProducts() {
   loading.value = true;
   try {
-    const res = await productsApi.list({
-      page: page.value,
-      categoryId: categoryId.value ?? undefined,
-    });
-
+    const res = await productsApi.list({ page: page.value, categoryId: categoryId.value ?? undefined });
     serverTotalPages.value = pickTotalPages(res?.data);
-    const list = extractList(res?.data);
-    products.value = normalizeProducts(list);
+    products.value = normalizeProducts(extractList(res?.data));
   } catch (e) {
     products.value = [];
     serverTotalPages.value = 1;
@@ -523,21 +396,14 @@ function onServerPageChange(page1Based) {
   reloadProducts();
 }
 
-// Notification functions
 async function loadNotifications() {
   if (!isCustomer.value) return;
-  
   try {
-    // Load unread birthday notifications
     const unreadRes = await http.get("/api/auth/notifications/my?unreadOnly=true");
     const unreadNotifs = unreadRes.data || [];
     birthdayNotifications.value = unreadNotifs.filter(n => n.type === 'BIRTHDAY');
-    
-    // Load count
     const countRes = await http.get("/api/auth/notifications/my/unread-count");
     unreadNotificationCount.value = countRes.data?.unreadCount || 0;
-    
-    // Load all notifications if dialog is open
     if (notificationsDialog.value) {
       const allRes = await http.get("/api/auth/notifications/my");
       allNotifications.value = allRes.data || [];
@@ -553,7 +419,6 @@ async function markNotificationAsRead(notificationId) {
     await loadNotifications();
     toast("Đã đánh dấu đã đọc", "success");
   } catch (error) {
-    console.error("Mark as read error:", error);
     toast("Không thể đánh dấu đã đọc", "error");
   }
 }
@@ -564,7 +429,6 @@ async function markAllAsRead() {
     await loadNotifications();
     toast("Đã đánh dấu tất cả đã đọc", "success");
   } catch (error) {
-    console.error("Mark all as read error:", error);
     toast("Không thể đánh dấu tất cả", "error");
   }
 }
@@ -585,16 +449,13 @@ function formatDate(dateString) {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-
   if (diffMins < 1) return 'Vừa xong';
   if (diffMins < 60) return `${diffMins} phút trước`;
   if (diffHours < 24) return `${diffHours} giờ trước`;
   if (diffDays < 7) return `${diffDays} ngày trước`;
-  
   return date.toLocaleDateString('vi-VN');
 }
 
-// receive search from App.vue
 function onSearchEvent(e) {
   searchTerm.value = String(e?.detail || "");
   clientPage.value = 1;
@@ -603,19 +464,11 @@ function onSearchEvent(e) {
 onMounted(async () => {
   window.addEventListener("products:search", onSearchEvent);
   await reloadAll();
-  
-  // Load notifications and cart
   if (isCustomer.value) {
     cartStore.refreshCount();
     loadNotifications();
-    
-    // Auto refresh notifications every 30 seconds
     const notifInterval = setInterval(loadNotifications, 30000);
-    
-    // Cleanup on unmount
-    onBeforeUnmount(() => {
-      clearInterval(notifInterval);
-    });
+    onBeforeUnmount(() => clearInterval(notifInterval));
   }
 });
 
@@ -631,107 +484,90 @@ onBeforeUnmount(() => {
   font-weight: 900;
   text-transform: uppercase;
 }
-.title {
-  font-weight: 900;
-  font-size: 18px;
-}
-.muted {
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 13px;
-}
+.title { font-weight: 900; font-size: 18px; }
+.muted { color: rgba(15, 23, 42, 0.62); font-size: 13px; }
 .thumb {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.1);
   background: rgba(2, 6, 23, 0.03);
 }
-.thumb img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  display: block;
+.thumb img { width: 100%; height: 180px; object-fit: cover; display: block; }
+.small { font-size: 12px; }
+
+/* ✨ Event Button */
+.event-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
 }
-.small {
-  font-size: 12px;
+.event-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.event-btn:active { transform: translateY(0); }
+
+.event-icon { font-size: 16px; line-height: 1; }
+.event-text { white-space: nowrap; }
+
+/* Chấm ping động */
+.event-ping {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  animation: ping 1.5s ease-in-out infinite;
 }
 
-/* Birthday Notification Styles */
+@keyframes ping {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Birthday Notification */
 .birthday-notification-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   animation: slideIn 0.5s ease-out;
 }
-
-.birthday-notification-card :deep(.el-card__body) {
-  padding: 24px;
-}
-
-.birthday-icon-large {
-  font-size: 64px;
-  line-height: 1;
-  animation: bounce 2s infinite;
-}
-
-.birthday-message {
-  font-size: 16px;
-  line-height: 1.6;
-  white-space: pre-line;
-}
-
-.close-icon {
-  cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.3s;
-}
-
-.close-icon:hover {
-  opacity: 1;
-}
+.birthday-notification-card :deep(.el-card__body) { padding: 24px; }
+.birthday-icon-large { font-size: 64px; line-height: 1; animation: bounce 2s infinite; }
+.birthday-message { font-size: 16px; line-height: 1.6; white-space: pre-line; }
+.close-icon { cursor: pointer; opacity: 0.8; transition: opacity 0.3s; }
+.close-icon:hover { opacity: 1; }
 
 @keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
-
 @keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-/* Notifications Dialog Styles */
-.notifications-list {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
+/* Notifications Dialog */
+.notifications-list { max-height: 500px; overflow-y: auto; }
 .notification-item {
   padding: 16px;
   border-bottom: 1px solid #eee;
   transition: background-color 0.3s;
 }
-
-.notification-item:hover {
-  background-color: #f5f7fa;
-}
-
-.notification-item.unread {
-  background-color: #ecf5ff;
-  border-left: 3px solid #409eff;
-}
-
-.notif-icon {
-  font-size: 32px;
-  line-height: 1;
-}
+.notification-item:hover { background-color: #f5f7fa; }
+.notification-item.unread { background-color: #ecf5ff; border-left: 3px solid #409eff; }
+.notif-icon { font-size: 32px; line-height: 1; }
 </style>
