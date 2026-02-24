@@ -309,24 +309,22 @@ public class CustomerService {
     }
 
     public CustomerResponse findByEmail(String email) {
-        System.out.println("DEBUG Service: Đang tìm khách hàng với email: " + email);
-
+        // 1. Tìm theo email
         Optional<Customer> customerOpt = customRes.findByEmail(email.trim());
+        if (customerOpt.isPresent()) return mapToResponse(customerOpt.get());
 
-        if (customerOpt.isEmpty()) {
-            System.out.println("DEBUG Service: Không tìm thấy với email: " + email);
-            customerOpt = customRes.findByName(email.trim());
+        // 2. Tìm theo name
+        customerOpt = customRes.findByName(email.trim());
+        if (customerOpt.isPresent()) return mapToResponse(customerOpt.get());
 
-            if (customerOpt.isEmpty()) {
-                System.out.println("DEBUG Service: Cũng không tìm thấy với username: " + email);
-                return null;
-            }
+        // 3. Tìm theo username → lấy userId → tìm customer ← THÊM
+        Optional<User> userOpt = userRepository.findByUsername(email.trim());
+        if (userOpt.isPresent()) {
+            customerOpt = customRes.findByUserId(userOpt.get().getId());
+            if (customerOpt.isPresent()) return mapToResponse(customerOpt.get());
         }
 
-        Customer customer = customerOpt.get();
-        System.out.println("DEBUG Service: Tìm thấy khách hàng: " + customer.getName() + ", email: " + customer.getEmail());
-
-        return mapToResponse(customer);
+        return null;
     }
 
     public List<CustomerResponse> findActiveInLast30Days() {
@@ -531,5 +529,12 @@ public class CustomerService {
         stats.put("spendingRanges", spendingRanges);
 
         return stats;
+    }
+    public List<CustomerResponse> findInactiveTransactionDays(int days) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        return customRes.findCustomersInactiveTransaction(cutoff)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 }

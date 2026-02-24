@@ -2,9 +2,12 @@
 
     import com.retailmanagement.entity.Customer;
     import com.retailmanagement.entity.CustomerType;
+    import com.retailmanagement.entity.NotificationType;
     import com.retailmanagement.entity.VipTier;
+    import jakarta.persistence.LockModeType;
     import org.springframework.data.domain.Pageable;
     import org.springframework.data.jpa.repository.JpaRepository;
+    import org.springframework.data.jpa.repository.Lock;
     import org.springframework.data.jpa.repository.Query;
     import org.springframework.data.repository.query.*;
     import org.springframework.stereotype.Repository;
@@ -144,5 +147,74 @@
                 @Param("minSpent") BigDecimal minSpent,
                 @Param("maxSpent") BigDecimal maxSpent
         );
+        // Thêm vào interface CustomRes
 
+        /**
+         * Tìm khách hàng chưa mua trong khoảng [lowerBound, upperBound] ngày
+         * Loại trừ khách đã nhận reminder gần đây (tránh spam)
+         * Dùng lastOrderAt từ Customer entity
+         */
+        @Query(value = """
+    SELECT * FROM customers c
+    WHERE c.is_active = 1
+      AND c.last_order_at IS NOT NULL
+      AND c.last_order_at <= :upperBound
+      AND c.last_order_at > :lowerBound
+      AND c.id NOT IN (
+          SELECT n.customer_id FROM notifications n
+          WHERE n.type IN ('PURCHASE_REMINDER', 'WINBACK')
+            AND n.created_at >= :recentCutoff
+      )
+    """, nativeQuery = true)
+        List<Customer> findCustomersForPurchaseReminder(
+                @Param("upperBound") LocalDateTime upperBound,
+                @Param("lowerBound") LocalDateTime lowerBound,
+                @Param("recentCutoff") LocalDateTime recentCutoff
+        );
+
+        /**
+         * Đếm tổng reminder đã gửi theo loại (cho stats)
+         */
+        @Query("""
+    SELECT COUNT(DISTINCT n.customer.id) FROM Notification n
+    WHERE n.type = :type
+    AND n.createdAt >= :since
+""")
+        long countRemindersSentSince(
+                @Param("type") NotificationType type,
+                @Param("since") LocalDateTime since
+        );
+        Optional<Customer> findByUserId(Integer userId);
+        @Query(value = """
+    SELECT c.* FROM customers c
+    CROSS APPLY (
+        SELECT MAX(t) AS last_activity_at FROM (
+            SELECT MAX(o.created_at)   AS t FROM orders o WHERE o.customer_id = c.id
+            UNION ALL
+            SELECT MAX(o.cancelled_at) FROM orders o WHERE o.customer_id = c.id
+            UNION ALL
+            SELECT MAX(p.paid_at)      FROM payments p
+                INNER JOIN orders o ON p.order_id = o.id WHERE o.customer_id = c.id
+            UNION ALL
+            SELECT MAX(ll.created_at)  FROM loyalty_ledger ll WHERE ll.customer_id = c.id
+            UNION ALL
+            SELECT MAX(sw.spun_at)     FROM spin_wheel_history sw WHERE sw.customer_id = c.id
+            UNION ALL
+            SELECT MAX(r.created_at)   FROM returns r
+                INNER JOIN orders o ON r.order_id = o.id WHERE o.customer_id = c.id
+        ) AS all_activities(t)
+    ) AS last_act
+    WHERE c.is_active = 1
+    AND (
+        last_act.last_activity_at < :cutoff
+        OR last_act.last_activity_at IS NULL
+    )
+    ORDER BY last_act.last_activity_at ASC
+    """, nativeQuery = true)
+        List<Customer> findCustomersInactiveTransaction(
+                @Param("cutoff") LocalDateTime cutoff
+        );
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT c FROM Customer c WHERE c.id = :id")
+        Optional<Customer> findByIdWithLock(@Param("id") Integer id);
     }

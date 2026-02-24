@@ -206,6 +206,7 @@ public class SpinWheelService {
      */
     @Transactional
     public void useBonus(Integer customerId, Long orderId) {
+
         Optional<SpinWheelHistory> activeBonus =
                 spinWheelHistoryRepository.findMostRecentActiveBonus(customerId, LocalDateTime.now());
 
@@ -215,10 +216,14 @@ public class SpinWheelService {
             bonus.setUsedOrderId(orderId);
             spinWheelHistoryRepository.save(bonus);
 
-            // Clear customer's bonus
-            Customer customer = customerRepository.findById(customerId).orElseThrow();
-            customer.setSpinDiscountBonus(BigDecimal.ZERO);
-            customerRepository.save(customer);
+            Customer customer = customerRepository.findByIdWithLock(customerId)
+                    .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+            // ✅ Double-check: nếu bonus đã bị dùng bởi request khác thì skip
+            if (customer.getSpinDiscountBonus() == null ||
+                    customer.getSpinDiscountBonus().compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
         }
     }
 
@@ -235,5 +240,30 @@ public class SpinWheelService {
             prizes.add(prize);
         }
         return prizes;
+    }
+    // SpinWheelService.java - thêm restoreBonus()
+
+    @Transactional
+    public void restoreBonus(Long orderId) {
+        Optional<SpinWheelHistory> spinOpt =
+                spinWheelHistoryRepository.findByUsedOrderId(orderId);
+
+        if (spinOpt.isEmpty()) return;
+
+        SpinWheelHistory spin = spinOpt.get();
+
+        // Chỉ restore nếu bonus chưa hết hạn gốc
+        if (!spin.getIsUsed() || spin.getExpiresAt().isBefore(LocalDateTime.now())) return;
+
+        // ✅ Lock customer trước khi ghi
+        Customer customer = customerRepository.findByIdWithLock(spin.getCustomer().getId())
+                .orElseThrow();
+
+        spin.setIsUsed(false);
+        spin.setUsedOrderId(null);
+        spinWheelHistoryRepository.save(spin);
+
+        customer.setSpinDiscountBonus(spin.getDiscountBonus());
+        customerRepository.save(customer);
     }
 }

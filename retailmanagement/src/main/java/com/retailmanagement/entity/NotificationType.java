@@ -4,6 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum NotificationType {
+    PURCHASE_REMINDER("Nhắc mua hàng", "🛒"),
+    WINBACK("Khách hàng cũ", "💝"),
     BIRTHDAY("Sinh nhật", "🎂"),
     ORDER_STATUS("Trạng thái đơn hàng", "📦"),
     PROMOTION("Khuyến mãi", "🎁"),

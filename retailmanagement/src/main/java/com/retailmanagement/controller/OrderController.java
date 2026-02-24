@@ -127,23 +127,21 @@ public class OrderController {
 
     // CANCEL ORDER
     @PutMapping("/{orderId}/cancel")
-    public ResponseEntity<Void> cancelOrder(
+    public ResponseEntity<Map<String, Object>> cancelOrder(
             @PathVariable Long orderId,
             @RequestBody(required = false) Map<String, String> body) {
-
-        System.out.println("=== CANCEL ORDER DEBUG ===");
-        System.out.println("Order ID: " + orderId);
-        System.out.println("Body: " + body);
 
         String reason = (body != null && body.containsKey("reason"))
                 ? body.get("reason")
                 : "Customer cancelled";
 
-        System.out.println("Reason: " + reason);
-        System.out.println("========================");
-
         orderService.cancelOrder(orderId, reason);
-        return ResponseEntity.ok().build();
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Đơn hàng đã được hủy thành công",
+                "orderId", orderId
+        ));
     }
 
     // =========================================================

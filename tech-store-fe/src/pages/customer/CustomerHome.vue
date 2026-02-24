@@ -40,6 +40,41 @@ FILE: src/pages/customer/CustomerHome.vue
       </el-card>
     </div>
 
+    <!-- Purchase Reminder / Winback Banner -->
+    <div v-if="reminderNotifications.length > 0" class="mb-4">
+      <el-card
+        v-for="notif in reminderNotifications"
+        :key="notif.id"
+        shadow="always"
+        class="reminder-notification-card mb-3"
+      >
+        <div class="d-flex align-items-start gap-3">
+          <div class="reminder-icon-large">
+            {{ notif.type === 'WINBACK' ? '💝' : '🛒' }}
+          </div>
+          <div class="flex-grow-1">
+            <h3 class="mb-2">{{ notif.title }}</h3>
+            <div class="reminder-message" v-html="formatMessage(notif.message)"></div>
+            <div class="mt-3 d-flex gap-2">
+              <el-button
+                type="primary"
+                size="large"
+                @click="handleReminderClick(notif.id)"
+              >
+                Xem ngay 🛍️
+              </el-button>
+              <el-button size="large" @click="markNotificationAsRead(notif.id)">
+                Để sau
+              </el-button>
+            </div>
+          </div>
+          <el-icon class="close-icon" @click="markNotificationAsRead(notif.id)" :size="20">
+            <Close />
+          </el-icon>
+        </div>
+      </el-card>
+    </div>
+
     <div class="row g-3">
       <div class="col-12 col-lg-3">
         <el-card shadow="never">
@@ -85,7 +120,7 @@ FILE: src/pages/customer/CustomerHome.vue
                 Profile
               </el-button>
 
-              <!-- ✨ Event Button redesigned -->
+              <!-- ✨ Event Button -->
               <button
                 v-if="isCustomer"
                 class="event-btn"
@@ -270,6 +305,7 @@ const clientPageSize = 9;
 const cartStore = useCartStore();
 
 const birthdayNotifications = ref([]);
+const reminderNotifications = ref([]);
 const allNotifications = ref([]);
 const unreadNotificationCount = ref(0);
 const notificationsDialog = ref(false);
@@ -401,9 +437,18 @@ async function loadNotifications() {
   try {
     const unreadRes = await http.get("/api/auth/notifications/my?unreadOnly=true");
     const unreadNotifs = unreadRes.data || [];
-    birthdayNotifications.value = unreadNotifs.filter(n => n.type === 'BIRTHDAY');
+
+    // Tách birthday
+    birthdayNotifications.value = unreadNotifs.filter(n => n.type === "BIRTHDAY");
+
+    // Tách purchase reminder & winback
+    reminderNotifications.value = unreadNotifs.filter(
+      n => n.type === "PURCHASE_REMINDER" || n.type === "WINBACK"
+    );
+
     const countRes = await http.get("/api/auth/notifications/my/unread-count");
     unreadNotificationCount.value = countRes.data?.unreadCount || 0;
+
     if (notificationsDialog.value) {
       const allRes = await http.get("/api/auth/notifications/my");
       allNotifications.value = allRes.data || [];
@@ -431,6 +476,12 @@ async function markAllAsRead() {
   } catch (error) {
     toast("Không thể đánh dấu tất cả", "error");
   }
+}
+
+async function handleReminderClick(notificationId) {
+  await markNotificationAsRead(notificationId);
+  // Scroll xuống danh sách sản phẩm
+  window.scrollTo({ top: 400, behavior: "smooth" });
 }
 
 function viewAllNotifications() {
@@ -548,6 +599,18 @@ onBeforeUnmount(() => {
 .birthday-notification-card :deep(.el-card__body) { padding: 24px; }
 .birthday-icon-large { font-size: 64px; line-height: 1; animation: bounce 2s infinite; }
 .birthday-message { font-size: 16px; line-height: 1.6; white-space: pre-line; }
+
+/* Purchase Reminder / Winback Banner */
+.reminder-notification-card {
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  color: white;
+  border: none;
+  animation: slideIn 0.5s ease-out;
+}
+.reminder-notification-card :deep(.el-card__body) { padding: 24px; }
+.reminder-icon-large { font-size: 64px; line-height: 1; animation: bounce 2s infinite; }
+.reminder-message { font-size: 16px; line-height: 1.6; white-space: pre-line; }
+
 .close-icon { cursor: pointer; opacity: 0.8; transition: opacity 0.3s; }
 .close-icon:hover { opacity: 1; }
 

@@ -135,16 +135,24 @@
               <span>Giảm giá:</span>
               <strong>- {{ formatMoney(detail.discountTotal) }}</strong>
             </div>
+
+            <!-- VIP discount thực tế -->
             <div v-if="detail.vipDiscountRate > 0" class="d-flex justify-content-between ps-3 small">
               <span class="text-muted">└ VIP {{ detail.vipDiscountRate }}%:</span>
               <span class="text-muted">-{{ formatMoney(detail.vipDiscount) }}</span>
             </div>
+
+            <!-- Spin discount thực tế (đã áp vào đơn) -->
             <div v-if="detail.spinDiscountRate > 0" class="d-flex justify-content-between ps-3 small">
-              <span class="text-muted">└ Spin {{ detail.spinDiscountRate }}%:</span>
+              <span class="text-muted">└ 🎡 Spin {{ detail.spinDiscountRate }}%:</span>
               <span class="text-muted">-{{ formatMoney(detail.spinDiscount) }}</span>
             </div>
-            <!-- Spin bonus ước tính (chỉ hiện khi có active bonus chưa áp vào đơn) -->
-            <div v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0" class="d-flex justify-content-between ps-3 small spin-estimated-row">
+
+            <!-- Spin ước tính - CHỈ hiện khi đơn CHƯA có spin discount được áp -->
+            <div
+              v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0 && !(detail.spinDiscountRate > 0)"
+              class="d-flex justify-content-between ps-3 small spin-estimated-row"
+            >
               <span>└ 🎡 Spin {{ spinStatus.bonusRate }}% <em>(ước tính)</em>:</span>
               <span>-{{ formatMoney(estimatedSpinDiscount) }}</span>
             </div>
@@ -153,14 +161,19 @@
               <span>Phí ship:</span>
               <strong>{{ formatMoney(detail.shippingFee) }}</strong>
             </div>
+
             <el-divider />
+
             <div class="d-flex justify-content-between fs-5">
               <span><strong>Tổng cộng:</strong></span>
               <strong class="text-primary">{{ formatMoney(detail.totalAmount) }}</strong>
             </div>
 
-            <!-- Tổng ước tính sau khi trừ spin -->
-            <div v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0" class="estimated-total-row">
+            <!-- Tổng ước tính sau spin - CHỈ hiện khi đơn CHƯA có spin discount được áp -->
+            <div
+              v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0 && !(detail.spinDiscountRate > 0)"
+              class="estimated-total-row"
+            >
               <div class="d-flex justify-content-between">
                 <span class="estimated-total-label">🎡 Ước tính sau giảm Spin:</span>
                 <strong class="estimated-total-value">{{ formatMoney(detail.totalAmount - estimatedSpinDiscount) }}</strong>
@@ -181,7 +194,7 @@
       width="520px"
       :close-on-click-modal="false"
     >
-      <!-- ── Loading skeleton khi đang fetch spin ── -->
+      <!-- Loading skeleton khi đang fetch spin -->
       <div v-if="spinStatus.loading" class="spin-loading-wrap mb-3">
         <div class="spin-loading-inner">
           <span class="spin-loading-icon">🎡</span>
@@ -189,7 +202,7 @@
         </div>
       </div>
 
-      <!-- ── Spin Bonus Banner ── -->
+      <!-- Spin Bonus Banner -->
       <transition name="spin-bonus-fade">
         <div v-if="!spinStatus.loading && spinStatus.hasActiveBonus" class="spin-bonus-banner mb-3">
           <div class="spin-bonus-inner">
@@ -230,7 +243,7 @@
         </div>
       </transition>
 
-      <!-- ── Không có spin bonus (sau khi đã check xong) ── -->
+      <!-- Không có spin bonus -->
       <transition name="spin-bonus-fade">
         <div
           v-if="!spinStatus.loading && !spinStatus.hasActiveBonus && spinStatus.checked"
@@ -241,7 +254,7 @@
         </div>
       </transition>
 
-      <!-- ── Thông tin thanh toán ── -->
+      <!-- Thông tin thanh toán -->
       <el-alert title="Thông tin thanh toán" type="info" :closable="false" class="mb-3">
         <p>Sau khi thanh toán thành công:</p>
         <ul class="mb-0">
@@ -376,7 +389,7 @@ const showPaymentDialog = ref(false);
 // ── Spin Bonus State ──────────────────────────────────────────────────
 const spinStatus = reactive({
   loading:        false,
-  checked:        false,   // true sau khi fetch xong (dù có bonus hay không)
+  checked:        false,
   hasActiveBonus: false,
   bonusRate:      0,
   bonusExpiresAt: null,
@@ -409,11 +422,15 @@ const hasDiscountInfo = computed(() =>
   )
 );
 
-// Tính spin discount ước tính từ subtotal × bonusRate (dùng khi đơn cũ chưa có spinDiscount)
+// Spin đã được áp vào đơn rồi hay chưa
+const spinAlreadyApplied = computed(() =>
+  detail.value?.spinDiscountRate > 0
+);
+
+// Tính spin discount ước tính - chỉ dùng khi spin CHƯA được áp vào đơn
 const estimatedSpinDiscount = computed(() => {
   if (!detail.value?.subtotal || !spinStatus.bonusRate) return 0;
-  const actual = detail.value?.spinDiscount || 0;
-  if (actual > 0) return actual; // nếu đơn đã có sẵn → dùng luôn
+  if (spinAlreadyApplied.value) return 0; // đã áp rồi → không ước tính nữa
   return Math.round(detail.value.subtotal * spinStatus.bonusRate / 100);
 });
 
@@ -462,7 +479,6 @@ async function fetchSpinStatus() {
   const customerId = detail.value?.customerId;
   if (!customerId) return;
 
-  // Reset
   spinStatus.loading        = true;
   spinStatus.checked        = false;
   spinStatus.hasActiveBonus = false;
@@ -470,16 +486,10 @@ async function fetchSpinStatus() {
   spinStatus.bonusExpiresAt = null;
 
   try {
-    const res = await spinWheelApi.getStatus(customerId);
-
-    // Hỗ trợ cả 2 cấu trúc: { data: { data: {...} } } hoặc { data: {...} }
+    const res  = await spinWheelApi.getStatus(customerId);
     const data = res?.data?.data ?? res?.data ?? res;
 
-    console.log("🎡 [SpinWheel] raw response:", JSON.stringify(data));
-
-    // SpinWheelService trả về Map với key "currentBonus" (BigDecimal → number sau JSON)
     const bonus = Number(data?.currentBonus ?? 0);
-    console.log("🎡 [SpinWheel] currentBonus parsed:", bonus);
 
     if (bonus > 0) {
       spinStatus.hasActiveBonus = true;

@@ -485,4 +485,113 @@ public class NotificationService {
 
         return null;
     }
+    @Transactional
+    public void sendPurchaseReminders() {
+        LocalDateTime now          = LocalDateTime.now();
+        LocalDateTime twoWeeksAgo = now.minusDays(14);
+
+        List<NotificationType> reminderTypes = List.of(
+                NotificationType.PURCHASE_REMINDER,
+                NotificationType.WINBACK
+        );
+
+        List<Customer> cold30 = customerRepository.findCustomersForPurchaseReminder(
+                now.minusDays(30), now.minusDays(60), twoWeeksAgo
+        );
+        List<Customer> cold60 = customerRepository.findCustomersForPurchaseReminder(
+                now.minusDays(60), now.minusDays(120), twoWeeksAgo
+        );
+        List<Customer> winback = customerRepository.findCustomersForPurchaseReminder(
+                now.minusDays(120), now.minusDays(365), twoWeeksAgo
+        );
+
+        // ← THÊM LOG NÀY ĐỂ DEBUG
+        System.out.println("🔍 DEBUG now=" + now);
+        System.out.println("🔍 COLD_30 range: " + now.minusDays(60) + " → " + now.minusDays(30));
+        System.out.println("🔍 cold30 found: " + cold30.size() + " customers");
+        System.out.println("🔍 cold60 found: " + cold60.size() + " customers");
+        System.out.println("🔍 winback found: " + winback.size() + " customers");
+        cold30.forEach(c -> System.out.println("   cold30: " + c.getName() + " lastOrder=" + c.getLastOrderAt()));
+        cold60.forEach(c -> System.out.println("   cold60: " + c.getName() + " lastOrder=" + c.getLastOrderAt()));
+        winback.forEach(c -> System.out.println("   winback: " + c.getName() + " lastOrder=" + c.getLastOrderAt()));
+
+        cold30.forEach(c  -> createPurchaseReminderNotification(c, "COLD_30"));
+        cold60.forEach(c  -> createPurchaseReminderNotification(c, "COLD_60"));
+        winback.forEach(c -> createPurchaseReminderNotification(c, "WINBACK"));
+    }
+    @Transactional
+    public void createPurchaseReminderNotification(Customer customer, String segment) {
+        // Chặn spam: không gửi lại trong 14 ngày
+        LocalDateTime twoWeeksAgo = LocalDateTime.now().minusDays(14);
+        boolean alreadySent = notificationRepository.existsByCustomerIdAndTypeAndCreatedAtBetween(
+                customer.getId(),
+                NotificationType.PURCHASE_REMINDER,
+                twoWeeksAgo,
+                LocalDateTime.now()
+        );
+        // Kiểm tra thêm WINBACK
+        boolean alreadySentWinback = notificationRepository.existsByCustomerIdAndTypeAndCreatedAtBetween(
+                customer.getId(),
+                NotificationType.WINBACK,
+                twoWeeksAgo,
+                LocalDateTime.now()
+        );
+
+        if (alreadySent || alreadySentWinback) return;
+
+        String title;
+        String message;
+        NotificationType type;
+
+        long daysSinceLastOrder = ChronoUnit.DAYS.between(
+                customer.getLastOrderAt(), LocalDateTime.now()
+        );
+
+        switch (segment) {
+            case "COLD_30" -> {
+                type    = NotificationType.PURCHASE_REMINDER;
+                title   = "👀 Có laptop mới về rồi bạn ơi!";
+                message = String.format(
+                        "Chào %s! Đã %d ngày rồi bạn chưa ghé thăm chúng tôi. " +
+                                "Nhiều dòng laptop mới vừa về kho, cùng xem nhé!",
+                        customer.getName(), daysSinceLastOrder
+                );
+            }
+            case "COLD_60" -> {
+                type    = NotificationType.PURCHASE_REMINDER;
+                title   = "🎁 Ưu đãi riêng dành cho bạn – chỉ còn 48h!";
+                message = String.format(
+                        "Chào %s! Chúng tôi nhớ bạn quá. " +
+                                "Nhân dịp bạn chưa ghé lâu (%d ngày), " +
+                                "shop gửi tặng bạn ưu đãi độc quyền. Xem ngay trước khi hết hạn!",
+                        customer.getName(), daysSinceLastOrder
+                );
+            }
+            default -> { // WINBACK 120+ ngày
+                type    = NotificationType.WINBACK;
+                title   = "💝 Chúng tôi nhớ bạn – Quà tặng đặc biệt!";
+                message = String.format(
+                        "Chào %s! Đã hơn %d ngày rồi bạn chưa ghé shop. " +
+                                "Chúng tôi có quà tặng đặc biệt dành riêng cho bạn. " +
+                                "Hãy quay lại để nhận ngay nhé! 🎉",
+                        customer.getName(), daysSinceLastOrder
+                );
+            }
+        }
+
+        Notification notification = Notification.builder()
+                .customer(customer)
+                .type(type)
+                .title(title)
+                .message(message)
+                .isRead(false)
+                .build();
+
+        notificationRepository.save(notification);
+    }
+    public List<Notification> getPurchaseReminderHistory() {
+        return notificationRepository.findByTypeOrderByCreatedAtDesc(
+                NotificationType.PURCHASE_REMINDER
+        );
+    }
 }

@@ -22,6 +22,7 @@
           <template #title>Management</template>
           <el-menu-item index="/system/users">Users</el-menu-item>
           <el-menu-item index="/system/customers">Customers</el-menu-item>
+           <el-menu-item index="/system/inactive-customers">Inactive-Customers</el-menu-item>
           <el-menu-item index="/system/customer-spending">Customers - Spending</el-menu-item>
           <el-menu-item index="/system/birthday">Birthday Manager</el-menu-item>
           <el-menu-item index="/system/categories">Categories</el-menu-item>

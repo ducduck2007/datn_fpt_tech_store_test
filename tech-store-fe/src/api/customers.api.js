@@ -119,5 +119,8 @@ softDeletePayment(paymentId) {
 },
 restorePayment(paymentId) {
   return http.post(`/api/auth/payments/${paymentId}/restore`);
+},
+listInactiveTransaction(days = 30) {
+  return http.get(`/api/auth/customers/inactive-transaction?days=${days}`);
 }
 };

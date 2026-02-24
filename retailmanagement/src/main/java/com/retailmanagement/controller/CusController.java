@@ -350,5 +350,11 @@ public class CusController {
         List<PaymentResponse> payments = paymentService.getDeletedPaymentsByCustomerId(customerId);
         return ResponseEntity.ok(payments);
     }
+    @GetMapping("/inactive-transaction")
+    public ResponseEntity<List<CustomerResponse>> getInactiveTransactionCustomers(
+            @RequestParam(defaultValue = "30") int days) {
+        if (days <= 0) return ResponseEntity.badRequest().build();
+        return ResponseEntity.ok(cusservice.findInactiveTransactionDays(days));
+    }
 }
 

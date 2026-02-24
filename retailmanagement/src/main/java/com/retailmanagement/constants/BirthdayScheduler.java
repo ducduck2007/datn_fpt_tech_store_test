@@ -68,4 +68,15 @@ public class BirthdayScheduler {
         log.info("💓 Scheduler đang hoạt động - {}",
                 LocalDateTime.now().format(formatter));
     }
+
+    @Scheduled(cron = "0 0 9 * * *")
+    public void sendPurchaseReminders() {
+        log.info("⏰ Chạy job nhắc mua hàng...");
+        notificationService.sendPurchaseReminders();
+    }
+    @Scheduled(cron = "0 0 10 * * *")
+    public void checkTierUpgrades() {
+        log.info("⏰ Chạy job kiểm tra lên hạng...");
+        notificationService.checkAndSendTierUpgradeNotifications();
+    }
 }

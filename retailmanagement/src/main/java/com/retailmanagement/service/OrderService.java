@@ -339,7 +339,7 @@ public class OrderService {
     public void cancelOrder(Long orderId, String reason) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
+        
         if (OrderStatuses.CANCELLED.equals(order.getStatus()))
             throw new IllegalStateException("Order already cancelled");
         if (OrderStatuses.DELIVERED.equals(order.getStatus()))

@@ -47,4 +47,6 @@ public interface SpinWheelHistoryRepository extends JpaRepository<SpinWheelHisto
             "AND s.weekStartDate = :weekStart")
     long countByCustomerAndWeek(@Param("customerId") Integer customerId,
                                 @Param("weekStart") LocalDate weekStart);
+
+    Optional<SpinWheelHistory> findByUsedOrderId(Long usedOrderId);
 }

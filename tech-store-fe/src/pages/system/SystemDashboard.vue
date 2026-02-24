@@ -156,6 +156,11 @@ const cards = [
     to: "/system/customers",
   },
   {
+    title: "Customers-Inactive",
+    desc: "Customers Inactive",
+    to: "/system/inactive-customers",
+  },
+  {
     title: "Categories",
     desc: "Create & manage product categories",
     to: "/system/categories",
