@@ -39,8 +39,8 @@
           </div>
         </el-card>
 
-        <!-- ✅ THÊM TABS -->
         <el-tabs v-model="activeTab" class="mb-3">
+          <!-- ===== TAB: THÔNG TIN ===== -->
           <el-tab-pane label="Thông tin" name="info">
             <div class="row g-3">
               <div class="col-12 col-lg-4">
@@ -59,7 +59,7 @@
                   <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="small text-muted">Lên hạng tiếp:</span>
                     <span class="fw-bold text-primary">
-                      {{ customer.pointsToNextTier > 0 
+                      {{ customer.pointsToNextTier > 0
                         ? `${customer.pointsToNextTier} điểm`
                         : 'Hạng cao nhất' }}
                     </span>
@@ -78,9 +78,7 @@
                     <h3 class="mb-0 fw-bold">Ưu đãi của bạn</h3>
                   </div>
                   <div class="text-center py-3">
-                    <div class="discount-display">
-                      {{ customer.discountRate || 0 }}%
-                    </div>
+                    <div class="discount-display">{{ customer.discountRate || 0 }}%</div>
                     <div class="discount-desc">Giảm giá mọi đơn hàng</div>
                   </div>
                 </el-card>
@@ -90,9 +88,7 @@
                     <el-icon :size="24" color="#9333ea"><Wallet /></el-icon>
                     <h3 class="mb-0 fw-bold">Tổng chi tiêu</h3>
                   </div>
-                  <div class="total-spent">
-                    {{ formatCurrency(customer.totalSpent) }}
-                  </div>
+                  <div class="total-spent">{{ formatCurrency(customer.totalSpent) }}</div>
                 </el-card>
               </div>
 
@@ -132,22 +128,20 @@
                           <div v-else class="form-static">{{ formatDate(customer.dateOfBirth) }}</div>
                         </el-form-item>
                       </div>
-                      
                       <div class="col-12">
                         <el-form-item label="Địa chỉ">
-                          <el-input 
-                            v-if="editing" 
+                          <el-input
+                            v-if="editing"
                             v-model="formData.address"
                             placeholder="Nhập địa chỉ của bạn"
                           />
                           <div v-else class="form-static">{{ customer.address || '—' }}</div>
                         </el-form-item>
                       </div>
-
                       <div class="col-12">
                         <el-form-item label="Ghi chú">
-                          <el-input 
-                            v-if="editing" 
+                          <el-input
+                            v-if="editing"
                             v-model="formData.notes"
                             type="textarea"
                             :rows="3"
@@ -181,9 +175,8 @@
             </div>
           </el-tab-pane>
 
-          <!-- ✅ TAB LỊCH SỬ ĐIỂM - ENHANCED -->
+          <!-- ===== TAB: LỊCH SỬ ĐIỂM ===== -->
           <el-tab-pane label="Lịch sử điểm" name="loyalty">
-            <!-- Statistics Summary -->
             <el-row :gutter="16" class="mb-3">
               <el-col :xs="24" :sm="8">
                 <el-card shadow="hover" class="stats-card earn-card">
@@ -221,7 +214,6 @@
             </el-row>
 
             <el-card shadow="never">
-              <!-- Header with filters -->
               <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-3">
                 <div>
                   <h3 class="mb-2 fw-bold">
@@ -229,8 +221,8 @@
                     Lịch sử giao dịch điểm
                   </h3>
                   <div class="d-flex gap-2 flex-wrap" v-if="activeHistoryFilters.length">
-                    <el-tag 
-                      v-for="filter in activeHistoryFilters" 
+                    <el-tag
+                      v-for="filter in activeHistoryFilters"
                       :key="filter.type"
                       :type="filter.tagType"
                       closable
@@ -240,10 +232,10 @@
                     </el-tag>
                   </div>
                 </div>
-                
+
                 <div class="d-flex gap-2 flex-wrap">
-                  <el-select 
-                    v-model="historyTransactionFilter" 
+                  <el-select
+                    v-model="historyTransactionFilter"
                     placeholder="Loại giao dịch"
                     clearable
                     style="width: 160px"
@@ -293,14 +285,13 @@
               <el-divider />
 
               <el-skeleton v-if="historyLoading" :rows="5" animated />
-              
+
               <el-empty v-else-if="!filteredLoyaltyHistory.length" description="Không có giao dịch nào">
                 <el-button type="primary" @click="clearHistoryFilters" v-if="hasActiveHistoryFilters">
                   Xóa bộ lọc
                 </el-button>
               </el-empty>
 
-              <!-- Timeline with enhanced cards -->
               <el-timeline v-else>
                 <el-timeline-item
                   v-for="item in filteredLoyaltyHistory"
@@ -311,14 +302,12 @@
                 >
                   <el-card class="history-card" :class="getHistoryCardClass(item.transactionType)">
                     <div class="history-card-content">
-                      <!-- Left: Icon & Type -->
                       <div class="history-icon-wrapper">
                         <el-icon :size="28" :color="getTransactionIconColor(item.transactionType)">
                           <component :is="getTransactionIcon(item.transactionType)" />
                         </el-icon>
                       </div>
 
-                      <!-- Middle: Details -->
                       <div class="history-details flex-grow-1">
                         <div class="d-flex align-items-center gap-2 mb-1">
                           <el-tag :type="getTransactionTagType(item.transactionType)" effect="dark">
@@ -326,23 +315,19 @@
                           </el-tag>
                           <span class="text-muted small" v-if="item.reason">{{ item.reason }}</span>
                         </div>
-                        
+
                         <p class="mb-2 history-note">{{ item.note }}</p>
-                        
-                        <!-- Tier change indicator -->
+
                         <div v-if="item.tierBefore || item.tierAfter" class="tier-change-indicator">
                           <el-tag size="small" :type="getTierTagType(item.tierBefore)" effect="plain">
                             {{ item.tierBeforeDisplay || 'Member' }}
                           </el-tag>
-                          <el-icon class="mx-2" :size="16">
-                            <Right />
-                          </el-icon>
+                          <el-icon class="mx-2" :size="16"><Right /></el-icon>
                           <el-tag size="small" :type="getTierTagType(item.tierAfter)" effect="dark">
                             {{ item.tierAfterDisplay || 'Member' }}
                           </el-tag>
                         </div>
 
-                        <!-- Reference info -->
                         <div v-if="item.referenceType" class="reference-info mt-2">
                           <el-tag size="small" type="info" effect="plain">
                             <el-icon class="me-1"><Link /></el-icon>
@@ -351,9 +336,8 @@
                         </div>
                       </div>
 
-                      <!-- Right: Points -->
                       <div class="history-points">
-                        <div 
+                        <div
                           class="points-badge"
                           :class="item.pointsDelta > 0 ? 'points-positive' : 'points-negative'"
                         >
@@ -369,7 +353,7 @@
             </el-card>
           </el-tab-pane>
 
-          <!-- ✅ TAB LỊCH SỬ THĂNG HẠNG -->
+          <!-- ===== TAB: LỊCH SỬ THĂNG HẠNG ===== -->
           <el-tab-pane label="Lịch sử thăng hạng" name="tier">
             <el-card shadow="never">
               <div class="d-flex justify-content-between align-items-center mb-3">
@@ -384,20 +368,20 @@
               </div>
 
               <el-skeleton v-if="tierLoading" :rows="5" animated />
-              
+
               <el-empty v-else-if="!tierHistory.length" description="Chưa có lịch sử thay đổi hạng" />
 
               <div v-else class="tier-history-list">
-                <el-card 
-                  v-for="item in tierHistory" 
+                <el-card
+                  v-for="item in tierHistory"
                   :key="item.id"
                   class="mb-3 tier-history-card"
                   :class="item.transactionType === 'TIER_UPGRADE' ? 'upgrade' : 'downgrade'"
                 >
                   <div class="d-flex align-items-start gap-3">
                     <div class="tier-icon">
-                      <el-icon 
-                        :size="32" 
+                      <el-icon
+                        :size="32"
                         :color="item.transactionType === 'TIER_UPGRADE' ? '#67c23a' : '#f56c6c'"
                       >
                         <component :is="item.transactionType === 'TIER_UPGRADE' ? 'TopRight' : 'BottomRight'" />
@@ -406,7 +390,7 @@
                     <div class="flex-grow-1">
                       <div class="d-flex justify-content-between align-items-center mb-2">
                         <h5 class="mb-0">
-                          <el-tag 
+                          <el-tag
                             :type="item.transactionType === 'TIER_UPGRADE' ? 'success' : 'danger'"
                             effect="dark"
                           >
@@ -415,19 +399,17 @@
                         </h5>
                         <span class="text-muted small">{{ formatDateTime(item.createdAt) }}</span>
                       </div>
-                      
+
                       <div class="tier-change-display mb-2">
                         <el-tag size="large" :type="getTierTagType(item.tierBefore)" effect="dark">
                           {{ item.tierBeforeDisplay || 'Member' }}
                         </el-tag>
-                        <el-icon :size="20" class="mx-2">
-                          <Right />
-                        </el-icon>
+                        <el-icon :size="20" class="mx-2"><Right /></el-icon>
                         <el-tag size="large" :type="getTierTagType(item.tierAfter)" effect="dark">
                           {{ item.tierAfterDisplay || 'Member' }}
                         </el-tag>
                       </div>
-                      
+
                       <p class="mb-0 text-muted">{{ item.note }}</p>
                     </div>
                   </div>
@@ -435,147 +417,501 @@
               </div>
             </el-card>
           </el-tab-pane>
+
+          <!-- ===== TAB: LỊCH SỬ GIAO DỊCH ===== -->
+          <el-tab-pane label="Lịch sử giao dịch" name="payments">
+            <el-row :gutter="16" class="mb-3">
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card payment-success-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><CircleCheck /></el-icon>
+                    <div>
+                      <div class="stats-value">{{ paymentStats.totalSuccess }}</div>
+                      <div class="stats-label">Giao dịch thành công</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card payment-amount-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><Money /></el-icon>
+                    <div>
+                      <div class="stats-value stats-value-small">{{ formatCurrencyShort(paymentStats.totalAmount) }}</div>
+                      <div class="stats-label">Tổng thanh toán</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card payment-refunded-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><RefreshLeft /></el-icon>
+                    <div>
+                      <div class="stats-value">{{ paymentStats.totalRefunded }}</div>
+                      <div class="stats-label">Đã hoàn tiền</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+
+            <el-card shadow="never">
+              <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-3">
+                <div>
+                  <h3 class="mb-2 fw-bold">
+                    <el-icon class="me-2"><CreditCard /></el-icon>
+                    Danh sách giao dịch
+                  </h3>
+                  <div class="d-flex gap-2 flex-wrap" v-if="activePaymentFilters.length">
+                    <el-tag
+                      v-for="filter in activePaymentFilters"
+                      :key="filter.type"
+                      :type="filter.tagType"
+                      closable
+                      @close="removePaymentFilter(filter.type)"
+                    >
+                      {{ filter.label }}
+                    </el-tag>
+                  </div>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                  <el-select
+                    v-model="paymentStatusFilter"
+                    placeholder="Trạng thái"
+                    clearable
+                    style="width: 160px"
+                    @change="filterPayments"
+                  >
+                    <el-option label="Thành công" value="SUCCESS">
+                      <el-tag type="success" size="small">SUCCESS</el-tag>
+                    </el-option>
+                    <el-option label="Đang chờ" value="PENDING">
+                      <el-tag type="warning" size="small">PENDING</el-tag>
+                    </el-option>
+                    <el-option label="Đã hoàn tiền" value="REFUNDED">
+                      <el-tag type="info" size="small">REFUNDED</el-tag>
+                    </el-option>
+                  </el-select>
+
+                  <el-select
+                    v-model="paymentMethodFilter"
+                    placeholder="Phương thức"
+                    clearable
+                    style="width: 160px"
+                    @change="filterPayments"
+                  >
+                    <el-option label="Tiền mặt" value="CASH" />
+                    <el-option label="Chuyển khoản" value="BANK_TRANSFER" />
+                    <el-option label="Thẻ tín dụng" value="CREDIT_CARD" />
+                    <el-option label="Ví điện tử" value="E_WALLET" />
+                  </el-select>
+
+                  <el-date-picker
+                    v-model="paymentDateRange"
+                    type="daterange"
+                    range-separator="-"
+                    start-placeholder="Từ ngày"
+                    end-placeholder="Đến ngày"
+                    format="DD/MM/YYYY"
+                    value-format="YYYY-MM-DD"
+                    style="width: 280px"
+                    @change="filterPayments"
+                  />
+
+                  <el-switch
+                    v-model="showDeletedPayments"
+                    active-text="Hiện đã xóa"
+                    @change="loadPayments"
+                  />
+
+                  <el-button @click="clearPaymentFilters" v-if="hasActivePaymentFilters">
+                    <el-icon><Close /></el-icon>
+                    Xóa bộ lọc
+                  </el-button>
+
+                  <el-button @click="loadPayments" :loading="paymentsLoading">
+                    <el-icon><Refresh /></el-icon>
+                    Tải lại
+                  </el-button>
+                </div>
+              </div>
+
+              <el-divider />
+
+              <el-skeleton v-if="paymentsLoading" :rows="5" animated />
+
+              <el-empty v-else-if="!filteredPayments.length" description="Không có giao dịch nào">
+                <el-button type="primary" @click="clearPaymentFilters" v-if="hasActivePaymentFilters">
+                  Xóa bộ lọc
+                </el-button>
+              </el-empty>
+
+              <el-table v-else :data="paginatedPayments" style="width: 100%" stripe>
+                <el-table-column prop="id" label="ID" width="80" sortable />
+
+                <el-table-column label="Mã GD" width="150">
+                  <template #default="{ row }">
+                    <span class="text-muted small">{{ row.transactionRef }}</span>
+                  </template>
+                </el-table-column>
+
+                <el-table-column label="Đơn hàng" width="150">
+                  <template #default="{ row }">
+                    <span class="fw-bold">#{{ row.orderId }}</span>
+                  </template>
+                </el-table-column>
+
+                <el-table-column label="Số tiền" width="150" sortable prop="amount">
+                  <template #default="{ row }">
+                    <span class="fw-bold">{{ formatCurrency(row.amount) }}</span>
+                  </template>
+                </el-table-column>
+
+                <el-table-column label="Phương thức" width="140">
+                  <template #default="{ row }">
+                    <el-tag size="small" type="info">{{ getPaymentMethodLabel(row.method) }}</el-tag>
+                  </template>
+                </el-table-column>
+
+                <el-table-column label="Trạng thái" width="120">
+                  <template #default="{ row }">
+                    <el-tag :type="getPaymentStatusType(row.status)" size="small">
+                      {{ row.status }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+
+                <el-table-column label="Thời gian" width="180" sortable prop="createdAt">
+                  <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+                </el-table-column>
+
+                <el-table-column label="Trạng thái" width="100" v-if="showDeletedPayments">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.deletedAt" type="danger" size="small">Đã xóa</el-tag>
+                    <el-tag v-else type="success" size="small">Hoạt động</el-tag>
+                  </template>
+                </el-table-column>
+
+                <el-table-column label="Thao tác" width="200" fixed="right">
+                  <template #default="{ row }">
+                    <div class="d-flex gap-1">
+                      <el-button size="small" type="primary" text @click="viewPaymentDetail(row)">
+                        <el-icon><View /></el-icon>
+                        Chi tiết
+                      </el-button>
+
+                      <el-popconfirm
+                        v-if="!row.deletedAt"
+                        title="Xác nhận xóa giao dịch?"
+                        confirm-button-text="Xóa"
+                        cancel-button-text="Hủy"
+                        @confirm="softDeletePayment(row.id)"
+                      >
+                        <template #reference>
+                          <el-button size="small" type="danger" text>
+                            <el-icon><Delete /></el-icon>
+                          </el-button>
+                        </template>
+                      </el-popconfirm>
+
+                      <el-popconfirm
+                        v-else
+                        title="Khôi phục giao dịch?"
+                        confirm-button-text="Khôi phục"
+                        cancel-button-text="Hủy"
+                        @confirm="restorePayment(row.id)"
+                      >
+                        <template #reference>
+                          <el-button size="small" type="success" text>
+                            <el-icon><RefreshLeft /></el-icon>
+                          </el-button>
+                        </template>
+                      </el-popconfirm>
+                    </div>
+                  </template>
+                </el-table-column>
+              </el-table>
+
+              <div class="d-flex justify-content-center mt-4" v-if="filteredPayments.length">
+                <el-pagination
+                  v-model:current-page="paymentCurrentPage"
+                  v-model:page-size="paymentPageSize"
+                  :page-sizes="[10, 20, 50]"
+                  :total="filteredPayments.length"
+                  layout="total, sizes, prev, pager, next"
+                />
+              </div>
+            </el-card>
+          </el-tab-pane>
         </el-tabs>
       </template>
     </div>
+
+    <!-- Payment Detail Dialog -->
+    <el-dialog v-model="showPaymentDetailDialog" title="Chi tiết giao dịch" width="800px">
+      <el-skeleton v-if="loadingPaymentDetail" :rows="8" animated />
+
+      <div v-else-if="selectedPayment" class="payment-detail">
+        <el-descriptions :column="2" border class="mb-3">
+          <el-descriptions-item label="Mã GD">
+            <span class="fw-bold">{{ selectedPayment.transactionRef }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="Số tiền">
+            <span class="fw-bold text-success">{{ formatCurrency(selectedPayment.amount) }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="Phương thức">
+            <el-tag size="small">{{ getPaymentMethodLabel(selectedPayment.method) }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="Trạng thái">
+            <el-tag :type="getPaymentStatusType(selectedPayment.status)">
+              {{ selectedPayment.status }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="Thời gian">
+            {{ formatDateTime(selectedPayment.paidAt) }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <h4 class="mb-3">Thông tin đơn hàng</h4>
+        <el-descriptions :column="2" border class="mb-3">
+          <el-descriptions-item label="Mã đơn">
+            <span class="fw-bold">#{{ selectedPayment.orderId }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="Trạng thái đơn">
+            <el-tag :type="getOrderStatusType(selectedPayment.orderStatus)">
+              {{ selectedPayment.orderStatus }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div v-if="selectedPayment.items && selectedPayment.items.length">
+          <h4 class="mb-3">Sản phẩm</h4>
+          <el-table :data="selectedPayment.items" border class="mb-3">
+            <el-table-column label="Sản phẩm" min-width="200">
+              <template #default="{ row }">
+                <div class="fw-bold">{{ row.productName }}</div>
+                <div class="text-muted small">{{ row.variantName }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="SL" width="80" align="center" prop="quantity" />
+            <el-table-column label="Đơn giá" width="130" align="right">
+              <template #default="{ row }">{{ formatCurrency(row.unitPrice) }}</template>
+            </el-table-column>
+            <el-table-column label="Tổng" width="150" align="right">
+              <template #default="{ row }">
+                <strong>{{ formatCurrency(row.lineTotal) }}</strong>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div class="payment-totals">
+            <div class="d-flex justify-content-between mb-2">
+              <span>Tạm tính:</span>
+              <strong>{{ formatCurrency(selectedPayment.subtotal) }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2 text-success">
+              <span>Giảm giá:</span>
+              <strong>-{{ formatCurrency(selectedPayment.discountTotal) }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Phí ship:</span>
+              <strong>{{ formatCurrency(selectedPayment.shippingFee) }}</strong>
+            </div>
+            <el-divider />
+            <div class="d-flex justify-content-between fs-5">
+              <span class="fw-bold">Tổng cộng:</span>
+              <strong class="text-primary">{{ formatCurrency(selectedPayment.totalAmount) }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showPaymentDetailDialog = false">Đóng</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
-  Star, Present, Wallet, TrendCharts, Trophy, Refresh, 
+import {
+  Star, Present, Wallet, TrendCharts, Trophy, Refresh,
   Right, TopRight, BottomRight, CirclePlus, Remove, List,
-  Close, Link
+  Close, Link, CircleCheck, Money, RefreshLeft, CreditCard,
+  View, Delete
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { customersApi } from '../../api/customers.api';
 
 const router = useRouter();
-const loading = ref(true);
-const editing = ref(false);
-const saving = ref(false);
-const customer = ref(null);
-const activeTab = ref('info');
 
-// ✅ State cho lịch sử
-const historyLoading = ref(false);
-const tierLoading = ref(false);
-const loyaltyHistory = ref([]);
-const tierHistory = ref([]);
+// ── Core state ──────────────────────────────────────────────────────────────
+const loading        = ref(true);
+const editing        = ref(false);
+const saving         = ref(false);
+const customer       = ref(null);
+const activeTab      = ref('info');
 
-// ✅ Filters cho lịch sử
+// ── Loyalty history ──────────────────────────────────────────────────────────
+const historyLoading          = ref(false);
+const loyaltyHistory          = ref([]);
 const historyTransactionFilter = ref('');
-const historyDateRange = ref(null);
+const historyDateRange        = ref(null);
 
+// ── Tier history ─────────────────────────────────────────────────────────────
+const tierLoading  = ref(false);
+const tierHistory  = ref([]);
+
+// ── Payments ─────────────────────────────────────────────────────────────────
+const paymentsLoading          = ref(false);
+const payments                 = ref([]);
+const showDeletedPayments      = ref(false);
+const paymentStatusFilter      = ref('');
+const paymentMethodFilter      = ref('');
+const paymentDateRange         = ref(null);
+const paymentCurrentPage       = ref(1);
+const paymentPageSize          = ref(10);
+const showPaymentDetailDialog  = ref(false);
+const selectedPayment          = ref(null);
+const loadingPaymentDetail     = ref(false);
+
+// ── Form ──────────────────────────────────────────────────────────────────────
 const formData = ref({
-  fullName: '',
-  email: '',
-  phone: '',
-  address: '',
-  notes: '',
+  fullName:  '',
+  email:     '',
+  phone:     '',
+  address:   '',
+  notes:     '',
   birthDate: ''
 });
 
-// ✅ Computed: Loyalty Statistics
+// ── Computed: loyalty stats ───────────────────────────────────────────────────
 const loyaltyStats = computed(() => {
-  const earned = loyaltyHistory.value
-    .filter(h => h.pointsDelta > 0)
-    .reduce((sum, h) => sum + h.pointsDelta, 0);
-  
-  const deducted = loyaltyHistory.value
-    .filter(h => h.pointsDelta < 0)
-    .reduce((sum, h) => sum + Math.abs(h.pointsDelta), 0);
-  
+  const earned   = loyaltyHistory.value.filter(h => h.pointsDelta > 0).reduce((s, h) => s + h.pointsDelta, 0);
+  const deducted = loyaltyHistory.value.filter(h => h.pointsDelta < 0).reduce((s, h) => s + Math.abs(h.pointsDelta), 0);
   return {
-    totalEarned: earned.toLocaleString(),
-    totalDeducted: deducted.toLocaleString(),
+    totalEarned:       earned.toLocaleString(),
+    totalDeducted:     deducted.toLocaleString(),
     totalTransactions: loyaltyHistory.value.length
   };
 });
 
-// ✅ Computed: Filtered History
+// ── Computed: payment stats ───────────────────────────────────────────────────
+const paymentStats = computed(() => {
+  const active    = payments.value.filter(p => !p.deletedAt);
+  const success   = active.filter(p => p.status === 'SUCCESS');
+  const refunded  = active.filter(p => p.status === 'REFUNDED');
+  return {
+    totalSuccess:  success.length,
+    totalAmount:   success.reduce((s, p) => s + (p.amount || 0), 0),
+    totalRefunded: refunded.length
+  };
+});
+
+// ── Computed: filtered loyalty history ───────────────────────────────────────
 const filteredLoyaltyHistory = computed(() => {
   let result = [...loyaltyHistory.value];
-  
-  // Filter by transaction type
   if (historyTransactionFilter.value) {
     result = result.filter(h => h.transactionType === historyTransactionFilter.value);
   }
-  
-  // Filter by date range
-  if (historyDateRange.value && historyDateRange.value.length === 2) {
+  if (historyDateRange.value?.length === 2) {
     const [start, end] = historyDateRange.value;
     result = result.filter(h => {
-      const date = new Date(h.createdAt);
-      return date >= new Date(start) && date <= new Date(end + 'T23:59:59');
+      const d = new Date(h.createdAt);
+      return d >= new Date(start) && d <= new Date(end + 'T23:59:59');
     });
   }
-  
   return result;
 });
 
-// ✅ Computed: Active Filters Display
+// ── Computed: filtered payments ───────────────────────────────────────────────
+const filteredPayments = computed(() => {
+  let result = [...payments.value];
+  if (!showDeletedPayments.value) result = result.filter(p => !p.deletedAt);
+  if (paymentStatusFilter.value)  result = result.filter(p => p.status  === paymentStatusFilter.value);
+  if (paymentMethodFilter.value)  result = result.filter(p => p.method  === paymentMethodFilter.value);
+  if (paymentDateRange.value?.length === 2) {
+    const [start, end] = paymentDateRange.value;
+    result = result.filter(p => {
+      const d = new Date(p.createdAt);
+      return d >= new Date(start) && d <= new Date(end + 'T23:59:59');
+    });
+  }
+  return result;
+});
+
+// ── Computed: paginated payments ──────────────────────────────────────────────
+const paginatedPayments = computed(() => {
+  const start = (paymentCurrentPage.value - 1) * paymentPageSize.value;
+  return filteredPayments.value.slice(start, start + paymentPageSize.value);
+});
+
+// ── Computed: active filter tags ──────────────────────────────────────────────
 const activeHistoryFilters = computed(() => {
   const filters = [];
-  
   if (historyTransactionFilter.value) {
-    const labels = {
-      EARN: 'Cộng điểm',
-      DEDUCT: 'Trừ điểm',
-      PENALTY: 'Phạt',
-      TIER_UPGRADE: 'Thăng hạng',
-      TIER_DOWNGRADE: 'Hạ hạng'
-    };
-    filters.push({
-      type: 'transaction',
-      label: labels[historyTransactionFilter.value],
-      tagType: getTransactionTagType(historyTransactionFilter.value)
-    });
+    const labels = { EARN: 'Cộng điểm', DEDUCT: 'Trừ điểm', PENALTY: 'Phạt', TIER_UPGRADE: 'Thăng hạng', TIER_DOWNGRADE: 'Hạ hạng' };
+    filters.push({ type: 'transaction', label: labels[historyTransactionFilter.value], tagType: getTransactionTagType(historyTransactionFilter.value) });
   }
-  
   if (historyDateRange.value) {
-    const [start, end] = historyDateRange.value;
-    filters.push({
-      type: 'date',
-      label: `${formatDate(start)} - ${formatDate(end)}`,
-      tagType: 'info'
-    });
+    const [s, e] = historyDateRange.value;
+    filters.push({ type: 'date', label: `${formatDate(s)} - ${formatDate(e)}`, tagType: 'info' });
   }
-  
   return filters;
 });
 
-const hasActiveHistoryFilters = computed(() => {
-  return historyTransactionFilter.value || historyDateRange.value;
+const activePaymentFilters = computed(() => {
+  const filters = [];
+  if (paymentStatusFilter.value)  filters.push({ type: 'status', label: `Trạng thái: ${paymentStatusFilter.value}`,                tagType: getPaymentStatusType(paymentStatusFilter.value) });
+  if (paymentMethodFilter.value)  filters.push({ type: 'method', label: `PT: ${getPaymentMethodLabel(paymentMethodFilter.value)}`, tagType: 'info' });
+  if (paymentDateRange.value) {
+    const [s, e] = paymentDateRange.value;
+    filters.push({ type: 'date', label: `${formatDate(s)} - ${formatDate(e)}`, tagType: 'info' });
+  }
+  return filters;
 });
 
-// ✅ Load customer data
+const hasActiveHistoryFilters = computed(() => !!(historyTransactionFilter.value || historyDateRange.value));
+const hasActivePaymentFilters = computed(() => !!(paymentStatusFilter.value || paymentMethodFilter.value || paymentDateRange.value));
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+
+/**
+ * Safely unwrap Axios response.
+ * Handles: { data: { data: [...] } }  OR  { data: [...] }  OR  raw array.
+ */
+const unwrap = (response) => {
+  const d = response?.data;
+  if (d && typeof d === 'object' && 'data' in d) return d.data;
+  return d ?? response;
+};
+
 const loadCustomerData = async () => {
   loading.value = true;
   try {
     const response = await customersApi.getProfile();
-    const currentCustomer = response?.data?.data || response?.data;
-    
+    const currentCustomer = unwrap(response);
+
     if (!currentCustomer) {
       ElMessage.error('Không tìm thấy thông tin khách hàng');
       return;
     }
-    
+
     customer.value = currentCustomer;
     formData.value = {
-      fullName: currentCustomer.name || '',
-      email: currentCustomer.email || '',
-      phone: currentCustomer.phone || '',
-      address: currentCustomer.address || '',
-      notes: currentCustomer.notes || '',
+      fullName:  currentCustomer.name        || '',
+      email:     currentCustomer.email       || '',
+      phone:     currentCustomer.phone       || '',
+      address:   currentCustomer.address     || '',
+      notes:     currentCustomer.notes       || '',
       birthDate: currentCustomer.dateOfBirth || ''
     };
-    
   } catch (error) {
     console.error('Error loading customer data:', error);
-    
     if (error.response?.status === 401) {
       ElMessage.warning('Vui lòng đăng nhập lại');
       router.push('/login');
@@ -589,14 +925,12 @@ const loadCustomerData = async () => {
   }
 };
 
-// ✅ Load lịch sử điểm
 const loadLoyaltyHistory = async () => {
   if (!customer.value?.id) return;
-  
   historyLoading.value = true;
   try {
-    const { data } = await customersApi.getLoyaltyHistory(customer.value.id);
-    loyaltyHistory.value = data || [];
+    const response = await customersApi.getLoyaltyHistory(customer.value.id);
+    loyaltyHistory.value = unwrap(response) || [];
   } catch (error) {
     console.error('Error loading loyalty history:', error);
     ElMessage.error('Lỗi khi tải lịch sử điểm');
@@ -605,14 +939,12 @@ const loadLoyaltyHistory = async () => {
   }
 };
 
-// ✅ Load lịch sử thăng hạng
 const loadTierHistory = async () => {
   if (!customer.value?.id) return;
-  
   tierLoading.value = true;
   try {
-    const { data } = await customersApi.getTierHistory(customer.value.id);
-    tierHistory.value = data || [];
+    const response = await customersApi.getTierHistory(customer.value.id);
+    tierHistory.value = unwrap(response) || [];
   } catch (error) {
     console.error('Error loading tier history:', error);
     ElMessage.error('Lỗi khi tải lịch sử thăng hạng');
@@ -621,17 +953,34 @@ const loadTierHistory = async () => {
   }
 };
 
-// ✅ Filter functions
-const filterLoyaltyHistory = () => {
-  // Filtering is handled by computed property
+const loadPayments = async () => {
+  if (!customer.value?.id) return;
+  paymentsLoading.value = true;
+  try {
+    const response = await customersApi.getPayments(customer.value.id, showDeletedPayments.value);
+    payments.value = unwrap(response) || [];
+  } catch (error) {
+    console.error('Error loading payments:', error);
+    ElMessage.error('Lỗi khi tải lịch sử giao dịch');
+  } finally {
+    paymentsLoading.value = false;
+  }
 };
 
+// ── Filter helpers ────────────────────────────────────────────────────────────
+const filterLoyaltyHistory = () => {};   // filtering handled by computed
+const filterPayments = () => { paymentCurrentPage.value = 1; };
+
 const removeHistoryFilter = (type) => {
-  if (type === 'transaction') {
-    historyTransactionFilter.value = '';
-  } else if (type === 'date') {
-    historyDateRange.value = null;
-  }
+  if (type === 'transaction') historyTransactionFilter.value = '';
+  if (type === 'date')        historyDateRange.value = null;
+};
+
+const removePaymentFilter = (type) => {
+  if (type === 'status') paymentStatusFilter.value = '';
+  if (type === 'method') paymentMethodFilter.value = '';
+  if (type === 'date')   paymentDateRange.value = null;
+  filterPayments();
 };
 
 const clearHistoryFilters = () => {
@@ -639,8 +988,53 @@ const clearHistoryFilters = () => {
   historyDateRange.value = null;
 };
 
-// ✅ Edit functions
-const startEdit = () => { editing.value = true; };
+const clearPaymentFilters = () => {
+  paymentStatusFilter.value = '';
+  paymentMethodFilter.value = '';
+  paymentDateRange.value = null;
+  paymentCurrentPage.value = 1;
+};
+
+// ── Payment actions ───────────────────────────────────────────────────────────
+const viewPaymentDetail = async (payment) => {
+  selectedPayment.value = payment;          // show basic info instantly
+  showPaymentDetailDialog.value = true;
+  loadingPaymentDetail.value = true;
+  try {
+    const response = await customersApi.getPaymentDetail(payment.id);
+    selectedPayment.value = unwrap(response) || payment;
+  } catch (error) {
+    console.error('Error loading payment detail:', error);
+    ElMessage.error('Lỗi khi tải chi tiết giao dịch');
+  } finally {
+    loadingPaymentDetail.value = false;
+  }
+};
+
+const softDeletePayment = async (id) => {
+  try {
+    await customersApi.softDeletePayment(id);
+    ElMessage.success('Đã xóa giao dịch');
+    loadPayments();
+  } catch (error) {
+    console.error('Error deleting payment:', error);
+    ElMessage.error(error.response?.data?.message || 'Lỗi khi xóa giao dịch');
+  }
+};
+
+const restorePayment = async (id) => {
+  try {
+    await customersApi.restorePayment(id);
+    ElMessage.success('Đã khôi phục giao dịch');
+    loadPayments();
+  } catch (error) {
+    console.error('Error restoring payment:', error);
+    ElMessage.error(error.response?.data?.message || 'Lỗi khi khôi phục giao dịch');
+  }
+};
+
+// ── Edit actions ──────────────────────────────────────────────────────────────
+const startEdit    = () => { editing.value = true; };
 const handleCancel = () => { editing.value = false; loadCustomerData(); };
 
 const handleSave = async () => {
@@ -651,99 +1045,53 @@ const handleSave = async () => {
     editing.value = false;
     ElMessage.success('Cập nhật thành công!');
   } catch (error) {
-    console.error('Error saving customer data:', error);
+    console.error('Error saving:', error);
     ElMessage.error('Lỗi khi lưu dữ liệu: ' + (error.response?.data?.message || error.message));
   } finally {
     saving.value = false;
   }
 };
 
-// ✅ Helper functions
-const getTierTagType = (tier) => {
-  const types = { 
-    BRONZE: 'warning', 
-    SILVER: 'info', 
-    GOLD: 'warning', 
-    PLATINUM: 'primary', 
-    DIAMOND: 'danger' 
-  };
-  return types[tier] || 'info';
+// ── Display helpers ───────────────────────────────────────────────────────────
+const getTierTagType = (tier) =>
+  ({ BRONZE: 'warning', SILVER: 'info', GOLD: 'warning', PLATINUM: 'primary', DIAMOND: 'danger' }[tier] || 'info');
+
+const getTransactionTagType = (type) =>
+  ({ EARN: 'success', DEDUCT: 'warning', PENALTY: 'danger', TIER_UPGRADE: 'success', TIER_DOWNGRADE: 'info' }[type] || 'info');
+
+const getTimelineType = (type) =>
+  ({ EARN: 'success', DEDUCT: 'warning', PENALTY: 'danger', TIER_UPGRADE: 'success', TIER_DOWNGRADE: 'info' }[type] || 'primary');
+
+const getTransactionIcon = (type) =>
+  ({ EARN: 'CirclePlus', DEDUCT: 'Remove', PENALTY: 'Warning', TIER_UPGRADE: 'TopRight', TIER_DOWNGRADE: 'BottomRight' }[type] || 'More');
+
+const getTransactionIconColor = (type) =>
+  ({ EARN: '#67c23a', DEDUCT: '#e6a23c', PENALTY: '#f56c6c', TIER_UPGRADE: '#67c23a', TIER_DOWNGRADE: '#909399' }[type] || '#409eff');
+
+const getHistoryCardClass = (type) =>
+  ({ EARN: 'history-earn', DEDUCT: 'history-deduct', PENALTY: 'history-penalty', TIER_UPGRADE: 'history-upgrade', TIER_DOWNGRADE: 'history-downgrade' }[type] || '');
+
+const getPaymentStatusType = (status) =>
+  ({ SUCCESS: 'success', PENDING: 'warning', REFUNDED: 'info', FAILED: 'danger' }[status] || 'info');
+
+const getPaymentMethodLabel = (method) =>
+  ({ CASH: 'Tiền mặt', BANK_TRANSFER: 'Chuyển khoản', CREDIT_CARD: 'Thẻ tín dụng', E_WALLET: 'Ví điện tử' }[method] || method);
+
+const getOrderStatusType = (status) =>
+  ({ PENDING: 'warning', CONFIRMED: 'primary', PROCESSING: 'primary', SHIPPED: 'success', DELIVERED: 'success', CANCELLED: 'danger' }[status] || 'info');
+
+const formatCurrency = (val) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+
+const formatCurrencyShort = (val) => {
+  if (val >= 1_000_000_000) return (val / 1_000_000_000).toFixed(1) + 'B';
+  if (val >= 1_000_000)     return (val / 1_000_000).toFixed(1) + 'M';
+  if (val >= 1_000)         return (val / 1_000).toFixed(1) + 'K';
+  return formatCurrency(val);
 };
 
-const getTransactionTagType = (type) => {
-  const types = {
-    EARN: 'success',
-    DEDUCT: 'warning',
-    PENALTY: 'danger',
-    TIER_UPGRADE: 'success',
-    TIER_DOWNGRADE: 'info'
-  };
-  return types[type] || 'info';
-};
-
-const getTimelineType = (type) => {
-  const types = {
-    EARN: 'success',
-    DEDUCT: 'warning',
-    PENALTY: 'danger',
-    TIER_UPGRADE: 'success',
-    TIER_DOWNGRADE: 'info'
-  };
-  return types[type] || 'primary';
-};
-
-const getTransactionIcon = (type) => {
-  const icons = {
-    EARN: 'CirclePlus',
-    DEDUCT: 'Remove',
-    PENALTY: 'Warning',
-    TIER_UPGRADE: 'TopRight',
-    TIER_DOWNGRADE: 'BottomRight'
-  };
-  return icons[type] || 'More';
-};
-
-const getTransactionIconColor = (type) => {
-  const colors = {
-    EARN: '#67c23a',
-    DEDUCT: '#e6a23c',
-    PENALTY: '#f56c6c',
-    TIER_UPGRADE: '#67c23a',
-    TIER_DOWNGRADE: '#909399'
-  };
-  return colors[type] || '#409eff';
-};
-
-const getHistoryCardClass = (type) => {
-  const classes = {
-    EARN: 'history-earn',
-    DEDUCT: 'history-deduct',
-    PENALTY: 'history-penalty',
-    TIER_UPGRADE: 'history-upgrade',
-    TIER_DOWNGRADE: 'history-downgrade'
-  };
-  return classes[type] || '';
-};
-
-const formatCurrency = (val) => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
-};
-
-const formatDate = (d) => {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('vi-VN');
-};
-
-const formatDateTime = (d) => {
-  if (!d) return '—';
-  return new Date(d).toLocaleString('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
+const formatDate     = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+const formatDateTime = (d) => d ? new Date(d).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 
 const getProgressPercent = () => {
   if (!customer.value) return 0;
@@ -751,14 +1099,13 @@ const getProgressPercent = () => {
   return total === 0 ? 0 : Math.min(100, Math.round((customer.value.loyaltyPoints / total) * 100));
 };
 
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  console.log('Profile component mounted');
   await loadCustomerData();
-  
-  // Load lịch sử khi có customer
   if (customer.value?.id) {
     loadLoyaltyHistory();
     loadTierHistory();
+    loadPayments();
   }
 });
 </script>
@@ -777,286 +1124,91 @@ onMounted(async () => {
   font-size: 32px; font-weight: bold;
 }
 
-.points-display { 
-  font-size: 48px; 
-  font-weight: 900; 
-  color: #f59e0b; 
-}
+.points-display { font-size: 48px; font-weight: 900; color: #f59e0b; }
+.muted          { color: #909399; font-size: 14px; }
+.total-spent    { font-size: 32px; font-weight: bold; color: #9333ea; }
 
-.discount-card { 
-  background: linear-gradient(135deg, #67c23a 0%, #5daf34 100%); 
-  color: white; 
-  border: none;
-}
-
-.discount-display {
-  font-size: 48px;
-  font-weight: 900;
-  color: white;
-}
-
-.discount-desc {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  margin-top: 8px;
-}
-
-.total-spent { 
-  font-size: 32px; 
-  font-weight: bold; 
-  color: #9333ea; 
-}
-
-.muted {
-  color: #909399;
-  font-size: 14px;
-}
+.discount-card  { background: linear-gradient(135deg, #67c23a 0%, #5daf34 100%); color: white; border: none; }
+.discount-display { font-size: 48px; font-weight: 900; color: white; }
+.discount-desc    { color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 8px; }
 
 .form-static, .form-static-info {
-  padding: 8px 12px; 
-  background: #f5f7fa; 
-  border-radius: 4px; 
-  min-height: 40px;
-  display: flex;
-  align-items: center;
+  padding: 8px 12px; background: #f5f7fa; border-radius: 4px;
+  min-height: 40px; display: flex; align-items: center;
 }
+.notes-static { white-space: pre-wrap; word-wrap: break-word; min-height: 60px; align-items: flex-start; }
+.text-dark    { color: #303133; }
 
-.notes-static {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  min-height: 60px;
-  align-items: flex-start;
-}
+/* Stats cards */
+.stats-card { border-radius: 12px; transition: all 0.3s; }
+.stats-card:hover { transform: translateY(-4px); }
+.stats-content    { display: flex; align-items: center; gap: 16px; }
+.stats-icon       { flex-shrink: 0; }
+.stats-value      { font-size: 28px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+.stats-value-small { font-size: 24px; }
+.stats-label      { font-size: 13px; color: #909399; font-weight: 600; }
 
-.text-dark { color: #303133; }
+.earn-card          { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); }
+.earn-card .stats-value { color: #67c23a; }
+.deduct-card        { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); }
+.deduct-card .stats-value { color: #e6a23c; }
+.transactions-card  { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); }
+.transactions-card .stats-value { color: #409eff; }
+.payment-success-card { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); }
+.payment-success-card .stats-value { color: #67c23a; }
+.payment-amount-card  { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); }
+.payment-amount-card .stats-value  { color: #409eff; }
+.payment-refunded-card { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); }
+.payment-refunded-card .stats-value { color: #e6a23c; }
 
-/* ✅ STATS CARDS */
-.stats-card {
-  border-radius: 12px;
-  transition: all 0.3s;
-}
-
-.stats-card:hover {
-  transform: translateY(-4px);
-}
-
-.stats-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.stats-icon {
-  flex-shrink: 0;
-}
-
-.stats-value {
-  font-size: 28px;
-  font-weight: 900;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.stats-label {
-  font-size: 13px;
-  color: #909399;
-  font-weight: 600;
-}
-
-.earn-card {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-}
-
-.earn-card .stats-value {
-  color: #67c23a;
-}
-
-.deduct-card {
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-}
-
-.deduct-card .stats-value {
-  color: #e6a23c;
-}
-
-.transactions-card {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-}
-
-.transactions-card .stats-value {
-  color: #409eff;
-}
-
-/* ✅ HISTORY CARDS */
-.history-card {
-  transition: all 0.3s;
-  border-radius: 12px;
-}
-
-.history-card:hover {
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.history-card-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
+/* History cards */
+.history-card { transition: all 0.3s; border-radius: 12px; }
+.history-card:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.history-card-content { display: flex; align-items: flex-start; gap: 16px; }
 .history-icon-wrapper {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(64, 158, 255, 0.1);
+  flex-shrink: 0; width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: rgba(64,158,255,0.1);
 }
+.history-earn    .history-icon-wrapper { background: rgba(103,194,58,0.1); }
+.history-deduct  .history-icon-wrapper { background: rgba(230,162,60,0.1); }
+.history-penalty .history-icon-wrapper { background: rgba(245,108,108,0.1); }
+.history-upgrade .history-icon-wrapper { background: rgba(103,194,58,0.1); }
+.history-downgrade .history-icon-wrapper { background: rgba(144,147,153,0.1); }
 
-.history-earn .history-icon-wrapper {
-  background: rgba(103, 194, 58, 0.1);
-}
+.history-details    { flex: 1; min-width: 0; }
+.history-note       { color: #606266; font-size: 14px; line-height: 1.5; margin: 0; }
+.tier-change-indicator { display: flex; align-items: center; margin-top: 8px; }
+.reference-info     { display: flex; align-items: center; }
+.history-points     { flex-shrink: 0; }
 
-.history-deduct .history-icon-wrapper {
-  background: rgba(230, 162, 60, 0.1);
-}
+.points-badge    { padding: 8px 16px; border-radius: 8px; text-align: center; min-width: 100px; }
+.points-positive { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 2px solid #67c23a; }
+.points-negative { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border: 2px solid #e6a23c; }
+.points-sign     { font-size: 14px; font-weight: 600; }
+.points-value    { font-size: 24px; font-weight: 900; margin: 0 4px; }
+.points-positive .points-value { color: #67c23a; }
+.points-negative .points-value { color: #e6a23c; }
+.points-unit     { font-size: 12px; color: #909399; }
 
-.history-penalty .history-icon-wrapper {
-  background: rgba(245, 108, 108, 0.1);
-}
+/* Tier history */
+.tier-history-card               { transition: all 0.3s; }
+.tier-history-card.upgrade       { border-left: 4px solid #67c23a; }
+.tier-history-card.downgrade     { border-left: 4px solid #f56c6c; }
+.tier-history-card:hover         { transform: translateX(4px); box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+.tier-icon { display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; background: rgba(103,194,58,0.1); }
+.tier-history-card.downgrade .tier-icon { background: rgba(245,108,108,0.1); }
+.tier-change-display { display: flex; align-items: center; }
 
-.history-upgrade .history-icon-wrapper {
-  background: rgba(103, 194, 58, 0.1);
-}
+/* Payment details */
+.payment-detail { padding: 10px 0; }
+.payment-totals { background: #f5f7fa; padding: 16px; border-radius: 8px; }
 
-.history-downgrade .history-icon-wrapper {
-  background: rgba(144, 147, 153, 0.1);
-}
-
-.history-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.history-note {
-  color: #606266;
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.tier-change-indicator {
-  display: flex;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.reference-info {
-  display: flex;
-  align-items: center;
-}
-
-.history-points {
-  flex-shrink: 0;
-}
-
-.points-badge {
-  padding: 8px 16px;
-  border-radius: 8px;
-  text-align: center;
-  min-width: 100px;
-}
-
-.points-positive {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-  border: 2px solid #67c23a;
-}
-
-.points-negative {
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-  border: 2px solid #e6a23c;
-}
-
-.points-sign {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.points-value {
-  font-size: 24px;
-  font-weight: 900;
-  margin: 0 4px;
-}
-
-.points-positive .points-value {
-  color: #67c23a;
-}
-
-.points-negative .points-value {
-  color: #e6a23c;
-}
-
-.points-unit {
-  font-size: 12px;
-  color: #909399;
-}
-
-/* ✅ TIER HISTORY */
-.tier-history-card {
-  transition: all 0.3s;
-}
-
-.tier-history-card.upgrade {
-  border-left: 4px solid #67c23a;
-}
-
-.tier-history-card.downgrade {
-  border-left: 4px solid #f56c6c;
-}
-
-.tier-history-card:hover {
-  transform: translateX(4px);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.tier-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: rgba(103, 194, 58, 0.1);
-}
-
-.tier-history-card.downgrade .tier-icon {
-  background: rgba(245, 108, 108, 0.1);
-}
-
-.tier-change-display {
-  display: flex;
-  align-items: center;
-}
-
-/* ✅ RESPONSIVE */
+/* Responsive */
 @media (max-width: 768px) {
-  .stats-content {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .history-card-content {
-    flex-direction: column;
-  }
-  
-  .history-points {
-    width: 100%;
-  }
-  
-  .points-badge {
-    width: 100%;
-  }
+  .stats-content       { flex-direction: column; text-align: center; }
+  .history-card-content { flex-direction: column; }
+  .history-points       { width: 100%; }
+  .points-badge         { width: 100%; }
 }
 </style>

@@ -97,13 +97,27 @@ export const customersApi = {
   getCustomerTierProgress(customerId) {
     return http.get(`/api/auth/tier-progress/customer/${customerId}`);
   },
-    getPayments(customerId) {
-    return http.get(`/api/auth/customers/${customerId}/payments`);
-  },
+    getPayments(customerId, includeDeleted = false) {
+  if (includeDeleted) {
+    return http.get(`/api/auth/customers/${customerId}/payments/all`);
+  }
+  return http.get(`/api/auth/customers/${customerId}/payments`);
+},
   getPaymentsIncludingDeleted(customerId) {
     return http.get(`/api/auth/customers/${customerId}/payments/all`);
   },
   getDeletedPayments(customerId) {
     return http.get(`/api/auth/customers/${customerId}/payments/deleted`);
-  }
+  },
+  getPaymentDetail(paymentId) {
+  return http.get(`/api/auth/payments/${paymentId}/detail`);
+},
+
+// ✅ PAYMENT ACTIONS - Soft delete and restore
+softDeletePayment(paymentId) {
+  return http.delete(`/api/auth/payments/${paymentId}/soft-delete`);
+},
+restorePayment(paymentId) {
+  return http.post(`/api/auth/payments/${paymentId}/restore`);
+}
 };

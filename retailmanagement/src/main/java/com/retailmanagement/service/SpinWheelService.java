@@ -29,7 +29,7 @@ public class SpinWheelService {
         DISCOUNT_WEIGHTS.put(BigDecimal.valueOf(2.00), 25);  // 2% - 25% chance
         DISCOUNT_WEIGHTS.put(BigDecimal.valueOf(3.00), 20);  // 3% - 20% chance
         DISCOUNT_WEIGHTS.put(BigDecimal.valueOf(5.00), 15);  // 5% - 15% chance
-        DISCOUNT_WEIGHTS.put(BigDecimal.valueOf(10.00), 10); // 10% - 10% chance
+        DISCOUNT_WEIGHTS.put(BigDecimal.valueOf(7.00), 10); // 7% - 10% chance
     }
 
     /**
