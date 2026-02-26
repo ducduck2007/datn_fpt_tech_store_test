@@ -559,4 +559,32 @@ public class CustomerService {
         customer.setVipNote(vipNote);
         return mapToResponse(customRes.save(customer));
     }
+    /**
+     * Lấy danh sách khách hàng chưa phát sinh đơn hàng nào
+     * @param minDaysSinceRegistered chỉ lấy khách đã đăng ký >= X ngày (tránh khách mới toanh)
+     */
+    public List<CustomerResponse> findZeroOrderCustomers(int minDaysSinceRegistered) {
+        LocalDateTime registeredBefore = LocalDateTime.now().minusDays(minDaysSinceRegistered);
+        return customRes.findZeroOrderCustomers(registeredBefore)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Thống kê zero-order customers
+     */
+    public Map<String, Object> getZeroOrderStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        long total3Days  = customRes.countZeroOrderCustomers(LocalDateTime.now().minusDays(3));
+        long total7Days  = customRes.countZeroOrderCustomers(LocalDateTime.now().minusDays(7));
+        long total30Days = customRes.countZeroOrderCustomers(LocalDateTime.now().minusDays(30));
+
+        stats.put("registeredOver3Days",  total3Days);
+        stats.put("registeredOver7Days",  total7Days);
+        stats.put("registeredOver30Days", total30Days);
+        stats.put("generatedAt", LocalDateTime.now());
+        return stats;
+    }
 }

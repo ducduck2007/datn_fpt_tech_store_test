@@ -1,6 +1,7 @@
 package com.retailmanagement.controller;
 
 
+import com.retailmanagement.dto.request.SendNotificationRequest;
 import com.retailmanagement.dto.response.NotificationResponse;
 import com.retailmanagement.entity.Notification;
 import com.retailmanagement.service.CustomerService;
@@ -149,6 +150,27 @@ public class NotificationController {
         ));
     }
 
+    @PostMapping("/send")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<Map<String, Object>> sendNotification(
+            @RequestBody SendNotificationRequest request) {
 
+        // Validation cơ bản
+        if (request.getCustomerIds() == null || request.getCustomerIds().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "customerIds không được rỗng"));
+        }
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "title không được rỗng"));
+        }
+        if (request.getMessage() == null || request.getMessage().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "message không được rỗng"));
+        }
+
+        Map<String, Object> result = notificationService.sendToCustomers(request);
+        return ResponseEntity.ok(result);
+    }
 
 }

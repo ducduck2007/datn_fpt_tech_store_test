@@ -36,6 +36,7 @@ public class SpinWheelHistory {
     private LocalDateTime expiresAt; // 1 week from spin
 
     @Column(name = "is_used", nullable = false)
+    @Builder.Default
     private Boolean isUsed = false;
 
     @Column(name = "used_order_id")

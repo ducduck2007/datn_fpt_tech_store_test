@@ -123,5 +123,18 @@ listInactiveTransaction(days = 30) {
 updateVipNote(id, vipNote) {
   return http.patch(`/api/auth/customers/${id}/vip-note`, { vipNote });
 },
+listZeroOrder(minDays = 3) {
+  return http.get(`/api/auth/customers/zero-order?minDays=${minDays}`);
+},
 
+/**
+ * Thống kê nhanh zero-order theo các mốc 3/7/30 ngày
+ */
+getZeroOrderStats() {
+  return http.get("/api/auth/customers/zero-order/stats");
+},
+getPromotionHistory(customerId, type = null) {
+    const params = type ? `?type=${type}` : "";
+    return http.get(`/api/auth/customers/${customerId}/promotion-history${params}`);
+  }
 };
