@@ -86,16 +86,76 @@ public class AuditLogController {
         return  auditLogService.filterLogs(request,page,size,sortBy,sortDir);
     }
 
-    @PostMapping("export")
+    @GetMapping("export")
     public void exportAuditLogs(
-            @RequestBody AuditLogFilterRequest filter,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            HttpServletResponse response
+    ) throws IOException {
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition","attachment; filename=audit_logs.csv");
+
+        List<AuditLog> logs = auditLogService.getByDateRange(from,to);
+
+        PrintWriter writer = response.getWriter();
+
+        writer.println(
+                "id,user_id,module,action,target_type,target_id,details_json,ip_address,created_at"
+        );
+
+        for(AuditLog log: logs) {
+            writer.printf(
+                    "%d,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                    log.getId(),
+                    safe(log.getUser() != null ? log.getUser().getId() : ""),
+                    log.getModule(),
+                    log.getAction(),
+                    log.getTargetType(),
+                    log.getTargetId(),
+                    safe(log.getDetailsJson()),
+                    log.getIpAddress(),
+                    log.getCreatedAt()
+            );
+        }
+        writer.flush();
+    }
+
+    @PostMapping("export/advanced")
+    public void exportAdvanced(
+            @RequestBody AuditLogFilterRequest request,
             HttpServletResponse response
     ) throws IOException {
 
         response.setContentType("text/csv; charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=audit_logs.csv");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=audit_logs.csv");
 
-        auditLogService.exportCsv(filter, response.getWriter());
+        List<AuditLog> logs = auditLogService.searchForExport(request);
+
+        try (PrintWriter writer = response.getWriter()) {
+
+            // ⭐ Excel UTF8 fix (rất quan trọng)
+            writer.write('\uFEFF');
+
+            writer.println(
+                    "id,user_id,module,action,target_type,target_id,details_json,ip_address,created_at"
+            );
+
+            for (AuditLog log : logs) {
+                writer.printf(
+                        "%d,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                        log.getId(),
+                        safe(log.getUser() != null ? log.getUser().getId() : ""),
+                        safe(log.getModule()),
+                        safe(log.getAction()),
+                        safe(log.getTargetType()),
+                        safe(log.getTargetId()),
+                        safe(log.getDetailsJson()),
+                        safe(log.getIpAddress()),
+                        safe(log.getCreatedAt())
+                );
+            }
+        }
     }
 
     private String safe(Object value) {

@@ -31,9 +31,6 @@ public class AuditLogSpecification {
             }
 
             // ===== MODULE =====
-            if (hasText(request.getModule())) {
-                predicates.add(criteriaBuilder.equal(root.get("module"), request.getModule()));
-            }
 
             if (hasList(request.getModules())) {
                 List<String> modules = request.getModules().stream()
@@ -46,9 +43,6 @@ public class AuditLogSpecification {
             }
 
             // ===== ACTION =====
-            if (hasText(request.getAction())) {
-                predicates.add(criteriaBuilder.equal(root.get("action"), request.getAction()));
-            }
 
             if (hasList(request.getActions())) {
                 List<String> actions = request.getActions().stream()
@@ -112,13 +106,6 @@ public class AuditLogSpecification {
 
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(
                         root.get("createdAt"), end
-                ));
-            }
-
-            if (request.getEndDate() != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(
-                        root.get("createdAt"),
-                        request.getEndDate()
                 ));
             }
 

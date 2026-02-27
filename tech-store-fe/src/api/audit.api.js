@@ -62,5 +62,12 @@ export const auditApi = {
       params: { from, to },
       responseType: "blob"
     });
+  },
+
+  // ===== EXPORT CSV ADVANCED =====
+  exportAdvanced(filter) {
+    return http.post(`${BASE}/export/advanced`, filter, {
+      responseType: "blob"
+    });
   }
 };

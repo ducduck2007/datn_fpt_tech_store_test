@@ -164,26 +164,10 @@ public class AuditLogService {
         );
     }
 
-    public void exportCsv(AuditLogFilterRequest filter, PrintWriter writer) {
-
-        List<AuditLog> logs =
-                auditLogRepository.findAll(AuditLogSpecification.filter(filter));
-
-        writer.println("id,user,module,action,targetType,targetId,ip,createdAt,details");
-
-        for (AuditLog log : logs) {
-            writer.printf("%d,%s,%s,%s,%s,%s,%s,%s,%s%n",
-                    log.getId(),
-                    safe(log.getUser() != null ? log.getUser().getUsername() : ""),
-                    safe(log.getModule()),
-                    safe(log.getAction()),
-                    safe(log.getTargetType()),
-                    safe(log.getTargetId()),
-                    safe(log.getIpAddress()),
-                    safe(log.getCreatedAt()),
-                    safe(log.getDetailsJson())
-            );
-        }
+    public List<AuditLog> searchForExport(AuditLogFilterRequest req) {
+        return auditLogRepository.findAll(
+                AuditLogSpecification.filter(req)
+        );
     }
 
     private AuditLogResponse toResponse(AuditLog auditLog){

@@ -123,6 +123,8 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import http from "../../api/http";
+import { auditApi } from "../../api/audit.api";
+
 
 /* =========================
    STATE
@@ -222,36 +224,33 @@ function handleSort({ prop, order }) {
 ========================= */
 
 async function exportCsv() {
-  if (dateRange.value?.length === 2) {
-    filter.startDate = dateRange.value[0];
-    filter.endDate = dateRange.value[1];
-  } else {
-    filter.startDate = null;
-    filter.endDate = null;
-  }
-
   try {
-    const response = await http.post(
-      "/api/auth/audit-log/export",
-      filter,
-      { responseType: "blob" }
-    );
 
-    const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
-    const url = window.URL.createObjectURL(blob);
+    if (dateRange.value?.length === 2) {
+      filter.startDate = dateRange.value[0];
+      filter.endDate = dateRange.value[1];
+    }
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "audit_logs.csv";
+    const payload = {
+      userId: filter.userId || null,
+      modules: filter.module ? [filter.module] : null,
+      actions: filter.action ? [filter.action] : null,
+      keyword: filter.keyword || null,
+      startDate: filter.startDate || null,
+      endDate: filter.endDate || null
+    };
 
-    document.body.appendChild(a);
-    a.click();
+    const res = await auditApi.exportAdvanced(payload);
 
-    a.remove();
-    window.URL.revokeObjectURL(url);
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
 
-  } catch (e) {
-    console.error("Export failed", e);
+    link.href = url;
+    link.download = "audit_logs.csv";
+    link.click();
+
+  } catch (err) {
+    console.error("Export failed", err);
   }
 }
 

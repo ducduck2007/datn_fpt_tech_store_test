@@ -10,8 +10,8 @@ import java.util.List;
 public class AuditLogFilterRequest {
     private Long userId;
 
-    private String module;
-    private String action;
+    private List<String> modules;
+    private List<String> actions;
 
     private String targetType;
     private Long targetId;
@@ -23,6 +23,4 @@ public class AuditLogFilterRequest {
     private LocalDate startDate;
     private LocalDate  endDate;
 
-    private List<String> modules;
-    private List<String> actions;
 }
