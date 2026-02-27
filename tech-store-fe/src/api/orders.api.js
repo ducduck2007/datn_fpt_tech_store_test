@@ -3,7 +3,7 @@ import http from "./http";
 export const ordersApi = {
   create(payload) {
     // POST /api/orders (Customer)
-    // Body: { customerId, paymentMethod, channel, notes, items:[{ variantId, quantity }] }
+    // Body: { customerId, paymentMethod, channel, notes, promotionCode?, items:[{ variantId, quantity }] }
     return http.post("/api/orders", payload);
   },
 
@@ -40,20 +40,16 @@ export const ordersApi = {
     return http.put(`/api/orders/${orderId}`, payload);
   },
 
-  // ✅ HỦY ĐỠN - CÓ THAM SỐ REASON
-  // ✅ Gửi reason trong BODY, không phải query params
   cancel(orderId, reason) {
     return http.put(`/api/orders/${orderId}/cancel`, {
       reason: reason || "Customer cancelled",
     });
   },
 
-  // ✅ CHUYỂN SANG SHIPPING
   markAsShipping(orderId) {
     return http.put(`/api/orders/${orderId}/ship`);
   },
 
-  // ✅ ĐÁNH DẤU ĐÃ GIAO
   markAsDelivered(orderId) {
     return http.put(`/api/orders/${orderId}/deliver`);
   },
@@ -61,32 +57,32 @@ export const ordersApi = {
   remove(orderId) {
     return http.delete(`/api/orders/${orderId}`);
   },
+
   getMyOrders() {
     return http.get("/api/orders/my-orders");
   },
 
-  // LẤY ĐƠN THEO KHOẢNG NGÀY
-getByDate(from, to) {
-  return http.get("/api/orders/by-date", {
-    params: { from, to },
-  });
-},
-
-// FILTER THEO KHÁCH HÀNG + NGÀY
-filter(customerId, from, to) {
-  return http.get("/api/orders/filter", {
-    params: { customerId, from, to },
-  });
-},
-
-// DOANH THU THEO KHÁCH HÀNG
-getRevenueByCustomer() {
-  return http.get("/api/orders/revenue-by-customer");
-},
-getOrderDetail(orderId) {
-    return http.get(`/api/orders/${orderId}`);
+  getByDate(from, to) {
+    return http.get("/api/orders/by-date", { params: { from, to } });
   },
+
+  filter(customerId, from, to) {
+    return http.get("/api/orders/filter", { params: { customerId, from, to } });
+  },
+
+  getRevenueByCustomer() {
+    return http.get("/api/orders/revenue-by-customer");
+  },
+
   getOrderDetail(orderId) {
     return http.get(`/api/orders/${orderId}`);
-  }
+  },
+
+  // ✅ THÊM MỚI: validate mã giảm giá trước khi tạo đơn
+  // Trả về: { valid, discount, minOrder, message }
+  validatePromoCode(code, orderTotal) {
+    return http.get("/api/promotions/validate", {
+      params: { code, orderTotal },
+    });
+  },
 };

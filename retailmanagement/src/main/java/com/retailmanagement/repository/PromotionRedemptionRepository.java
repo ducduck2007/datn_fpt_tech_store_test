@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface PromotionRedemptionRepository extends JpaRepository<PromotionRedemption, Long> {
     Optional<PromotionRedemption> findByPromotionId(Integer promotionId);
+
 }

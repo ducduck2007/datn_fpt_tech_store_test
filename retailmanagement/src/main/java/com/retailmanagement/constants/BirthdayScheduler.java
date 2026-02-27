@@ -84,4 +84,13 @@ public class BirthdayScheduler {
         System.out.println("⏰ [Scheduler] Checking expiring spin bonuses...");
         notificationService.sendSpinExpiryWarnings();
     }
+    @Scheduled(cron = "0 0 9 * * *")
+    public void sendWelcomeToZeroOrderCustomers() {
+        System.out.println("⏰ [SCHEDULED] sendWelcomeToZeroOrderCustomers start...");
+        try {
+            notificationService.sendWelcomeToZeroOrderCustomers();
+        } catch (Exception e) {
+            System.err.println("❌ sendWelcomeToZeroOrderCustomers failed: " + e.getMessage());
+        }
+    }
 }

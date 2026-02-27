@@ -21,6 +21,8 @@ public class PromotionService {
     private final PromotionRedemptionRepository redemptionRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+
+
     public PromotionService(PromotionRepository promoRepo,
                             ProductVariantRepository variantRepo,
                             PromotionRedemptionRepository redemptionRepo) {
@@ -327,7 +329,7 @@ public class PromotionService {
     // =========================
     // Pricing logic with customer group support
     // =========================
-    
+
     /**
      * Find best promotion for variant without customer context (backwards compatibility)
      */
@@ -348,13 +350,13 @@ public class PromotionService {
 
         for (Promotion p : active) {
             Applicability app = parseApplicability(p.getApplicabilityJson());
-            
+
             // Check product/variant applicability
             if (!isApplicable(app, v)) continue;
-            
+
             // Check customer group applicability
             if (!isApplicableToCustomer(app, customer)) continue;
-            
+
             // Check usage limit
             if (!isUsableByLimit(p)) continue;
 
@@ -389,8 +391,8 @@ public class PromotionService {
 
         // Check customer type
         if (app.customer_types != null && !app.customer_types.isEmpty()) {
-            String customerTypeStr = customer.getCustomerType() != null 
-                ? customer.getCustomerType().name() 
+            String customerTypeStr = customer.getCustomerType() != null
+                ? customer.getCustomerType().name()
                 : "REGULAR";
             if (!app.customer_types.contains(customerTypeStr)) {
                 return false;
@@ -399,8 +401,8 @@ public class PromotionService {
 
         // Check VIP tier
         if (app.vip_tiers != null && !app.vip_tiers.isEmpty()) {
-            String tierStr = customer.getVipTier() != null 
-                ? customer.getVipTier().name() 
+            String tierStr = customer.getVipTier() != null
+                ? customer.getVipTier().name()
                 : null;
             if (tierStr == null || !app.vip_tiers.contains(tierStr)) {
                 return false;

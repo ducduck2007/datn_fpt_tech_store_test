@@ -226,7 +226,6 @@
                           <component :is="getTransactionIcon(item.transactionType)" />
                         </el-icon>
                       </div>
-
                       <div class="history-details flex-grow-1">
                         <div class="d-flex align-items-center gap-2 mb-1">
                           <el-tag :type="getTransactionTagType(item.transactionType)" effect="dark">
@@ -234,9 +233,7 @@
                           </el-tag>
                           <span class="text-muted small" v-if="item.reason">{{ item.reason }}</span>
                         </div>
-
                         <p class="mb-2 history-note">{{ item.note }}</p>
-
                         <div v-if="item.tierBefore || item.tierAfter" class="tier-change-indicator">
                           <el-tag size="small" :type="getTierTagType(item.tierBefore)" effect="plain">
                             {{ item.tierBeforeDisplay || 'Member' }}
@@ -246,23 +243,13 @@
                             {{ item.tierAfterDisplay || 'Member' }}
                           </el-tag>
                         </div>
-
-                        <!-- ✅ Nút xem bill đơn hàng -->
                         <div v-if="item.referenceType && item.referenceId" class="mt-2">
-                          <el-button
-                            size="small"
-                            type="primary"
-                            plain
-                            round
-                            class="order-bill-btn"
-                            @click="viewOrderBill(item.referenceId, item.pointsDelta)"
-                          >
+                          <el-button size="small" type="primary" plain round class="order-bill-btn" @click="viewOrderBill(item.referenceId, item.pointsDelta)">
                             <el-icon class="me-1"><ShoppingCart /></el-icon>
                             Đơn hàng #{{ item.referenceId }}
                           </el-button>
                         </div>
                       </div>
-
                       <div class="history-points">
                         <div class="points-badge" :class="item.pointsDelta > 0 ? 'points-positive' : 'points-negative'">
                           <span class="points-sign">{{ item.pointsDelta > 0 ? '+' : '' }}</span>
@@ -313,6 +300,304 @@
               </div>
             </el-card>
           </el-tab-pane>
+
+          <!-- TAB: LỊCH SỬ ƯU ĐÃI -->
+          <el-tab-pane name="promotions">
+            <template #label>
+              <span class="d-flex align-items-center gap-1">
+                <el-icon><Ticket /></el-icon> Lịch sử ưu đãi
+              </span>
+            </template>
+
+            <!-- Thống kê nhanh -->
+            <el-row :gutter="16" class="mb-3">
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card promo-total-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><Ticket /></el-icon>
+                    <div>
+                      <div class="stats-value">{{ promoStats.total }}</div>
+                      <div class="stats-label">Tổng ưu đãi</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card promo-used-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><CircleCheck /></el-icon>
+                    <div>
+                      <div class="stats-value">{{ promoStats.used }}</div>
+                      <div class="stats-label">Đã sử dụng</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="8">
+                <el-card shadow="hover" class="stats-card promo-saved-card">
+                  <div class="stats-content">
+                    <el-icon :size="32" class="stats-icon"><Money /></el-icon>
+                    <div>
+                      <div class="stats-value stats-value-small">{{ formatCurrencyShort(promoStats.totalSaved) }}</div>
+                      <div class="stats-label">Tổng tiết kiệm</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+
+            <el-card shadow="never">
+              <!-- Header + bộ lọc -->
+              <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-3">
+                <h3 class="mb-0 fw-bold">
+                  <el-icon class="me-2"><Ticket /></el-icon>
+                  Danh sách ưu đãi đã nhận
+                </h3>
+                <div class="d-flex gap-2 flex-wrap">
+                  <el-select v-model="promoTypeFilter" placeholder="Loại ưu đãi" clearable style="width:160px" @change="filterPromoHistory">
+                    <el-option label="Mã khuyến mãi" value="PROMOTION_CODE">
+                      <el-tag type="primary" size="small">Mã KM</el-tag>
+                    </el-option>
+                    <el-option label="Vòng quay" value="SPIN_WHEEL">
+                      <el-tag type="success" size="small">Spin</el-tag>
+                    </el-option>
+                  </el-select>
+                  <el-select v-model="promoStatusFilter" placeholder="Trạng thái" clearable style="width:150px" @change="filterPromoHistory">
+                    <el-option label="Đã sử dụng" value="Đã sử dụng" />
+                    <el-option label="Đang hoạt động" value="Đang hoạt động" />
+                    <el-option label="Đã hết hạn" value="Đã hết hạn" />
+                  </el-select>
+                  <el-button @click="loadPromotionHistory" :loading="promoLoading">
+                    <el-icon><Refresh /></el-icon> Tải lại
+                  </el-button>
+                </div>
+              </div>
+
+              <el-divider />
+              <el-skeleton v-if="promoLoading" :rows="5" animated />
+              <el-empty v-else-if="!filteredPromoHistory.length" description="Không có ưu đãi nào" />
+
+              <div v-else class="promo-history-list">
+                <el-card
+                  v-for="item in filteredPromoHistory"
+                  :key="`${item.type}-${item.orderId}-${item.promotionCode}`"
+                  class="mb-3 promo-history-card"
+                  :class="getPromoCardClass(item)"
+                  shadow="hover"
+                >
+                  <div class="promo-card-content">
+                    <!-- Icon loại ưu đãi -->
+                    <div class="promo-icon-wrapper" :class="item.type === 'SPIN_WHEEL' ? 'spin-icon' : 'code-icon'">
+                      <el-icon :size="28">
+                        <component :is="item.type === 'SPIN_WHEEL' ? 'Trophy' : 'Ticket'" />
+                      </el-icon>
+                    </div>
+
+                    <!-- Nội dung chính -->
+                    <div class="promo-details flex-grow-1">
+                      <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                        <!-- Loại ưu đãi -->
+                        <el-tag :type="item.type === 'SPIN_WHEEL' ? 'success' : 'primary'" effect="dark" size="small">
+                          {{ item.type === 'SPIN_WHEEL' ? '🎡 Vòng quay' : '🎟 Mã KM' }}
+                        </el-tag>
+                        <!-- Trạng thái -->
+                        <el-tag :type="getPromoStatusTagType(item.status)" size="small">
+                          {{ item.status }}
+                        </el-tag>
+                        <!-- Mã ưu đãi -->
+                        <el-tag type="info" effect="plain" size="small" v-if="item.type === 'PROMOTION_CODE'">
+                          {{ item.promotionCode }}
+                        </el-tag>
+                      </div>
+
+                      <!-- Tên ưu đãi -->
+                      <div class="promo-name fw-bold mb-1">{{ item.promotionName }}</div>
+
+                      <!-- Chi tiết giảm giá -->
+                      <div class="d-flex gap-3 flex-wrap promo-meta">
+                        <span class="promo-meta-item">
+                          <el-icon color="#67c23a"><Money /></el-icon>
+                          Giảm:
+                          <strong class="text-success">
+                            {{ item.discountType === 'PERCENT' || item.discountType === 'percent'
+                              ? `${item.discountValue}%`
+                              : formatCurrency(item.discountValue) }}
+                          </strong>
+                        </span>
+                        <span class="promo-meta-item" v-if="item.discountTotal">
+                          <el-icon color="#409eff"><Wallet /></el-icon>
+                          Tiết kiệm: <strong class="text-primary">{{ formatCurrency(item.discountTotal) }}</strong>
+                        </span>
+                        <span class="promo-meta-item" v-if="item.expiresAt">
+                          <el-icon color="#e6a23c"><Clock /></el-icon>
+                          HSD: {{ formatDate(item.expiresAt) }}
+                        </span>
+                        <span class="promo-meta-item" v-if="item.usedAt">
+                          <el-icon color="#909399"><Timer /></el-icon>
+                          {{ item.status === 'Đã sử dụng' ? 'Dùng lúc' : 'Nhận lúc' }}: {{ formatDateTime(item.usedAt) }}
+                        </span>
+                      </div>
+
+                      <!-- Nút xem đơn hàng -->
+                      <div v-if="item.orderId" class="mt-2">
+                        <el-button size="small" type="primary" plain round class="order-bill-btn" @click="viewOrderBill(item.orderId, 0)">
+                          <el-icon class="me-1"><ShoppingCart /></el-icon>
+                          Xem đơn #{{ item.orderId }}
+                        </el-button>
+                      </div>
+                    </div>
+
+                    <!-- Giá trị giảm nổi bật -->
+                    <div class="promo-discount-badge">
+                      <div class="discount-big" :class="item.type === 'SPIN_WHEEL' ? 'spin-color' : 'code-color'">
+                        {{ item.discountType === 'PERCENT' || item.discountType === 'percent'
+                          ? `${item.discountValue}%`
+                          : formatCurrencyShort(item.discountValue) }}
+                      </div>
+                      <div class="discount-label">giảm giá</div>
+                    </div>
+                  </div>
+                </el-card>
+              </div>
+            </el-card>
+          </el-tab-pane>
+
+          <!-- TAB: TỔNG HỢP ĐIỂM -->
+<el-tab-pane name="summary">
+  <template #label>
+    <span class="d-flex align-items-center gap-1">
+      <el-icon><TrendCharts /></el-icon> Tổng hợp điểm
+    </span>
+  </template>
+
+  <!-- Controls -->
+  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold text-muted small">Chu kỳ:</span>
+      <el-radio-group v-model="summaryMode" size="small" @change="loadLoyaltySummary">
+        <el-radio-button value="weekly">Theo tuần</el-radio-button>
+        <el-radio-button value="monthly">Theo tháng</el-radio-button>
+      </el-radio-group>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold text-muted small">Hiển thị:</span>
+      <el-select v-model="summaryRange" style="width:130px" size="small" @change="loadLoyaltySummary">
+        <template v-if="summaryMode === 'weekly'">
+          <el-option label="4 tuần" :value="4" />
+          <el-option label="8 tuần" :value="8" />
+          <el-option label="12 tuần" :value="12" />
+          <el-option label="26 tuần" :value="26" />
+        </template>
+        <template v-else>
+          <el-option label="3 tháng" :value="3" />
+          <el-option label="6 tháng" :value="6" />
+          <el-option label="12 tháng" :value="12" />
+          <el-option label="24 tháng" :value="24" />
+        </template>
+      </el-select>
+    </div>
+    <el-button size="small" @click="loadLoyaltySummary" :loading="summaryLoading">
+      <el-icon><Refresh /></el-icon> Tải lại
+    </el-button>
+  </div>
+
+  <el-skeleton v-if="summaryLoading" :rows="6" animated />
+  <el-empty v-else-if="!loyaltySummary.length" description="Chưa có dữ liệu tổng hợp" />
+
+  <template v-else>
+    <!-- Tổng quan nhanh -->
+    <el-row :gutter="16" class="mb-4">
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card earn-card">
+          <div class="stats-content">
+            <el-icon :size="32" class="stats-icon"><CirclePlus /></el-icon>
+            <div>
+              <div class="stats-value">+{{ summaryTotals.earned.toLocaleString() }}</div>
+              <div class="stats-label">Tổng điểm cộng</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card deduct-card">
+          <div class="stats-content">
+            <el-icon :size="32" class="stats-icon"><Remove /></el-icon>
+            <div>
+              <div class="stats-value">{{ summaryTotals.deducted.toLocaleString() }}</div>
+              <div class="stats-label">Tổng điểm trừ</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card transactions-card">
+          <div class="stats-content">
+            <el-icon :size="32" class="stats-icon"><TrendCharts /></el-icon>
+            <div>
+              <div class="stats-value" :class="summaryTotals.net >= 0 ? 'text-success' : 'text-danger'">
+                {{ summaryTotals.net >= 0 ? '+' : '' }}{{ summaryTotals.net.toLocaleString() }}
+              </div>
+              <div class="stats-label">Net điểm</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- Bảng chi tiết từng kỳ -->
+    <el-card shadow="never">
+      <h4 class="mb-3 fw-bold">
+        Chi tiết {{ summaryMode === 'weekly' ? 'theo tuần' : 'theo tháng' }}
+      </h4>
+      <el-table :data="loyaltySummary" stripe style="width:100%">
+        <el-table-column label="Kỳ" min-width="160">
+          <template #default="{ row }">
+            <div class="fw-bold">{{ row.periodLabel }}</div>
+            <div class="text-muted" style="font-size:11px">
+              {{ formatDate(row.periodStart) }} – {{ formatDate(row.periodEnd) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="Điểm cộng" width="130" align="right">
+          <template #default="{ row }">
+            <span class="fw-bold text-success">+{{ row.totalPointsEarned.toLocaleString() }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Điểm trừ" width="130" align="right">
+          <template #default="{ row }">
+            <span class="fw-bold text-warning">
+              {{ row.totalPointsDeducted > 0 ? '-' : '' }}{{ row.totalPointsDeducted.toLocaleString() }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Net" width="120" align="right">
+          <template #default="{ row }">
+            <el-tag :type="row.netPoints >= 0 ? 'success' : 'danger'" effect="dark" size="small">
+              {{ row.netPoints >= 0 ? '+' : '' }}{{ row.netPoints.toLocaleString() }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="GD" width="90" align="center">
+          <template #default="{ row }">
+            <span class="text-muted">{{ row.totalTransactions }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Biểu đồ" min-width="160">
+          <template #default="{ row }">
+            <div class="summary-bar-wrap">
+              <div class="summary-bar-earn"
+                :style="{ width: getSummaryBarWidth(row.totalPointsEarned, 'earn') + '%' }"
+                :title="`+${row.totalPointsEarned} điểm cộng`" />
+              <div class="summary-bar-deduct"
+                :style="{ width: getSummaryBarWidth(row.totalPointsDeducted, 'deduct') + '%' }"
+                :title="`-${row.totalPointsDeducted} điểm trừ`" />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </template>
+</el-tab-pane>
 
           <!-- TAB: LỊCH SỬ GIAO DỊCH -->
           <el-tab-pane label="Lịch sử giao dịch" name="payments">
@@ -438,96 +723,45 @@
           <el-tag type="info" size="small" v-if="orderBill">{{ orderBill.orderNumber }}</el-tag>
         </div>
       </template>
-
       <el-skeleton v-if="loadingOrderBill" :rows="8" animated />
-
       <div v-else-if="orderBill" class="bill-body">
-        <!-- Points banner -->
         <div class="points-earned-banner">
           <el-icon :size="18" color="#f59e0b"><Star /></el-icon>
           <span>Đơn hàng này tích lũy</span>
           <span class="points-earned-value">+{{ Math.abs(currentBillPoints).toLocaleString() }} điểm</span>
           <span class="points-rate">(10.000 VNĐ = 1 điểm)</span>
         </div>
-
-        <!-- Meta -->
         <div class="bill-meta">
-          <div class="bill-meta-item">
-            <span class="bill-meta-label">Ngày đặt</span>
-            <span class="bill-meta-value">{{ formatDateTime(orderBill.createdAt) }}</span>
-          </div>
-          <div class="bill-meta-item">
-            <span class="bill-meta-label">Trạng thái</span>
-            <el-tag :type="getOrderStatusType(orderBill.status)" size="small">{{ orderBill.status }}</el-tag>
-          </div>
-          <div class="bill-meta-item">
-            <span class="bill-meta-label">Thanh toán</span>
-            <el-tag :type="orderBill.paymentStatus === 'PAID' ? 'success' : 'warning'" size="small">{{ orderBill.paymentStatus }}</el-tag>
-          </div>
-          <div class="bill-meta-item">
-            <span class="bill-meta-label">Kênh</span>
-            <span class="bill-meta-value">{{ orderBill.channel || '—' }}</span>
-          </div>
+          <div class="bill-meta-item"><span class="bill-meta-label">Ngày đặt</span><span class="bill-meta-value">{{ formatDateTime(orderBill.createdAt) }}</span></div>
+          <div class="bill-meta-item"><span class="bill-meta-label">Trạng thái</span><el-tag :type="getOrderStatusType(orderBill.status)" size="small">{{ orderBill.status }}</el-tag></div>
+          <div class="bill-meta-item"><span class="bill-meta-label">Thanh toán</span><el-tag :type="orderBill.paymentStatus === 'PAID' ? 'success' : 'warning'" size="small">{{ orderBill.paymentStatus }}</el-tag></div>
+          <div class="bill-meta-item"><span class="bill-meta-label">Kênh</span><span class="bill-meta-value">{{ orderBill.channel || '—' }}</span></div>
         </div>
-
         <el-divider />
-
-        <!-- Items -->
         <div class="bill-items">
-          <div class="bill-items-header">
-            <span>Sản phẩm</span>
-            <span style="text-align:center">SL</span>
-            <span style="text-align:right">Đơn giá</span>
-            <span style="text-align:right">Giảm giá</span>
-            <span style="text-align:right">Thành tiền</span>
-          </div>
+          <div class="bill-items-header"><span>Sản phẩm</span><span style="text-align:center">SL</span><span style="text-align:right">Đơn giá</span><span style="text-align:right">Giảm giá</span><span style="text-align:right">Thành tiền</span></div>
           <div v-for="(item, i) in orderBill.items" :key="i" class="bill-item-row">
-            <div>
-              <div class="item-product-name">{{ item.productName }}</div>
-              <div class="item-variant-name">{{ item.variantName }}</div>
-              <div class="item-sku">SKU: {{ item.sku }}</div>
-            </div>
+            <div><div class="item-product-name">{{ item.productName }}</div><div class="item-variant-name">{{ item.variantName }}</div><div class="item-sku">SKU: {{ item.sku }}</div></div>
             <div style="text-align:center"><span class="qty-badge">{{ item.quantity }}</span></div>
             <div style="text-align:right;color:#606266">{{ formatCurrency(item.unitPrice) }}</div>
             <div style="text-align:right" class="text-success">{{ item.discount > 0 ? '-' + formatCurrency(item.discount) : '—' }}</div>
             <div style="text-align:right;font-weight:700">{{ formatCurrency(item.lineTotal) }}</div>
           </div>
         </div>
-
         <el-divider />
-
-        <!-- Totals -->
         <div class="bill-totals">
-          <div class="bill-total-row">
-            <span>Tạm tính</span><span>{{ formatCurrency(orderBill.subtotal) }}</span>
-          </div>
-          <div class="bill-total-row text-success" v-if="orderBill.discountTotal > 0">
-            <span>Giảm giá</span><span>-{{ formatCurrency(orderBill.discountTotal) }}</span>
-          </div>
-          <div class="bill-total-row" v-if="orderBill.taxTotal > 0">
-            <span>Thuế</span><span>{{ formatCurrency(orderBill.taxTotal) }}</span>
-          </div>
-          <div class="bill-total-row" v-if="orderBill.shippingFee > 0">
-            <span>Phí vận chuyển</span><span>{{ formatCurrency(orderBill.shippingFee) }}</span>
-          </div>
-          <div class="bill-total-row bill-grand-total">
-            <span>Tổng cộng</span><span>{{ formatCurrency(orderBill.totalAmount) }}</span>
-          </div>
-          <div class="bill-points-row">
-            <span><el-icon color="#f59e0b" style="vertical-align:middle;margin-right:4px"><Star /></el-icon>Điểm tích lũy được</span>
-            <span class="points-earned-inline">+{{ Math.abs(currentBillPoints).toLocaleString() }} điểm</span>
-          </div>
+          <div class="bill-total-row"><span>Tạm tính</span><span>{{ formatCurrency(orderBill.subtotal) }}</span></div>
+          <div class="bill-total-row text-success" v-if="orderBill.discountTotal > 0"><span>Giảm giá</span><span>-{{ formatCurrency(orderBill.discountTotal) }}</span></div>
+          <div class="bill-total-row" v-if="orderBill.taxTotal > 0"><span>Thuế</span><span>{{ formatCurrency(orderBill.taxTotal) }}</span></div>
+          <div class="bill-total-row" v-if="orderBill.shippingFee > 0"><span>Phí vận chuyển</span><span>{{ formatCurrency(orderBill.shippingFee) }}</span></div>
+          <div class="bill-total-row bill-grand-total"><span>Tổng cộng</span><span>{{ formatCurrency(orderBill.totalAmount) }}</span></div>
+          <div class="bill-points-row"><span><el-icon color="#f59e0b" style="vertical-align:middle;margin-right:4px"><Star /></el-icon>Điểm tích lũy được</span><span class="points-earned-inline">+{{ Math.abs(currentBillPoints).toLocaleString() }} điểm</span></div>
         </div>
-
-        <!-- Discount notes -->
         <div v-if="orderBill.notes" class="bill-notes mt-3">
-          <div class="bill-notes-label">
-            <el-icon><InfoFilled /></el-icon> Ghi chú chiết khấu
-          </div>
+          <div class="bill-notes-label"><el-icon><InfoFilled /></el-icon> Ghi chú chiết khấu</div>
           <div class="bill-notes-content">{{ orderBill.notes }}</div>
         </div>
       </div>
-
       <template #footer>
         <el-button @click="showOrderBillDialog = false">Đóng</el-button>
       </template>
@@ -553,10 +787,7 @@
           <h4 class="mb-3">Sản phẩm</h4>
           <el-table :data="selectedPayment.items" border class="mb-3">
             <el-table-column label="Sản phẩm" min-width="200">
-              <template #default="{ row }">
-                <div class="fw-bold">{{ row.productName }}</div>
-                <div class="text-muted small">{{ row.variantName }}</div>
-              </template>
+              <template #default="{ row }"><div class="fw-bold">{{ row.productName }}</div><div class="text-muted small">{{ row.variantName }}</div></template>
             </el-table-column>
             <el-table-column label="SL" width="80" align="center" prop="quantity" />
             <el-table-column label="Đơn giá" width="130" align="right">
@@ -588,7 +819,7 @@ import {
   Star, Present, Wallet, TrendCharts, Trophy, Refresh,
   Right, TopRight, BottomRight, CirclePlus, Remove, List,
   Close, CircleCheck, Money, RefreshLeft, CreditCard,
-  View, Delete, ShoppingCart, InfoFilled
+  View, Delete, ShoppingCart, InfoFilled, Ticket, Clock, Timer
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
@@ -597,11 +828,11 @@ import { ordersApi } from '../../api/orders.api';
 
 const router = useRouter();
 
-const loading        = ref(true);
-const editing        = ref(false);
-const saving         = ref(false);
-const customer       = ref(null);
-const activeTab      = ref('info');
+const loading   = ref(true);
+const editing   = ref(false);
+const saving    = ref(false);
+const customer  = ref(null);
+const activeTab = ref('info');
 
 const historyLoading           = ref(false);
 const loyaltyHistory           = ref([]);
@@ -610,6 +841,12 @@ const historyDateRange         = ref(null);
 
 const tierLoading = ref(false);
 const tierHistory = ref([]);
+
+// ── Promotion history state ───────────────────────────────────────────────────
+const promoLoading      = ref(false);
+const promotionHistory  = ref([]);
+const promoTypeFilter   = ref('');
+const promoStatusFilter = ref('');
 
 const paymentsLoading         = ref(false);
 const payments                = ref([]);
@@ -623,11 +860,16 @@ const showPaymentDetailDialog = ref(false);
 const selectedPayment         = ref(null);
 const loadingPaymentDetail    = ref(false);
 
-// Order bill
 const showOrderBillDialog = ref(false);
 const loadingOrderBill    = ref(false);
 const orderBill           = ref(null);
 const currentBillPoints   = ref(0);
+
+// ── Loyalty Summary ───────────────────────────────────────────────────────────
+const summaryLoading = ref(false);
+const loyaltySummary = ref([]);
+const summaryMode    = ref('monthly');  // 'weekly' | 'monthly'
+const summaryRange   = ref(6);
 
 const formData = ref({ fullName: '', email: '', phone: '', address: '', notes: '', birthDate: '' });
 
@@ -636,6 +878,47 @@ const loyaltyStats = computed(() => {
   const earned   = loyaltyHistory.value.filter(h => h.pointsDelta > 0).reduce((s, h) => s + h.pointsDelta, 0);
   const deducted = loyaltyHistory.value.filter(h => h.pointsDelta < 0).reduce((s, h) => s + Math.abs(h.pointsDelta), 0);
   return { totalEarned: earned.toLocaleString(), totalDeducted: deducted.toLocaleString(), totalTransactions: loyaltyHistory.value.length };
+});
+const summaryTotals = computed(() => {
+  const earned   = loyaltySummary.value.reduce((s, r) => s + (r.totalPointsEarned   || 0), 0);
+  const deducted = loyaltySummary.value.reduce((s, r) => s + (r.totalPointsDeducted || 0), 0);
+  return { earned, deducted, net: earned - deducted };
+});
+const loadLoyaltySummary = async () => {
+  if (!customer.value?.id) return;
+  summaryLoading.value = true;
+  try {
+    const res = summaryMode.value === 'weekly'
+      ? await customersApi.getLoyaltyWeeklySummaryMe(summaryRange.value)
+      : await customersApi.getLoyaltyMonthlySummaryMe(summaryRange.value);
+    loyaltySummary.value = unwrap(res) || [];
+  } catch { ElMessage.error('Lỗi khi tải tổng hợp điểm'); }
+  finally   { summaryLoading.value = false; }
+};
+
+const getSummaryBarWidth = (value, type) => {
+  if (!loyaltySummary.value.length) return 0;
+  const maxVal = Math.max(
+    ...loyaltySummary.value.map(r =>
+      type === 'earn' ? r.totalPointsEarned : r.totalPointsDeducted
+    )
+  );
+  return maxVal === 0 ? 0 : Math.round((value / maxVal) * 100);
+};
+
+const promoStats = computed(() => {
+  const used      = promotionHistory.value.filter(p => p.status === 'Đã sử dụng').length;
+  const totalSaved = promotionHistory.value
+    .filter(p => p.discountTotal)
+    .reduce((s, p) => s + (p.discountTotal || 0), 0);
+  return { total: promotionHistory.value.length, used, totalSaved };
+});
+
+const filteredPromoHistory = computed(() => {
+  let result = [...promotionHistory.value];
+  if (promoTypeFilter.value)   result = result.filter(p => p.type === promoTypeFilter.value);
+  if (promoStatusFilter.value) result = result.filter(p => p.status === promoStatusFilter.value);
+  return result;
 });
 
 const paymentStats = computed(() => {
@@ -738,6 +1021,14 @@ const loadTierHistory = async () => {
   finally { tierLoading.value = false; }
 };
 
+const loadPromotionHistory = async () => {
+  if (!customer.value?.id) return;
+  promoLoading.value = true;
+  try { promotionHistory.value = unwrap(await customersApi.getPromotionHistory(customer.value.id)) || []; }
+  catch { ElMessage.error('Lỗi khi tải lịch sử ưu đãi'); }
+  finally { promoLoading.value = false; }
+};
+
 const loadPayments = async () => {
   if (!customer.value?.id) return;
   paymentsLoading.value = true;
@@ -746,24 +1037,19 @@ const loadPayments = async () => {
   finally { paymentsLoading.value = false; }
 };
 
-// ✅ Xem bill đơn hàng
 const viewOrderBill = async (orderId, pointsDelta) => {
   showOrderBillDialog.value = true;
   loadingOrderBill.value    = true;
   orderBill.value           = null;
   currentBillPoints.value   = pointsDelta;
-  try {
-    orderBill.value = unwrap(await ordersApi.getOrderDetail(orderId));
-  } catch (error) {
-    ElMessage.error('Lỗi khi tải chi tiết đơn hàng');
-    showOrderBillDialog.value = false;
-  } finally {
-    loadingOrderBill.value = false;
-  }
+  try { orderBill.value = unwrap(await ordersApi.getOrderDetail(orderId)); }
+  catch { ElMessage.error('Lỗi khi tải chi tiết đơn hàng'); showOrderBillDialog.value = false; }
+  finally { loadingOrderBill.value = false; }
 };
 
 // ── Filter helpers ────────────────────────────────────────────────────────────
 const filterLoyaltyHistory = () => {};
+const filterPromoHistory   = () => {};
 const filterPayments = () => { paymentCurrentPage.value = 1; };
 const removeHistoryFilter = (type) => { if (type === 'transaction') historyTransactionFilter.value = ''; if (type === 'date') historyDateRange.value = null; };
 const removePaymentFilter = (type) => { if (type === 'status') paymentStatusFilter.value = ''; if (type === 'method') paymentMethodFilter.value = ''; if (type === 'date') paymentDateRange.value = null; filterPayments(); };
@@ -797,24 +1083,37 @@ const handleSave = async () => {
 };
 
 // ── Display helpers ───────────────────────────────────────────────────────────
-const getTierTagType        = (tier)   => ({ BRONZE: 'warning', SILVER: 'info', GOLD: 'warning', PLATINUM: 'primary', DIAMOND: 'danger' }[tier] || 'info');
-const getTransactionTagType = (type)   => ({ EARN: 'success', DEDUCT: 'warning', PENALTY: 'danger', TIER_UPGRADE: 'success', TIER_DOWNGRADE: 'info' }[type] || 'info');
-const getTimelineType       = (type)   => ({ EARN: 'success', DEDUCT: 'warning', PENALTY: 'danger', TIER_UPGRADE: 'success', TIER_DOWNGRADE: 'info' }[type] || 'primary');
-const getTransactionIcon    = (type)   => ({ EARN: 'CirclePlus', DEDUCT: 'Remove', PENALTY: 'Warning', TIER_UPGRADE: 'TopRight', TIER_DOWNGRADE: 'BottomRight' }[type] || 'More');
-const getTransactionIconColor = (type) => ({ EARN: '#67c23a', DEDUCT: '#e6a23c', PENALTY: '#f56c6c', TIER_UPGRADE: '#67c23a', TIER_DOWNGRADE: '#909399' }[type] || '#409eff');
-const getHistoryCardClass   = (type)   => ({ EARN: 'history-earn', DEDUCT: 'history-deduct', PENALTY: 'history-penalty', TIER_UPGRADE: 'history-upgrade', TIER_DOWNGRADE: 'history-downgrade' }[type] || '');
-const getPaymentStatusType  = (status) => ({ SUCCESS: 'success', PENDING: 'warning', REFUNDED: 'info', FAILED: 'danger' }[status] || 'info');
-const getPaymentMethodLabel = (method) => ({ CASH: 'Tiền mặt', BANK_TRANSFER: 'Chuyển khoản', CREDIT_CARD: 'Thẻ tín dụng', E_WALLET: 'Ví điện tử' }[method] || method);
-const getOrderStatusType    = (status) => ({ PENDING: 'warning', CONFIRMED: 'primary', PROCESSING: 'primary', SHIPPING: 'primary', DELIVERED: 'success', CANCELLED: 'danger' }[status] || 'info');
-const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+const getTierTagType          = (tier)   => ({ BRONZE: 'warning', SILVER: 'info', GOLD: 'warning', PLATINUM: 'primary', DIAMOND: 'danger' }[tier] || 'info');
+const getTransactionTagType   = (type)   => ({ EARN: 'success', DEDUCT: 'warning', PENALTY: 'danger', TIER_UPGRADE: 'success', TIER_DOWNGRADE: 'info' }[type] || 'info');
+const getTimelineType         = (type)   => ({ EARN: 'success', DEDUCT: 'warning', PENALTY: 'danger', TIER_UPGRADE: 'success', TIER_DOWNGRADE: 'info' }[type] || 'primary');
+const getTransactionIcon      = (type)   => ({ EARN: 'CirclePlus', DEDUCT: 'Remove', PENALTY: 'Warning', TIER_UPGRADE: 'TopRight', TIER_DOWNGRADE: 'BottomRight' }[type] || 'More');
+const getTransactionIconColor = (type)   => ({ EARN: '#67c23a', DEDUCT: '#e6a23c', PENALTY: '#f56c6c', TIER_UPGRADE: '#67c23a', TIER_DOWNGRADE: '#909399' }[type] || '#409eff');
+const getHistoryCardClass     = (type)   => ({ EARN: 'history-earn', DEDUCT: 'history-deduct', PENALTY: 'history-penalty', TIER_UPGRADE: 'history-upgrade', TIER_DOWNGRADE: 'history-downgrade' }[type] || '');
+const getPaymentStatusType    = (status) => ({ SUCCESS: 'success', PENDING: 'warning', REFUNDED: 'info', FAILED: 'danger' }[status] || 'info');
+const getPaymentMethodLabel   = (method) => ({ CASH: 'Tiền mặt', BANK_TRANSFER: 'Chuyển khoản', CREDIT_CARD: 'Thẻ tín dụng', E_WALLET: 'Ví điện tử' }[method] || method);
+const getOrderStatusType      = (status) => ({ PENDING: 'warning', CONFIRMED: 'primary', PROCESSING: 'primary', SHIPPING: 'primary', DELIVERED: 'success', CANCELLED: 'danger' }[status] || 'info');
+const getPromoStatusTagType   = (status) => ({ 'Đã sử dụng': 'success', 'Đang hoạt động': 'primary', 'Đã hết hạn': 'info' }[status] || 'info');
+const getPromoCardClass       = (item)   => {
+  if (item.status === 'Đã hết hạn') return 'promo-expired';
+  if (item.type === 'SPIN_WHEEL')   return 'promo-spin';
+  return 'promo-code';
+};
+
+const formatCurrency      = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 const formatCurrencyShort = (val) => { if (val >= 1e9) return (val/1e9).toFixed(1)+'B'; if (val >= 1e6) return (val/1e6).toFixed(1)+'M'; if (val >= 1e3) return (val/1e3).toFixed(1)+'K'; return formatCurrency(val); };
-const formatDate     = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
-const formatDateTime = (d) => d ? new Date(d).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
-const getProgressPercent = () => { if (!customer.value) return 0; const total = (customer.value.loyaltyPoints||0)+(customer.value.pointsToNextTier||0); return total===0?0:Math.min(100,Math.round((customer.value.loyaltyPoints/total)*100)); };
+const formatDate          = (d)   => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+const formatDateTime      = (d)   => d ? new Date(d).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+const getProgressPercent  = ()    => { if (!customer.value) return 0; const total = (customer.value.loyaltyPoints||0)+(customer.value.pointsToNextTier||0); return total===0?0:Math.min(100,Math.round((customer.value.loyaltyPoints/total)*100)); };
 
 onMounted(async () => {
   await loadCustomerData();
-  if (customer.value?.id) { loadLoyaltyHistory(); loadTierHistory(); loadPayments(); }
+  if (customer.value?.id) {
+    loadLoyaltyHistory();
+    loadTierHistory();
+    loadPromotionHistory();
+    loadPayments();
+     loadLoyaltySummary();  
+  }
 });
 </script>
 
@@ -851,6 +1150,34 @@ onMounted(async () => {
 .payment-refunded-card { background:linear-gradient(135deg,#fff3e0 0%,#ffe0b2 100%); }
 .payment-refunded-card .stats-value { color:#e6a23c; }
 
+/* Promo stats cards */
+.promo-total-card { background:linear-gradient(135deg,#f3e5f5 0%,#e1bee7 100%); }
+.promo-total-card .stats-value { color:#9333ea; }
+.promo-used-card { background:linear-gradient(135deg,#e8f5e9 0%,#c8e6c9 100%); }
+.promo-used-card .stats-value { color:#67c23a; }
+.promo-saved-card { background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%); }
+.promo-saved-card .stats-value { color:#409eff; }
+
+/* Promo history cards */
+.promo-history-card { border-radius:12px;transition:all 0.3s; }
+.promo-history-card:hover { transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+.promo-history-card.promo-code { border-left:4px solid #409eff; }
+.promo-history-card.promo-spin { border-left:4px solid #67c23a; }
+.promo-history-card.promo-expired { border-left:4px solid #c0c4cc;opacity:0.75; }
+.promo-card-content { display:flex;align-items:flex-start;gap:16px; }
+.promo-icon-wrapper { flex-shrink:0;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:12px; }
+.code-icon { background:linear-gradient(135deg,#e8f4fd 0%,#bfdbfe 100%);color:#409eff; }
+.spin-icon { background:linear-gradient(135deg,#e8f5e9 0%,#bbf7d0 100%);color:#67c23a; }
+.promo-details { flex:1;min-width:0; }
+.promo-name { font-size:15px;color:#303133; }
+.promo-meta { font-size:13px;color:#606266; }
+.promo-meta-item { display:flex;align-items:center;gap:4px; }
+.promo-discount-badge { flex-shrink:0;text-align:center;min-width:80px; }
+.discount-big { font-size:26px;font-weight:900;line-height:1; }
+.code-color { color:#409eff; }
+.spin-color { color:#67c23a; }
+.discount-label { font-size:11px;color:#909399;margin-top:2px; }
+
 .history-card { transition:all 0.3s;border-radius:12px; }
 .history-card:hover { transform:translateX(4px);box-shadow:0 4px 12px rgba(0,0,0,0.1); }
 .history-card-content { display:flex;align-items:flex-start;gap:16px; }
@@ -872,8 +1199,6 @@ onMounted(async () => {
 .points-positive .points-value { color:#67c23a; }
 .points-negative .points-value { color:#e6a23c; }
 .points-unit { font-size:12px;color:#909399; }
-
-/* Order bill button */
 .order-bill-btn { border-radius:20px;font-size:12px;font-weight:600;transition:all 0.2s; }
 .order-bill-btn:hover { transform:translateY(-1px);box-shadow:0 2px 8px rgba(64,158,255,0.35); }
 
@@ -887,20 +1212,16 @@ onMounted(async () => {
 .payment-detail { padding:10px 0; }
 .payment-totals { background:#f5f7fa;padding:16px;border-radius:8px; }
 
-/* ===== ORDER BILL DIALOG ===== */
 .bill-dialog-header { display:flex;align-items:center;justify-content:space-between; }
 .bill-header-left { display:flex;align-items:center;gap:8px; }
 .bill-title { font-size:16px;font-weight:700;color:#303133; }
-
 .points-earned-banner { display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:14px;color:#92400e;flex-wrap:wrap; }
 .points-earned-value { font-size:18px;font-weight:900;color:#f59e0b; }
 .points-rate { font-size:12px;color:#b45309;opacity:0.8; }
-
 .bill-meta { display:grid;grid-template-columns:repeat(2,1fr);gap:12px;background:#f8fafc;border-radius:10px;padding:12px 16px; }
 .bill-meta-item { display:flex;flex-direction:column;gap:4px; }
 .bill-meta-label { font-size:11px;font-weight:600;color:#909399;text-transform:uppercase;letter-spacing:0.5px; }
 .bill-meta-value { font-size:14px;color:#303133;font-weight:500; }
-
 .bill-items { font-size:13px; }
 .bill-items-header { display:grid;grid-template-columns:1fr 50px 120px 110px 120px;gap:8px;padding:8px 12px;background:#f0f2f5;border-radius:6px;font-weight:700;color:#606266;font-size:12px;margin-bottom:4px; }
 .bill-item-row { display:grid;grid-template-columns:1fr 50px 120px 110px 120px;gap:8px;padding:10px 12px;border-bottom:1px solid #f0f2f5;align-items:center;transition:background 0.15s; }
@@ -910,14 +1231,12 @@ onMounted(async () => {
 .item-variant-name { font-size:12px;color:#909399; }
 .item-sku { font-size:11px;color:#c0c4cc; }
 .qty-badge { display:inline-block;background:#e8f4fd;color:#409eff;border-radius:4px;padding:2px 8px;font-weight:700;font-size:13px; }
-
 .bill-totals { background:#f8fafc;border-radius:10px;padding:14px 18px; }
 .bill-total-row { display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:14px;color:#606266; }
 .bill-grand-total { font-size:18px;font-weight:900;color:#303133;border-top:2px solid #e4e7ed;margin-top:8px;padding-top:12px; }
 .bill-grand-total span:last-child { color:#409eff; }
 .bill-points-row { display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;font-size:13px;color:#92400e;border-top:1px dashed #fcd34d;margin-top:8px; }
 .points-earned-inline { font-size:15px;font-weight:900;color:#f59e0b; }
-
 .bill-notes { background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px; }
 .bill-notes-label { display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0369a1;margin-bottom:6px; }
 .bill-notes-content { font-size:13px;color:#0c4a6e;line-height:1.6; }
@@ -927,7 +1246,31 @@ onMounted(async () => {
   .history-card-content { flex-direction:column; }
   .history-points { width:100%; }
   .points-badge { width:100%; }
+  .promo-card-content { flex-direction:column; }
+  .promo-discount-badge { width:100%;text-align:left; }
   .bill-items-header,.bill-item-row { grid-template-columns:1fr 40px 100px; }
   .bill-meta { grid-template-columns:1fr; }
+}
+/* Summary bar */
+.summary-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 2px 0;
+}
+.summary-bar-earn {
+  height: 6px;
+  background: linear-gradient(90deg, #67c23a, #95d475);
+  border-radius: 3px;
+  min-width: 2px;
+  transition: width 0.4s ease;
+}
+.summary-bar-deduct {
+  height: 6px;
+  background: linear-gradient(90deg, #e6a23c, #f3d19e);
+  border-radius: 3px;
+  min-width: 2px;
+  transition: width 0.4s ease;
 }
 </style>

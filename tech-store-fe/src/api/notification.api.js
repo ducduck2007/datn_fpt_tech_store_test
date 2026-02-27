@@ -18,8 +18,11 @@ export const notificationsApi = {
   },
 };
 
+// ================================================================
 // Birthday API
+// ================================================================
 export const birthdayApi = {
+  // ── Danh sách sinh nhật ────────────────────────────────────────
   getTodayBirthdays() {
     return http.get("/api/auth/admin/birthdays/today");
   },
@@ -32,9 +35,13 @@ export const birthdayApi = {
   getUpcomingBirthdays(days = 7) {
     return http.get(`/api/auth/admin/birthdays/upcoming?days=${days}`);
   },
+
+  // ── Gửi lời chúc thủ công từ admin ────────────────────────────
   sendGreeting(customerId, message) {
     return http.post(`/api/auth/admin/birthdays/send-greeting/${customerId}`, { message });
   },
+
+  // ── Lịch sử notification sinh nhật (BirthdayController cũ) ────
   getNotificationHistory(from, to) {
     let url = "/api/auth/admin/birthdays/notification-history";
     const params = new URLSearchParams();
@@ -43,22 +50,33 @@ export const birthdayApi = {
     if (params.toString()) url += `?${params.toString()}`;
     return http.get(url);
   },
+
+  // ── ✅ THÊM MỚI: Trigger job sinh nhật thủ công ────────────────
+  // POST /api/auth/notifications/birthday/trigger
+  // Trả về: { message, voucherCode, discount, minOrder, validDays }
+  triggerBirthdayJob() {
+    return http.post("/api/auth/notifications/birthday/trigger");
+  },
+
+  // ── ✅ THÊM MỚI: Lịch sử thông báo sinh nhật đã gửi ───────────
+  // GET /api/auth/notifications/birthday/history
+  getBirthdayNotificationHistory() {
+    return http.get("/api/auth/notifications/birthday/history");
+  },
 };
 
+// ================================================================
 // Purchase Reminder API
+// ================================================================
 export const purchaseReminderApi = {
-  // Admin: Lấy lịch sử reminder đã gửi
   getHistory() {
     return http.get("/api/auth/notifications/purchase-reminders/history");
   },
 
-  // Admin: Trigger thủ công (test hoặc gửi ngay không chờ scheduler)
   triggerNow() {
     return http.post("/api/auth/notifications/purchase-reminders/trigger");
   },
 
-  // Lọc reminder theo segment từ history trả về
-  // (filter client-side vì backend trả toàn bộ)
   getHistoryBySegment(segment) {
     return http.get("/api/auth/notifications/purchase-reminders/history").then((res) => {
       if (!segment) return res;

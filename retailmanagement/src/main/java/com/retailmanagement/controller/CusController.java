@@ -5,11 +5,9 @@
     import com.retailmanagement.dto.response.CustomerResponse;
     import com.retailmanagement.dto.response.LoyaltyLedgerResponse;
     import com.retailmanagement.dto.response.PaymentResponse;
+    import com.retailmanagement.dto.response.PromotionHistoryResponse;
     import com.retailmanagement.entity.CustomerType;
-    import com.retailmanagement.service.CustomerService;
-    import com.retailmanagement.service.LoyaltyHistoryService;
-    import com.retailmanagement.service.PaymentService;
-    import com.retailmanagement.service.SpinWheelService;
+    import com.retailmanagement.service.*;
     import jakarta.validation.Valid;
     import lombok.RequiredArgsConstructor;
     import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +31,8 @@
         private CustomerService cusservice;
         @Autowired
         private LoyaltyHistoryService loyaltyHistoryService;
+        @Autowired
+        private PromotionHistoryService promotionHistoryService;
         @Autowired
         private SpinWheelService spinWheelService;
         @Autowired
@@ -366,6 +366,49 @@
             String note = body.getOrDefault("vipNote", "");
             CustomerResponse res = cusservice.updateVipNote(id, note);
             return ResponseEntity.ok(res);
+        }
+        /**
+         * Lấy danh sách khách hàng chưa mua đơn nào
+         * GET /api/auth/customers/zero-order?minDays=3
+         *
+         * minDays: chỉ trả về khách đã đăng ký >= minDays ngày mà vẫn chưa mua
+         * Mặc định: 3 ngày (đủ thời gian tìm hiểu, nếu vẫn chưa mua thì cần hỗ trợ)
+         */
+        @GetMapping("/zero-order")
+        @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+        public ResponseEntity<List<CustomerResponse>> getZeroOrderCustomers(
+                @RequestParam(defaultValue = "3") int minDays) {
+
+            if (minDays < 0) return ResponseEntity.badRequest().build();
+
+            List<CustomerResponse> customers = cusservice.findZeroOrderCustomers(minDays);
+            return ResponseEntity.ok(customers);
+        }
+
+        /**
+         * Thống kê nhanh zero-order customers theo các mốc thời gian
+         * GET /api/auth/customers/zero-order/stats
+         */
+        @GetMapping("/zero-order/stats")
+        @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+        public ResponseEntity<Map<String, Object>> getZeroOrderStats() {
+            return ResponseEntity.ok(cusservice.getZeroOrderStats());
+        }
+        @GetMapping("/{customerId}/promotion-history")
+        public ResponseEntity<List<PromotionHistoryResponse>> getPromotionHistory(
+                @PathVariable Integer customerId,
+                @RequestParam(required = false) String type
+        ) {
+            List<PromotionHistoryResponse> history = promotionHistoryService.getPromotionHistory(customerId);
+
+            if (type != null && !type.isBlank()) {
+                String upperType = type.toUpperCase();
+                history = history.stream()
+                        .filter(h -> upperType.equals(h.getType()))
+                        .toList();
+            }
+
+            return ResponseEntity.ok(history);
         }
     }
     

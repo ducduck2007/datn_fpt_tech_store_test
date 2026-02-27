@@ -123,5 +123,40 @@ listInactiveTransaction(days = 30) {
 updateVipNote(id, vipNote) {
   return http.patch(`/api/auth/customers/${id}/vip-note`, { vipNote });
 },
+listZeroOrder(minDays = 3) {
+  return http.get(`/api/auth/customers/zero-order?minDays=${minDays}`);
+},
 
+/**
+ * Thống kê nhanh zero-order theo các mốc 3/7/30 ngày
+ */
+getZeroOrderStats() {
+  return http.get("/api/auth/customers/zero-order/stats");
+},
+getPromotionHistory(customerId, type = null) {
+    const params = type ? `?type=${type}` : "";
+    return http.get(`/api/auth/customers/${customerId}/promotion-history${params}`);
+  },
+  // Thêm vào cuối object customersApi, trước dấu }
+
+// ── LOYALTY SUMMARY ──────────────────────────────────────────────────────────
+getLoyaltyWeeklySummaryMe(weeks = 12) {
+  return http.get(`/api/auth/loyalty/summary/me/weekly?weeks=${weeks}`);
+},
+getLoyaltyMonthlySummaryMe(months = 12) {
+  return http.get(`/api/auth/loyalty/summary/me/monthly?months=${months}`);
+},
+getLoyaltyWeeklySummaryByCustomer(customerId, weeks = 12) {
+  return http.get(`/api/auth/loyalty/summary/customer/${customerId}/weekly?weeks=${weeks}`);
+},
+getLoyaltyMonthlySummaryByCustomer(customerId, months = 12) {
+  return http.get(`/api/auth/loyalty/summary/customer/${customerId}/monthly?months=${months}`);
+},
+// Admin only
+getLoyaltyWeeklySummaryAdmin(weeks = 12) {
+  return http.get(`/api/auth/loyalty/summary/admin/weekly?weeks=${weeks}`);
+},
+getLoyaltyMonthlySummaryAdmin(months = 12) {
+  return http.get(`/api/auth/loyalty/summary/admin/monthly?months=${months}`);
+}
 };

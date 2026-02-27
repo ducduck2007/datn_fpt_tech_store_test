@@ -15,49 +15,81 @@ import java.util.Optional;
 public interface SpinWheelHistoryRepository extends JpaRepository<SpinWheelHistory, Long> {
 
     /**
-     * Check if customer has already spun this week
+     * Kiểm tra khách đã quay tuần này chưa.
      */
-    Optional<SpinWheelHistory> findByCustomerIdAndWeekStartDate(Integer customerId, LocalDate weekStartDate);
+    Optional<SpinWheelHistory> findByCustomerIdAndWeekStartDate(
+            Integer customerId, LocalDate weekStartDate);
 
     /**
-     * Get customer's spin history
+     * Toàn bộ lịch sử quay của khách, mới nhất trước.
      */
     List<SpinWheelHistory> findByCustomerIdOrderBySpunAtDesc(Integer customerId);
 
     /**
-     * Get active (unused and not expired) bonuses for a customer
+     * Tất cả bonus còn hiệu lực (chưa dùng, chưa hết hạn) của khách.
      */
-    @Query("SELECT s FROM SpinWheelHistory s WHERE s.customer.id = :customerId " +
-            "AND s.isUsed = false AND s.expiresAt > :now ORDER BY s.spunAt DESC")
-    List<SpinWheelHistory> findActiveBonus(@Param("customerId") Integer customerId,
-                                           @Param("now") LocalDateTime now);
+    @Query("""
+        SELECT s FROM SpinWheelHistory s
+        WHERE s.customer.id = :customerId
+          AND s.isUsed = false
+          AND s.expiresAt > :now
+        ORDER BY s.spunAt DESC
+    """)
+    List<SpinWheelHistory> findActiveBonus(
+            @Param("customerId") Integer customerId,
+            @Param("now") LocalDateTime now);
 
     /**
-     * Get most recent active bonus
+     * Bonus mới nhất còn hiệu lực.
+     *
+     * BUG FIX: query cũ khai báo Optional nhưng có thể trả về nhiều row
+     * → gây IncorrectResultSizeDataAccessException khi khách có 2+ bonus chưa hết hạn.
+     *
+     * Fix: dùng LIMIT 1 (SQL Server: FETCH FIRST 1 ROW ONLY) để đảm bảo
+     * luôn trả về đúng 0 hoặc 1 kết quả, ưu tiên bonus mới nhất.
      */
-    @Query("SELECT s FROM SpinWheelHistory s WHERE s.customer.id = :customerId " +
-            "AND s.isUsed = false AND s.expiresAt > :now ORDER BY s.spunAt DESC")
-    Optional<SpinWheelHistory> findMostRecentActiveBonus(@Param("customerId") Integer customerId,
-                                                         @Param("now") LocalDateTime now);
+    @Query("""
+        SELECT s FROM SpinWheelHistory s
+        WHERE s.customer.id = :customerId
+          AND s.isUsed = false
+          AND s.expiresAt > :now
+        ORDER BY s.spunAt DESC
+        LIMIT 1
+    """)
+    Optional<SpinWheelHistory> findMostRecentActiveBonus(
+            @Param("customerId") Integer customerId,
+            @Param("now") LocalDateTime now);
 
     /**
-     * Count spins in current week
+     * Đếm số lần quay trong tuần (dùng để validate phía service).
      */
-    @Query("SELECT COUNT(s) FROM SpinWheelHistory s WHERE s.customer.id = :customerId " +
-            "AND s.weekStartDate = :weekStart")
-    long countByCustomerAndWeek(@Param("customerId") Integer customerId,
-                                @Param("weekStart") LocalDate weekStart);
+    @Query("""
+        SELECT COUNT(s) FROM SpinWheelHistory s
+        WHERE s.customer.id = :customerId
+          AND s.weekStartDate = :weekStart
+    """)
+    long countByCustomerAndWeek(
+            @Param("customerId") Integer customerId,
+            @Param("weekStart") LocalDate weekStart);
 
+    /**
+     * Tìm spin đã được dùng cho một đơn hàng cụ thể.
+     * Dùng khi hủy đơn để restore bonus.
+     */
     Optional<SpinWheelHistory> findByUsedOrderId(Long usedOrderId);
 
-    @Query("SELECT s FROM SpinWheelHistory s " +
-            "WHERE s.isUsed = false " +
-            "AND s.expiresAt > :now " +
-            "AND s.expiresAt <= :threshold " +
-            "ORDER BY s.expiresAt ASC")
+    /**
+     * Tìm các bonus sắp hết hạn (chưa dùng, hết hạn trong khoảng now → threshold).
+     * Dùng cho NotificationService gửi cảnh báo "bonus sắp hết hạn".
+     */
+    @Query("""
+        SELECT s FROM SpinWheelHistory s
+        WHERE s.isUsed = false
+          AND s.expiresAt > :now
+          AND s.expiresAt <= :threshold
+        ORDER BY s.expiresAt ASC
+    """)
     List<SpinWheelHistory> findExpiringUnusedBonuses(
             @Param("now")       LocalDateTime now,
-            @Param("threshold") LocalDateTime threshold
-    );
-
+            @Param("threshold") LocalDateTime threshold);
 }

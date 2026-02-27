@@ -15,4 +15,5 @@ export const promotionsApi = {
   remove(id) {
     return http.delete(`/api/promotions/${id}`);
   },
+  
 };

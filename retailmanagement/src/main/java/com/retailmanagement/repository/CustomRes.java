@@ -217,4 +217,34 @@
         @Lock(LockModeType.PESSIMISTIC_WRITE)
         @Query("SELECT c FROM Customer c WHERE c.id = :id")
         Optional<Customer> findByIdWithLock(@Param("id") Integer id);
+
+
+        // Tìm khách hàng chưa có đơn hàng nào, đã đăng ký >= minDaysAgo ngày
+        @Query(value = """
+    SELECT c.* FROM customers c
+    WHERE c.is_active = 1
+      AND c.id NOT IN (
+          SELECT DISTINCT o.customer_id FROM orders o
+          WHERE o.customer_id IS NOT NULL
+      )
+      AND c.created_at <= :registeredBefore
+    ORDER BY c.created_at DESC
+    """, nativeQuery = true)
+        List<Customer> findZeroOrderCustomers(
+                @Param("registeredBefore") LocalDateTime registeredBefore
+        );
+
+        // Đếm tổng
+        @Query(value = """
+    SELECT COUNT(*) FROM customers c
+    WHERE c.is_active = 1
+      AND c.id NOT IN (
+          SELECT DISTINCT o.customer_id FROM orders o
+          WHERE o.customer_id IS NOT NULL
+      )
+      AND c.created_at <= :registeredBefore
+    """, nativeQuery = true)
+        long countZeroOrderCustomers(
+                @Param("registeredBefore") LocalDateTime registeredBefore
+        );
     }

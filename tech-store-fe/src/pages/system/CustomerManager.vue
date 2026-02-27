@@ -20,6 +20,9 @@
           <button class="btn-primary" @click="openCreate">
             <span>+</span> Thêm khách hàng
           </button>
+          <button class="btn-ghost" @click="openSummaryDialog">
+  📊 Tổng hợp điểm
+</button>
         </div>
       </div>
 
@@ -498,6 +501,194 @@
           </div>
         </div>
       </Teleport>
+      <!-- ══════════════════════════════════════════
+     LOYALTY SUMMARY DIALOG (Admin)
+══════════════════════════════════════════ -->
+<Teleport to="body">
+  <div class="modal-overlay" v-if="summaryDlg.open" @click.self="summaryDlg.open = false">
+    <div class="modal-box modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">📊 Tổng hợp điểm Loyalty</h2>
+          <p class="modal-subtitle">Thống kê điểm tích lũy của tất cả khách hàng</p>
+        </div>
+        <button class="modal-close" @click="summaryDlg.open = false">×</button>
+      </div>
+
+      <!-- Controls -->
+      <div class="summary-controls">
+        <div class="summary-controls-left">
+          <div class="control-group">
+            <span class="control-label">Chu kỳ:</span>
+            <div class="toggle-group">
+              <button :class="['toggle-btn', summaryDlg.mode === 'monthly' && 'toggle-active']"
+                @click="summaryDlg.mode = 'monthly'; loadAdminSummary()">Tháng</button>
+              <button :class="['toggle-btn', summaryDlg.mode === 'weekly' && 'toggle-active']"
+                @click="summaryDlg.mode = 'weekly'; loadAdminSummary()">Tuần</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <span class="control-label">{{ summaryDlg.mode === 'weekly' ? 'Số tuần:' : 'Số tháng:' }}</span>
+            <select class="filter-select control-select" v-model="summaryDlg.range" @change="loadAdminSummary">
+              <template v-if="summaryDlg.mode === 'weekly'">
+                <option :value="4">4 tuần</option>
+                <option :value="8">8 tuần</option>
+                <option :value="12">12 tuần</option>
+                <option :value="26">26 tuần</option>
+              </template>
+              <template v-else>
+                <option :value="3">3 tháng</option>
+                <option :value="6">6 tháng</option>
+                <option :value="12">12 tháng</option>
+                <option :value="24">24 tháng</option>
+              </template>
+            </select>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Xem:</span>
+            <div class="toggle-group">
+              <button :class="['toggle-btn', summaryDlg.view === 'overview' && 'toggle-active']"
+                @click="summaryDlg.view = 'overview'">Tổng quan</button>
+              <button :class="['toggle-btn', summaryDlg.view === 'detail' && 'toggle-active']"
+                @click="summaryDlg.view = 'detail'">Chi tiết KH</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn-ghost" style="font-size:12px;padding:6px 12px;" @click="loadAdminSummary" :disabled="summaryDlg.loading">
+          <span v-if="summaryDlg.loading" class="spin-icon">⟳</span>
+          <span v-else>↺</span> Tải lại
+        </button>
+      </div>
+
+      <div class="modal-body summary-modal-body">
+        <!-- Loading -->
+        <div v-if="summaryDlg.loading" class="summary-loading">
+          <div class="loader-dots"><span/><span/><span/></div>
+          <p>Đang tải dữ liệu...</p>
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="!summaryDlg.data.length" class="summary-empty">
+          <span style="font-size:36px">📊</span>
+          <p>Chưa có dữ liệu trong khoảng thời gian này</p>
+        </div>
+
+        <template v-else>
+          <!-- Totals row -->
+          <div class="summary-totals-row">
+            <div class="summary-total-card earn">
+              <div class="stc-value">+{{ adminSummaryTotals.earned.toLocaleString() }}</div>
+              <div class="stc-label">Tổng điểm cộng</div>
+            </div>
+            <div class="summary-total-card deduct">
+              <div class="stc-value">-{{ adminSummaryTotals.deducted.toLocaleString() }}</div>
+              <div class="stc-label">Tổng điểm trừ</div>
+            </div>
+            <div class="summary-total-card net" :class="adminSummaryTotals.net >= 0 ? 'net-positive' : 'net-negative'">
+              <div class="stc-value">{{ adminSummaryTotals.net >= 0 ? '+' : '' }}{{ adminSummaryTotals.net.toLocaleString() }}</div>
+              <div class="stc-label">Net điểm</div>
+            </div>
+            <div class="summary-total-card tx">
+              <div class="stc-value">{{ adminSummaryTotals.transactions.toLocaleString() }}</div>
+              <div class="stc-label">Tổng giao dịch</div>
+            </div>
+          </div>
+
+          <!-- VIEW: Tổng quan theo kỳ -->
+          <template v-if="summaryDlg.view === 'overview'">
+            <div class="summary-period-list">
+              <div v-for="period in summaryDlg.data" :key="period.period" class="summary-period-row">
+                <div class="period-info">
+                  <div class="period-label">{{ period.periodLabel }}</div>
+                  <div class="period-dates">{{ formatAdminDate(period.periodStart) }} – {{ formatAdminDate(period.periodEnd) }}</div>
+                </div>
+                <div class="period-bars">
+                  <div class="bar-row">
+                    <span class="bar-label earn-label">+{{ period.totalPointsEarned.toLocaleString() }}</span>
+                    <div class="bar-track">
+                      <div class="bar-fill bar-earn"
+                        :style="{ width: getAdminBarWidth(period.totalPointsEarned, 'earn') + '%' }" />
+                    </div>
+                  </div>
+                  <div class="bar-row">
+                    <span class="bar-label deduct-label">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
+                    <div class="bar-track">
+                      <div class="bar-fill bar-deduct"
+                        :style="{ width: getAdminBarWidth(period.totalPointsDeducted, 'deduct') + '%' }" />
+                    </div>
+                  </div>
+                </div>
+                <div class="period-net">
+                  <span class="net-badge" :class="period.netPoints >= 0 ? 'net-pos' : 'net-neg'">
+                    {{ period.netPoints >= 0 ? '+' : '' }}{{ period.netPoints.toLocaleString() }}
+                  </span>
+                  <span class="period-tx">{{ period.totalTransactions }} GD</span>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- VIEW: Chi tiết theo KH -->
+          <template v-else>
+            <div v-for="period in summaryDlg.data" :key="period.period" class="customer-period-block">
+              <div class="customer-period-header">
+                <span class="customer-period-title">{{ period.periodLabel }}</span>
+                <div class="customer-period-meta">
+                  <span class="meta-earn">+{{ period.totalPointsEarned.toLocaleString() }}</span>
+                  <span class="meta-sep">/</span>
+                  <span class="meta-deduct">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
+                  <span class="meta-tx">{{ period.totalTransactions }} GD</span>
+                </div>
+              </div>
+              <table class="customer-detail-table" v-if="period.customerBreakdown?.length">
+                <thead>
+                  <tr>
+                    <th>Khách hàng</th>
+                    <th>VIP Tier</th>
+                    <th style="text-align:right">Cộng</th>
+                    <th style="text-align:right">Trừ</th>
+                    <th style="text-align:right">Net</th>
+                    <th style="text-align:center">GD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="c in period.customerBreakdown" :key="c.customerId">
+                    <td>
+                      <div class="cdt-name">{{ c.customerName }}</div>
+                      <div class="cdt-email">{{ c.customerEmail }}</div>
+                    </td>
+                    <td>
+                      <span v-if="c.vipTier && c.vipTier !== 'Member'"
+                        :class="['tier-badge', `tier-${c.vipTier.toLowerCase()}`]">
+                        {{ tierIcon(c.vipTier) }} {{ c.vipTier }}
+                      </span>
+                      <span v-else class="text-muted-sm">—</span>
+                    </td>
+                    <td style="text-align:right;color:#67c23a;font-weight:600">+{{ c.pointsEarned.toLocaleString() }}</td>
+                    <td style="text-align:right;color:#e6a23c;font-weight:600">
+                      {{ c.pointsDeducted > 0 ? '-' : '' }}{{ c.pointsDeducted.toLocaleString() }}
+                    </td>
+                    <td style="text-align:right">
+                      <span :style="{ color: c.netPoints >= 0 ? '#67c23a' : '#f56c6c', fontWeight: 700 }">
+                        {{ c.netPoints >= 0 ? '+' : '' }}{{ c.netPoints.toLocaleString() }}
+                      </span>
+                    </td>
+                    <td style="text-align:center;color:#909399">{{ c.transactionCount }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div v-else class="cdt-empty">Không có giao dịch</div>
+            </div>
+          </template>
+        </template>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-ghost" @click="summaryDlg.open = false">Đóng</button>
+      </div>
+    </div>
+  </div>
+</Teleport>
 
     </div>
   </div>
@@ -526,6 +717,59 @@ const page = ref(1);
 const pageSize = 10;
 const vipNoteTextarea = ref(null);
 
+// ── Admin Loyalty Summary ─────────────────────────────────────────────────────
+const summaryDlg = reactive({
+  open: false,
+  loading: false,
+  mode: 'monthly',   // 'weekly' | 'monthly'
+  range: 6,
+  view: 'overview',  // 'overview' | 'detail'
+  data: [],
+});
+
+const adminSummaryTotals = computed(() => {
+  const earned       = summaryDlg.data.reduce((s, r) => s + (r.totalPointsEarned   || 0), 0);
+  const deducted     = summaryDlg.data.reduce((s, r) => s + (r.totalPointsDeducted || 0), 0);
+  const transactions = summaryDlg.data.reduce((s, r) => s + (r.totalTransactions   || 0), 0);
+  return { earned, deducted, net: earned - deducted, transactions };
+});
+
+function openSummaryDialog() {
+  summaryDlg.open = true;
+  if (!summaryDlg.data.length) loadAdminSummary();
+}
+
+async function loadAdminSummary() {
+  summaryDlg.loading = true;
+  try {
+    const res = summaryDlg.mode === 'weekly'
+      ? await customersApi.getLoyaltyWeeklySummaryAdmin(summaryDlg.range)
+      : await customersApi.getLoyaltyMonthlySummaryAdmin(summaryDlg.range);
+    const raw = res?.data;
+    summaryDlg.data = Array.isArray(raw) ? raw
+      : Array.isArray(raw?.data) ? raw.data : [];
+  } catch (e) {
+    toast('Lỗi khi tải tổng hợp điểm', 'error');
+    summaryDlg.data = [];
+  } finally {
+    summaryDlg.loading = false;
+  }
+}
+
+function getAdminBarWidth(value, type) {
+  if (!summaryDlg.data.length) return 0;
+  const maxVal = Math.max(
+    ...summaryDlg.data.map(r =>
+      type === 'earn' ? r.totalPointsEarned : r.totalPointsDeducted
+    )
+  );
+  return maxVal === 0 ? 0 : Math.round((value / maxVal) * 100);
+}
+
+function formatAdminDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 const dlg = reactive({
   open: false, mode: "create", loading: false, alert: "", id: null,
   form: { fullName: "", email: "", phone: "", birthDate: "", customerType: "REGULAR", address: "", notes: "", vipNote: "", vipTier: "" },
@@ -1019,5 +1263,85 @@ onMounted(load);
   .vip-note-detail-card { grid-column: 1; }
   .filter-row { flex-direction: column; }
   .filter-group { min-width: 100%; }
+}
+/* Summary Dialog */
+.modal-xl { max-width: 1000px; }
+.summary-controls {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px; border-bottom: 1px solid #f3f4f6;
+  background: #fafafa; gap: 12px; flex-wrap: wrap;
+}
+.summary-controls-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.control-group { display: flex; align-items: center; gap: 8px; }
+.control-label { font-size: 12px; font-weight: 600; color: #6b7280; white-space: nowrap; }
+.control-select { padding: 5px 8px; font-size: 12px; min-width: 100px; }
+.toggle-group { display: flex; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; }
+.toggle-btn { padding: 5px 12px; font-size: 12px; font-weight: 500; border: none; background: #fff; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; color: #374151; transition: all 0.15s; }
+.toggle-btn:hover { background: #f3f4f6; }
+.toggle-active { background: #1d4ed8 !important; color: #fff !important; }
+.summary-modal-body { max-height: 60vh; overflow-y: auto; }
+.summary-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: #9ca3af; }
+.summary-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px; color: #9ca3af; }
+
+/* Totals row */
+.summary-totals-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.summary-total-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; text-align: center; }
+.summary-total-card.earn { background: #f0fdf4; border-color: #bbf7d0; }
+.summary-total-card.deduct { background: #fff7ed; border-color: #fed7aa; }
+.summary-total-card.net-positive { background: #eff6ff; border-color: #bfdbfe; }
+.summary-total-card.net-negative { background: #fef2f2; border-color: #fecaca; }
+.summary-total-card.tx { background: #f5f3ff; border-color: #ddd6fe; }
+.stc-value { font-size: 20px; font-weight: 800; font-family: 'IBM Plex Mono', monospace; color: #111827; }
+.earn .stc-value { color: #15803d; }
+.deduct .stc-value { color: #c2410c; }
+.net-positive .stc-value { color: #1d4ed8; }
+.net-negative .stc-value { color: #dc2626; }
+.tx .stc-value { color: #7c3aed; }
+.stc-label { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+/* Period list */
+.summary-period-list { display: flex; flex-direction: column; gap: 10px; }
+.summary-period-row { display: grid; grid-template-columns: 160px 1fr 120px; gap: 16px; align-items: center; background: #fff; border: 1px solid #f3f4f6; border-radius: 8px; padding: 12px 16px; transition: background 0.15s; }
+.summary-period-row:hover { background: #fafbff; }
+.period-label { font-weight: 700; font-size: 13px; color: #111827; }
+.period-dates { font-size: 11px; color: #9ca3af; font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+.period-bars { display: flex; flex-direction: column; gap: 5px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-label { font-size: 11px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; width: 80px; text-align: right; }
+.earn-label { color: #15803d; }
+.deduct-label { color: #c2410c; }
+.bar-track { flex: 1; height: 7px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; min-width: 2px; }
+.bar-earn { background: linear-gradient(90deg, #22c55e, #86efac); }
+.bar-deduct { background: linear-gradient(90deg, #f97316, #fcd34d); }
+.period-net { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.net-badge { font-size: 13px; font-weight: 800; font-family: 'IBM Plex Mono', monospace; padding: 3px 8px; border-radius: 6px; }
+.net-pos { background: #dcfce7; color: #15803d; }
+.net-neg { background: #fee2e2; color: #dc2626; }
+.period-tx { font-size: 11px; color: #9ca3af; }
+
+/* Customer detail table */
+.customer-period-block { margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+.customer-period-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+.customer-period-title { font-weight: 700; font-size: 13px; color: #111827; }
+.customer-period-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
+.meta-earn { color: #15803d; font-weight: 700; }
+.meta-deduct { color: #c2410c; font-weight: 700; }
+.meta-sep { color: #d1d5db; }
+.meta-tx { color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 4px; }
+.customer-detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.customer-detail-table thead tr { background: #f9fafb; }
+.customer-detail-table th { padding: 8px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #6b7280; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.customer-detail-table tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.1s; }
+.customer-detail-table tbody tr:hover { background: #fafbff; }
+.customer-detail-table tbody tr:last-child { border-bottom: none; }
+.customer-detail-table td { padding: 8px 12px; }
+.cdt-name { font-weight: 600; color: #111827; }
+.cdt-email { font-size: 11px; color: #9ca3af; }
+.cdt-empty { padding: 16px; text-align: center; color: #9ca3af; font-size: 12px; font-style: italic; }
+
+@media (max-width: 768px) {
+  .summary-totals-row { grid-template-columns: 1fr 1fr; }
+  .summary-period-row { grid-template-columns: 1fr; }
 }
 </style>
