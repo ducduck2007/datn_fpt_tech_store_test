@@ -1,5 +1,6 @@
 package com.retailmanagement.config;
 
+import com.retailmanagement.security.BasicAuthenticationFilter;
 import com.retailmanagement.security.CustomUserDetailsService;
 import com.retailmanagement.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +28,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * ✅ Fix cho lỗi của bạn:
-     * - DaoAuthenticationProvider bắt buộc truyền UserDetailsService trong constructor
-     * - Không dùng setUserDetailsService() (vì version bạn đang dùng không có)
-     */
     @Bean
     public DaoAuthenticationProvider authenticationProvider(PasswordEncoder encoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
@@ -45,10 +41,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, DaoAuthenticationProvider provider) throws Exception {
+    public BasicAuthenticationFilter basicAuthenticationFilter(AuthenticationManager authenticationManager) {
+        return new BasicAuthenticationFilter(authenticationManager);
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http,
+            DaoAuthenticationProvider provider,
+            BasicAuthenticationFilter basicAuthenticationFilter) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> {})
+                .cors(cors -> {
+                })
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(provider)
                 .authorizeHttpRequests(auth -> auth
@@ -60,22 +64,18 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/api/products/**",
                                 "/api/categories/**",
-                                "/uploads/**"
-                        ).permitAll()
-
-                        //Cho phép chạy logout
+                                "/uploads/**")
+                        .permitAll()
                         .requestMatchers("/api/auth/logout").authenticated()
-
-                        // ví dụ rule role (tuỳ bạn đang dùng ROLE_... hay không)
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/sales/**").hasAnyRole("SALES", "ADMIN")
                         .requestMatchers("/api/inventory/**").hasAnyRole("INVENTORY", "ADMIN")
                         .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers("/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN")
-
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                        .anyRequest().authenticated())
+                // ✅ Thứ tự đúng: Basic → JWT → UsernamePasswordAuthenticationFilter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(basicAuthenticationFilter, jwtAuthenticationFilter.getClass());
 
         return http.build();
     }

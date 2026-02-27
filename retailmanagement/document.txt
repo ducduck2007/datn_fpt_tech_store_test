@@ -1,0 +1,30 @@
+- Hiển thị giá áp dụng chiến dịch (GET)
+http://localhost:8080/api/prices/products/{productId}
+{
+   "success":true,
+   "message":"Success",
+   "data":[
+      {
+         "costPrice":null,
+         "currencyCode":"VND",
+         "finalPrice":14391000.00,
+         "price":15990000.00,
+         "productId":1,
+         "promotionCode":"TET10",
+         "sku":"LAP-DELL-001-V1",
+         "variantId":1,
+         "variantName":"Core i5 / 16GB / 512GB"
+      },
+      {
+         "costPrice":null,
+         "currencyCode":"VND",
+         "finalPrice":18891000.00,
+         "price":20990000.00,
+         "productId":1,
+         "promotionCode":"TET10",
+         "sku":"LAP-DELL-001-V2",
+         "variantId":11,
+         "variantName":"Core i7 / 16GB / 1TB"
+      }
+   ]
+}
