@@ -38,6 +38,7 @@ import Customerspendinganalytics from "../pages/system/Customerspendinganalytics
 import Spinwheel from "../pages/customer/Spinwheel.vue";
 import InactiveCustomers from "../pages/system/InactiveCustomers.vue";
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
+import AuditLog from "../pages/system/AuditLog.vue";
 const routes = [
   // ===== CUSTOMER PORTAL =====
   {
@@ -255,6 +256,13 @@ const routes = [
         name: "Birthday Manager",
         component: Birthday,
         meta: { title: "Settings - Birthday Manager" },
+      },
+      // Audit
+      {
+        path: "audit-logs",
+        name: "system-audit-logs",
+       component: AuditLog,
+      meta: { title: "Audit Logs" },
       },
     ],
   },

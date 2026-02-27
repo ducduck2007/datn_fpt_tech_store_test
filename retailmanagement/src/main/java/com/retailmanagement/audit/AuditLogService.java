@@ -63,7 +63,7 @@ public class AuditLogService {
 
         Instant from = date.atStartOfDay(zone).toInstant();
 
-        Instant to = date.plusDays(30).atStartOfDay(zone).toInstant();
+        Instant to = date.plusDays(1).atStartOfDay(zone).toInstant();
 
         return auditLogRepository.findByCreatedAtBetween(from, to)
                 .stream()
