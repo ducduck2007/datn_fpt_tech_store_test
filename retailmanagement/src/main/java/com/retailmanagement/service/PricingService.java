@@ -1,6 +1,7 @@
 package com.retailmanagement.service;
 
 import com.retailmanagement.dto.request.UpsertPriceRequest;
+import com.retailmanagement.dto.response.PriceHistoryResponse;
 import com.retailmanagement.dto.response.VariantPriceResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
@@ -193,7 +194,7 @@ public class PricingService {
     }
 
     @Transactional
-    public PriceHistory updateLatestHistory(Long priceHistoryId, UpsertPriceRequest req) {
+    public PriceHistoryResponse updateLatestHistory(Long priceHistoryId, UpsertPriceRequest req) {
         PriceHistory ph = priceHistoryRepo.findById(priceHistoryId)
                 .orElseThrow(() -> new NoSuchElementException("Price history not found"));
 
@@ -228,7 +229,19 @@ public class PricingService {
         v.setUpdatedAt(Instant.now());
         variantRepo.save(v);
 
-        return ph;
+        // Map sang DTO thay vì trả entity
+        PriceHistoryResponse dto = new PriceHistoryResponse();
+        dto.setId(ph.getId());
+        dto.setVariantId(v.getId());
+        dto.setCurrencyCode(ph.getCurrencyCode());
+        dto.setPrice(ph.getPrice());
+        dto.setCostPrice(ph.getCostPrice());
+        dto.setReason(ph.getReason());
+        dto.setEffectiveFrom(ph.getEffectiveFrom());
+        dto.setEffectiveTo(ph.getEffectiveTo());
+        dto.setCreatedByUsername(ph.getCreatedBy() != null ? ph.getCreatedBy().getUsername() : null);
+        dto.setCreatedAt(ph.getCreatedAt());
+        return dto;
     }
 
     @Transactional
@@ -280,8 +293,24 @@ public class PricingService {
     }
 
     // Lịch sử giá
-    public List<PriceHistory> getPriceHistory(Integer variantId) {
-        return priceHistoryRepo.findByVariant_IdOrderByEffectiveFromDesc(variantId);
+    public List<PriceHistoryResponse> getPriceHistory(Integer variantId) {
+        return priceHistoryRepo.findByVariant_IdOrderByEffectiveFromDesc(variantId)
+                .stream()
+                .map(ph -> {
+                    PriceHistoryResponse dto = new PriceHistoryResponse();
+                    dto.setId(ph.getId());
+                    dto.setVariantId(ph.getVariant().getId());
+                    dto.setCurrencyCode(ph.getCurrencyCode());
+                    dto.setPrice(ph.getPrice());
+                    dto.setCostPrice(ph.getCostPrice());
+                    dto.setReason(ph.getReason());
+                    dto.setEffectiveFrom(ph.getEffectiveFrom());
+                    dto.setEffectiveTo(ph.getEffectiveTo());
+                    dto.setCreatedByUsername(ph.getCreatedBy() != null ? ph.getCreatedBy().getUsername() : null);
+                    dto.setCreatedAt(ph.getCreatedAt());
+                    return dto;
+                })
+                .toList();
     }
 
     // Cảnh báo giá < giá nhập
