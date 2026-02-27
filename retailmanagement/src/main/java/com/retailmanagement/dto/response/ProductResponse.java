@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class ProductResponse {
@@ -29,4 +30,9 @@ public class ProductResponse {
     // Additional fields
     private Integer variantId;
     private Integer categoryId;
+
+    private Integer totalStock; // Tổng số lượng tồn kho
+    private Boolean inStock;    // Trạng thái còn hàng hay không
+
+    private List<String> tags;
 }

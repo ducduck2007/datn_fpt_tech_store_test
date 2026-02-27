@@ -22,4 +22,6 @@ public class ProductRequest {
     private List<MultipartFile> galleryImages;
 
     private List<Long> idsToDelete;
+
+    private List<Integer> tagIds;
 }
