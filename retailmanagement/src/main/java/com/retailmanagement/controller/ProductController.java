@@ -22,9 +22,11 @@ public class ProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) List<Integer> categoryIds,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String sortBy
-    ) {
-        return ResponseEntity.ok(productService.getProducts(page, categoryIds, keyword, sortBy));
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "false") boolean inStockOnly,
+            @RequestParam(required = false) Integer tagId) {
+
+        return ResponseEntity.ok(productService.getProducts(page, categoryIds, keyword, sortBy, inStockOnly, tagId));
     }
 
     @GetMapping("/{id}")
