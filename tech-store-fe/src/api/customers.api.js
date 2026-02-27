@@ -136,5 +136,27 @@ getZeroOrderStats() {
 getPromotionHistory(customerId, type = null) {
     const params = type ? `?type=${type}` : "";
     return http.get(`/api/auth/customers/${customerId}/promotion-history${params}`);
-  }
+  },
+  // Thêm vào cuối object customersApi, trước dấu }
+
+// ── LOYALTY SUMMARY ──────────────────────────────────────────────────────────
+getLoyaltyWeeklySummaryMe(weeks = 12) {
+  return http.get(`/api/auth/loyalty/summary/me/weekly?weeks=${weeks}`);
+},
+getLoyaltyMonthlySummaryMe(months = 12) {
+  return http.get(`/api/auth/loyalty/summary/me/monthly?months=${months}`);
+},
+getLoyaltyWeeklySummaryByCustomer(customerId, weeks = 12) {
+  return http.get(`/api/auth/loyalty/summary/customer/${customerId}/weekly?weeks=${weeks}`);
+},
+getLoyaltyMonthlySummaryByCustomer(customerId, months = 12) {
+  return http.get(`/api/auth/loyalty/summary/customer/${customerId}/monthly?months=${months}`);
+},
+// Admin only
+getLoyaltyWeeklySummaryAdmin(weeks = 12) {
+  return http.get(`/api/auth/loyalty/summary/admin/weekly?weeks=${weeks}`);
+},
+getLoyaltyMonthlySummaryAdmin(months = 12) {
+  return http.get(`/api/auth/loyalty/summary/admin/monthly?months=${months}`);
+}
 };

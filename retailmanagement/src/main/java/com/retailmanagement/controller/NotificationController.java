@@ -25,78 +25,138 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final CustomerService customerService;
-    private final SpinWheelController spinWheelService;
 
-    /**
-     * Lấy danh sách thông báo của khách hàng hiện tại
-     */
+    // ================================================================
+    // CUSTOMER — thông báo của tôi
+    // ================================================================
+
     @GetMapping("/my")
     public ResponseEntity<List<NotificationResponse>> getMyNotifications(
             @RequestParam(required = false, defaultValue = "false") boolean unreadOnly
     ) {
         Integer customerId = getCurrentCustomerId();
-
         List<Notification> notifications = unreadOnly
                 ? notificationService.getUnreadNotifications(customerId)
                 : notificationService.getAllNotifications(customerId);
-
-        List<NotificationResponse> response = notifications.stream()
+        return ResponseEntity.ok(notifications.stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
+                .collect(Collectors.toList()));
     }
 
-    /**
-     * Đếm số thông báo chưa đọc
-     */
     @GetMapping("/my/unread-count")
     public ResponseEntity<Map<String, Long>> getUnreadCount() {
         Integer customerId = getCurrentCustomerId();
-        long count = notificationService.countUnread(customerId);
-        return ResponseEntity.ok(Map.of("unreadCount", count));
+        return ResponseEntity.ok(Map.of("unreadCount", notificationService.countUnread(customerId)));
     }
 
-    /**
-     * Đánh dấu thông báo đã đọc
-     */
     @PutMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable Long id) {
-        Integer customerId = getCurrentCustomerId();
-        notificationService.markAsRead(id, customerId);
+        notificationService.markAsRead(id, getCurrentCustomerId());
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * Đánh dấu tất cả đã đọc
-     */
     @PutMapping("/read-all")
     public ResponseEntity<Void> markAllAsRead() {
-        Integer customerId = getCurrentCustomerId();
-        notificationService.markAllAsRead(customerId);
+        notificationService.markAllAsRead(getCurrentCustomerId());
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * Xóa thông báo
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
-        Integer customerId = getCurrentCustomerId();
-        notificationService.deleteNotification(id, customerId);
+        notificationService.deleteNotification(id, getCurrentCustomerId());
         return ResponseEntity.noContent().build();
     }
 
-    // Helper methods
+    // ================================================================
+    // ADMIN — Purchase Reminder
+    // ================================================================
+
+    @GetMapping("/purchase-reminders/history")
+    public ResponseEntity<List<NotificationResponse>> getPurchaseReminderHistory() {
+        return ResponseEntity.ok(notificationService.getPurchaseReminderHistory().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList()));
+    }
+
+    @PostMapping("/purchase-reminders/trigger")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<?> triggerPurchaseReminders() {
+        notificationService.sendPurchaseReminders();
+        return ResponseEntity.ok(Map.of("message", "Triggered successfully"));
+    }
+
+    // ================================================================
+    // ADMIN — Spin Expiry
+    // ================================================================
+
+    @PostMapping("/spin-expiry/trigger")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<?> triggerSpinExpiryWarnings() {
+        notificationService.sendSpinExpiryWarnings();
+        return ResponseEntity.ok(Map.of("message", "Spin expiry warnings triggered successfully"));
+    }
+
+    // ================================================================
+    // ADMIN — Gửi thông báo tùy chỉnh
+    // ================================================================
+
+    @PostMapping("/send")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<Map<String, Object>> sendNotification(
+            @RequestBody SendNotificationRequest request) {
+
+        if (request.getCustomerIds() == null || request.getCustomerIds().isEmpty())
+            return ResponseEntity.badRequest().body(Map.of("error", "customerIds không được rỗng"));
+        if (request.getTitle() == null || request.getTitle().isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "title không được rỗng"));
+        if (request.getMessage() == null || request.getMessage().isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "message không được rỗng"));
+
+        return ResponseEntity.ok(notificationService.sendToCustomers(request));
+    }
+
+    // ================================================================
+    // ✅ THÊM MỚI — ADMIN: Birthday
+    // ================================================================
+
+    /**
+     * Trigger thủ công job sinh nhật (test hoặc gửi bù nếu scheduler bị miss).
+     * POST /api/auth/notifications/birthday/trigger
+     */
+    @PostMapping("/birthday/trigger")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<Map<String, Object>> triggerBirthdayNotifications() {
+        notificationService.sendBirthdayNotifications();
+        return ResponseEntity.ok(Map.of(
+                "message", "Đã gửi thông báo sinh nhật thành công",
+                "voucherCode", "BIRTHDAY250K",
+                "discount", "250.000đ",
+                "minOrder", "1.000.000đ",
+                "validDays", 7
+        ));
+    }
+
+    /**
+     * Xem lịch sử thông báo sinh nhật đã gửi.
+     * GET /api/auth/notifications/birthday/history
+     */
+    @GetMapping("/birthday/history")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<List<NotificationResponse>> getBirthdayHistory() {
+        return ResponseEntity.ok(notificationService.getBirthdayNotificationHistory().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList()));
+    }
+
+    // ================================================================
+    // PRIVATE HELPERS
+    // ================================================================
+
     private Integer getCurrentCustomerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String principal = auth.getName(); // có thể là email hoặc username
-
-        // findByEmail đã tự fallback sang findByName bên trong CustomerService
-        var customer = customerService.findByEmail(principal);
-        if (customer == null) {
-            throw new RuntimeException("Không tìm thấy khách hàng: " + principal);
-        }
+        var customer = customerService.findByEmail(auth.getName());
+        if (customer == null)
+            throw new RuntimeException("Không tìm thấy khách hàng: " + auth.getName());
         return customer.getId();
     }
 
@@ -113,64 +173,4 @@ public class NotificationController {
                 .readAt(notification.getReadAt())
                 .build();
     }
-    // Thêm vào NotificationController.java
-
-    /**
-     * Admin: Xem lịch sử reminder đã gửi
-     * GET /api/auth/notifications/purchase-reminders/history
-     */
-    @GetMapping("/purchase-reminders/history")
-    public ResponseEntity<List<NotificationResponse>> getPurchaseReminderHistory() {
-        List<Notification> notifications = notificationService.getPurchaseReminderHistory();
-        List<NotificationResponse> response = notifications.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Admin: Trigger thủ công (test hoặc gửi ngay)
-     * POST /api/auth/notifications/purchase-reminders/trigger
-     */
-
-    @PostMapping("/purchase-reminders/trigger")
-    public ResponseEntity<?> triggerPurchaseReminders() {
-        notificationService.sendPurchaseReminders();
-        return ResponseEntity.ok(Map.of("message", "Triggered successfully"));
-    }
-    /**
-     * Admin: Trigger cảnh báo spin sắp hết hạn thủ công
-     * POST /api/auth/notifications/spin-expiry/trigger
-     */
-    @PostMapping("/spin-expiry/trigger")
-    public ResponseEntity<?> triggerSpinExpiryWarnings() {
-        notificationService.sendSpinExpiryWarnings();
-        return ResponseEntity.ok(Map.of(
-                "message", "Spin expiry warnings triggered successfully"
-        ));
-    }
-
-    @PostMapping("/send")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<Map<String, Object>> sendNotification(
-            @RequestBody SendNotificationRequest request) {
-
-        // Validation cơ bản
-        if (request.getCustomerIds() == null || request.getCustomerIds().isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "customerIds không được rỗng"));
-        }
-        if (request.getTitle() == null || request.getTitle().isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "title không được rỗng"));
-        }
-        if (request.getMessage() == null || request.getMessage().isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "message không được rỗng"));
-        }
-
-        Map<String, Object> result = notificationService.sendToCustomers(request);
-        return ResponseEntity.ok(result);
-    }
-
 }

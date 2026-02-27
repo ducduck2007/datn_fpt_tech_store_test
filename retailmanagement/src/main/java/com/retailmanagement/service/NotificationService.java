@@ -5,6 +5,8 @@ import com.retailmanagement.dto.response.CustomerBirthdayResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.NotificationRepository;
+import com.retailmanagement.repository.PromotionRepository;
+import com.retailmanagement.repository.PromotionRedemptionRepository;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,15 +25,30 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final CustomRes customerRepository;
     private final SpinWheelService spinWheelService;
+    // ✅ THÊM MỚI: để tạo & kiểm tra voucher sinh nhật
+    private final PromotionRepository promotionRepository;
+    private final PromotionRedemptionRepository promotionRedemptionRepository;
+
+    // ----------------------------------------------------------------
+    // Constants cho voucher sinh nhật
+    // ----------------------------------------------------------------
+    private static final String  BIRTHDAY_VOUCHER_CODE      = "BIRTHDAY250K";
+    private static final BigDecimal BIRTHDAY_DISCOUNT_AMOUNT = new BigDecimal("250000");
+    private static final BigDecimal BIRTHDAY_MIN_ORDER       = new BigDecimal("1000000");
+    private static final int     BIRTHDAY_VALID_DAYS         = 7;   // hiệu lực 7 ngày
 
     public NotificationService(
             NotificationRepository notificationRepository,
             CustomRes customerRepository,
-            @Lazy SpinWheelService spinWheelService
+            @Lazy SpinWheelService spinWheelService,
+            PromotionRepository promotionRepository,                    // ✅ THÊM
+            PromotionRedemptionRepository promotionRedemptionRepository // ✅ THÊM
     ) {
-        this.notificationRepository = notificationRepository;
-        this.customerRepository     = customerRepository;
-        this.spinWheelService       = spinWheelService;
+        this.notificationRepository          = notificationRepository;
+        this.customerRepository              = customerRepository;
+        this.spinWheelService                = spinWheelService;
+        this.promotionRepository             = promotionRepository;
+        this.promotionRedemptionRepository   = promotionRedemptionRepository;
     }
 
     // ================================================================
@@ -63,12 +80,6 @@ public class NotificationService {
     // ✅ WELCOME — gửi thủ công từ admin (ZeroOrderCustomers page)
     //    POST /api/auth/notifications/send
     // ================================================================
-
-    /**
-     * Admin chọn danh sách khách và gửi thông báo tùy chỉnh.
-     * FE đã personalize {name} trước khi gửi từng request.
-     * Returns: { success, fail, total, errors? }
-     */
     @Transactional
     public Map<String, Object> sendToCustomers(SendNotificationRequest request) {
         int success = 0;
@@ -79,7 +90,7 @@ public class NotificationService {
         try {
             type = NotificationType.valueOf(request.getType());
         } catch (Exception e) {
-            type = NotificationType.WELCOME; // fallback an toàn
+            type = NotificationType.WELCOME;
         }
 
         for (Integer customerId : request.getCustomerIds()) {
@@ -107,22 +118,18 @@ public class NotificationService {
 
     // ================================================================
     // ✅ WELCOME — tự động scheduled (chạy mỗi ngày 9h sáng)
-    //    Tìm khách đăng ký >= 3 ngày, chưa có đơn nào, chưa nhận WELCOME trong 7 ngày
     // ================================================================
-
     @Transactional
     public void sendWelcomeToZeroOrderCustomers() {
-        // Lấy khách đã đăng ký >= 3 ngày nhưng chưa mua đơn nào
         LocalDateTime registeredBefore = LocalDateTime.now().minusDays(3);
         List<Customer> zeroOrderCustomers = customerRepository.findZeroOrderCustomers(registeredBefore);
 
-        int sent   = 0;
+        int sent    = 0;
         int skipped = 0;
 
         for (Customer customer : zeroOrderCustomers) {
             if (!customer.getIsActive()) { skipped++; continue; }
 
-            // Chỉ gửi 1 lần / 7 ngày để không spam
             boolean alreadySent = notificationRepository.existsByCustomerIdAndTypeAndCreatedAtBetween(
                     customer.getId(),
                     NotificationType.WELCOME,
@@ -135,12 +142,10 @@ public class NotificationService {
                     customer.getCreatedAt(), LocalDateTime.now()
             );
 
-            // Nội dung khác nhau theo số ngày đăng ký
             String title;
             String message;
 
             if (daysRegistered <= 7) {
-                // Mới đăng ký (3–7 ngày) — chào mừng nhẹ nhàng
                 title = "🎉 Chào mừng bạn đến với cửa hàng!";
                 message = String.format(
                         "Xin chào %s! 👋\n\n" +
@@ -150,7 +155,6 @@ public class NotificationService {
                         customer.getName()
                 );
             } else if (daysRegistered <= 30) {
-                // 7–30 ngày — thêm chút urgency
                 title = "💰 Ưu đãi đặc biệt chỉ dành riêng cho bạn!";
                 message = String.format(
                         "Xin chào %s!\n\n" +
@@ -161,7 +165,6 @@ public class NotificationService {
                         customer.getName(), daysRegistered
                 );
             } else {
-                // > 30 ngày — winback mạnh hơn
                 title = "🤝 Chúng tôi muốn hỗ trợ bạn tìm sản phẩm phù hợp!";
                 message = String.format(
                         "Xin chào %s!\n\n" +
@@ -183,9 +186,73 @@ public class NotificationService {
     }
 
     // ================================================================
-    // BIRTHDAY (giữ nguyên)
+    // ✅ BIRTHDAY — CÓ CẬP NHẬT: tặng kèm voucher BIRTHDAY250K
     // ================================================================
 
+    /**
+     * Đảm bảo promotion BIRTHDAY250K tồn tại và còn hiệu lực.
+     * Nếu chưa có hoặc đã hết hạn → tạo mới với window 7 ngày từ hôm nay.
+     * Dùng chung 1 code cho tất cả khách sinh nhật hôm nay.
+     */
+    private Promotion ensureBirthdayVoucherExists() {
+        LocalDateTime now     = LocalDateTime.now();
+        LocalDateTime endDate = now.plusDays(BIRTHDAY_VALID_DAYS);
+
+        Optional<Promotion> existing = promotionRepository.findByCode(BIRTHDAY_VOUCHER_CODE);
+
+        if (existing.isPresent()) {
+            Promotion p = existing.get();
+            // Còn hiệu lực → dùng lại, không tạo mới
+            if (p.getIsActive() && p.getEndDate().isAfter(now)) {
+                return p;
+            }
+            // Hết hạn → gia hạn thêm 7 ngày từ hôm nay
+            p.setStartDate(now);
+            p.setEndDate(endDate);
+            p.setIsActive(true);
+            Promotion updated = promotionRepository.save(p);
+            System.out.printf("♻️ [BIRTHDAY VOUCHER] Gia hạn %s → %s%n", now, endDate);
+            return updated;
+        }
+
+        // Chưa tồn tại → tạo mới
+        Promotion voucher = Promotion.builder()
+                .code(BIRTHDAY_VOUCHER_CODE)
+                .name("🎂 Voucher sinh nhật — Giảm 250.000đ")
+                .description("Ưu đãi sinh nhật: giảm 250.000đ cho đơn hàng từ 1.000.000đ. " +
+                        "Hiệu lực 7 ngày kể từ ngày sinh nhật.")
+                .discountType("AMOUNT")
+                .discountValue(BIRTHDAY_DISCOUNT_AMOUNT)
+                .minOrderAmount(BIRTHDAY_MIN_ORDER)
+                .applicabilityJson("{\"scope\":\"ALL\"}")
+                .rulesJson(null)  // không giới hạn số lần dùng (mỗi khách tự dùng 1 lần)
+                .priority(10)     // ưu tiên cao hơn promo thường
+                .stackable(false)
+                .startDate(now)
+                .endDate(endDate)
+                .isActive(true)
+                .createdBy(null)  // SYSTEM
+                .createdAt(now)
+                .build();
+
+        Promotion saved = promotionRepository.save(voucher);
+
+        // Khởi tạo redemption counter
+        PromotionRedemption redemption = new PromotionRedemption();
+        redemption.setPromotionId(saved.getId());
+        redemption.setUsedCount(0L);
+        redemption.setUpdatedAt(now);
+        promotionRedemptionRepository.save(redemption);
+
+        System.out.printf("✅ [BIRTHDAY VOUCHER] Tạo mới %s, hiệu lực đến %s%n",
+                BIRTHDAY_VOUCHER_CODE, endDate);
+        return saved;
+    }
+
+    /**
+     * Tạo thông báo sinh nhật kèm voucher cho 1 khách.
+     * Chỉ gửi 1 lần / năm (kiểm tra theo năm hiện tại).
+     */
     @Transactional
     public void createBirthdayNotification(Customer customer) {
         LocalDateTime yearStart = LocalDate.now().withDayOfYear(1).atStartOfDay();
@@ -194,32 +261,65 @@ public class NotificationService {
         boolean exists = notificationRepository.existsByCustomerIdAndTypeAndCreatedAtBetween(
                 customer.getId(), NotificationType.BIRTHDAY, yearStart, yearEnd
         );
+        if (exists) return; // Đã gửi trong năm nay rồi
 
-        if (!exists) {
-            Notification notification = Notification.builder()
-                    .customer(customer)
-                    .type(NotificationType.BIRTHDAY)
-                    .title("🎂 Chúc mừng sinh nhật!")
-                    .message(String.format(
-                            "Chúc mừng sinh nhật %s! 🎉 Chúc bạn một ngày thật vui vẻ và hạnh phúc. " +
-                                    "Đừng quên check voucher sinh nhật đặc biệt của bạn nhé!",
-                            customer.getName()
-                    ))
-                    .isRead(false)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            notificationRepository.save(notification);
-        }
+        // ✅ Đảm bảo voucher BIRTHDAY250K tồn tại / còn hạn
+        Promotion voucher = ensureBirthdayVoucherExists();
+
+        // Tính ngày hết hạn voucher để hiển thị trong thông báo
+        String expiryDisplay = voucher.getEndDate()
+                .toLocalDate()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        Notification notification = Notification.builder()
+                .customer(customer)
+                .type(NotificationType.BIRTHDAY)
+                .title("🎂 Chúc mừng sinh nhật " + customer.getName() + "!")
+                .message(String.format(
+                        "🎉 Sinh nhật vui vẻ, %s!\n\n" +
+                                "Nhân ngày đặc biệt này, cửa hàng gửi tặng bạn voucher ưu đãi:\n\n" +
+                                "🎁 Mã voucher: %s\n" +
+                                "💰 Giảm: 250.000đ\n" +
+                                "🛒 Đơn tối thiểu: 1.000.000đ\n" +
+                                "⏳ Hết hạn: %s\n\n" +
+                                "Nhập mã khi thanh toán để áp dụng ưu đãi nhé! 🛍️",
+                        customer.getName(),
+                        BIRTHDAY_VOUCHER_CODE,
+                        expiryDisplay
+                ))
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(notification);
+        System.out.printf("🎂 [BIRTHDAY] Đã gửi thông báo + voucher %s cho khách #%d (%s)%n",
+                BIRTHDAY_VOUCHER_CODE, customer.getId(), customer.getName());
     }
 
+    /**
+     * Job chính: quét khách sinh nhật hôm nay và gửi thông báo + voucher.
+     * Được gọi bởi BirthdayScheduler lúc 6:00 sáng.
+     */
     @Transactional
     public void sendBirthdayNotifications() {
         List<Customer> birthdayCustomers = customerRepository.findCustomersWithBirthdayToday();
+
+        int sent    = 0;
+        int skipped = 0;
+
         for (Customer customer : birthdayCustomers) {
-            if (customer.getIsActive()) createBirthdayNotification(customer);
+            if (!customer.getIsActive()) { skipped++; continue; }
+            createBirthdayNotification(customer);
+            sent++;
         }
-        System.out.println("📨 Đã gửi " + birthdayCustomers.size() + " thông báo sinh nhật");
+
+        System.out.printf("📨 [BIRTHDAY JOB] sent=%d, skipped=%d (inactive), total=%d%n",
+                sent, skipped, birthdayCustomers.size());
     }
+
+    // ----------------------------------------------------------------
+    // Các method birthday còn lại — GIỮ NGUYÊN
+    // ----------------------------------------------------------------
 
     @Transactional
     public void createCustomBirthdayNotification(Integer customerId, String customMessage) {
@@ -262,7 +362,7 @@ public class NotificationService {
     }
 
     // ================================================================
-    // READ / DELETE / COUNT (giữ nguyên)
+    // READ / DELETE / COUNT — GIỮ NGUYÊN
     // ================================================================
 
     public List<Notification> getUnreadNotifications(Integer customerId) {
@@ -308,7 +408,7 @@ public class NotificationService {
     }
 
     // ================================================================
-    // BIRTHDAY CALENDAR (giữ nguyên)
+    // BIRTHDAY CALENDAR — GIỮ NGUYÊN
     // ================================================================
 
     public List<CustomerBirthdayResponse> getBirthdaysByMonth(int month) {
@@ -365,7 +465,7 @@ public class NotificationService {
     }
 
     // ================================================================
-    // VIP TIER UPGRADE (giữ nguyên)
+    // VIP TIER UPGRADE — GIỮ NGUYÊN
     // ================================================================
 
     @Transactional
@@ -425,13 +525,13 @@ public class NotificationService {
 
     private VipTier getNextTier(VipTier currentTier) {
         if (currentTier == null) return VipTier.BRONZE;
-        VipTier[] tiers  = VipTier.values();
+        VipTier[] tiers = VipTier.values();
         int idx = currentTier.ordinal();
         return idx < tiers.length - 1 ? tiers[idx + 1] : null;
     }
 
     // ================================================================
-    // PURCHASE REMINDER (giữ nguyên)
+    // PURCHASE REMINDER — GIỮ NGUYÊN
     // ================================================================
 
     @Transactional
@@ -489,7 +589,7 @@ public class NotificationService {
     }
 
     // ================================================================
-    // SPIN EXPIRY WARNING (giữ nguyên)
+    // SPIN EXPIRY WARNING — GIỮ NGUYÊN
     // ================================================================
 
     @Transactional
@@ -516,7 +616,7 @@ public class NotificationService {
     }
 
     // ================================================================
-    // PRIVATE HELPER
+    // PRIVATE HELPER — GIỮ NGUYÊN
     // ================================================================
 
     private CustomerBirthdayResponse mapToResponse(Customer customer) {

@@ -462,6 +462,143 @@
             </el-card>
           </el-tab-pane>
 
+          <!-- TAB: TỔNG HỢP ĐIỂM -->
+<el-tab-pane name="summary">
+  <template #label>
+    <span class="d-flex align-items-center gap-1">
+      <el-icon><TrendCharts /></el-icon> Tổng hợp điểm
+    </span>
+  </template>
+
+  <!-- Controls -->
+  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold text-muted small">Chu kỳ:</span>
+      <el-radio-group v-model="summaryMode" size="small" @change="loadLoyaltySummary">
+        <el-radio-button value="weekly">Theo tuần</el-radio-button>
+        <el-radio-button value="monthly">Theo tháng</el-radio-button>
+      </el-radio-group>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold text-muted small">Hiển thị:</span>
+      <el-select v-model="summaryRange" style="width:130px" size="small" @change="loadLoyaltySummary">
+        <template v-if="summaryMode === 'weekly'">
+          <el-option label="4 tuần" :value="4" />
+          <el-option label="8 tuần" :value="8" />
+          <el-option label="12 tuần" :value="12" />
+          <el-option label="26 tuần" :value="26" />
+        </template>
+        <template v-else>
+          <el-option label="3 tháng" :value="3" />
+          <el-option label="6 tháng" :value="6" />
+          <el-option label="12 tháng" :value="12" />
+          <el-option label="24 tháng" :value="24" />
+        </template>
+      </el-select>
+    </div>
+    <el-button size="small" @click="loadLoyaltySummary" :loading="summaryLoading">
+      <el-icon><Refresh /></el-icon> Tải lại
+    </el-button>
+  </div>
+
+  <el-skeleton v-if="summaryLoading" :rows="6" animated />
+  <el-empty v-else-if="!loyaltySummary.length" description="Chưa có dữ liệu tổng hợp" />
+
+  <template v-else>
+    <!-- Tổng quan nhanh -->
+    <el-row :gutter="16" class="mb-4">
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card earn-card">
+          <div class="stats-content">
+            <el-icon :size="32" class="stats-icon"><CirclePlus /></el-icon>
+            <div>
+              <div class="stats-value">+{{ summaryTotals.earned.toLocaleString() }}</div>
+              <div class="stats-label">Tổng điểm cộng</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card deduct-card">
+          <div class="stats-content">
+            <el-icon :size="32" class="stats-icon"><Remove /></el-icon>
+            <div>
+              <div class="stats-value">{{ summaryTotals.deducted.toLocaleString() }}</div>
+              <div class="stats-label">Tổng điểm trừ</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card transactions-card">
+          <div class="stats-content">
+            <el-icon :size="32" class="stats-icon"><TrendCharts /></el-icon>
+            <div>
+              <div class="stats-value" :class="summaryTotals.net >= 0 ? 'text-success' : 'text-danger'">
+                {{ summaryTotals.net >= 0 ? '+' : '' }}{{ summaryTotals.net.toLocaleString() }}
+              </div>
+              <div class="stats-label">Net điểm</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- Bảng chi tiết từng kỳ -->
+    <el-card shadow="never">
+      <h4 class="mb-3 fw-bold">
+        Chi tiết {{ summaryMode === 'weekly' ? 'theo tuần' : 'theo tháng' }}
+      </h4>
+      <el-table :data="loyaltySummary" stripe style="width:100%">
+        <el-table-column label="Kỳ" min-width="160">
+          <template #default="{ row }">
+            <div class="fw-bold">{{ row.periodLabel }}</div>
+            <div class="text-muted" style="font-size:11px">
+              {{ formatDate(row.periodStart) }} – {{ formatDate(row.periodEnd) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="Điểm cộng" width="130" align="right">
+          <template #default="{ row }">
+            <span class="fw-bold text-success">+{{ row.totalPointsEarned.toLocaleString() }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Điểm trừ" width="130" align="right">
+          <template #default="{ row }">
+            <span class="fw-bold text-warning">
+              {{ row.totalPointsDeducted > 0 ? '-' : '' }}{{ row.totalPointsDeducted.toLocaleString() }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Net" width="120" align="right">
+          <template #default="{ row }">
+            <el-tag :type="row.netPoints >= 0 ? 'success' : 'danger'" effect="dark" size="small">
+              {{ row.netPoints >= 0 ? '+' : '' }}{{ row.netPoints.toLocaleString() }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="GD" width="90" align="center">
+          <template #default="{ row }">
+            <span class="text-muted">{{ row.totalTransactions }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Biểu đồ" min-width="160">
+          <template #default="{ row }">
+            <div class="summary-bar-wrap">
+              <div class="summary-bar-earn"
+                :style="{ width: getSummaryBarWidth(row.totalPointsEarned, 'earn') + '%' }"
+                :title="`+${row.totalPointsEarned} điểm cộng`" />
+              <div class="summary-bar-deduct"
+                :style="{ width: getSummaryBarWidth(row.totalPointsDeducted, 'deduct') + '%' }"
+                :title="`-${row.totalPointsDeducted} điểm trừ`" />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </template>
+</el-tab-pane>
+
           <!-- TAB: LỊCH SỬ GIAO DỊCH -->
           <el-tab-pane label="Lịch sử giao dịch" name="payments">
             <el-row :gutter="16" class="mb-3">
@@ -728,6 +865,12 @@ const loadingOrderBill    = ref(false);
 const orderBill           = ref(null);
 const currentBillPoints   = ref(0);
 
+// ── Loyalty Summary ───────────────────────────────────────────────────────────
+const summaryLoading = ref(false);
+const loyaltySummary = ref([]);
+const summaryMode    = ref('monthly');  // 'weekly' | 'monthly'
+const summaryRange   = ref(6);
+
 const formData = ref({ fullName: '', email: '', phone: '', address: '', notes: '', birthDate: '' });
 
 // ── Computed ──────────────────────────────────────────────────────────────────
@@ -736,6 +879,32 @@ const loyaltyStats = computed(() => {
   const deducted = loyaltyHistory.value.filter(h => h.pointsDelta < 0).reduce((s, h) => s + Math.abs(h.pointsDelta), 0);
   return { totalEarned: earned.toLocaleString(), totalDeducted: deducted.toLocaleString(), totalTransactions: loyaltyHistory.value.length };
 });
+const summaryTotals = computed(() => {
+  const earned   = loyaltySummary.value.reduce((s, r) => s + (r.totalPointsEarned   || 0), 0);
+  const deducted = loyaltySummary.value.reduce((s, r) => s + (r.totalPointsDeducted || 0), 0);
+  return { earned, deducted, net: earned - deducted };
+});
+const loadLoyaltySummary = async () => {
+  if (!customer.value?.id) return;
+  summaryLoading.value = true;
+  try {
+    const res = summaryMode.value === 'weekly'
+      ? await customersApi.getLoyaltyWeeklySummaryMe(summaryRange.value)
+      : await customersApi.getLoyaltyMonthlySummaryMe(summaryRange.value);
+    loyaltySummary.value = unwrap(res) || [];
+  } catch { ElMessage.error('Lỗi khi tải tổng hợp điểm'); }
+  finally   { summaryLoading.value = false; }
+};
+
+const getSummaryBarWidth = (value, type) => {
+  if (!loyaltySummary.value.length) return 0;
+  const maxVal = Math.max(
+    ...loyaltySummary.value.map(r =>
+      type === 'earn' ? r.totalPointsEarned : r.totalPointsDeducted
+    )
+  );
+  return maxVal === 0 ? 0 : Math.round((value / maxVal) * 100);
+};
 
 const promoStats = computed(() => {
   const used      = promotionHistory.value.filter(p => p.status === 'Đã sử dụng').length;
@@ -943,6 +1112,7 @@ onMounted(async () => {
     loadTierHistory();
     loadPromotionHistory();
     loadPayments();
+     loadLoyaltySummary();  
   }
 });
 </script>
@@ -1080,5 +1250,27 @@ onMounted(async () => {
   .promo-discount-badge { width:100%;text-align:left; }
   .bill-items-header,.bill-item-row { grid-template-columns:1fr 40px 100px; }
   .bill-meta { grid-template-columns:1fr; }
+}
+/* Summary bar */
+.summary-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 2px 0;
+}
+.summary-bar-earn {
+  height: 6px;
+  background: linear-gradient(90deg, #67c23a, #95d475);
+  border-radius: 3px;
+  min-width: 2px;
+  transition: width 0.4s ease;
+}
+.summary-bar-deduct {
+  height: 6px;
+  background: linear-gradient(90deg, #e6a23c, #f3d19e);
+  border-radius: 3px;
+  min-width: 2px;
+  transition: width 0.4s ease;
 }
 </style>

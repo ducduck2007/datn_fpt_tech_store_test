@@ -33,23 +33,31 @@ public class OrderService {
     // ================================================================
     @lombok.Data
     private static class DiscountCalculation {
-        private BigDecimal vipDiscountRate   = BigDecimal.ZERO;  // % (chỉ cho Platinum/Diamond)
-        private BigDecimal vipDiscount       = BigDecimal.ZERO;  // Số tiền giảm VIP
-        private BigDecimal spinDiscountRate  = BigDecimal.ZERO;  // % spin
-        private BigDecimal spinDiscount      = BigDecimal.ZERO;  // Số tiền giảm spin
-        private BigDecimal totalDiscount     = BigDecimal.ZERO;
-        private boolean    hasSpinBonus      = false;
-        private String     discountType      = "NONE";           // "FIXED" | "PERCENTAGE" | "NONE"
+        private BigDecimal vipDiscountRate      = BigDecimal.ZERO;
+        private BigDecimal vipDiscount          = BigDecimal.ZERO;
+        private BigDecimal spinDiscountRate     = BigDecimal.ZERO;
+        private BigDecimal spinDiscount         = BigDecimal.ZERO;
+        // ✅ THÊM MỚI: promotion code discount
+        private BigDecimal promoDiscount        = BigDecimal.ZERO;
+        private String     promoCode            = null;
+        private Integer    promotionId          = null;
+
+        private BigDecimal totalDiscount        = BigDecimal.ZERO;
+        private boolean    hasSpinBonus         = false;
+        private String     discountType         = "NONE";
     }
 
-    private final OrderRepository           orderRepository;
-    private final OrderItemRepository       orderItemRepository;
-    private final ProductVariantRepository  variantRepository;
+    private final OrderRepository            orderRepository;
+    private final OrderItemRepository        orderItemRepository;
+    private final ProductVariantRepository   variantRepository;
     private final StockTransactionRepository stockTransactionRepository;
-    private final CustomRes                 customerRepository;
-    private final UserRepository            userRepository;
-    private final CustomerService           customerService;
-    private final SpinWheelService          spinWheelService;
+    private final CustomRes                  customerRepository;
+    private final UserRepository             userRepository;
+    private final CustomerService            customerService;
+    private final SpinWheelService           spinWheelService;
+    // ✅ THÊM MỚI
+    private final PromotionRepository        promotionRepository;
+    private final PromotionService           promotionService;
 
     // ================================================================
     // ORDER NUMBER GENERATOR
@@ -64,67 +72,120 @@ public class OrderService {
     }
 
     // ================================================================
-    // DISCOUNT CALCULATION
-    //
-    // Luật mới:
-    //   BRONZE / SILVER / GOLD  → giảm số tiền cố định (100k / 200k / 500k)
-    //                             CHỈ áp dụng khi subtotal >= 5.000.000
-    //   PLATINUM / DIAMOND      → giảm theo % (3% / 5%)
-    //                             CHỈ áp dụng khi subtotal >= 10.000.000
+    // DISCOUNT CALCULATION — VIP + Spin (giữ nguyên logic cũ)
     // ================================================================
     private DiscountCalculation calculateDiscount(Customer customer, BigDecimal subtotal) {
         DiscountCalculation result = new DiscountCalculation();
 
         // ── 1. VIP discount ──────────────────────────────────────────
-        BigDecimal vipDiscount    = BigDecimal.ZERO;
-        BigDecimal vipRate        = BigDecimal.ZERO;   // chỉ có giá trị cho Platinum/Diamond
-        String     discountType   = "NONE";
+        BigDecimal vipDiscount  = BigDecimal.ZERO;
+        BigDecimal vipRate      = BigDecimal.ZERO;
+        String     discountType = "NONE";
 
         VipTier tier = customer.getVipTier();
         if (tier != null) {
             BigDecimal minOrder = tier.getMinOrderToApply();
-
             if (subtotal.compareTo(minOrder) >= 0) {
                 if (tier.isPercentageDiscount()) {
-                    // PLATINUM / DIAMOND: theo %
-                    vipRate    = BigDecimal.valueOf(tier.getDiscountRate() * 100);  // e.g. 3.0 or 5.0
+                    vipRate     = BigDecimal.valueOf(tier.getDiscountRate() * 100);
                     vipDiscount = subtotal
                             .multiply(BigDecimal.valueOf(tier.getDiscountRate()))
                             .setScale(0, RoundingMode.HALF_UP);
                     discountType = "PERCENTAGE";
                 } else {
-                    // BRONZE / SILVER / GOLD: số tiền cố định
                     vipDiscount  = tier.getDiscountAmount();
                     discountType = "FIXED";
                 }
             }
-            // else: đơn không đủ điều kiện → không giảm
         }
 
-        // ── 2. Spin Wheel discount (luôn theo %) ────────────────────
+        // ── 2. Spin Wheel discount ────────────────────────────────────
         BigDecimal spinDiscount = BigDecimal.ZERO;
         BigDecimal spinRate     = BigDecimal.ZERO;
         boolean    hasSpinBonus = false;
 
         if (customer.getSpinDiscountBonus() != null
                 && customer.getSpinDiscountBonus().compareTo(BigDecimal.ZERO) > 0) {
-            spinRate    = customer.getSpinDiscountBonus();
+            spinRate     = customer.getSpinDiscountBonus();
             spinDiscount = subtotal
                     .multiply(spinRate.divide(BigDecimal.valueOf(100)))
                     .setScale(0, RoundingMode.HALF_UP);
             hasSpinBonus = true;
         }
 
-        // ── 3. Tổng ─────────────────────────────────────────────────
         result.setVipDiscountRate(vipRate);
         result.setVipDiscount(vipDiscount);
         result.setSpinDiscountRate(spinRate);
         result.setSpinDiscount(spinDiscount);
+        // totalDiscount sẽ được cộng thêm promoDiscount bên ngoài
         result.setTotalDiscount(vipDiscount.add(spinDiscount));
         result.setHasSpinBonus(hasSpinBonus);
         result.setDiscountType(discountType);
 
         return result;
+    }
+
+    // ================================================================
+    // ✅ THÊM MỚI: VALIDATE & APPLY PROMOTION CODE
+    //
+    // Trả về số tiền được giảm (0 nếu không hợp lệ).
+    // Ném RuntimeException nếu mã không tồn tại / hết hạn / không đủ đk.
+    // ================================================================
+    private BigDecimal applyPromotionCode(
+            String promoCode,
+            Customer customer,
+            BigDecimal subtotal,
+            DiscountCalculation discountResult
+    ) {
+        if (promoCode == null || promoCode.isBlank()) return BigDecimal.ZERO;
+
+        String code = promoCode.trim().toUpperCase();
+
+        // 1. Tìm promotion trong DB
+        Promotion promotion = promotionRepository.findByCode(code)
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá '" + code + "' không tồn tại"));
+
+        // 2. Kiểm tra còn hiệu lực
+        LocalDateTime now = LocalDateTime.now();
+        if (!promotion.getIsActive()
+                || promotion.getStartDate().isAfter(now)
+                || promotion.getEndDate().isBefore(now)) {
+            throw new RuntimeException("Mã giảm giá '" + code + "' đã hết hạn hoặc chưa có hiệu lực");
+        }
+
+        // 3. Kiểm tra đơn tối thiểu (minOrderAmount)
+        if (promotion.getMinOrderAmount() != null
+                && subtotal.compareTo(promotion.getMinOrderAmount()) < 0) {
+            throw new RuntimeException(String.format(
+                    "Mã '%s' yêu cầu đơn hàng tối thiểu %s (đơn hiện tại: %s)",
+                    code,
+                    formatMoney(promotion.getMinOrderAmount()),
+                    formatMoney(subtotal)
+            ));
+        }
+
+        // 4. Kiểm tra usage limit
+        if (!promotionService.isUsableByLimit(promotion)) {
+            throw new RuntimeException("Mã giảm giá '" + code + "' đã đạt giới hạn sử dụng");
+        }
+
+        // 5. Tính tiền giảm
+        BigDecimal promoDiscount = promotionService.applyDiscount(
+                subtotal,
+                promotion.getDiscountType(),
+                promotion.getDiscountValue()
+        );
+        // Số tiền giảm không được vượt quá subtotal
+        if (promoDiscount.compareTo(subtotal) > 0) {
+            promoDiscount = subtotal;
+        }
+
+        // 6. Lưu vào discountResult để dùng sau
+        discountResult.setPromoDiscount(promoDiscount);
+        discountResult.setPromoCode(code);
+        discountResult.setPromotionId(promotion.getId());
+
+        return promoDiscount;
     }
 
     // ================================================================
@@ -157,7 +218,7 @@ public class OrderService {
         order.setUpdatedAt(Instant.now());
         order = orderRepository.save(order);
 
-        // ── Pass 1: tính subtotal ───────────────────────────────────
+        // ── Pass 1: tính subtotal ────────────────────────────────────
         BigDecimal subtotal = BigDecimal.ZERO;
         for (CreateOrderItemRequest itemReq : request.getItems()) {
             ProductVariant variant = variantRepository.findById(itemReq.getVariantId())
@@ -167,21 +228,30 @@ public class OrderService {
             );
         }
 
-        // ── Tính discount ───────────────────────────────────────────
+        // ── Tính VIP + Spin discount ─────────────────────────────────
         DiscountCalculation discountCalc = calculateDiscount(customer, subtotal);
 
-        /*
-         * Để phân bổ giảm giá về từng dòng sản phẩm ta dùng tỷ lệ:
-         *   totalDiscountRate = totalDiscount / subtotal
-         * Nếu discount là FIXED (e.g. 100k), tỷ lệ này vẫn tính đúng.
-         */
+        // ── ✅ THÊM MỚI: Áp promotion code (nếu có) ─────────────────
+        // validate + tính promoDiscount, ghi vào discountCalc
+        String promoCode = request.getPromotionCode(); // cần thêm field này vào CreateOrderRequest
+        if (promoCode != null && !promoCode.isBlank()) {
+            BigDecimal promoDiscount = applyPromotionCode(promoCode, customer, subtotal, discountCalc);
+            // Cộng vào tổng discount
+            discountCalc.setTotalDiscount(
+                    discountCalc.getTotalDiscount().add(promoDiscount)
+            );
+            // Lưu mã vào order để truy vết
+            order.setAppliedPromotionCode(discountCalc.getPromoCode());
+        }
+
+        // ── Tỷ lệ discount phân bổ về từng dòng ─────────────────────
         BigDecimal totalDiscountRate = BigDecimal.ZERO;
         if (subtotal.compareTo(BigDecimal.ZERO) > 0) {
             totalDiscountRate = discountCalc.getTotalDiscount()
                     .divide(subtotal, 4, RoundingMode.HALF_UP);
         }
 
-        // ── Pass 2: tạo order items ─────────────────────────────────
+        // ── Pass 2: tạo order items ──────────────────────────────────
         List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
 
         for (CreateOrderItemRequest itemReq : request.getItems()) {
@@ -240,17 +310,17 @@ public class OrderService {
             ));
         }
 
-        // ── Cập nhật tổng đơn ───────────────────────────────────────
+        // ── Cập nhật tổng đơn ────────────────────────────────────────
         order.setSubtotal(subtotal);
         order.setDiscountTotal(discountCalc.getTotalDiscount());
         order.setTotalAmount(
                 subtotal.subtract(discountCalc.getTotalDiscount()).add(order.getShippingFee())
         );
 
-        // ── Ghi chú chiết khấu ──────────────────────────────────────
+        // ── Ghi chú chiết khấu ───────────────────────────────────────
         StringBuilder notes = new StringBuilder();
-        if (order.getNotes() != null && !order.getNotes().isEmpty()) {
-            notes.append(order.getNotes()).append(" | ");
+        if (request.getNotes() != null && !request.getNotes().isEmpty()) {
+            notes.append(request.getNotes()).append(" | ");
         }
 
         VipTier tier = customer.getVipTier();
@@ -265,7 +335,6 @@ public class OrderService {
                         .append(" (-").append(formatMoney(discountCalc.getVipDiscount())).append(")");
             }
         } else if (tier != null) {
-            // Tier có nhưng đơn không đủ điều kiện
             notes.append("VIP ").append(tier.getDisplayName())
                     .append(": không áp dụng (đơn < ").append(formatMoney(tier.getMinOrderToApply())).append(")");
         }
@@ -276,16 +345,28 @@ public class OrderService {
                     .append(" (-").append(formatMoney(discountCalc.getSpinDiscount())).append(")");
         }
 
+        // ✅ THÊM MỚI: ghi chú promotion code
+        if (discountCalc.getPromoCode() != null) {
+            if (notes.length() > 0) notes.append(" | ");
+            notes.append("Mã: ").append(discountCalc.getPromoCode())
+                    .append(": -").append(formatMoney(discountCalc.getPromoDiscount()));
+        }
+
         order.setNotes(notes.toString());
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
 
-        // ── Đánh dấu spin bonus đã dùng ────────────────────────────
+        // ── Đánh dấu spin bonus đã dùng ─────────────────────────────
         if (discountCalc.isHasSpinBonus()) {
             spinWheelService.useBonus(customer.getId(), order.getId());
         }
 
-        // ── Build response ──────────────────────────────────────────
+        // ── ✅ THÊM MỚI: Ghi nhận promotion đã được sử dụng ─────────
+        if (discountCalc.getPromotionId() != null) {
+            promotionService.recordRedemption(discountCalc.getPromotionId(), 1L);
+        }
+
+        // ── Build response ───────────────────────────────────────────
         CreateOrderResponse response = new CreateOrderResponse();
         response.setOrderId(order.getId());
         response.setOrderNumber(order.getOrderNumber());
@@ -307,6 +388,9 @@ public class OrderService {
         response.setSpinDiscountRate(discountCalc.getSpinDiscountRate());
         response.setSpinDiscount(discountCalc.getSpinDiscount());
         response.setHasSpinBonus(discountCalc.isHasSpinBonus());
+        // ✅ THÊM MỚI vào response (cần thêm field vào CreateOrderResponse)
+        response.setPromoCode(discountCalc.getPromoCode());
+        response.setPromoDiscount(discountCalc.getPromoDiscount());
 
         return response;
     }
@@ -317,7 +401,7 @@ public class OrderService {
     }
 
     // ================================================================
-    // UPDATE ORDER
+    // UPDATE ORDER — GIỮ NGUYÊN
     // ================================================================
     @Audit(module = AuditModule.ORDER, action = AuditAction.UPDATE, targetType = TargetType.ORDER)
     public void updateOrder(Long orderId, UpdateOrderRequest request) {
@@ -333,13 +417,13 @@ public class OrderService {
     }
 
     // ================================================================
-    // CANCEL ORDER
+    // CANCEL ORDER — GIỮ NGUYÊN
     // ================================================================
     @Transactional
     public void cancelOrder(Long orderId, String reason) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        
+
         if (OrderStatuses.CANCELLED.equals(order.getStatus()))
             throw new IllegalStateException("Order already cancelled");
         if (OrderStatuses.DELIVERED.equals(order.getStatus()))
@@ -373,7 +457,7 @@ public class OrderService {
     }
 
     // ================================================================
-    // DELETE ORDER
+    // DELETE ORDER — GIỮ NGUYÊN
     // ================================================================
     @Audit(module = AuditModule.ORDER, action = AuditAction.DELETE, targetType = TargetType.ORDER)
     public void deleteOrder(Long orderId) {
@@ -386,7 +470,7 @@ public class OrderService {
     }
 
     // ================================================================
-    // GET ORDER DETAIL
+    // GET ORDER DETAIL — GIỮ NGUYÊN
     // ================================================================
     public OrderDetailResponse getOrderDetail(Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -428,7 +512,7 @@ public class OrderService {
     }
 
     // ================================================================
-    // STATUS TRANSITIONS
+    // STATUS TRANSITIONS — GIỮ NGUYÊN
     // ================================================================
     @Transactional
     public void markAsShipping(Long orderId) {
@@ -452,7 +536,7 @@ public class OrderService {
     }
 
     // ================================================================
-    // HELPERS
+    // HELPERS — GIỮ NGUYÊN
     // ================================================================
     private void recalcOrderTotal(Order order) {
         BigDecimal subtotal = order.getOrderItems().stream()

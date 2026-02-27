@@ -39,18 +39,24 @@ public class CreateOrderResponse {
 
     // Items (list đơn giản)
     private List<Item> items;
-    //
-    private BigDecimal vipDiscountRate;    // VIP tier discount percentage
-    private BigDecimal vipDiscount;         // VIP tier discount amount
-    private BigDecimal spinDiscountRate;    // Spin wheel discount percentage
-    private BigDecimal spinDiscount;        // Spin wheel discount amount
+
+    // Discount breakdown
+    private BigDecimal vipDiscountRate;
+    private BigDecimal vipDiscount;
+    private BigDecimal spinDiscountRate;
+    private BigDecimal spinDiscount;
     private boolean hasSpinBonus;
+
+    // ✅ THÊM MỚI: promotion code discount
+    private String promoCode;
+    private BigDecimal promoDiscount;
+
     @Data
     @AllArgsConstructor
     public static class Item {
 
         private Integer productId;
-        private Integer variantId;        // ✅ thêm
+        private Integer variantId;
 
         private String productName;
         private String variantName;
@@ -58,7 +64,7 @@ public class CreateOrderResponse {
 
         private Integer quantity;
 
-        private BigDecimal price;         // ✅ thêm (unitPrice)
+        private BigDecimal price;
         private BigDecimal discount;
         private BigDecimal lineTotal;
     }
