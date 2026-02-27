@@ -1,111 +1,301 @@
-Đóng vai trò là Senior Frontend Developer (Vue.js). Dựa trên danh sách API bên dưới, hãy xây dựng và/hoặc bổ sung đầy đủ mã nguồn giao diện người dùng (Frontend UI) cho dự án  (mã nguồn Frontend UI trong project-tree-with-code.txt).
-
-YÊU CẦU CHUNG
-1) Chỉ trả về MÃ NGUỒN HOÀN CHỈNH của các tệp:
-   - Được thêm mới
-   - Hoặc đã được chỉnh sửa
-   Không cần giải thích dài dòng, không cần mô tả lý thuyết.
-2) Phân tách rõ ràng chức năng:
-   - Hệ thống quản trị (System Admin)
-   - Phía khách hàng (Customer)
-3) Giả định dự án sử dụng:
-   - Vue 3 (Composition API)
-   - Router + Store (Pinia hoặc Vuex đều được, chọn 1 và dùng nhất quán)
-   - Axios cho HTTP
-   - UI framework: Element Plus
-4) Tuân thủ đúng request/response theo API đã cho (method, endpoint, body, params).
-5) Tổ chức code rõ ràng theo module: auth, users, customers, products, orders, v.v.
-
-PHÂN QUYỀN CHỨC NĂNG
-- System Admin:
-  • Đăng nhập hệ thống
-  • Quản lý User
-  • Quản lý Customers & Loyalty
-  • Quản lý Categories
-  • Quản lý Products
-  • Quản lý Pricing
-  • Quản lý Promotions
-  • Xem & xử lý Orders
-  • Cấu hình Settings (Currency)
-
-- Customer:
-  • Đăng ký
-  • Đăng nhập
-  • Xem sản phẩm
-  • Tạo đơn hàng
-  • Xem chi tiết đơn hàng của mình
-
-DANH SÁCH API LÀM CĂN CỨ
-
-A) Auth
-- POST   /api/auth/register
-  Body: { username, email, password }
-- POST   /api/auth/login
-  Body: { identifier, password }
-
-B) User Management (Admin) – Base: /api/auth/users
-- GET    /api/auth/users
-- POST   /api/auth/users/add
-  Body: { username, email, password, role }
-- PUT    /api/auth/users/update?id=<id>
-  Body: { username, email, role }
-- DELETE /api/auth/users/delete?id=<id>
-
-C) Customers & Loyalty (Admin) – Base: /api/auth/customers
-- POST   /api/auth/customers
-  Body: { fullName, email, phone, birthDate, customerType, address, notes }
-- GET    /api/auth/customers
-- GET    /api/auth/customers/{type}   (REGULAR | VIP)
-- PUT    /api/auth/customers/{id}
-  Body: Partial CustomerRequest
-- DELETE /api/auth/customers/{id}
-
-D) Categories (Admin) – Base: /api/categories
-- POST   /api/categories
-  Body: { name, description, imageUrl, displayOrder, isActive, parent?: { id } }
-- GET    /api/categories?activeOnly=true|false
-
-E) Products
-- POST   /api/products  (Admin – multipart/form-data)
-  Fields: name, sku, description, isVisible, categoryId, imageFile
-- GET    /api/products?page=0&categoryId=<id?>
-  (Customer + Admin)
-
-F) Orders
-- POST   /api/orders (Customer)
-  Body: { customerId, paymentMethod, channel, notes, items:[{ variantId, quantity }] }
-- GET    /api/orders/new (Admin)
-- GET    /api/orders/processing (Admin)
-- GET    /api/orders/{orderId}
-- PUT    /api/orders/{orderId}
-  Body: { paymentMethod, notes }
-- PUT    /api/orders/{orderId}/cancel
-- DELETE /api/orders/{orderId}
-
-G) Pricing (Admin) – Base: /api/prices
-- POST   /api/prices/variants/{variantId}
-  Body: { currencyCode, price, costPrice, reason }
-- GET    /api/prices/products/{productId}
-- PUT    /api/prices/history/{id}
-  Body: { currencyCode, price, costPrice, reason }
-- DELETE /api/prices/history/{id}
-- GET    /api/prices/variants/{variantId}/effective
-
-H) Promotions (Admin) – Base: /api/promotions
-- POST   /api/promotions
-  Body: { code, name, description, discountType, discountValue, startDate, endDate,
-          scope, productIds[], variantIds[], priority, stackable, isActive }
-- GET    /api/promotions?activeOnly=true|false
-- PUT    /api/promotions/{id}
-- DELETE /api/promotions/{id}
-
-I) Settings (Admin) – Base: /api/settings
-- GET    /api/settings/currency/default
-- PUT    /api/settings/currency/default
-  Body: { currencyCode }
-
-KẾT QUẢ MONG MUỐN
-- Mã nguồn frontend hoàn chỉnh cho các chức năng tương ứng
-- Có router, store, api service, page/component cần thiết
-- Phân tách rõ Admin UI và Customer UI
-- Chỉ output code của các file cần thiết (đã sửa hoặc thêm mới)
+- Tạo bảng giá theo chiến dịch
+POST http://localhost:8080/api/promotions
+{
+  "code": "CAMPAIGN_Q3",
+  "name": "Chiến dịch Q3 2025",
+  "discountType": "PERCENT",
+  "discountValue": 12,
+  "startDate": "2025-07-01T00:00:00",
+  "endDate": "2025-09-30T23:59:59",
+  "scope": "ALL",
+  "priority": 2,
+  "isActive": true
+}
+-> {
+    "success": true,
+    "message": "Success",
+    "data": {
+        "id": 1015,
+        "code": "CAMPAIGN_Q3",
+        "name": "Chiến dịch Q3 2025",
+        "description": null,
+        "discountType": "PERCENT",
+        "discountValue": 12.00,
+        "minOrderAmount": null,
+        "applicabilityJson": "{\"scope\":\"ALL\",\"product_ids\":null,\"variant_ids\":null,\"customer_types\":null,\"vip_tiers\":null}",
+        "rulesJson": null,
+        "priority": 2,
+        "stackable": false,
+        "startDate": "2025-07-01T00:00:00",
+        "endDate": "2025-09-30T23:59:59",
+        "isActive": true,
+        "createdBy": 1,
+        "createdAt": "2026-02-27T21:57:45.1690844"
+    }
+}
+- Hiển thị giá áp dụng chiến dịch
+GET http://localhost:8080/api/prices/products/{productId}
+-> {
+    "success": true,
+    "message": "Success",
+    "data": [
+        {
+            "costPrice": null,
+            "currencyCode": "VND",
+            "finalPrice": 22990000.00,
+            "price": 22990000.00,
+            "productId": 5,
+            "promotionCode": null,
+            "sku": "LAP-ACER-001-V1",
+            "variantId": 5,
+            "variantName": "Core i5 / 16GB / 512GB"
+        },
+        {
+            "costPrice": null,
+            "currencyCode": "VND",
+            "finalPrice": 27990000.00,
+            "price": 27990000.00,
+            "productId": 5,
+            "promotionCode": null,
+            "sku": "LAP-ACER-001-V2",
+            "variantId": 15,
+            "variantName": "Core i7 / 16GB / 1TB"
+        }
+    ]
+}
+- Cập nhật khuyến mãi theo chiến dịch
+PUT http://localhost:8080/api/promotions/{id}
+{
+  "name": "Chiến dịch Q3 2025 - Cập nhật",
+  "discountValue": 15,
+  "endDate": "2025-10-15T23:59:59"
+}
+-> {
+    "success": true,
+    "message": "Success",
+    "data": {
+        "id": 1015,
+        "code": "CAMPAIGN_Q3",
+        "name": "Chiến dịch Q3 2025 - Cập nhật",
+        "description": null,
+        "discountType": "PERCENT",
+        "discountValue": 15.00,
+        "minOrderAmount": null,
+        "applicabilityJson": "{\"scope\":\"ALL\",\"product_ids\":null,\"variant_ids\":null,\"customer_types\":null,\"vip_tiers\":null}",
+        "rulesJson": null,
+        "priority": 0,
+        "stackable": false,
+        "startDate": "2025-07-01T00:00:00",
+        "endDate": "2025-10-15T23:59:59",
+        "isActive": true,
+        "createdBy": 1,
+        "createdAt": "2026-02-27T21:57:45.1690844"
+    }
+}
+- Hiển thị giá combo
+GET http://localhost:8080/api/prices/variants/{variantId}/effective
+-> {
+    "success": true,
+    "message": "Success",
+    "data": {
+        "costPrice": null,
+        "currencyCode": "VND",
+        "finalPrice": 22990000.00,
+        "price": 22990000.00,
+        "productId": 5,
+        "promotionCode": null,
+        "sku": "LAP-ACER-001-V1",
+        "variantId": 5,
+        "variantName": "Core i5 / 16GB / 512GB"
+    }
+}
+- Thêm cảnh báo khi giá xung đột
+GET http://localhost:8080/api/promotions/conflicts
+-> {
+    "success": true,
+    "message": "Success",
+    "data": []
+}
+- Tạo bảng giá tự động áp dụng theo ngày
+POST http://localhost:8080/api/promotions
+{
+  "code": "AUTO_JUL25",
+  "name": "Giá tự động tháng 7",
+  "discountType": "PERCENT",
+  "discountValue": 8,
+  "startDate": "2026-07-01T00:00:00",
+  "endDate": "2026-07-31T23:59:59",
+  "scope": "ALL",
+  "priority": 1,
+  "isActive": true
+}
+-> {
+    "success": true,
+    "message": "Success",
+    "data": {
+        "id": 1016,
+        "code": "AUTO_JUL25",
+        "name": "Giá tự động tháng 7",
+        "description": null,
+        "discountType": "PERCENT",
+        "discountValue": 8.00,
+        "minOrderAmount": null,
+        "applicabilityJson": "{\"scope\":\"ALL\",\"product_ids\":null,\"variant_ids\":null,\"customer_types\":null,\"vip_tiers\":null}",
+        "rulesJson": null,
+        "priority": 1,
+        "stackable": false,
+        "startDate": "2026-07-01T00:00:00",
+        "endDate": "2026-07-31T23:59:59",
+        "isActive": true,
+        "createdBy": 1,
+        "createdAt": "2026-02-27T22:08:01.1361068"
+    }
+}
+- Hiển thị lịch sử giá sản phẩm
+GET http://localhost:8080/api/prices/variants/{variantId}/history
+-> {
+    "success": true,
+    "message": "Success",
+    "data": [
+        {
+            "costPrice": null,
+            "createdAt": "2026-02-12T11:14:02.698334500Z",
+            "createdByUsername": "admin",
+            "currencyCode": "VND",
+            "effectiveFrom": "2025-12-14T11:14:02.698334500Z",
+            "effectiveTo": null,
+            "id": 1,
+            "price": 250000.00,
+            "reason": "PROMO_ENDED",
+            "variantId": 1
+        }
+    ]
+}
+- Cập nhật giá khi hết khuyến mãi
+PUT http://localhost:8080/api/prices/history/{id}
+{
+  "price": 250000,
+  "reason": "PROMO_ENDED"
+}
+-> {
+    "success": true,
+    "message": "Success",
+    "data": {
+        "costPrice": null,
+        "createdAt": "2026-02-12T11:14:02.698334500Z",
+        "createdByUsername": "admin",
+        "currencyCode": "VND",
+        "effectiveFrom": "2025-12-14T11:14:02.698334500Z",
+        "effectiveTo": null,
+        "id": 1,
+        "price": 250000.00,
+        "reason": "PROMO_ENDED",
+        "variantId": 1
+    }
+}
+- Tạo cảnh báo khi giá thấp hơn giá nhập
+GET http://localhost:8080/api/prices/variants/{variantId}/cost-warning
+-> {
+    "success": true,
+    "message": "Success",
+    "data": {
+        "price": 250000.00,
+        "costPrice": null,
+        "variantId": 1,
+        "belowCost": false
+    }
+}
+- Hiển thị giá cuối cùng cho khách
+GET http://localhost:8080/api/prices/variants/{variantId}/effective/customer/{customerId}
+-> {
+    "success": true,
+    "message": "Success",
+    "data": {
+        "costPrice": null,
+        "currencyCode": "VND",
+        "finalPrice": 250000.00,
+        "price": 250000.00,
+        "productId": 1,
+        "promotionCode": null,
+        "sku": "LAP-DELL-001-V1",
+        "variantId": 1,
+        "variantName": "Core i5 / 16GB / 512GB"
+    }
+}
+dựa vào 10 chức năng backend api trên và tree code, cho tôi biết để gửi AI làm frontend cho 10 chức năng thì cần những file nào
+src
+ ┣ api
+ ┃ ┣ auth.api.js
+ ┃ ┣ cart.api.js
+ ┃ ┣ categories.api.js
+ ┃ ┣ customers.api.js
+ ┃ ┣ http.js
+ ┃ ┣ notification.api.js
+ ┃ ┣ orders.api.js
+ ┃ ┣ payments.js
+ ┃ ┣ prices.api.js
+ ┃ ┣ products.api.js
+ ┃ ┣ promotions.api.js
+ ┃ ┣ returns.api.js
+ ┃ ┣ settings.api.js
+ ┃ ┣ spinWheel.api.js
+ ┃ ┣ users.api.js
+ ┃ ┗ vip-checkin.api.js
+ ┣ assets
+ ┃ ┗ vue.svg
+ ┣ components
+ ┃ ┣ AuthLayout.vue
+ ┃ ┣ NotificationBell.vue
+ ┃ ┗ TierProgressBar.vue
+ ┣ pages
+ ┃ ┣ customer
+ ┃ ┃ ┣ CartPage.vue
+ ┃ ┃ ┣ CustomerDashboard.vue
+ ┃ ┃ ┣ CustomerHome.vue
+ ┃ ┃ ┣ CustomerLogin.vue
+ ┃ ┃ ┣ CustomerOrders.vue
+ ┃ ┃ ┣ CustomerProfile.vue
+ ┃ ┃ ┣ CustomerRegister.vue
+ ┃ ┃ ┣ OrderCreate.vue
+ ┃ ┃ ┣ OrderDetail.vue
+ ┃ ┃ ┣ PaymentSuccess.vue
+ ┃ ┃ ┗ Spinwheel.vue
+ ┃ ┗ system
+ ┃ ┃ ┣ BirthdayManager.vue
+ ┃ ┃ ┣ CategoryManager.vue
+ ┃ ┃ ┣ CustomerManager.vue
+ ┃ ┃ ┣ Customerspendinganalytics.vue
+ ┃ ┃ ┣ InactiveCustomers.vue
+ ┃ ┃ ┣ OrderDetail.vue
+ ┃ ┃ ┣ OrderFilter.vue
+ ┃ ┃ ┣ OrderListByFilter.vue
+ ┃ ┃ ┣ OrderListDelivered.vue
+ ┃ ┃ ┣ OrderListNew.vue
+ ┃ ┃ ┣ OrderListPaid.vue
+ ┃ ┃ ┣ OrderListProcessing.vue
+ ┃ ┃ ┣ OrderListShipping.vue
+ ┃ ┃ ┣ PaymentManagement.vue
+ ┃ ┃ ┣ PricingManager.vue
+ ┃ ┃ ┣ ProductManager.vue
+ ┃ ┃ ┣ PromotionManager.vue
+ ┃ ┃ ┣ ReturnListAll.vue
+ ┃ ┃ ┣ ReturnListPending.vue
+ ┃ ┃ ┣ SettingsCurrency.vue
+ ┃ ┃ ┣ SystemDashboard.vue
+ ┃ ┃ ┣ SystemLogin.vue
+ ┃ ┃ ┣ SystemShell.vue
+ ┃ ┃ ┣ Toployalcustomers.vue
+ ┃ ┃ ┣ UserManager.vue
+ ┃ ┃ ┣ Zeroordercustomers.vue
+ ┃ ┃ ┗ _OrderListBase.vue
+ ┣ router
+ ┃ ┗ index.js
+ ┣ stores
+ ┃ ┣ auth.js
+ ┃ ┗ cart.js
+ ┣ ui
+ ┃ ┣ confirm.js
+ ┃ ┗ toast.js
+ ┣ App.vue
+ ┣ main.js
+ ┗ style.css

@@ -1,0 +1,1194 @@
+Căn chỉnh lại giao diện 2 trang này giúp tôi
+PricingManager.vue
+<template>
+  <div class="container-xl">
+    <el-card shadow="never">
+      <div
+        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
+      >
+        <div>
+          <div class="kicker">Admin</div>
+          <div class="title">Pricing</div>
+          <div class="muted">Base: /api/prices</div>
+        </div>
+      </div>
+
+      <el-divider />
+
+      <!-- ROW 1: Set price + Effective price -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <el-card shadow="never">
+            <div class="fw-bold">Set price for variant</div>
+            <div class="muted">POST /api/prices/variants/{variantId}</div>
+            <el-divider />
+            <el-form :model="setForm" label-position="top" class="row g-3">
+              <div class="col-12 col-md-6">
+                <el-form-item label="variantId">
+                  <el-input v-model.number="setForm.variantId" />
+                </el-form-item>
+              </div>
+              <div class="col-12 col-md-6">
+                <el-form-item label="currencyCode">
+                  <el-input
+                    v-model="setForm.currencyCode"
+                    placeholder="VND / USD..."
+                  />
+                </el-form-item>
+              </div>
+              <div class="col-12 col-md-6">
+                <el-form-item label="price">
+                  <el-input-number
+                    v-model="setForm.price"
+                    :min="0"
+                    :max="999999999"
+                    class="w-100"
+                  />
+                </el-form-item>
+              </div>
+              <div class="col-12 col-md-6">
+                <el-form-item label="costPrice">
+                  <el-input-number
+                    v-model="setForm.costPrice"
+                    :min="0"
+                    :max="999999999"
+                    class="w-100"
+                  />
+                </el-form-item>
+              </div>
+              <div class="col-12">
+                <el-form-item label="reason">
+                  <el-input v-model="setForm.reason" />
+                </el-form-item>
+              </div>
+              <div class="col-12 d-flex justify-content-end">
+                <el-button
+                  type="primary"
+                  :loading="setLoading"
+                  @click="setPrice"
+                  >Submit</el-button
+                >
+              </div>
+            </el-form>
+
+            <el-divider />
+
+            <!-- Effective price (combo) -->
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-bold">Effective price (combo)</div>
+                <div class="muted">
+                  GET /api/prices/variants/{variantId}/effective
+                </div>
+              </div>
+              <el-button :loading="effLoading" @click="loadEffective"
+                >Load</el-button
+              >
+            </div>
+            <pre class="json mt-2">{{
+              JSON.stringify(effective, null, 2)
+            }}</pre>
+
+            <el-divider />
+
+            <!-- Effective price for customer -->
+            <div class="fw-bold">Giá cuối cùng cho khách</div>
+            <div class="muted">
+              GET
+              /api/prices/variants/{variantId}/effective/customer/{customerId}
+            </div>
+            <div class="d-flex gap-2 mt-2">
+              <el-input
+                v-model.number="customerIdForPrice"
+                placeholder="customerId"
+                style="max-width: 160px"
+              />
+              <el-button
+                :loading="effCustLoading"
+                @click="loadEffectiveForCustomer"
+                >Load</el-button
+              >
+            </div>
+            <pre class="json mt-2">{{
+              JSON.stringify(effectiveForCustomer, null, 2)
+            }}</pre>
+          </el-card>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <!-- Price history by product -->
+          <el-card shadow="never" class="mb-3">
+            <div class="fw-bold">Giá áp dụng chiến dịch theo product</div>
+            <div class="muted">GET /api/prices/products/{productId}</div>
+            <el-divider />
+            <div class="d-flex gap-2">
+              <el-input v-model.number="productId" placeholder="productId" />
+              <el-button :loading="prodLoading" @click="loadByProduct"
+                >Load</el-button
+              >
+            </div>
+            <el-table :data="productPrices" border class="mt-3" size="small">
+              <el-table-column prop="variantId" label="variantId" width="100" />
+              <el-table-column
+                prop="variantName"
+                label="variant"
+                min-width="160"
+              />
+              <el-table-column prop="sku" label="SKU" width="140" />
+              <el-table-column prop="price" label="price" width="120" />
+              <el-table-column
+                prop="finalPrice"
+                label="finalPrice"
+                width="120"
+              />
+              <el-table-column prop="promotionCode" label="promo" width="110" />
+            </el-table>
+          </el-card>
+
+          <!-- Variant price history -->
+          <el-card shadow="never">
+            <div class="fw-bold">Lịch sử giá variant</div>
+            <div class="muted">
+              GET /api/prices/variants/{variantId}/history
+            </div>
+            <el-divider />
+            <div class="d-flex gap-2">
+              <el-input
+                v-model.number="histVariantId"
+                placeholder="variantId"
+              />
+              <el-button :loading="histLoading" @click="loadVariantHistory"
+                >Load</el-button
+              >
+            </div>
+            <el-table :data="variantHistory" border class="mt-3" size="small">
+              <el-table-column prop="id" label="ID" width="70" />
+              <el-table-column prop="price" label="price" width="110" />
+              <el-table-column prop="costPrice" label="costPrice" width="110" />
+              <el-table-column prop="reason" label="reason" min-width="120" />
+              <el-table-column prop="effectiveFrom" label="from" width="170">
+                <template #default="{ row }">{{
+                  fmtDate(row.effectiveFrom)
+                }}</template>
+              </el-table-column>
+              <el-table-column prop="effectiveTo" label="to" width="170">
+                <template #default="{ row }">{{
+                  row.effectiveTo ? fmtDate(row.effectiveTo) : "—"
+                }}</template>
+              </el-table-column>
+              <el-table-column
+                prop="createdByUsername"
+                label="by"
+                width="100"
+              />
+              <el-table-column label="Actions" width="160">
+                <template #default="{ row }">
+                  <el-button size="small" @click="openEdit(row)"
+                    >Edit</el-button
+                  >
+                  <el-button
+                    size="small"
+                    type="danger"
+                    plain
+                    @click="removeHistory(row)"
+                    >Del</el-button
+                  >
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </div>
+      </div>
+
+      <el-divider />
+
+      <!-- ROW 2: Cost warning + Update price (PROMO_ENDED) -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <el-card shadow="never">
+            <div class="fw-bold">Cảnh báo giá thấp hơn giá nhập</div>
+            <div class="muted">
+              GET /api/prices/variants/{variantId}/cost-warning
+            </div>
+            <el-divider />
+            <div class="d-flex gap-2">
+              <el-input
+                v-model.number="costWarnVariantId"
+                placeholder="variantId"
+              />
+              <el-button :loading="costWarnLoading" @click="loadCostWarning"
+                >Check</el-button
+              >
+            </div>
+            <div v-if="costWarning" class="mt-3">
+              <el-alert
+                v-if="costWarning.belowCost"
+                :title="costWarning.message || '⚠️ Giá bán thấp hơn giá nhập!'"
+                type="warning"
+                show-icon
+              />
+              <el-alert
+                v-else
+                title="✅ Giá bán hợp lệ (không thấp hơn giá nhập)"
+                type="success"
+                show-icon
+              />
+              <pre class="json mt-2">{{
+                JSON.stringify(costWarning, null, 2)
+              }}</pre>
+            </div>
+          </el-card>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <el-card shadow="never">
+            <div class="fw-bold">Cập nhật giá khi hết khuyến mãi</div>
+            <div class="muted">PUT /api/prices/history/{id}</div>
+            <el-divider />
+            <el-form :model="promoEndForm" label-position="top" class="row g-3">
+              <div class="col-12 col-md-4">
+                <el-form-item label="history id">
+                  <el-input v-model.number="promoEndForm.id" />
+                </el-form-item>
+              </div>
+              <div class="col-12 col-md-4">
+                <el-form-item label="price">
+                  <el-input-number
+                    v-model="promoEndForm.price"
+                    :min="0"
+                    :max="999999999"
+                    class="w-100"
+                  />
+                </el-form-item>
+              </div>
+              <div class="col-12 col-md-4">
+                <el-form-item label="reason">
+                  <el-input v-model="promoEndForm.reason" />
+                </el-form-item>
+              </div>
+              <div class="col-12 d-flex justify-content-end">
+                <el-button
+                  type="primary"
+                  :loading="promoEndLoading"
+                  @click="submitPromoEnd"
+                  >Submit</el-button
+                >
+              </div>
+            </el-form>
+            <pre v-if="promoEndResult" class="json mt-2">{{
+              JSON.stringify(promoEndResult, null, 2)
+            }}</pre>
+          </el-card>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- Edit dialog -->
+    <el-dialog v-model="dlg.open" title="Update Price History" width="640px">
+      <el-alert
+        v-if="dlg.alert"
+        :title="dlg.alert"
+        type="error"
+        show-icon
+        class="mb-3"
+      />
+      <el-form :model="dlg.form" label-position="top" class="row g-3">
+        <div class="col-12 col-md-6">
+          <el-form-item label="currencyCode">
+            <el-input v-model="dlg.form.currencyCode" />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <el-form-item label="price">
+            <el-input-number
+              v-model="dlg.form.price"
+              :min="0"
+              :max="999999999"
+              class="w-100"
+            />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <el-form-item label="costPrice">
+            <el-input-number
+              v-model="dlg.form.costPrice"
+              :min="0"
+              :max="999999999"
+              class="w-100"
+            />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <el-form-item label="reason">
+            <el-input v-model="dlg.form.reason" />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="dlg.open = false">Cancel</el-button>
+        <el-button type="primary" :loading="dlg.loading" @click="saveEdit"
+          >Update</el-button
+        >
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { reactive, ref } from "vue";
+import { pricesApi } from "../../api/prices.api";
+import { toast } from "../../ui/toast";
+import { confirmModal } from "../../ui/confirm";
+
+// ── Set price ────────────────────────────────────────────
+const setLoading = ref(false);
+const setForm = reactive({
+  variantId: null,
+  currencyCode: "VND",
+  price: 0,
+  costPrice: 0,
+  reason: "",
+});
+
+async function setPrice() {
+  if (!setForm.variantId) return toast("variantId is required.", "warning");
+  setLoading.value = true;
+  try {
+    await pricesApi.setVariantPrice(setForm.variantId, {
+      currencyCode: setForm.currencyCode,
+      price: setForm.price,
+      costPrice: setForm.costPrice,
+      reason: setForm.reason,
+    });
+    toast("Price set.", "success");
+  } catch {
+    toast("Set price failed.", "error");
+  } finally {
+    setLoading.value = false;
+  }
+}
+
+// ── Effective price (combo) ───────────────────────────────
+const effLoading = ref(false);
+const effective = ref(null);
+
+async function loadEffective() {
+  if (!setForm.variantId) return toast("variantId is required.", "warning");
+  effLoading.value = true;
+  try {
+    const res = await pricesApi.getEffective(setForm.variantId);
+    effective.value = res?.data?.data ?? res?.data ?? null;
+  } catch {
+    effective.value = null;
+    toast("Load effective price failed.", "error");
+  } finally {
+    effLoading.value = false;
+  }
+}
+
+// ── Effective price for customer ──────────────────────────
+const effCustLoading = ref(false);
+const effectiveForCustomer = ref(null);
+const customerIdForPrice = ref(null);
+
+async function loadEffectiveForCustomer() {
+  if (!setForm.variantId) return toast("variantId is required.", "warning");
+  if (!customerIdForPrice.value)
+    return toast("customerId is required.", "warning");
+  effCustLoading.value = true;
+  try {
+    const res = await pricesApi.getEffectiveForCustomer(
+      setForm.variantId,
+      customerIdForPrice.value,
+    );
+    effectiveForCustomer.value = res?.data?.data ?? res?.data ?? null;
+  } catch {
+    effectiveForCustomer.value = null;
+    toast("Load failed.", "error");
+  } finally {
+    effCustLoading.value = false;
+  }
+}
+
+// ── Product prices (campaign) ─────────────────────────────
+const prodLoading = ref(false);
+const productId = ref(null);
+const productPrices = ref([]);
+
+async function loadByProduct() {
+  if (!productId.value) return toast("productId is required.", "warning");
+  prodLoading.value = true;
+  try {
+    const res = await pricesApi.listByProduct(productId.value);
+    productPrices.value = res?.data?.data ?? res?.data ?? [];
+  } catch {
+    productPrices.value = [];
+    toast("Load failed.", "error");
+  } finally {
+    prodLoading.value = false;
+  }
+}
+
+// ── Variant price history ─────────────────────────────────
+const histLoading = ref(false);
+const histVariantId = ref(null);
+const variantHistory = ref([]);
+
+async function loadVariantHistory() {
+  if (!histVariantId.value) return toast("variantId is required.", "warning");
+  histLoading.value = true;
+  try {
+    const res = await pricesApi.getVariantHistory(histVariantId.value);
+    variantHistory.value = res?.data?.data ?? res?.data ?? [];
+  } catch {
+    variantHistory.value = [];
+    toast("Load history failed.", "error");
+  } finally {
+    histLoading.value = false;
+  }
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString("vi-VN");
+  } catch {
+    return iso;
+  }
+}
+
+// ── Edit dialog ───────────────────────────────────────────
+const dlg = reactive({
+  open: false,
+  loading: false,
+  alert: "",
+  id: null,
+  form: { currencyCode: "VND", price: 0, costPrice: 0, reason: "" },
+});
+
+function openEdit(row) {
+  dlg.open = true;
+  dlg.alert = "";
+  dlg.id = row.id;
+  dlg.form = {
+    currencyCode: row.currencyCode || "VND",
+    price: Number(row.price || 0),
+    costPrice: Number(row.costPrice || 0),
+    reason: row.reason || "",
+  };
+}
+
+async function saveEdit() {
+  dlg.loading = true;
+  dlg.alert = "";
+  try {
+    await pricesApi.updateHistory(dlg.id, {
+      currencyCode: dlg.form.currencyCode,
+      price: dlg.form.price,
+      costPrice: dlg.form.costPrice,
+      reason: dlg.form.reason,
+    });
+    toast("History updated.", "success");
+    dlg.open = false;
+    await loadVariantHistory();
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "Update failed";
+    dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg);
+  } finally {
+    dlg.loading = false;
+  }
+}
+
+async function removeHistory(row) {
+  const ok = await confirmModal(
+    `Delete history #${row.id}?`,
+    "Confirm",
+    "Delete",
+    true,
+  );
+  if (!ok) return;
+  try {
+    await pricesApi.removeHistory(row.id);
+    toast("Deleted.", "success");
+    await loadVariantHistory();
+  } catch {
+    toast("Delete failed.", "error");
+  }
+}
+
+// ── Cost warning ──────────────────────────────────────────
+const costWarnLoading = ref(false);
+const costWarnVariantId = ref(null);
+const costWarning = ref(null);
+
+async function loadCostWarning() {
+  if (!costWarnVariantId.value)
+    return toast("variantId is required.", "warning");
+  costWarnLoading.value = true;
+  try {
+    const res = await pricesApi.getCostWarning(costWarnVariantId.value);
+    costWarning.value = res?.data?.data ?? res?.data ?? null;
+  } catch {
+    costWarning.value = null;
+    toast("Load failed.", "error");
+  } finally {
+    costWarnLoading.value = false;
+  }
+}
+
+// ── Update price khi hết promo ────────────────────────────
+const promoEndLoading = ref(false);
+const promoEndResult = ref(null);
+const promoEndForm = reactive({ id: null, price: 0, reason: "PROMO_ENDED" });
+
+async function submitPromoEnd() {
+  if (!promoEndForm.id) return toast("history id is required.", "warning");
+  promoEndLoading.value = true;
+  try {
+    const res = await pricesApi.updateHistory(promoEndForm.id, {
+      price: promoEndForm.price,
+      reason: promoEndForm.reason,
+    });
+    promoEndResult.value = res?.data?.data ?? res?.data ?? null;
+    toast("Price updated.", "success");
+  } catch (e) {
+    toast(e?.response?.data?.message || "Update failed.", "error");
+  } finally {
+    promoEndLoading.value = false;
+  }
+}
+</script>
+
+<style scoped>
+.kicker {
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.title {
+  font-weight: 900;
+  font-size: 18px;
+}
+.muted {
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 13px;
+}
+.json {
+  margin: 0;
+  font-size: 12px;
+  background: rgba(2, 6, 23, 0.04);
+  border: 1px solid rgba(2, 6, 23, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+</style>
+PromotionManager.vue
+<template>
+  <div class="container-xl">
+    <el-card shadow="never">
+      <div
+        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
+      >
+        <div>
+          <div class="kicker">Admin</div>
+          <div class="title">Promotions</div>
+          <div class="muted">Base: /api/promotions</div>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <el-switch
+            v-model="activeOnly"
+            active-text="Active only"
+            @change="load"
+          />
+          <el-button @click="load" :loading="loading">Reload</el-button>
+          <el-button @click="loadConflicts" :loading="conflictLoading">
+            ⚠️ Conflicts
+          </el-button>
+          <el-button type="primary" @click="openCreate">+ Create</el-button>
+        </div>
+      </div>
+
+      <el-divider />
+
+      <!-- Conflicts panel -->
+      <template v-if="conflicts !== null">
+        <el-alert
+          v-if="conflicts.length === 0"
+          title="Không có xung đột khuyến mãi"
+          type="success"
+          show-icon
+          class="mb-3"
+        />
+        <template v-else>
+          <div class="fw-bold mb-2">
+            ⚠️ Xung đột khuyến mãi ({{ conflicts.length }})
+          </div>
+          <el-table :data="conflicts" border size="small" class="mb-3">
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column prop="code" label="Code" width="140" />
+            <el-table-column prop="name" label="Name" min-width="200" />
+            <el-table-column
+              prop="conflictReason"
+              label="Reason"
+              min-width="200"
+            />
+          </el-table>
+        </template>
+        <el-divider />
+      </template>
+
+      <!-- Main table -->
+      <el-table :data="rows" border :loading="loading">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="code" label="Code" width="150" />
+        <el-table-column prop="name" label="Name" min-width="200" />
+        <el-table-column prop="discountType" label="Type" width="110" />
+        <el-table-column prop="discountValue" label="Value" width="100">
+          <template #default="{ row }">
+            {{ row.discountValue
+            }}{{ row.discountType === "PERCENT" ? "%" : "" }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="priority" label="Priority" width="90" />
+        <el-table-column prop="startDate" label="Start" width="130">
+          <template #default="{ row }">{{ fmtDate(row.startDate) }}</template>
+        </el-table-column>
+        <el-table-column prop="endDate" label="End" width="130">
+          <template #default="{ row }">{{ fmtDate(row.endDate) }}</template>
+        </el-table-column>
+        <el-table-column prop="isActive" label="Active" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.isActive ? 'success' : 'info'" effect="light">
+              {{ row.isActive ? "YES" : "NO" }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="Actions" width="200">
+          <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">Edit</el-button>
+            <el-button size="small" @click="openPreview(row)"
+              >Preview</el-button
+            >
+            <el-button size="small" type="danger" plain @click="remove(row)"
+              >Del</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- Preview: product prices with campaign applied -->
+    <el-card shadow="never" class="mt-3" v-if="previewPromo">
+      <div
+        class="d-flex align-items-center justify-content-between flex-wrap gap-2"
+      >
+        <div>
+          <div class="fw-bold">
+            Giá áp dụng chiến dịch: <el-tag>{{ previewPromo.code }}</el-tag>
+          </div>
+          <div class="muted">GET /api/prices/products/{productId}</div>
+        </div>
+        <div class="d-flex gap-2">
+          <el-input
+            v-model.number="previewProductId"
+            placeholder="productId"
+            style="width: 140px"
+          />
+          <el-input
+            v-model.number="previewCustomerId"
+            placeholder="customerId (optional)"
+            style="width: 180px"
+          />
+          <el-button
+            :loading="previewLoading"
+            type="primary"
+            @click="loadPreviewPrices"
+          >
+            Load prices
+          </el-button>
+          <el-button
+            @click="
+              previewPromo = null;
+              previewPrices = [];
+            "
+            >Close</el-button
+          >
+        </div>
+      </div>
+
+      <el-table
+        v-if="previewPrices.length"
+        :data="previewPrices"
+        border
+        class="mt-3"
+        size="small"
+      >
+        <el-table-column prop="variantId" label="variantId" width="90" />
+        <el-table-column prop="variantName" label="Variant" min-width="160" />
+        <el-table-column prop="sku" label="SKU" width="150" />
+        <el-table-column prop="currencyCode" label="Currency" width="90" />
+        <el-table-column prop="price" label="Base price" width="130">
+          <template #default="{ row }">{{ fmtMoney(row.price) }}</template>
+        </el-table-column>
+        <el-table-column prop="finalPrice" label="Final price" width="130">
+          <template #default="{ row }">
+            <span
+              :class="row.finalPrice < row.price ? 'text-success fw-bold' : ''"
+            >
+              {{ fmtMoney(row.finalPrice) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="promotionCode" label="Promo applied" width="130">
+          <template #default="{ row }">
+            <el-tag v-if="row.promotionCode" type="warning" size="small">{{
+              row.promotionCode
+            }}</el-tag>
+            <span v-else class="muted">—</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-else-if="previewLoaded" description="No data" />
+    </el-card>
+
+    <!-- Create / Update dialog -->
+    <el-dialog
+      v-model="dlg.open"
+      :title="dlg.mode === 'create' ? 'Create Promotion' : 'Update Promotion'"
+      width="920px"
+    >
+      <el-alert
+        v-if="dlg.alert"
+        :title="dlg.alert"
+        type="error"
+        show-icon
+        class="mb-3"
+      />
+
+      <el-form :model="dlg.form" label-position="top" class="row g-3">
+        <div class="col-12 col-md-4">
+          <el-form-item label="code">
+            <el-input v-model="dlg.form.code" :disabled="dlg.mode === 'edit'" />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-8">
+          <el-form-item label="name">
+            <el-input v-model="dlg.form.name" />
+          </el-form-item>
+        </div>
+
+        <div class="col-12">
+          <el-form-item label="description">
+            <el-input
+              v-model="dlg.form.description"
+              type="textarea"
+              :rows="2"
+            />
+          </el-form-item>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <el-form-item label="discountType">
+            <el-select v-model="dlg.form.discountType" class="w-100">
+              <el-option label="PERCENT" value="PERCENT" />
+              <el-option label="FIXED" value="FIXED" />
+            </el-select>
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-4">
+          <el-form-item label="discountValue">
+            <el-input-number
+              v-model="dlg.form.discountValue"
+              :min="0"
+              :max="999999999"
+              class="w-100"
+            />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-4">
+          <el-form-item label="priority">
+            <el-input-number
+              v-model="dlg.form.priority"
+              :min="0"
+              :max="9999"
+              class="w-100"
+            />
+          </el-form-item>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <el-form-item label="startDate">
+            <el-date-picker
+              v-model="dlg.form.startDate"
+              type="datetime"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              class="w-100"
+            />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <el-form-item label="endDate">
+            <el-date-picker
+              v-model="dlg.form.endDate"
+              type="datetime"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              class="w-100"
+            />
+          </el-form-item>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <el-form-item label="scope">
+            <el-select v-model="dlg.form.scope" class="w-100">
+              <el-option label="ALL" value="ALL" />
+              <el-option label="PRODUCT" value="PRODUCT" />
+              <el-option label="VARIANT" value="VARIANT" />
+            </el-select>
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-4">
+          <el-form-item label="stackable">
+            <el-switch v-model="dlg.form.stackable" />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-4">
+          <el-form-item label="isActive">
+            <el-switch v-model="dlg.form.isActive" />
+          </el-form-item>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <el-form-item label="productIds (comma-separated)">
+            <el-input v-model="dlg.form.productIdsText" placeholder="1,2,3" />
+          </el-form-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <el-form-item label="variantIds (comma-separated)">
+            <el-input
+              v-model="dlg.form.variantIdsText"
+              placeholder="10,11,12"
+            />
+          </el-form-item>
+        </div>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="dlg.open = false">Cancel</el-button>
+        <el-button type="primary" :loading="dlg.loading" @click="save">
+          {{ dlg.mode === "create" ? "Create" : "Update" }}
+        </el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, reactive, ref } from "vue";
+import { promotionsApi } from "../../api/promotions.api";
+import { pricesApi } from "../../api/prices.api";
+import { toast } from "../../ui/toast";
+import { confirmModal } from "../../ui/confirm";
+
+// ── List ─────────────────────────────────────────────────
+const loading = ref(false);
+const activeOnly = ref(false);
+const rows = ref([]);
+
+function extractList(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  const root = payload?.data ?? payload;
+  if (Array.isArray(root)) return root;
+  for (const k of ["content", "items", "results", "rows", "list"]) {
+    if (Array.isArray(root?.[k])) return root[k];
+    if (Array.isArray(root?.data?.[k])) return root.data[k];
+  }
+  return [];
+}
+
+function normalize(list) {
+  return (list || []).map((p) => ({
+    id: p?.id ?? p?.promotionId,
+    code: p?.code ?? "",
+    name: p?.name ?? "",
+    description: p?.description ?? "",
+    discountType: p?.discountType ?? "",
+    discountValue: p?.discountValue ?? 0,
+    startDate: p?.startDate ?? "",
+    endDate: p?.endDate ?? "",
+    scope: parseScope(p?.applicabilityJson) ?? p?.scope ?? "ALL",
+    productIds:
+      parseApplicability(p?.applicabilityJson, "product_ids") ??
+      p?.productIds ??
+      [],
+    variantIds:
+      parseApplicability(p?.applicabilityJson, "variant_ids") ??
+      p?.variantIds ??
+      [],
+    priority: p?.priority ?? 0,
+    stackable: !!p?.stackable,
+    isActive: !!p?.isActive,
+    raw: p,
+  }));
+}
+
+function parseScope(json) {
+  try {
+    return JSON.parse(json)?.scope ?? null;
+  } catch {
+    return null;
+  }
+}
+function parseApplicability(json, key) {
+  try {
+    return JSON.parse(json)?.[key] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function load() {
+  loading.value = true;
+  try {
+    const res = await promotionsApi.list(activeOnly.value);
+    rows.value = normalize(extractList(res?.data));
+  } catch {
+    rows.value = [];
+    toast("Failed to load promotions.", "error");
+  } finally {
+    loading.value = false;
+  }
+}
+
+// ── Conflicts ─────────────────────────────────────────────
+const conflictLoading = ref(false);
+const conflicts = ref(null);
+
+async function loadConflicts() {
+  conflictLoading.value = true;
+  try {
+    const res = await promotionsApi.getConflicts();
+    conflicts.value = res?.data?.data ?? res?.data ?? [];
+  } catch {
+    toast("Load conflicts failed.", "error");
+  } finally {
+    conflictLoading.value = false;
+  }
+}
+
+// ── Preview prices for a campaign ────────────────────────
+const previewPromo = ref(null);
+const previewProductId = ref(null);
+const previewCustomerId = ref(null);
+const previewLoading = ref(false);
+const previewPrices = ref([]);
+const previewLoaded = ref(false);
+
+function openPreview(row) {
+  previewPromo.value = row;
+  previewPrices.value = [];
+  previewLoaded.value = false;
+  previewProductId.value = null;
+  previewCustomerId.value = null;
+}
+
+async function loadPreviewPrices() {
+  if (!previewProductId.value)
+    return toast("productId is required.", "warning");
+  previewLoading.value = true;
+  previewLoaded.value = false;
+  try {
+    let res;
+    if (previewCustomerId.value) {
+      res = await pricesApi.listByProductForCustomer(
+        previewProductId.value,
+        previewCustomerId.value,
+      );
+    } else {
+      res = await pricesApi.listByProduct(previewProductId.value);
+    }
+    previewPrices.value = res?.data?.data ?? res?.data ?? [];
+    previewLoaded.value = true;
+  } catch {
+    previewPrices.value = [];
+    toast("Load prices failed.", "error");
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+// ── Create / Update dialog ────────────────────────────────
+const dlg = reactive({
+  open: false,
+  mode: "create",
+  loading: false,
+  alert: "",
+  id: null,
+  form: {
+    code: "",
+    name: "",
+    description: "",
+    discountType: "PERCENT",
+    discountValue: 0,
+    startDate: "",
+    endDate: "",
+    scope: "ALL",
+    productIdsText: "",
+    variantIdsText: "",
+    priority: 0,
+    stackable: false,
+    isActive: true,
+  },
+});
+
+function parseIds(text) {
+  return String(text || "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .map((x) => Number(x))
+    .filter((n) => Number.isFinite(n));
+}
+
+function openCreate() {
+  dlg.open = true;
+  dlg.mode = "create";
+  dlg.alert = "";
+  dlg.id = null;
+  dlg.form = {
+    code: "",
+    name: "",
+    description: "",
+    discountType: "PERCENT",
+    discountValue: 0,
+    startDate: "",
+    endDate: "",
+    scope: "ALL",
+    productIdsText: "",
+    variantIdsText: "",
+    priority: 0,
+    stackable: false,
+    isActive: true,
+  };
+}
+
+function openEdit(row) {
+  dlg.open = true;
+  dlg.mode = "edit";
+  dlg.alert = "";
+  dlg.id = row.id;
+  dlg.form = {
+    code: row.code,
+    name: row.name,
+    description: row.description,
+    discountType: row.discountType || "PERCENT",
+    discountValue: Number(row.discountValue || 0),
+    startDate: row.startDate || "",
+    endDate: row.endDate || "",
+    scope: row.scope || "ALL",
+    productIdsText: (row.productIds || []).join(","),
+    variantIdsText: (row.variantIds || []).join(","),
+    priority: Number(row.priority || 0),
+    stackable: !!row.stackable,
+    isActive: !!row.isActive,
+  };
+}
+
+async function save() {
+  dlg.alert = "";
+  if (!dlg.form.code || !dlg.form.name) {
+    dlg.alert = "code and name are required.";
+    return;
+  }
+
+  const payload = {
+    code: dlg.form.code,
+    name: dlg.form.name,
+    description: dlg.form.description,
+    discountType: dlg.form.discountType,
+    discountValue: dlg.form.discountValue,
+    startDate: dlg.form.startDate,
+    endDate: dlg.form.endDate,
+    scope: dlg.form.scope,
+    productIds: parseIds(dlg.form.productIdsText),
+    variantIds: parseIds(dlg.form.variantIdsText),
+    priority: dlg.form.priority,
+    stackable: dlg.form.stackable,
+    isActive: dlg.form.isActive,
+  };
+
+  dlg.loading = true;
+  try {
+    if (dlg.mode === "create") {
+      await promotionsApi.create(payload);
+      toast("Promotion created.", "success");
+    } else {
+      await promotionsApi.update(dlg.id, payload);
+      toast("Promotion updated.", "success");
+    }
+    dlg.open = false;
+    await load();
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "Save failed";
+    dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg);
+  } finally {
+    dlg.loading = false;
+  }
+}
+
+async function remove(row) {
+  const ok = await confirmModal(
+    `Delete promotion #${row.id} (${row.code})?`,
+    "Confirm",
+    "Delete",
+    true,
+  );
+  if (!ok) return;
+  try {
+    await promotionsApi.remove(row.id);
+    toast("Promotion deleted.", "success");
+    await load();
+  } catch {
+    toast("Delete failed.", "error");
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function fmtDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("vi-VN");
+  } catch {
+    return iso;
+  }
+}
+
+function fmtMoney(val) {
+  if (val == null) return "—";
+  return Number(val).toLocaleString("vi-VN") + " ₫";
+}
+
+onMounted(load);
+</script>
+
+<style scoped>
+.kicker {
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.title {
+  font-weight: 900;
+  font-size: 18px;
+}
+.muted {
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 13px;
+}
+.text-success {
+  color: #18a058;
+}
+</style>
