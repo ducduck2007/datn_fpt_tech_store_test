@@ -1,0 +1,441 @@
+Cho tôi lệnh tạo bảng đi
+CREATE SEQUENCE [dbo].[order_seq]
+    AS bigint
+    START WITH 1000
+    INCREMENT BY 1;
+
+CREATE TABLE [dbo].[users] (
+    [id]            int            IDENTITY(1,1) NOT NULL,
+    [username]      nvarchar(50)   NOT NULL,
+    [email]         nvarchar(100)  NOT NULL,
+    [password_hash] nvarchar(255)  NOT NULL,
+    [role]          nvarchar(30)   NOT NULL,
+    [is_active]     bit            NOT NULL,
+    [created_at]    datetime2(7)   NOT NULL,
+    [updated_at]    datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_users] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_users_email] UNIQUE ([email]),
+    CONSTRAINT [UQ_users_username] UNIQUE ([username]),
+    CONSTRAINT [CK_users_role] CHECK (
+        [role] = N'CUSTOMER' OR [role] = N'INVENTORY' OR [role] = N'SALES' OR [role] = N'ADMIN'
+    )
+);
+
+CREATE TABLE [dbo].[customers] (
+    [id]                 int            IDENTITY(1,1) NOT NULL,
+    [user_id]             int            NULL,
+    [name]                nvarchar(150)  NOT NULL,
+    [email]               nvarchar(100)  NULL,
+    [phone]               nvarchar(30)   NULL,
+    [date_of_birth]       date           NULL,
+    [customer_type]       nvarchar(20)   NOT NULL,
+    [vip_tier]            nvarchar(30)   NULL,
+    [segments_json]       nvarchar(max)  NULL,
+    [loyalty_points]      int            NOT NULL,
+    [total_spent]         decimal(15,2)  NOT NULL,
+    [last_order_at]       datetime2(7)   NULL,
+    [last_login_at]       datetime2(7)   NULL,
+    [address]             nvarchar(500)  NULL,
+    [notes]               nvarchar(max)  NULL,
+    [is_active]           bit            NOT NULL,
+    [created_at]          datetime2(7)   NOT NULL,
+    [updated_at]          datetime2(7)   NOT NULL,
+    [spin_discount_bonus] decimal(5,2)   NULL,
+    [vip_note]            nvarchar(1000) NULL,
+    CONSTRAINT [PK_customers] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_customers_email] UNIQUE ([email]),
+    CONSTRAINT [FK_customers_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[categories] (
+    [id]            int            IDENTITY(1,1) NOT NULL,
+    [name]          nvarchar(150)  NOT NULL,
+    [description]   nvarchar(500)  NULL,
+    [image_url]     nvarchar(500)  NULL,
+    [parent_id]     int            NULL,
+    [display_order] int            NOT NULL,
+    [is_active]     bit            NOT NULL,
+    [created_at]    datetime2(7)   NOT NULL,
+    [updated_at]    datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_categories] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_categories_parent] FOREIGN KEY ([parent_id])
+        REFERENCES [dbo].[categories] ([id])
+);
+
+CREATE TABLE [dbo].[products] (
+    [id]             int            IDENTITY(1,1) NOT NULL,
+    [name]           nvarchar(200)  NOT NULL,
+    [sku]            nvarchar(100)  NOT NULL,
+    [description]    nvarchar(max)  NULL,
+    [is_visible]     bit            NOT NULL,
+    [is_featured]    bit            NOT NULL,
+    [view_count]     int            NOT NULL,
+    [sold_count]     int            NOT NULL,
+    [attributes_json] nvarchar(max) NULL,
+    [created_at]     datetime2(7)   NOT NULL,
+    [updated_at]     datetime2(7)   NOT NULL,
+    [deleted_at]     datetime2(7)   NULL,
+    [brand]          nvarchar(100)  NULL,
+    CONSTRAINT [PK_products] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_products_sku] UNIQUE ([sku])
+);
+
+CREATE TABLE [dbo].[product_variants] (
+    [id]              int            IDENTITY(1,1) NOT NULL,
+    [product_id]       int            NOT NULL,
+    [variant_name]     nvarchar(150)  NOT NULL,
+    [sku]              nvarchar(100)  NOT NULL,
+    [barcode]          nvarchar(100)  NULL,
+    [currency_code]    char(3)        NOT NULL,
+    [price]            decimal(12,2)  NOT NULL,
+    [cost_price]       decimal(12,2)  NULL,
+    [price_tiers_json] nvarchar(max)  NULL,
+    [stock_quantity]   int            NOT NULL,
+    [reserved_qty]     int            NOT NULL,
+    [attributes_json]  nvarchar(max)  NULL,
+    [is_active]        bit            NOT NULL,
+    [created_at]       datetime2(7)   NOT NULL,
+    [updated_at]       datetime2(7)   NOT NULL,
+    [deleted_at]       datetime2(7)   NULL,
+    CONSTRAINT [PK_product_variants] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_product_variants_sku] UNIQUE ([sku]),
+    CONSTRAINT [FK_variants_product] FOREIGN KEY ([product_id])
+        REFERENCES [dbo].[products] ([id])
+        ON DELETE CASCADE
+);
+
+CREATE TABLE [dbo].[images] (
+    [id]         bigint         IDENTITY(1,1) NOT NULL,
+    [product_id] int            NULL,
+    [variant_id] int            NULL,
+    [url]        nvarchar(800)  NOT NULL,
+    [is_primary] bit            NOT NULL,
+    [sort_order] int            NOT NULL,
+    [alt_text]   nvarchar(200)  NULL,
+    [meta_json]  nvarchar(max)  NULL,
+    [created_at] datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_images] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_images_product] FOREIGN KEY ([product_id])
+        REFERENCES [dbo].[products] ([id]),
+    CONSTRAINT [FK_images_variant] FOREIGN KEY ([variant_id])
+        REFERENCES [dbo].[product_variants] ([id]),
+    CONSTRAINT [CK_images_owner] CHECK (
+        ([product_id] IS NOT NULL AND [variant_id] IS NULL)
+        OR
+        ([product_id] IS NULL AND [variant_id] IS NOT NULL)
+    )
+);
+
+CREATE TABLE [dbo].[tags] (
+    [id]         int           IDENTITY(1,1) NOT NULL,
+    [name]       nvarchar(80)  NOT NULL,
+    [tag_type]   nvarchar(30)  NOT NULL,
+    [is_active]  bit           NOT NULL,
+    [created_at] datetime2(7)  NOT NULL,
+    CONSTRAINT [PK_tags] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_tags_name] UNIQUE ([name])
+);
+
+CREATE TABLE [dbo].[product_categories] (
+    [product_id] int          NOT NULL,
+    [category_id] int         NOT NULL,
+    [is_primary] bit          NOT NULL,
+    [created_at] datetime2(7) NOT NULL,
+    CONSTRAINT [PK_product_categories] PRIMARY KEY CLUSTERED ([product_id], [category_id]),
+    CONSTRAINT [FK_pc_product] FOREIGN KEY ([product_id])
+        REFERENCES [dbo].[products] ([id]),
+    CONSTRAINT [FK_pc_category] FOREIGN KEY ([category_id])
+        REFERENCES [dbo].[categories] ([id])
+);
+
+CREATE TABLE [dbo].[product_tags] (
+    [product_id] int          NOT NULL,
+    [tag_id]     int          NOT NULL,
+    [created_at] datetime2(7) NOT NULL,
+    CONSTRAINT [PK_product_tags] PRIMARY KEY CLUSTERED ([product_id], [tag_id]),
+    CONSTRAINT [FK_pt_product] FOREIGN KEY ([product_id])
+        REFERENCES [dbo].[products] ([id]),
+    CONSTRAINT [FK_pt_tag] FOREIGN KEY ([tag_id])
+        REFERENCES [dbo].[tags] ([id])
+);
+
+CREATE TABLE [dbo].[cart_items] (
+    [id]                 int          IDENTITY(1,1) NOT NULL,
+    [customer_id]         int          NOT NULL,
+    [product_variant_id]  int          NOT NULL,
+    [quantity]            int          NOT NULL,
+    [created_at]          datetime2(7) NOT NULL,
+    [updated_at]          datetime2(7) NOT NULL,
+    CONSTRAINT [PK_cart_items] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_cart_items_customer_variant] UNIQUE ([customer_id], [product_variant_id]),
+    CONSTRAINT [FK_cart_items_customer] FOREIGN KEY ([customer_id])
+        REFERENCES [dbo].[customers] ([id])
+        ON DELETE CASCADE,
+    CONSTRAINT [FK_cart_items_product_variant] FOREIGN KEY ([product_variant_id])
+        REFERENCES [dbo].[product_variants] ([id]),
+    CONSTRAINT [CK_cart_items_quantity] CHECK ([quantity] > (0))
+);
+
+CREATE TABLE [dbo].[orders] (
+    [id]                     bigint         IDENTITY(1,1) NOT NULL,
+    [order_number]            nvarchar(40)   NOT NULL,
+    [customer_id]             int            NULL,
+    [user_id]                 int            NULL,
+    [channel]                 nvarchar(20)   NOT NULL,
+    [status]                  nvarchar(30)   NOT NULL,
+    [payment_method]          nvarchar(50)   NULL,
+    [payment_status]          nvarchar(20)   NOT NULL,
+    [shipping_address]        nvarchar(500)  NULL,
+    [shipping_fee]            decimal(12,2)  NOT NULL,
+    [shipping_status]         nvarchar(30)   NULL,
+    [tracking_code]           nvarchar(100)  NULL,
+    [paid_at]                 datetime2(7)   NULL,
+    [shipped_at]              datetime2(7)   NULL,
+    [delivered_at]            datetime2(7)   NULL,
+    [cancelled_at]            datetime2(7)   NULL,
+    [returned_at]             datetime2(7)   NULL,
+    [subtotal]                decimal(15,2)  NOT NULL,
+    [discount_total]          decimal(15,2)  NOT NULL,
+    [tax_total]               decimal(15,2)  NOT NULL,
+    [total_amount]            decimal(15,2)  NOT NULL,
+    [applied_promotion_code]  nvarchar(50)   NULL,
+    [applied_promotion_json]  nvarchar(max)  NULL,
+    [notes]                   nvarchar(max)  NULL,
+    [created_at]              datetime2(7)   NOT NULL,
+    [updated_at]              datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_orders] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_orders_order_number] UNIQUE ([order_number]),
+    CONSTRAINT [FK_orders_customer] FOREIGN KEY ([customer_id])
+        REFERENCES [dbo].[customers] ([id])
+        ON DELETE SET NULL,
+    CONSTRAINT [FK_orders_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[order_items] (
+    [id]           bigint         IDENTITY(1,1) NOT NULL,
+    [order_id]      bigint         NOT NULL,
+    [variant_id]    int            NULL,
+    [product_id]    int            NULL,
+    [product_name]  nvarchar(200)  NOT NULL,
+    [variant_name]  nvarchar(150)  NULL,
+    [sku]           nvarchar(100)  NULL,
+    [quantity]      int            NOT NULL,
+    [unit_price]    decimal(12,2)  NOT NULL,
+    [discount]      decimal(12,2)  NOT NULL,
+    [line_total]    decimal(15,2)  NOT NULL,
+    [created_at]    datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_order_items] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_oi_order] FOREIGN KEY ([order_id])
+        REFERENCES [dbo].[orders] ([id]),
+    CONSTRAINT [FK_oi_product] FOREIGN KEY ([product_id])
+        REFERENCES [dbo].[products] ([id]),
+    CONSTRAINT [FK_oi_variant] FOREIGN KEY ([variant_id])
+        REFERENCES [dbo].[product_variants] ([id])
+);
+
+CREATE TABLE [dbo].[payments] (
+    [id]              bigint         IDENTITY(1,1) NOT NULL,
+    [order_id]         bigint         NOT NULL,
+    [amount]           decimal(15,2)  NOT NULL,
+    [method]           nvarchar(50)   NOT NULL,
+    [transaction_ref]  nvarchar(100)  NULL,
+    [status]           nvarchar(20)   NOT NULL,
+    [paid_at]          datetime2(7)   NULL,
+    [created_at]       datetime2(7)   NOT NULL,
+    [deleted_at]       datetime2(7)   NULL,
+    [deleted_by]       int            NULL,
+    CONSTRAINT [PK_payments] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_payments_order] FOREIGN KEY ([order_id])
+        REFERENCES [dbo].[orders] ([id])
+        ON DELETE CASCADE,
+    CONSTRAINT [FK_payments_deleted_by] FOREIGN KEY ([deleted_by])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[returns] (
+    [id]            bigint         IDENTITY(1,1) NOT NULL,
+    [order_id]       bigint         NOT NULL,
+    [order_item_id]  bigint         NOT NULL,
+    [quantity]       int            NOT NULL,
+    [reason]         nvarchar(500)  NULL,
+    [refund_amount]  decimal(15,2)  NOT NULL,
+    [refund_method]  nvarchar(50)   NULL,
+    [refund_status]  nvarchar(20)   NOT NULL,
+    [refunded_at]    datetime2(7)   NULL,
+    [status]         nvarchar(20)   NOT NULL,
+    [note]           nvarchar(max)  NULL,
+    [processed_by]   int            NULL,
+    [created_at]     datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_returns] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_returns_item] FOREIGN KEY ([order_item_id])
+        REFERENCES [dbo].[order_items] ([id]),
+    CONSTRAINT [FK_returns_order] FOREIGN KEY ([order_id])
+        REFERENCES [dbo].[orders] ([id]),
+    CONSTRAINT [FK_returns_user] FOREIGN KEY ([processed_by])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[price_history] (
+    [id]            bigint         IDENTITY(1,1) NOT NULL,
+    [variant_id]     int            NOT NULL,
+    [currency_code]  char(3)        NOT NULL,
+    [price]          decimal(12,2)  NOT NULL,
+    [cost_price]     decimal(12,2)  NULL,
+    [reason]         nvarchar(200)  NULL,
+    [effective_from] datetime2(7)   NOT NULL,
+    [effective_to]   datetime2(7)   NULL,
+    [created_by]     int            NULL,
+    [created_at]     datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_price_history] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_ph_variant] FOREIGN KEY ([variant_id])
+        REFERENCES [dbo].[product_variants] ([id])
+        ON DELETE CASCADE,
+    CONSTRAINT [FK_ph_user] FOREIGN KEY ([created_by])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[stock_transactions] (
+    [id]             bigint         IDENTITY(1,1) NOT NULL,
+    [variant_id]      int            NOT NULL,
+    [quantity]        int            NOT NULL,
+    [type]            nvarchar(30)   NOT NULL,
+    [reference_type]  nvarchar(50)   NULL,
+    [reference_id]    bigint         NULL,
+    [note]            nvarchar(500)  NULL,
+    [created_by]      int            NULL,
+    [created_at]      datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_stock_transactions] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_st_variant] FOREIGN KEY ([variant_id])
+        REFERENCES [dbo].[product_variants] ([id])
+        ON DELETE CASCADE,
+    CONSTRAINT [FK_st_user] FOREIGN KEY ([created_by])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[promotions] (
+    [id]                 int            IDENTITY(1,1) NOT NULL,
+    [code]               nvarchar(50)   NOT NULL,
+    [name]               nvarchar(150)  NOT NULL,
+    [description]        nvarchar(500)  NULL,
+    [discount_type]      nvarchar(20)   NOT NULL,
+    [discount_value]     decimal(12,2)  NOT NULL,
+    [min_order_amount]   decimal(15,2)  NULL,
+    [applicability_json] nvarchar(max)  NULL,
+    [rules_json]         nvarchar(max)  NULL,
+    [priority]           int            NOT NULL,
+    [stackable]          bit            NOT NULL,
+    [start_date]         datetime2(7)   NOT NULL,
+    [end_date]           datetime2(7)   NOT NULL,
+    [usage_limit]        int            NULL,
+    [used_count]         int            NOT NULL,
+    [is_active]          bit            NOT NULL,
+    [created_by]         int            NULL,
+    [created_at]         datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_promotions] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_promotions_code] UNIQUE ([code]),
+    CONSTRAINT [FK_promotions_user] FOREIGN KEY ([created_by])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[spin_wheel_history] (
+    [id]             bigint         IDENTITY(1,1) NOT NULL,
+    [customer_id]     int            NOT NULL,
+    [discount_bonus]  decimal(5,2)   NOT NULL,
+    [week_start_date] date           NOT NULL,
+    [spun_at]         datetime2(7)   NOT NULL,
+    [expires_at]      datetime2(7)   NOT NULL,
+    [is_used]         bit            NOT NULL,
+    [used_order_id]   bigint         NULL,
+    [created_at]      datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_spin_wheel_history] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_spin_wheel_customer_week] UNIQUE ([customer_id], [week_start_date]),
+    CONSTRAINT [FK_spin_wheel_customer] FOREIGN KEY ([customer_id])
+        REFERENCES [dbo].[customers] ([id])
+        ON DELETE CASCADE,
+    CONSTRAINT [FK_spin_wheel_order] FOREIGN KEY ([used_order_id])
+        REFERENCES [dbo].[orders] ([id])
+        ON DELETE SET NULL
+);
+
+CREATE TABLE [dbo].[notifications] (
+    [id]          bigint         IDENTITY(1,1) NOT NULL,
+    [customer_id]  int            NULL,
+    [type]        nvarchar(50)   NOT NULL,
+    [title]       nvarchar(200)  NOT NULL,
+    [message]     nvarchar(max)  NULL,
+    [is_read]     bit            NOT NULL,
+    [created_at]  datetime2(7)   NOT NULL,
+    [read_at]     datetime2(7)   NULL,
+    CONSTRAINT [PK_notifications] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_notifications_customer] FOREIGN KEY ([customer_id])
+        REFERENCES [dbo].[customers] ([id])
+        ON DELETE CASCADE
+);
+
+CREATE TABLE [dbo].[loyalty_ledger] (
+    [id]               bigint         IDENTITY(1,1) NOT NULL,
+    [customer_id]       int            NOT NULL,
+    [points_delta]      int            NOT NULL,
+    [reason]            nvarchar(200)  NULL,
+    [reference_type]    nvarchar(50)   NULL,
+    [reference_id]      bigint         NULL,
+    [note]              nvarchar(500)  NULL,
+    [created_by]        int            NULL,
+    [created_at]        datetime2(7)   NOT NULL,
+    [tier_before]       nvarchar(30)   NULL,
+    [tier_after]        nvarchar(30)   NULL,
+    [transaction_type]  nvarchar(50)   NULL,
+    CONSTRAINT [PK_loyalty_ledger] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_loyalty_customer] FOREIGN KEY ([customer_id])
+        REFERENCES [dbo].[customers] ([id])
+        ON DELETE CASCADE,
+    CONSTRAINT [FK_loyalty_user] FOREIGN KEY ([created_by])
+        REFERENCES [dbo].[users] ([id])
+);
+
+CREATE TABLE [dbo].[password_resets] (
+    [id]           bigint         IDENTITY(1,1) NOT NULL,
+    [user_id]       int            NOT NULL,
+    [token_hash]    nvarchar(255)  NOT NULL,
+    [expires_at]    datetime2(7)   NOT NULL,
+    [used_at]       datetime2(7)   NULL,
+    [requested_ip]  nvarchar(45)   NULL,
+    [created_at]    datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_password_resets] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_password_resets_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[users] ([id])
+        ON DELETE CASCADE
+);
+
+CREATE TABLE [dbo].[audit_logs] (
+    [id]          bigint         IDENTITY(1,1) NOT NULL,
+    [user_id]      int            NULL,
+    [module]      nvarchar(50)   NOT NULL,
+    [action]      nvarchar(50)   NOT NULL,
+    [target_type] nvarchar(50)   NULL,
+    [target_id]   bigint         NULL,
+    [details_json] nvarchar(max) NULL,
+    [ip_address]  nvarchar(45)   NULL,
+    [created_at]  datetime2(7)   NOT NULL,
+    CONSTRAINT [PK_audit_logs] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_audit_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[users] ([id])
+        ON DELETE SET NULL
+);
+
+CREATE TABLE [dbo].[user_logins] (
+    [id]         bigint         IDENTITY(1,1) NOT NULL,
+    [user_id]     int            NULL,
+    [username]   nvarchar(50)   NULL,
+    [success]    bit            NOT NULL,
+    [ip_address] nvarchar(45)   NULL,
+    [user_agent] nvarchar(400)  NULL,
+    [created_at] datetime2(7)   NOT NULL,
+    [updated_at] datetime2(7)   NULL,
+    CONSTRAINT [PK_user_logins] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [FK_user_logins_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[users] ([id])
+        ON DELETE SET NULL
+);
