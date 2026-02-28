@@ -54,6 +54,10 @@ export const ordersApi = {
     return http.put(`/api/orders/${orderId}/deliver`);
   },
 
+  markAsProcessing(orderId) {
+    return http.put(`/api/orders/${orderId}/process`);
+  },
+
   remove(orderId) {
     return http.delete(`/api/orders/${orderId}`);
   },

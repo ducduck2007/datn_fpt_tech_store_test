@@ -2,27 +2,40 @@
   <div class="container-xl">
     <el-card shadow="never">
       <!-- Header -->
-      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
+      <div
+        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
+      >
         <div>
           <div class="kicker">Order</div>
           <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
           <div class="muted">
-            <el-tag :type="statusType" size="large">{{ detail?.status }}</el-tag>
+            <el-tag :type="statusType" size="large">{{
+              detail?.status
+            }}</el-tag>
             <el-tag class="ms-2" :type="paymentStatusType" size="large">
               Payment: {{ detail?.paymentStatus }}
             </el-tag>
-            <el-tag v-if="isReturned(detail?.status)" type="warning" size="large" class="ms-2">
+            <el-tag
+              v-if="isReturned(detail?.status)"
+              type="warning"
+              size="large"
+              class="ms-2"
+            >
               Returned
             </el-tag>
           </div>
         </div>
         <div class="d-flex gap-2">
-          <el-button @click="$router.push('/orders/new')">Create another</el-button>
+          <el-button @click="$router.push('/orders/new')"
+            >Create another</el-button
+          >
           <el-button @click="reload" :loading="loading">Reload</el-button>
 
           <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
           <el-button
-            v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'"
+            v-if="
+              detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'
+            "
             type="primary"
             @click="showPaymentDialog = true"
           >
@@ -49,6 +62,17 @@
             <el-icon class="me-1"><RefreshLeft /></el-icon>
             Yêu cầu trả hàng
           </el-button>
+
+          
+        <el-button
+          v-if="detail?.status === 'SHIPPING'"
+          type="success"
+          :loading="deliverLoading"
+          @click="confirmDelivered"
+        >
+          <el-icon class="me-1"><Check /></el-icon>
+          Đã giao hàng
+        </el-button>
         </div>
       </div>
 
@@ -82,25 +106,37 @@
               <el-icon :size="24" color="#f59e0b"><Present /></el-icon>
               <h5 class="mb-0 fw-bold">Ưu đãi áp dụng</h5>
             </div>
-            
+
             <div class="row g-3">
               <!-- VIP Discount -->
-              <div v-if="detail.vipDiscount && detail.vipDiscount > 0" class="col-12 col-md-6">
+              <div
+                v-if="detail.vipDiscount && detail.vipDiscount > 0"
+                class="col-12 col-md-6"
+              >
                 <div class="discount-item vip-discount">
                   <div class="discount-icon">
                     <el-icon :size="32"><Star /></el-icon>
                   </div>
                   <div class="discount-details">
-                    <div class="discount-label">Giảm giá VIP {{ vipTierName }}</div>
-                    <div class="discount-rate">{{ detail.vipDiscountRate }}%</div>
-                    <div class="discount-amount">-{{ formatMoney(detail.vipDiscount) }}</div>
+                    <div class="discount-label">
+                      Giảm giá VIP {{ vipTierName }}
+                    </div>
+                    <div class="discount-rate">
+                      {{ detail.vipDiscountRate }}%
+                    </div>
+                    <div class="discount-amount">
+                      -{{ formatMoney(detail.vipDiscount) }}
+                    </div>
                     <div class="discount-note">Áp dụng cho mọi đơn hàng</div>
                   </div>
                 </div>
               </div>
 
               <!-- Spin Wheel Discount -->
-              <div v-if="detail.spinDiscount && detail.spinDiscount > 0" class="col-12 col-md-6">
+              <div
+                v-if="detail.spinDiscount && detail.spinDiscount > 0"
+                class="col-12 col-md-6"
+              >
                 <div class="discount-item spin-discount">
                   <div class="discount-icon spin-icon">
                     <el-icon :size="32"><TrophyBase /></el-icon>
@@ -108,12 +144,22 @@
                   <div class="discount-details">
                     <div class="discount-label">
                       Vòng quay may mắn
-                      <el-tag size="small" type="warning" class="ms-1">1 lần dùng</el-tag>
+                      <el-tag size="small" type="warning" class="ms-1"
+                        >1 lần dùng</el-tag
+                      >
                     </div>
-                    <div class="discount-rate">{{ detail.spinDiscountRate }}%</div>
-                    <div class="discount-amount">-{{ formatMoney(detail.spinDiscount) }}</div>
+                    <div class="discount-rate">
+                      {{ detail.spinDiscountRate }}%
+                    </div>
+                    <div class="discount-amount">
+                      -{{ formatMoney(detail.spinDiscount) }}
+                    </div>
                     <div class="discount-note">
-                      {{ detail.hasSpinBonus ? '✅ Đã áp dụng' : 'Sẽ được khấu trừ khi thanh toán' }}
+                      {{
+                        detail.hasSpinBonus
+                          ? "✅ Đã áp dụng"
+                          : "Sẽ được khấu trừ khi thanh toán"
+                      }}
                     </div>
                   </div>
                 </div>
@@ -170,10 +216,12 @@
               <span>Tạm tính:</span>
               <strong>{{ formatMoney(detail.subtotal) }}</strong>
             </div>
-            
+
             <!-- VIP Discount Line -->
-            <div v-if="detail.vipDiscount && detail.vipDiscount > 0" 
-                 class="d-flex justify-content-between text-success">
+            <div
+              v-if="detail.vipDiscount && detail.vipDiscount > 0"
+              class="d-flex justify-content-between text-success"
+            >
               <span>
                 <el-icon class="me-1"><Star /></el-icon>
                 Giảm giá VIP ({{ detail.vipDiscountRate }}%):
@@ -182,8 +230,10 @@
             </div>
 
             <!-- Spin Discount Line -->
-            <div v-if="detail.spinDiscount && detail.spinDiscount > 0" 
-                 class="d-flex justify-content-between text-warning">
+            <div
+              v-if="detail.spinDiscount && detail.spinDiscount > 0"
+              class="d-flex justify-content-between text-warning"
+            >
               <span>
                 <el-icon class="me-1"><TrophyBase /></el-icon>
                 Vòng quay ({{ detail.spinDiscountRate }}%):
@@ -195,14 +245,16 @@
               <span>Phí ship:</span>
               <strong>{{ formatMoney(detail.shippingFee) }}</strong>
             </div>
-            
+
             <el-divider />
-            
+
             <div class="d-flex justify-content-between fs-5">
               <span><strong>Tổng cộng:</strong></span>
-              <strong class="text-primary">{{ formatMoney(detail.totalAmount) }}</strong>
+              <strong class="text-primary">{{
+                formatMoney(detail.totalAmount)
+              }}</strong>
             </div>
-            
+
             <div v-if="hasDiscount" class="discount-savings mt-2">
               <el-alert type="success" :closable="false">
                 <template #title>
@@ -218,13 +270,24 @@
     </el-card>
 
     <!-- Payment Dialog -->
-    <el-dialog v-model="showPaymentDialog" title="💳 Thanh toán đơn hàng" width="500px">
-      <el-alert title="Thông tin thanh toán" type="info" :closable="false" class="mb-3">
+    <el-dialog
+      v-model="showPaymentDialog"
+      title="💳 Thanh toán đơn hàng"
+      width="500px"
+    >
+      <el-alert
+        title="Thông tin thanh toán"
+        type="info"
+        :closable="false"
+        class="mb-3"
+      >
         <p>Sau khi thanh toán thành công:</p>
         <ul class="mb-0">
           <li>✅ Đơn hàng sẽ chuyển sang trạng thái <strong>PAID</strong></li>
           <li>✅ Xuất kho tự động</li>
-          <li>✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn</li>
+          <li>
+            ✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn
+          </li>
           <li v-if="detail?.spinDiscount && detail.spinDiscount > 0">
             ⚠️ Ưu đãi vòng quay sẽ được <strong>sử dụng 1 lần</strong>
           </li>
@@ -233,7 +296,11 @@
 
       <el-form :model="paymentForm" label-position="top">
         <el-form-item label="Số tiền thanh toán">
-          <el-input :value="formatMoney(detail?.totalAmount)" disabled size="large" />
+          <el-input
+            :value="formatMoney(detail?.totalAmount)"
+            disabled
+            size="large"
+          />
         </el-form-item>
 
         <el-form-item label="Phương thức thanh toán" required>
@@ -259,7 +326,9 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="showPaymentDialog = false" size="large">Hủy</el-button>
+        <el-button @click="showPaymentDialog = false" size="large"
+          >Hủy</el-button
+        >
         <el-button
           type="primary"
           @click="confirmPayment"
@@ -297,14 +366,22 @@
 
       <template #footer>
         <el-button @click="showCancelDialog = false">Đóng</el-button>
-        <el-button type="danger" @click="confirmCancel" :loading="cancelLoading">
+        <el-button
+          type="danger"
+          @click="confirmCancel"
+          :loading="cancelLoading"
+        >
           Xác nhận hủy
         </el-button>
       </template>
     </el-dialog>
 
     <!-- Return Dialog -->
-    <el-dialog v-model="showReturnDialog" title="🔄 Yêu cầu trả hàng" width="600px">
+    <el-dialog
+      v-model="showReturnDialog"
+      title="🔄 Yêu cầu trả hàng"
+      width="600px"
+    >
       <el-form :model="returnForm" label-position="top">
         <el-form-item label="Chọn sản phẩm">
           <el-select
@@ -366,7 +443,15 @@ import { returnsApi } from "../../api/returns.api";
 import { paymentsApi } from "../../api/payments";
 import { customersApi } from "../../api/customers.api";
 import { toast } from "../../ui/toast";
-import { Close, CreditCard, RefreshLeft, Present, Star, TrophyBase } from "@element-plus/icons-vue";
+import {
+  Close,
+  CreditCard,
+  RefreshLeft,
+  Present,
+  Star,
+  TrophyBase,
+  Check
+} from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -378,12 +463,31 @@ const paymentLoading = ref(false);
 const detail = ref(null);
 const vipTierName = ref("");
 const orderId = computed(() => route.params.orderId);
+const deliverLoading = ref(false);
 
 // Dialog controls
 const showCancelDialog = ref(false);
 const cancelReason = ref("");
 const showReturnDialog = ref(false);
 const showPaymentDialog = ref(false);
+
+async function confirmDelivered() {
+  deliverLoading.value = true;
+  try {
+    await ordersApi.markAsDelivered(orderId.value);
+
+    toast("✅ Đơn hàng đã được đánh dấu giao thành công", "success");
+
+    await reload();
+  } catch (e) {
+    toast(
+      e?.response?.data?.message || "Lỗi khi cập nhật trạng thái giao hàng",
+      "error"
+    );
+  } finally {
+    deliverLoading.value = false;
+  }
+}
 
 const returnForm = reactive({
   orderItemId: null,
@@ -415,8 +519,10 @@ const paymentStatusType = computed(() => {
 });
 
 const hasDiscount = computed(() => {
-  return (detail.value?.vipDiscount && detail.value.vipDiscount > 0) ||
-         (detail.value?.spinDiscount && detail.value.spinDiscount > 0);
+  return (
+    (detail.value?.vipDiscount && detail.value.vipDiscount > 0) ||
+    (detail.value?.spinDiscount && detail.value.spinDiscount > 0)
+  );
 });
 
 // Watchers
@@ -459,7 +565,7 @@ async function reload() {
   try {
     const res = await ordersApi.getById(orderId.value);
     detail.value = res?.data?.data || res?.data;
-    
+
     // Load customer info to get VIP tier name
     if (detail.value?.customerId) {
       try {

@@ -110,8 +110,14 @@ public class OrderController {
     // =========================================================
     // ORDER STATUS ACTIONS
     // =========================================================
+    // PAID -> PROCESSING
+    @PutMapping("/{orderId}/process")
+    public ResponseEntity<Void> markAsProcessing(@PathVariable Long orderId) {
+        orderService.markAsProcessing(orderId);
+        return ResponseEntity.ok().build();
+    }
 
-    // PENDING -> SHIPPING
+    // PROCESSING -> SHIPPING
     @PutMapping("/{orderId}/ship")
     public ResponseEntity<Void> markAsShipping(@PathVariable Long orderId) {
         orderService.markAsShipping(orderId);
@@ -179,6 +185,32 @@ public class OrderController {
         return ResponseEntity.ok(
                 orderQueryService.getRevenueByCustomer()
         );
+    }
+
+    // =========================================================
+// LIST ORDERS BY STAFF
+// =========================================================
+    @GetMapping("/staff/{staffId}")
+    public ResponseEntity<List<OrderListResponse>> getOrdersByStaff(
+            @PathVariable Integer staffId
+    ) {
+        return ResponseEntity.ok(
+                orderQueryService.getOrdersByStaff(staffId)
+        );
+    }
+
+    @GetMapping("/{orderId}/pdf")
+    public ResponseEntity<byte[]> downloadInvoice(
+            @PathVariable Long orderId
+    ) {
+
+        byte[] pdf = orderQueryService.generateOrderPdf(orderId);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition",
+                        "attachment; filename=invoice_" + orderId + ".pdf")
+                .header("Content-Type", "application/pdf")
+                .body(pdf);
     }
 
 
