@@ -26,53 +26,50 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     // Tìm kiếm Nâng cao: Tên, SKU, Thuộc tính, Lọc nhiều danh mục
     @Query(value = """
-        SELECT p.*, 
-               (SELECT MIN(pv.price) FROM product_variants pv 
-                WHERE pv.product_id = p.id AND pv.is_active = 1) as min_price
-        FROM products p 
-        WHERE 
-        (:keyword IS NULL OR :keyword = '' OR p.name LIKE :keyword OR p.sku LIKE :keyword) 
-        
-        /* Lọc Category bằng EXISTS thay vì JOIN để tránh trùng lặp dữ liệu */
-        AND (:hasCategory = 0 OR EXISTS (
-                SELECT 1 FROM product_categories pc 
-                WHERE pc.product_id = p.id AND pc.category_id IN (:categoryIds)
-            )) 
+    SELECT p.*, 
+           (SELECT MIN(pv.price) FROM product_variants pv 
+            WHERE pv.product_id = p.id AND pv.is_active = 1) as min_price
+    FROM products p 
+    WHERE 
+    (:keyword IS NULL OR :keyword = '' OR p.name LIKE %:keyword% OR p.sku LIKE %:keyword%) 
+    
+    AND (:hasCategory = 0 OR EXISTS (
+            SELECT 1 FROM product_categories pc 
+            WHERE pc.product_id = p.id AND pc.category_id IN (:categoryIds)
+        )) 
             
-        AND (:isVisible IS NULL OR p.is_visible = :isVisible)
-        
-        /* Lọc Tag */
-        AND (:tagId = -1 OR EXISTS (
-                SELECT 1 FROM product_tags pt 
-                WHERE pt.product_id = p.id AND pt.tag_id = :tagId
-            ))
+    AND (:isVisible IS NULL OR p.is_visible = :isVisible)
+    
+    AND (:tagId = -1 OR EXISTS (
+            SELECT 1 FROM product_tags pt 
+            WHERE pt.product_id = p.id AND pt.tag_id = :tagId
+        ))
             
-        /* Lọc tồn kho */
-        AND (:inStockOnly = 0 OR (
-                SELECT COALESCE(SUM(v.stock_quantity), 0) 
-                FROM product_variants v 
-                WHERE v.product_id = p.id AND v.is_active = 1
-            ) > 0)
-        """,
+    AND (:inStockOnly = 0 OR (
+            SELECT COALESCE(SUM(v.stock_quantity), 0) 
+            FROM product_variants v 
+            WHERE v.product_id = p.id AND v.is_active = 1
+        ) > 0)
+    """,
             countQuery = """
-        SELECT count(*) FROM products p 
-        WHERE 
-        (:keyword IS NULL OR :keyword = '' OR p.name LIKE :keyword OR p.sku LIKE :keyword) 
-        AND (:hasCategory = 0 OR EXISTS (
-                SELECT 1 FROM product_categories pc 
-                WHERE pc.product_id = p.id AND pc.category_id IN (:categoryIds)
-            )) 
-        AND (:isVisible IS NULL OR p.is_visible = :isVisible)
-        AND (:tagId = -1 OR EXISTS (
-                SELECT 1 FROM product_tags pt 
-                WHERE pt.product_id = p.id AND pt.tag_id = :tagId
-            ))
-        AND (:inStockOnly = 0 OR (
-                SELECT COALESCE(SUM(v.stock_quantity), 0) 
-                FROM product_variants v 
-                WHERE v.product_id = p.id AND v.is_active = 1
-            ) > 0)
-        """,
+    SELECT count(*) FROM products p 
+    WHERE 
+    (:keyword IS NULL OR :keyword = '' OR p.name LIKE %:keyword% OR p.sku LIKE %:keyword%) 
+    AND (:hasCategory = 0 OR EXISTS (
+            SELECT 1 FROM product_categories pc 
+            WHERE pc.product_id = p.id AND pc.category_id IN (:categoryIds)
+        )) 
+    AND (:isVisible IS NULL OR p.is_visible = :isVisible)
+    AND (:tagId = -1 OR EXISTS (
+            SELECT 1 FROM product_tags pt 
+            WHERE pt.product_id = p.id AND pt.tag_id = :tagId
+        ))
+    AND (:inStockOnly = 0 OR (
+            SELECT COALESCE(SUM(v.stock_quantity), 0) 
+            FROM product_variants v 
+            WHERE v.product_id = p.id AND v.is_active = 1
+        ) > 0)
+    """,
             nativeQuery = true
     )
     Page<Product> searchProducts(@Param("keyword") String keyword,

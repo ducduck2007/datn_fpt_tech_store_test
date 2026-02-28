@@ -215,13 +215,17 @@ public class ProductService {
                 case "best_selling":
                     sortObj = JpaSort.unsafe(Sort.Direction.DESC, "sold_count");
                     break;
+                case "price_asc":
+                    sortObj = JpaSort.unsafe(Sort.Direction.ASC, "min_price");
+                    break;
+                case "price_desc":
+                    sortObj = JpaSort.unsafe(Sort.Direction.DESC, "min_price");
+                    break;
             }
         }
 
         Pageable pageable = PageRequest.of(page, 20, sortObj);
-
-        // 3. Chuẩn bị các tham số cho Repository
-        String searchKey = (keyword != null && !keyword.trim().isEmpty()) ? "%" + keyword.trim() + "%" : null;
+        String searchKey = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         boolean hasCategory = (categoryIds != null && !categoryIds.isEmpty());
         List<Integer> filterIds = hasCategory ? categoryIds : List.of(-1);
         Integer finalTagId = (tagId != null) ? tagId : -1;
@@ -237,13 +241,7 @@ public class ProductService {
 
         List<ProductResponse> content = productPage.getContent().stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        if ("price_asc".equals(sortBy)) {
-            content.sort(Comparator.comparing(p -> p.getMinPrice() != null ? p.getMinPrice() : BigDecimal.valueOf(Double.MAX_VALUE)));
-        } else if ("price_desc".equals(sortBy)) {
-            content.sort(Comparator.comparing((ProductResponse p) -> p.getMinPrice() != null ? p.getMinPrice() : BigDecimal.ZERO).reversed());
-        }
+                .collect(Collectors.toList());
 
         return new PageImpl<>(content, pageable, productPage.getTotalElements());
     }
