@@ -393,7 +393,17 @@ window.addEventListener("products:search", (e) => {
 .product-thumb { position: relative; height: 180px; background: #f8fafc; }
 .product-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .product-tag { position: absolute; top: 10px; right: 10px; background: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.product-desc { font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 36px; }
+.product-desc { 
+  font-size: 12px; 
+  color: #64748b;
+  line-height: 1.6;
+  height: 38px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; 
+  line-clamp: 2;    
+  -webkit-box-orient: vertical;
+}
 
 .event-btn { background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; position: relative; }
 .event-ping { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: ping 1.5s infinite; }
