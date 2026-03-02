@@ -35,6 +35,309 @@
         </el-card>
 
         <el-tabs v-model="activeTab" class="mb-3">
+
+          <!-- ═══════════════════════════════════════════════════════════
+               TAB: DASHBOARD (MỚI)
+          ════════════════════════════════════════════════════════════ -->
+          <el-tab-pane name="dashboard">
+            <template #label>
+              <span class="d-flex align-items-center gap-1">
+                <el-icon><DataAnalysis /></el-icon> Dashboard
+              </span>
+            </template>
+
+            <el-skeleton v-if="dashboardLoading" :rows="10" animated />
+
+            <template v-else-if="myDashboard">
+
+              <!-- ── Hàng 1: 4 KPI cards ── -->
+              <el-row :gutter="16" class="mb-4">
+                <el-col :xs="12" :sm="6">
+                  <div class="kpi-card kpi-points">
+                    <div class="kpi-icon"><el-icon :size="28"><Star /></el-icon></div>
+                    <div class="kpi-body">
+                      <div class="kpi-value">{{ (myDashboard.summary?.loyaltyPoints || 0).toLocaleString() }}</div>
+                      <div class="kpi-label">Điểm tích lũy</div>
+                    </div>
+                  </div>
+                </el-col>
+                <el-col :xs="12" :sm="6">
+                  <div class="kpi-card kpi-spent">
+                    <div class="kpi-icon"><el-icon :size="28"><Wallet /></el-icon></div>
+                    <div class="kpi-body">
+                      <div class="kpi-value">{{ formatCurrencyShort(myDashboard.summary?.totalSpent) }}</div>
+                      <div class="kpi-label">Tổng chi tiêu</div>
+                    </div>
+                  </div>
+                </el-col>
+                <el-col :xs="12" :sm="6">
+                  <div class="kpi-card kpi-orders">
+                    <div class="kpi-icon"><el-icon :size="28"><ShoppingCart /></el-icon></div>
+                    <div class="kpi-body">
+                      <div class="kpi-value">{{ myDashboard.summary?.totalOrders || 0 }}</div>
+                      <div class="kpi-label">Đơn hàng</div>
+                    </div>
+                  </div>
+                </el-col>
+                <el-col :xs="12" :sm="6">
+                  <div class="kpi-card kpi-discount">
+                    <div class="kpi-icon"><el-icon :size="28"><Present /></el-icon></div>
+                    <div class="kpi-body">
+                      <div class="kpi-value">{{ myDashboard.summary?.discountDisplay || '0%' }}</div>
+                      <div class="kpi-label">Ưu đãi hiện tại</div>
+                    </div>
+                  </div>
+                </el-col>
+              </el-row>
+
+              <!-- ── Hàng 2: VIP Journey + Spin Wheel ── -->
+              <el-row :gutter="16" class="mb-4">
+                <!-- VIP Journey -->
+                <el-col :xs="24" :md="14">
+                  <el-card shadow="hover" class="vip-journey-card h-100">
+                    <div class="d-flex align-items-center gap-2 mb-4">
+                      <el-icon :size="22" color="#f59e0b"><Trophy /></el-icon>
+                      <h3 class="mb-0 fw-bold">Hành trình VIP</h3>
+                    </div>
+
+                    <!-- Current tier hero -->
+                    <div class="vip-hero mb-4">
+                      <div class="vip-hero-tier">
+                        <el-tag :type="getTierTagType(myDashboard.vipJourney?.currentTier)" effect="dark" size="large" class="vip-tier-big">
+                          {{ myDashboard.vipJourney?.currentTierDisplay || 'Member' }}
+                        </el-tag>
+                      </div>
+                      <div class="vip-hero-points">
+                        <span class="vip-pts-current">{{ (myDashboard.vipJourney?.currentPoints || 0).toLocaleString() }}</span>
+                        <span class="vip-pts-label"> điểm</span>
+                      </div>
+                    </div>
+
+                    <!-- Progress bar tới tier tiếp theo -->
+                    <div v-if="myDashboard.vipJourney?.nextTier" class="mb-3">
+                      <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">
+                          Cần thêm <strong class="text-primary">{{ (myDashboard.vipJourney?.pointsToNext || 0).toLocaleString() }} điểm</strong>
+                          để lên <strong>{{ myDashboard.vipJourney?.nextTierDisplay }}</strong>
+                        </span>
+                        <span class="small fw-bold text-primary">{{ myDashboard.vipJourney?.progressPercent || 0 }}%</span>
+                      </div>
+                      <div class="vip-progress-track">
+                        <div class="vip-progress-fill" :style="{ width: (myDashboard.vipJourney?.progressPercent || 0) + '%' }" />
+                      </div>
+                    </div>
+                    <div v-else class="mb-3">
+                      <div class="vip-max-badge">
+                        <el-icon color="#f59e0b"><Star /></el-icon> Bạn đang ở hạng cao nhất!
+                      </div>
+                    </div>
+
+                    <!-- Milestones -->
+                    <div class="vip-milestones">
+                      <div
+                        v-for="m in myDashboard.vipJourney?.milestones"
+                        :key="m.tier"
+                        class="vip-milestone"
+                        :class="{ 'achieved': m.achieved }"
+                      >
+                        <div class="milestone-dot" :class="m.achieved ? 'dot-achieved' : 'dot-pending'">
+                          <el-icon v-if="m.achieved" :size="12" color="white"><Check /></el-icon>
+                        </div>
+                        <div class="milestone-info">
+                          <span class="milestone-tier">{{ m.tierDisplay }}</span>
+                          <span class="milestone-pts">{{ m.requiredPoints.toLocaleString() }} điểm</span>
+                        </div>
+                        <div v-if="m.achieved && m.achievedAt" class="milestone-date">{{ m.achievedAt }}</div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+
+                <!-- Spin Wheel + Spin Bonus -->
+                <el-col :xs="24" :md="10">
+                  <el-card shadow="hover" class="spin-dash-card h-100">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                      <el-icon :size="22" color="#67c23a"><Trophy /></el-icon>
+                      <h3 class="mb-0 fw-bold">Vòng quay may mắn</h3>
+                    </div>
+
+                    <!-- Spin bonus active -->
+                    <div v-if="myDashboard.spinWheel?.hasBonus" class="spin-bonus-banner mb-3">
+                      <div class="spin-bonus-icon">🎁</div>
+                      <div>
+                        <div class="spin-bonus-value">-{{ myDashboard.spinWheel?.currentBonus }}%</div>
+                        <div class="spin-bonus-label">Bonus đang chờ áp dụng</div>
+                      </div>
+                    </div>
+
+                    <div class="spin-status-grid">
+                      <div class="spin-status-item">
+                        <div class="spin-status-val" :class="myDashboard.spinWheel?.canSpin ? 'text-success' : 'text-muted'">
+                          {{ myDashboard.spinWheel?.canSpin ? '✓ Sẵn sàng' : '✗ Chưa thể' }}
+                        </div>
+                        <div class="spin-status-key">Trạng thái</div>
+                      </div>
+                      <div class="spin-status-item">
+                        <div class="spin-status-val">{{ myDashboard.spinWheel?.spinsRemaining || 0 }}</div>
+                        <div class="spin-status-key">Lượt còn lại</div>
+                      </div>
+                    </div>
+
+                    <div v-if="myDashboard.spinWheel?.nextSpinAt" class="spin-next-time mt-2">
+                      <el-icon color="#909399"><Clock /></el-icon>
+                      <span>Quay lại lúc: {{ myDashboard.spinWheel?.nextSpinAt }}</span>
+                    </div>
+
+                    <el-divider />
+
+                    <!-- Avg order -->
+                    <div class="avg-order-section">
+                      <div class="avg-label">Trung bình mỗi đơn</div>
+                      <div class="avg-value">{{ formatCurrency(myDashboard.summary?.avgOrderValue) }}</div>
+                    </div>
+
+                    <!-- Last order -->
+                    <div class="last-order-section mt-3" v-if="myDashboard.summary?.lastOrderAt">
+                      <div class="avg-label">Đơn hàng gần nhất</div>
+                      <div class="last-order-date">{{ formatDateTime(myDashboard.summary?.lastOrderAt) }}</div>
+                    </div>
+
+                    <!-- Spin bonus note -->
+                    <div v-if="!myDashboard.spinWheel?.hasBonus && !myDashboard.spinWheel?.canSpin" class="spin-empty-note mt-3">
+                      <el-icon color="#c0c4cc"><InfoFilled /></el-icon>
+                      <span>Hiện chưa có bonus spin</span>
+                    </div>
+                  </el-card>
+                </el-col>
+              </el-row>
+
+              <!-- ── Hàng 3: Recent Payments + Recent Loyalty + Promotions ── -->
+              <el-row :gutter="16" class="mb-4">
+                <!-- Recent Payments -->
+                <el-col :xs="24" :md="12">
+                  <el-card shadow="hover">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                      <div class="d-flex align-items-center gap-2">
+                        <el-icon :size="18" color="#409eff"><CreditCard /></el-icon>
+                        <h4 class="mb-0 fw-bold">Giao dịch gần đây</h4>
+                      </div>
+                      <el-button size="small" text type="primary" @click="activeTab = 'payments'">Xem tất cả</el-button>
+                    </div>
+                    <el-empty v-if="!myDashboard.recentPayments?.length" description="Chưa có giao dịch" :image-size="60" />
+                    <div v-else class="recent-list">
+                      <div
+                        v-for="p in myDashboard.recentPayments"
+                        :key="p.paymentId"
+                        class="recent-item"
+                      >
+                        <div class="recent-item-left">
+                          <div class="recent-item-icon payment-icon">
+                            <el-icon color="#409eff"><CreditCard /></el-icon>
+                          </div>
+                          <div>
+                            <div class="recent-item-title">Đơn #{{ p.orderId }}</div>
+                            <div class="recent-item-sub">{{ p.method }} · {{ p.paidAt }}</div>
+                          </div>
+                        </div>
+                        <div class="recent-item-right">
+                          <div class="recent-item-amount">{{ formatCurrency(p.amount) }}</div>
+                          <el-tag :type="getPaymentStatusType(p.status)" size="small">{{ p.status }}</el-tag>
+                        </div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+
+                <!-- Recent Loyalty History -->
+                <el-col :xs="24" :md="12">
+                  <el-card shadow="hover">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                      <div class="d-flex align-items-center gap-2">
+                        <el-icon :size="18" color="#f59e0b"><Star /></el-icon>
+                        <h4 class="mb-0 fw-bold">Điểm gần đây</h4>
+                      </div>
+                      <el-button size="small" text type="primary" @click="activeTab = 'loyalty'">Xem tất cả</el-button>
+                    </div>
+                    <el-empty v-if="!myDashboard.recentLoyaltyHistory?.length" description="Chưa có lịch sử điểm" :image-size="60" />
+                    <div v-else class="recent-list">
+                      <div
+                        v-for="h in myDashboard.recentLoyaltyHistory"
+                        :key="h.id"
+                        class="recent-item"
+                      >
+                        <div class="recent-item-left">
+                          <div class="recent-item-icon" :class="h.pointsDelta > 0 ? 'earn-icon' : 'deduct-icon'">
+                            <el-icon :color="h.pointsDelta > 0 ? '#67c23a' : '#e6a23c'">
+                              <component :is="h.pointsDelta > 0 ? 'CirclePlus' : 'Remove'" />
+                            </el-icon>
+                          </div>
+                          <div>
+                            <div class="recent-item-title">{{ h.transactionTypeDisplay || h.transactionType }}</div>
+                            <div class="recent-item-sub">{{ formatDateTime(h.createdAt) }}</div>
+                          </div>
+                        </div>
+                        <div class="recent-item-right">
+                          <div class="recent-pts" :class="h.pointsDelta > 0 ? 'pts-earn' : 'pts-deduct'">
+                            {{ h.pointsDelta > 0 ? '+' : '' }}{{ h.pointsDelta }}
+                          </div>
+                          <div class="recent-pts-label">điểm</div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+              </el-row>
+
+              <!-- ── Hàng 4: Recent Promotions ── -->
+              <el-row v-if="myDashboard.recentPromotions?.length" :gutter="16">
+                <el-col :xs="24">
+                  <el-card shadow="hover">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                      <div class="d-flex align-items-center gap-2">
+                        <el-icon :size="18" color="#9333ea"><Ticket /></el-icon>
+                        <h4 class="mb-0 fw-bold">Ưu đãi gần đây</h4>
+                      </div>
+                      <el-button size="small" text type="primary" @click="activeTab = 'promotions'">Xem tất cả</el-button>
+                    </div>
+                    <div class="promo-dash-list">
+                      <div
+                        v-for="p in myDashboard.recentPromotions"
+                        :key="`dash-promo-${p.orderId}-${p.promotionCode}`"
+                        class="promo-dash-item"
+                      >
+                        <div class="promo-dash-icon" :class="p.type === 'SPIN_WHEEL' ? 'spin-icon' : 'code-icon'">
+                          <el-icon><component :is="p.type === 'SPIN_WHEEL' ? 'Trophy' : 'Ticket'" /></el-icon>
+                        </div>
+                        <div class="promo-dash-info">
+                          <div class="promo-dash-name">{{ p.promotionName }}</div>
+                          <div class="promo-dash-meta">
+                            <el-tag size="small" :type="p.type === 'SPIN_WHEEL' ? 'success' : 'primary'">
+                              {{ p.type === 'SPIN_WHEEL' ? 'Spin' : p.promotionCode }}
+                            </el-tag>
+                            <el-tag size="small" :type="getPromoStatusTagType(p.status)">{{ p.status }}</el-tag>
+                          </div>
+                        </div>
+                        <div class="promo-dash-value">
+                          <span class="promo-dash-discount">
+                            {{ p.discountType === 'PERCENT' || p.discountType === 'percent'
+                              ? `${p.discountValue}%`
+                              : formatCurrencyShort(p.discountValue) }}
+                          </span>
+                          <span class="promo-dash-unit">giảm</span>
+                        </div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+              </el-row>
+            </template>
+
+            <!-- Empty / error state -->
+            <el-empty v-else description="Không tải được dữ liệu dashboard">
+              <el-button type="primary" @click="loadMyDashboard">Thử lại</el-button>
+            </el-empty>
+          </el-tab-pane>
+
           <!-- TAB: THÔNG TIN -->
           <el-tab-pane label="Thông tin" name="info">
             <div class="row g-3">
@@ -309,7 +612,6 @@
               </span>
             </template>
 
-            <!-- Thống kê nhanh -->
             <el-row :gutter="16" class="mb-3">
               <el-col :xs="24" :sm="8">
                 <el-card shadow="hover" class="stats-card promo-total-card">
@@ -347,7 +649,6 @@
             </el-row>
 
             <el-card shadow="never">
-              <!-- Header + bộ lọc -->
               <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-3">
                 <h3 class="mb-0 fw-bold">
                   <el-icon class="me-2"><Ticket /></el-icon>
@@ -386,43 +687,24 @@
                   shadow="hover"
                 >
                   <div class="promo-card-content">
-                    <!-- Icon loại ưu đãi -->
                     <div class="promo-icon-wrapper" :class="item.type === 'SPIN_WHEEL' ? 'spin-icon' : 'code-icon'">
                       <el-icon :size="28">
                         <component :is="item.type === 'SPIN_WHEEL' ? 'Trophy' : 'Ticket'" />
                       </el-icon>
                     </div>
-
-                    <!-- Nội dung chính -->
                     <div class="promo-details flex-grow-1">
                       <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                        <!-- Loại ưu đãi -->
                         <el-tag :type="item.type === 'SPIN_WHEEL' ? 'success' : 'primary'" effect="dark" size="small">
                           {{ item.type === 'SPIN_WHEEL' ? '🎡 Vòng quay' : '🎟 Mã KM' }}
                         </el-tag>
-                        <!-- Trạng thái -->
-                        <el-tag :type="getPromoStatusTagType(item.status)" size="small">
-                          {{ item.status }}
-                        </el-tag>
-                        <!-- Mã ưu đãi -->
-                        <el-tag type="info" effect="plain" size="small" v-if="item.type === 'PROMOTION_CODE'">
-                          {{ item.promotionCode }}
-                        </el-tag>
+                        <el-tag :type="getPromoStatusTagType(item.status)" size="small">{{ item.status }}</el-tag>
+                        <el-tag type="info" effect="plain" size="small" v-if="item.type === 'PROMOTION_CODE'">{{ item.promotionCode }}</el-tag>
                       </div>
-
-                      <!-- Tên ưu đãi -->
                       <div class="promo-name fw-bold mb-1">{{ item.promotionName }}</div>
-
-                      <!-- Chi tiết giảm giá -->
                       <div class="d-flex gap-3 flex-wrap promo-meta">
                         <span class="promo-meta-item">
                           <el-icon color="#67c23a"><Money /></el-icon>
-                          Giảm:
-                          <strong class="text-success">
-                            {{ item.discountType === 'PERCENT' || item.discountType === 'percent'
-                              ? `${item.discountValue}%`
-                              : formatCurrency(item.discountValue) }}
-                          </strong>
+                          Giảm: <strong class="text-success">{{ item.discountType === 'PERCENT' || item.discountType === 'percent' ? `${item.discountValue}%` : formatCurrency(item.discountValue) }}</strong>
                         </span>
                         <span class="promo-meta-item" v-if="item.discountTotal">
                           <el-icon color="#409eff"><Wallet /></el-icon>
@@ -437,8 +719,6 @@
                           {{ item.status === 'Đã sử dụng' ? 'Dùng lúc' : 'Nhận lúc' }}: {{ formatDateTime(item.usedAt) }}
                         </span>
                       </div>
-
-                      <!-- Nút xem đơn hàng -->
                       <div v-if="item.orderId" class="mt-2">
                         <el-button size="small" type="primary" plain round class="order-bill-btn" @click="viewOrderBill(item.orderId, 0)">
                           <el-icon class="me-1"><ShoppingCart /></el-icon>
@@ -446,13 +726,9 @@
                         </el-button>
                       </div>
                     </div>
-
-                    <!-- Giá trị giảm nổi bật -->
                     <div class="promo-discount-badge">
                       <div class="discount-big" :class="item.type === 'SPIN_WHEEL' ? 'spin-color' : 'code-color'">
-                        {{ item.discountType === 'PERCENT' || item.discountType === 'percent'
-                          ? `${item.discountValue}%`
-                          : formatCurrencyShort(item.discountValue) }}
+                        {{ item.discountType === 'PERCENT' || item.discountType === 'percent' ? `${item.discountValue}%` : formatCurrencyShort(item.discountValue) }}
                       </div>
                       <div class="discount-label">giảm giá</div>
                     </div>
@@ -463,141 +739,120 @@
           </el-tab-pane>
 
           <!-- TAB: TỔNG HỢP ĐIỂM -->
-<el-tab-pane name="summary">
-  <template #label>
-    <span class="d-flex align-items-center gap-1">
-      <el-icon><TrendCharts /></el-icon> Tổng hợp điểm
-    </span>
-  </template>
+          <el-tab-pane name="summary">
+            <template #label>
+              <span class="d-flex align-items-center gap-1">
+                <el-icon><TrendCharts /></el-icon> Tổng hợp điểm
+              </span>
+            </template>
 
-  <!-- Controls -->
-  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
-    <div class="d-flex align-items-center gap-2">
-      <span class="fw-bold text-muted small">Chu kỳ:</span>
-      <el-radio-group v-model="summaryMode" size="small" @change="loadLoyaltySummary">
-        <el-radio-button value="weekly">Theo tuần</el-radio-button>
-        <el-radio-button value="monthly">Theo tháng</el-radio-button>
-      </el-radio-group>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-      <span class="fw-bold text-muted small">Hiển thị:</span>
-      <el-select v-model="summaryRange" style="width:130px" size="small" @change="loadLoyaltySummary">
-        <template v-if="summaryMode === 'weekly'">
-          <el-option label="4 tuần" :value="4" />
-          <el-option label="8 tuần" :value="8" />
-          <el-option label="12 tuần" :value="12" />
-          <el-option label="26 tuần" :value="26" />
-        </template>
-        <template v-else>
-          <el-option label="3 tháng" :value="3" />
-          <el-option label="6 tháng" :value="6" />
-          <el-option label="12 tháng" :value="12" />
-          <el-option label="24 tháng" :value="24" />
-        </template>
-      </el-select>
-    </div>
-    <el-button size="small" @click="loadLoyaltySummary" :loading="summaryLoading">
-      <el-icon><Refresh /></el-icon> Tải lại
-    </el-button>
-  </div>
-
-  <el-skeleton v-if="summaryLoading" :rows="6" animated />
-  <el-empty v-else-if="!loyaltySummary.length" description="Chưa có dữ liệu tổng hợp" />
-
-  <template v-else>
-    <!-- Tổng quan nhanh -->
-    <el-row :gutter="16" class="mb-4">
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="hover" class="stats-card earn-card">
-          <div class="stats-content">
-            <el-icon :size="32" class="stats-icon"><CirclePlus /></el-icon>
-            <div>
-              <div class="stats-value">+{{ summaryTotals.earned.toLocaleString() }}</div>
-              <div class="stats-label">Tổng điểm cộng</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="hover" class="stats-card deduct-card">
-          <div class="stats-content">
-            <el-icon :size="32" class="stats-icon"><Remove /></el-icon>
-            <div>
-              <div class="stats-value">{{ summaryTotals.deducted.toLocaleString() }}</div>
-              <div class="stats-label">Tổng điểm trừ</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="hover" class="stats-card transactions-card">
-          <div class="stats-content">
-            <el-icon :size="32" class="stats-icon"><TrendCharts /></el-icon>
-            <div>
-              <div class="stats-value" :class="summaryTotals.net >= 0 ? 'text-success' : 'text-danger'">
-                {{ summaryTotals.net >= 0 ? '+' : '' }}{{ summaryTotals.net.toLocaleString() }}
+            <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold text-muted small">Chu kỳ:</span>
+                <el-radio-group v-model="summaryMode" size="small" @change="loadLoyaltySummary">
+                  <el-radio-button value="weekly">Theo tuần</el-radio-button>
+                  <el-radio-button value="monthly">Theo tháng</el-radio-button>
+                </el-radio-group>
               </div>
-              <div class="stats-label">Net điểm</div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold text-muted small">Hiển thị:</span>
+                <el-select v-model="summaryRange" style="width:130px" size="small" @change="loadLoyaltySummary">
+                  <template v-if="summaryMode === 'weekly'">
+                    <el-option label="4 tuần" :value="4" />
+                    <el-option label="8 tuần" :value="8" />
+                    <el-option label="12 tuần" :value="12" />
+                    <el-option label="26 tuần" :value="26" />
+                  </template>
+                  <template v-else>
+                    <el-option label="3 tháng" :value="3" />
+                    <el-option label="6 tháng" :value="6" />
+                    <el-option label="12 tháng" :value="12" />
+                    <el-option label="24 tháng" :value="24" />
+                  </template>
+                </el-select>
+              </div>
+              <el-button size="small" @click="loadLoyaltySummary" :loading="summaryLoading">
+                <el-icon><Refresh /></el-icon> Tải lại
+              </el-button>
             </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
 
-    <!-- Bảng chi tiết từng kỳ -->
-    <el-card shadow="never">
-      <h4 class="mb-3 fw-bold">
-        Chi tiết {{ summaryMode === 'weekly' ? 'theo tuần' : 'theo tháng' }}
-      </h4>
-      <el-table :data="loyaltySummary" stripe style="width:100%">
-        <el-table-column label="Kỳ" min-width="160">
-          <template #default="{ row }">
-            <div class="fw-bold">{{ row.periodLabel }}</div>
-            <div class="text-muted" style="font-size:11px">
-              {{ formatDate(row.periodStart) }} – {{ formatDate(row.periodEnd) }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Điểm cộng" width="130" align="right">
-          <template #default="{ row }">
-            <span class="fw-bold text-success">+{{ row.totalPointsEarned.toLocaleString() }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Điểm trừ" width="130" align="right">
-          <template #default="{ row }">
-            <span class="fw-bold text-warning">
-              {{ row.totalPointsDeducted > 0 ? '-' : '' }}{{ row.totalPointsDeducted.toLocaleString() }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Net" width="120" align="right">
-          <template #default="{ row }">
-            <el-tag :type="row.netPoints >= 0 ? 'success' : 'danger'" effect="dark" size="small">
-              {{ row.netPoints >= 0 ? '+' : '' }}{{ row.netPoints.toLocaleString() }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="GD" width="90" align="center">
-          <template #default="{ row }">
-            <span class="text-muted">{{ row.totalTransactions }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Biểu đồ" min-width="160">
-          <template #default="{ row }">
-            <div class="summary-bar-wrap">
-              <div class="summary-bar-earn"
-                :style="{ width: getSummaryBarWidth(row.totalPointsEarned, 'earn') + '%' }"
-                :title="`+${row.totalPointsEarned} điểm cộng`" />
-              <div class="summary-bar-deduct"
-                :style="{ width: getSummaryBarWidth(row.totalPointsDeducted, 'deduct') + '%' }"
-                :title="`-${row.totalPointsDeducted} điểm trừ`" />
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-  </template>
-</el-tab-pane>
+            <el-skeleton v-if="summaryLoading" :rows="6" animated />
+            <el-empty v-else-if="!loyaltySummary.length" description="Chưa có dữ liệu tổng hợp" />
+
+            <template v-else>
+              <el-row :gutter="16" class="mb-4">
+                <el-col :xs="24" :sm="8">
+                  <el-card shadow="hover" class="stats-card earn-card">
+                    <div class="stats-content">
+                      <el-icon :size="32" class="stats-icon"><CirclePlus /></el-icon>
+                      <div>
+                        <div class="stats-value">+{{ summaryTotals.earned.toLocaleString() }}</div>
+                        <div class="stats-label">Tổng điểm cộng</div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+                <el-col :xs="24" :sm="8">
+                  <el-card shadow="hover" class="stats-card deduct-card">
+                    <div class="stats-content">
+                      <el-icon :size="32" class="stats-icon"><Remove /></el-icon>
+                      <div>
+                        <div class="stats-value">{{ summaryTotals.deducted.toLocaleString() }}</div>
+                        <div class="stats-label">Tổng điểm trừ</div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+                <el-col :xs="24" :sm="8">
+                  <el-card shadow="hover" class="stats-card transactions-card">
+                    <div class="stats-content">
+                      <el-icon :size="32" class="stats-icon"><TrendCharts /></el-icon>
+                      <div>
+                        <div class="stats-value" :class="summaryTotals.net >= 0 ? 'text-success' : 'text-danger'">
+                          {{ summaryTotals.net >= 0 ? '+' : '' }}{{ summaryTotals.net.toLocaleString() }}
+                        </div>
+                        <div class="stats-label">Net điểm</div>
+                      </div>
+                    </div>
+                  </el-card>
+                </el-col>
+              </el-row>
+
+              <el-card shadow="never">
+                <h4 class="mb-3 fw-bold">Chi tiết {{ summaryMode === 'weekly' ? 'theo tuần' : 'theo tháng' }}</h4>
+                <el-table :data="loyaltySummary" stripe style="width:100%">
+                  <el-table-column label="Kỳ" min-width="160">
+                    <template #default="{ row }">
+                      <div class="fw-bold">{{ row.periodLabel }}</div>
+                      <div class="text-muted" style="font-size:11px">{{ formatDate(row.periodStart) }} – {{ formatDate(row.periodEnd) }}</div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="Điểm cộng" width="130" align="right">
+                    <template #default="{ row }"><span class="fw-bold text-success">+{{ row.totalPointsEarned.toLocaleString() }}</span></template>
+                  </el-table-column>
+                  <el-table-column label="Điểm trừ" width="130" align="right">
+                    <template #default="{ row }"><span class="fw-bold text-warning">{{ row.totalPointsDeducted > 0 ? '-' : '' }}{{ row.totalPointsDeducted.toLocaleString() }}</span></template>
+                  </el-table-column>
+                  <el-table-column label="Net" width="120" align="right">
+                    <template #default="{ row }">
+                      <el-tag :type="row.netPoints >= 0 ? 'success' : 'danger'" effect="dark" size="small">{{ row.netPoints >= 0 ? '+' : '' }}{{ row.netPoints.toLocaleString() }}</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="GD" width="90" align="center">
+                    <template #default="{ row }"><span class="text-muted">{{ row.totalTransactions }}</span></template>
+                  </el-table-column>
+                  <el-table-column label="Biểu đồ" min-width="160">
+                    <template #default="{ row }">
+                      <div class="summary-bar-wrap">
+                        <div class="summary-bar-earn" :style="{ width: getSummaryBarWidth(row.totalPointsEarned, 'earn') + '%' }" :title="`+${row.totalPointsEarned} điểm cộng`" />
+                        <div class="summary-bar-deduct" :style="{ width: getSummaryBarWidth(row.totalPointsDeducted, 'deduct') + '%' }" :title="`-${row.totalPointsDeducted} điểm trừ`" />
+                      </div>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-card>
+            </template>
+          </el-tab-pane>
 
           <!-- TAB: LỊCH SỬ GIAO DỊCH -->
           <el-tab-pane label="Lịch sử giao dịch" name="payments">
@@ -773,9 +1028,8 @@
       <div v-else-if="selectedPayment" class="payment-detail">
         <el-descriptions :column="2" border class="mb-3">
           <el-descriptions-item label="Mã GD"><span class="fw-bold">{{ selectedPayment.transactionRef }}</span></el-descriptions-item>
-<el-descriptions-item label="Số tiền">
-  <span class="fw-bold text-success">{{ formatCurrency(selectedPayment.amount) }}</span>
-</el-descriptions-item>          <el-descriptions-item label="Phương thức"><el-tag size="small">{{ getPaymentMethodLabel(selectedPayment.method) }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="Số tiền"><span class="fw-bold text-success">{{ formatCurrency(selectedPayment.amount) }}</span></el-descriptions-item>
+          <el-descriptions-item label="Phương thức"><el-tag size="small">{{ getPaymentMethodLabel(selectedPayment.method) }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="Trạng thái"><el-tag :type="getPaymentStatusType(selectedPayment.status)">{{ selectedPayment.status }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="Thời gian">{{ formatDateTime(selectedPayment.paidAt) }}</el-descriptions-item>
         </el-descriptions>
@@ -799,24 +1053,12 @@
             </el-table-column>
           </el-table>
           <div class="payment-totals">
-  <div class="d-flex justify-content-between mb-2">
-    <span>Tạm tính:</span>
-    <strong>{{ formatCurrency(selectedPayment.subtotal) }}</strong>
-  </div>
-  <div class="d-flex justify-content-between mb-2 text-success" v-if="selectedPayment.discountTotal > 0">
-    <span>Giảm giá (VIP + Spin):</span>
-    <strong>-{{ formatCurrency(selectedPayment.discountTotal) }}</strong>
-  </div>
-  <div class="d-flex justify-content-between mb-2">
-    <span>Phí ship:</span>
-    <strong>{{ formatCurrency(selectedPayment.shippingFee) }}</strong>
-  </div>
-  <el-divider />
-  <div class="d-flex justify-content-between fs-5">
-    <span class="fw-bold">Tổng cộng:</span>
-    <strong class="text-primary">{{ formatCurrency(selectedPayment.amount) }}</strong>
-  </div>
-</div>
+            <div class="d-flex justify-content-between mb-2"><span>Tạm tính:</span><strong>{{ formatCurrency(selectedPayment.subtotal) }}</strong></div>
+            <div class="d-flex justify-content-between mb-2 text-success" v-if="selectedPayment.discountTotal > 0"><span>Giảm giá (VIP + Spin):</span><strong>-{{ formatCurrency(selectedPayment.discountTotal) }}</strong></div>
+            <div class="d-flex justify-content-between mb-2"><span>Phí ship:</span><strong>{{ formatCurrency(selectedPayment.shippingFee) }}</strong></div>
+            <el-divider />
+            <div class="d-flex justify-content-between fs-5"><span class="fw-bold">Tổng cộng:</span><strong class="text-primary">{{ formatCurrency(selectedPayment.amount) }}</strong></div>
+          </div>
         </div>
       </div>
       <template #footer>
@@ -832,7 +1074,8 @@ import {
   Star, Present, Wallet, TrendCharts, Trophy, Refresh,
   Right, TopRight, BottomRight, CirclePlus, Remove, List,
   Close, CircleCheck, Money, RefreshLeft, CreditCard,
-  View, Delete, ShoppingCart, InfoFilled, Ticket, Clock, Timer
+  View, Delete, ShoppingCart, InfoFilled, Ticket, Clock, Timer,
+  DataAnalysis, Check
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
@@ -845,7 +1088,11 @@ const loading   = ref(true);
 const editing   = ref(false);
 const saving    = ref(false);
 const customer  = ref(null);
-const activeTab = ref('info');
+const activeTab = ref('dashboard');
+
+// ── Dashboard state (MỚI) ─────────────────────────────────────────────────────
+const dashboardLoading = ref(false);
+const myDashboard      = ref(null);
 
 const historyLoading           = ref(false);
 const loyaltyHistory           = ref([]);
@@ -855,7 +1102,6 @@ const historyDateRange         = ref(null);
 const tierLoading = ref(false);
 const tierHistory = ref([]);
 
-// ── Promotion history state ───────────────────────────────────────────────────
 const promoLoading      = ref(false);
 const promotionHistory  = ref([]);
 const promoTypeFilter   = ref('');
@@ -878,10 +1124,9 @@ const loadingOrderBill    = ref(false);
 const orderBill           = ref(null);
 const currentBillPoints   = ref(0);
 
-// ── Loyalty Summary ───────────────────────────────────────────────────────────
 const summaryLoading = ref(false);
 const loyaltySummary = ref([]);
-const summaryMode    = ref('monthly');  // 'weekly' | 'monthly'
+const summaryMode    = ref('monthly');
 const summaryRange   = ref(6);
 
 const formData = ref({ fullName: '', email: '', phone: '', address: '', notes: '', birthDate: '' });
@@ -892,38 +1137,16 @@ const loyaltyStats = computed(() => {
   const deducted = loyaltyHistory.value.filter(h => h.pointsDelta < 0).reduce((s, h) => s + Math.abs(h.pointsDelta), 0);
   return { totalEarned: earned.toLocaleString(), totalDeducted: deducted.toLocaleString(), totalTransactions: loyaltyHistory.value.length };
 });
+
 const summaryTotals = computed(() => {
   const earned   = loyaltySummary.value.reduce((s, r) => s + (r.totalPointsEarned   || 0), 0);
   const deducted = loyaltySummary.value.reduce((s, r) => s + (r.totalPointsDeducted || 0), 0);
   return { earned, deducted, net: earned - deducted };
 });
-const loadLoyaltySummary = async () => {
-  if (!customer.value?.id) return;
-  summaryLoading.value = true;
-  try {
-    const res = summaryMode.value === 'weekly'
-      ? await customersApi.getLoyaltyWeeklySummaryMe(summaryRange.value)
-      : await customersApi.getLoyaltyMonthlySummaryMe(summaryRange.value);
-    loyaltySummary.value = unwrap(res) || [];
-  } catch { ElMessage.error('Lỗi khi tải tổng hợp điểm'); }
-  finally   { summaryLoading.value = false; }
-};
-
-const getSummaryBarWidth = (value, type) => {
-  if (!loyaltySummary.value.length) return 0;
-  const maxVal = Math.max(
-    ...loyaltySummary.value.map(r =>
-      type === 'earn' ? r.totalPointsEarned : r.totalPointsDeducted
-    )
-  );
-  return maxVal === 0 ? 0 : Math.round((value / maxVal) * 100);
-};
 
 const promoStats = computed(() => {
-  const used      = promotionHistory.value.filter(p => p.status === 'Đã sử dụng').length;
-  const totalSaved = promotionHistory.value
-    .filter(p => p.discountTotal)
-    .reduce((s, p) => s + (p.discountTotal || 0), 0);
+  const used       = promotionHistory.value.filter(p => p.status === 'Đã sử dụng').length;
+  const totalSaved = promotionHistory.value.filter(p => p.discountTotal).reduce((s, p) => s + (p.discountTotal || 0), 0);
   return { total: promotionHistory.value.length, used, totalSaved };
 });
 
@@ -1018,6 +1241,18 @@ const loadCustomerData = async () => {
   } finally { loading.value = false; }
 };
 
+// ── Dashboard loader (MỚI) ────────────────────────────────────────────────────
+const loadMyDashboard = async () => {
+  dashboardLoading.value = true;
+  try {
+    myDashboard.value = unwrap(await customersApi.getMyDashboard());
+  } catch (e) {
+    ElMessage.error('Lỗi khi tải dashboard: ' + (e.response?.data?.message || e.message));
+  } finally {
+    dashboardLoading.value = false;
+  }
+};
+
 const loadLoyaltyHistory = async () => {
   if (!customer.value?.id) return;
   historyLoading.value = true;
@@ -1048,6 +1283,24 @@ const loadPayments = async () => {
   try { payments.value = unwrap(await customersApi.getPayments(customer.value.id, showDeletedPayments.value)) || []; }
   catch { ElMessage.error('Lỗi khi tải lịch sử giao dịch'); }
   finally { paymentsLoading.value = false; }
+};
+
+const loadLoyaltySummary = async () => {
+  if (!customer.value?.id) return;
+  summaryLoading.value = true;
+  try {
+    const res = summaryMode.value === 'weekly'
+      ? await customersApi.getLoyaltyWeeklySummaryMe(summaryRange.value)
+      : await customersApi.getLoyaltyMonthlySummaryMe(summaryRange.value);
+    loyaltySummary.value = unwrap(res) || [];
+  } catch { ElMessage.error('Lỗi khi tải tổng hợp điểm'); }
+  finally { summaryLoading.value = false; }
+};
+
+const getSummaryBarWidth = (value, type) => {
+  if (!loyaltySummary.value.length) return 0;
+  const maxVal = Math.max(...loyaltySummary.value.map(r => type === 'earn' ? r.totalPointsEarned : r.totalPointsDeducted));
+  return maxVal === 0 ? 0 : Math.round((value / maxVal) * 100);
 };
 
 const viewOrderBill = async (orderId, pointsDelta) => {
@@ -1106,11 +1359,7 @@ const getPaymentStatusType    = (status) => ({ SUCCESS: 'success', PENDING: 'war
 const getPaymentMethodLabel   = (method) => ({ CASH: 'Tiền mặt', BANK_TRANSFER: 'Chuyển khoản', CREDIT_CARD: 'Thẻ tín dụng', E_WALLET: 'Ví điện tử' }[method] || method);
 const getOrderStatusType      = (status) => ({ PENDING: 'warning', CONFIRMED: 'primary', PROCESSING: 'primary', SHIPPING: 'primary', DELIVERED: 'success', CANCELLED: 'danger' }[status] || 'info');
 const getPromoStatusTagType   = (status) => ({ 'Đã sử dụng': 'success', 'Đang hoạt động': 'primary', 'Đã hết hạn': 'info' }[status] || 'info');
-const getPromoCardClass       = (item)   => {
-  if (item.status === 'Đã hết hạn') return 'promo-expired';
-  if (item.type === 'SPIN_WHEEL')   return 'promo-spin';
-  return 'promo-code';
-};
+const getPromoCardClass       = (item)   => { if (item.status === 'Đã hết hạn') return 'promo-expired'; if (item.type === 'SPIN_WHEEL') return 'promo-spin'; return 'promo-code'; };
 
 const formatCurrency      = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 const formatCurrencyShort = (val) => { if (val >= 1e9) return (val/1e9).toFixed(1)+'B'; if (val >= 1e6) return (val/1e6).toFixed(1)+'M'; if (val >= 1e3) return (val/1e3).toFixed(1)+'K'; return formatCurrency(val); };
@@ -1120,12 +1369,14 @@ const getProgressPercent  = ()    => { if (!customer.value) return 0; const tota
 
 onMounted(async () => {
   await loadCustomerData();
+  // Load dashboard trước để tab đầu tiên hiển thị ngay
+  loadMyDashboard();
   if (customer.value?.id) {
     loadLoyaltyHistory();
     loadTierHistory();
     loadPromotionHistory();
     loadPayments();
-     loadLoyaltySummary();  
+    loadLoyaltySummary();
   }
 });
 </script>
@@ -1143,6 +1394,133 @@ onMounted(async () => {
 .notes-static { white-space:pre-wrap;word-wrap:break-word;min-height:60px;align-items:flex-start; }
 .text-dark { color:#303133; }
 
+/* ── KPI Cards (Dashboard tab) ─────────────────────────────────────────────── */
+.kpi-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 20px; border-radius: 14px;
+  margin-bottom: 4px; transition: transform 0.2s, box-shadow 0.2s;
+}
+.kpi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+.kpi-icon { flex-shrink: 0; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+.kpi-body { flex: 1; }
+.kpi-value { font-size: 24px; font-weight: 900; line-height: 1.1; }
+.kpi-label { font-size: 12px; color: #909399; font-weight: 600; margin-top: 3px; }
+.kpi-points { background: linear-gradient(135deg,#fffbeb,#fef3c7); border: 1px solid #fde68a; }
+.kpi-points .kpi-icon { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.kpi-points .kpi-value { color: #d97706; }
+.kpi-spent { background: linear-gradient(135deg,#f5f3ff,#ede9fe); border: 1px solid #ddd6fe; }
+.kpi-spent .kpi-icon { background: rgba(147,51,234,0.12); color: #9333ea; }
+.kpi-spent .kpi-value { color: #7c3aed; }
+.kpi-orders { background: linear-gradient(135deg,#eff6ff,#dbeafe); border: 1px solid #bfdbfe; }
+.kpi-orders .kpi-icon { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.kpi-orders .kpi-value { color: #2563eb; }
+.kpi-discount { background: linear-gradient(135deg,#f0fdf4,#dcfce7); border: 1px solid #bbf7d0; }
+.kpi-discount .kpi-icon { background: rgba(34,197,94,0.12); color: #22c55e; }
+.kpi-discount .kpi-value { color: #16a34a; }
+
+/* ── VIP Journey card ──────────────────────────────────────────────────────── */
+.vip-journey-card { border-radius: 14px; }
+.vip-hero { display: flex; align-items: center; gap: 16px; }
+.vip-tier-big { font-size: 14px !important; padding: 6px 18px !important; }
+.vip-pts-current { font-size: 32px; font-weight: 900; color: #f59e0b; }
+.vip-pts-label { font-size: 14px; color: #909399; }
+.vip-progress-track {
+  height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden;
+}
+.vip-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  border-radius: 5px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+.vip-max-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg,#fffbeb,#fef3c7);
+  border: 1px solid #fde68a; border-radius: 20px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; color: #d97706;
+}
+.vip-milestones { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.vip-milestone {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 8px; background: #fafafa;
+  border: 1px solid #f0f0f0; transition: background 0.15s;
+}
+.vip-milestone.achieved { background: #f0fdf4; border-color: #bbf7d0; }
+.milestone-dot {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.dot-achieved { background: #22c55e; }
+.dot-pending  { background: #e5e7eb; border: 2px solid #d1d5db; }
+.milestone-info { flex: 1; display: flex; flex-direction: column; }
+.milestone-tier { font-size: 13px; font-weight: 700; color: #303133; }
+.milestone-pts  { font-size: 11px; color: #909399; }
+.milestone-date { font-size: 11px; color: #67c23a; font-weight: 600; }
+
+/* ── Spin dash card ────────────────────────────────────────────────────────── */
+.spin-dash-card { border-radius: 14px; }
+.spin-bonus-banner {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg,#f0fdf4,#dcfce7);
+  border: 1px solid #86efac; border-radius: 12px; padding: 12px 16px;
+}
+.spin-bonus-icon { font-size: 28px; }
+.spin-bonus-value { font-size: 22px; font-weight: 900; color: #16a34a; }
+.spin-bonus-label { font-size: 11px; color: #4ade80; font-weight: 600; }
+.spin-status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.spin-status-item { background: #f8fafc; border-radius: 10px; padding: 10px 14px; text-align: center; }
+.spin-status-val { font-size: 16px; font-weight: 800; }
+.spin-status-key { font-size: 11px; color: #909399; margin-top: 2px; }
+.spin-next-time { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #909399; }
+.avg-label { font-size: 11px; color: #909399; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.avg-value { font-size: 20px; font-weight: 800; color: #409eff; margin-top: 2px; }
+.last-order-date { font-size: 13px; font-weight: 600; color: #303133; margin-top: 2px; }
+.spin-empty-note { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #c0c4cc; }
+
+/* ── Recent lists ──────────────────────────────────────────────────────────── */
+.recent-list { display: flex; flex-direction: column; gap: 1px; }
+.recent-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid #f5f5f5;
+}
+.recent-item:last-child { border-bottom: none; }
+.recent-item-left { display: flex; align-items: center; gap: 10px; }
+.recent-item-icon {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.payment-icon { background: rgba(64,158,255,0.1); }
+.earn-icon    { background: rgba(103,194,58,0.1); }
+.deduct-icon  { background: rgba(230,162,60,0.1); }
+.recent-item-title { font-size: 13px; font-weight: 600; color: #303133; }
+.recent-item-sub   { font-size: 11px; color: #909399; }
+.recent-item-right { text-align: right; }
+.recent-item-amount { font-size: 13px; font-weight: 700; color: #303133; }
+.recent-pts { font-size: 18px; font-weight: 900; }
+.pts-earn   { color: #67c23a; }
+.pts-deduct { color: #e6a23c; }
+.recent-pts-label { font-size: 10px; color: #909399; }
+
+/* ── Promo dash list ───────────────────────────────────────────────────────── */
+.promo-dash-list { display: flex; flex-direction: column; gap: 8px; }
+.promo-dash-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: #fafafa; border-radius: 10px;
+  border: 1px solid #f0f0f0; transition: background 0.15s;
+}
+.promo-dash-item:hover { background: #f5f7fa; }
+.promo-dash-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.promo-dash-info { flex: 1; min-width: 0; }
+.promo-dash-name { font-size: 13px; font-weight: 600; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.promo-dash-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.promo-dash-value { text-align: right; flex-shrink: 0; }
+.promo-dash-discount { font-size: 18px; font-weight: 900; color: #409eff; display: block; }
+.promo-dash-unit { font-size: 10px; color: #909399; }
+
+/* ── Stats cards ───────────────────────────────────────────────────────────── */
 .stats-card { border-radius:12px;transition:all 0.3s; }
 .stats-card:hover { transform:translateY(-4px); }
 .stats-content { display:flex;align-items:center;gap:16px; }
@@ -1162,8 +1540,6 @@ onMounted(async () => {
 .payment-amount-card .stats-value { color:#409eff; }
 .payment-refunded-card { background:linear-gradient(135deg,#fff3e0 0%,#ffe0b2 100%); }
 .payment-refunded-card .stats-value { color:#e6a23c; }
-
-/* Promo stats cards */
 .promo-total-card { background:linear-gradient(135deg,#f3e5f5 0%,#e1bee7 100%); }
 .promo-total-card .stats-value { color:#9333ea; }
 .promo-used-card { background:linear-gradient(135deg,#e8f5e9 0%,#c8e6c9 100%); }
@@ -1171,7 +1547,7 @@ onMounted(async () => {
 .promo-saved-card { background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%); }
 .promo-saved-card .stats-value { color:#409eff; }
 
-/* Promo history cards */
+/* ── Promo history ─────────────────────────────────────────────────────────── */
 .promo-history-card { border-radius:12px;transition:all 0.3s; }
 .promo-history-card:hover { transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,0.1); }
 .promo-history-card.promo-code { border-left:4px solid #409eff; }
@@ -1191,6 +1567,7 @@ onMounted(async () => {
 .spin-color { color:#67c23a; }
 .discount-label { font-size:11px;color:#909399;margin-top:2px; }
 
+/* ── History timeline ──────────────────────────────────────────────────────── */
 .history-card { transition:all 0.3s;border-radius:12px; }
 .history-card:hover { transform:translateX(4px);box-shadow:0 4px 12px rgba(0,0,0,0.1); }
 .history-card-content { display:flex;align-items:flex-start;gap:16px; }
@@ -1215,6 +1592,7 @@ onMounted(async () => {
 .order-bill-btn { border-radius:20px;font-size:12px;font-weight:600;transition:all 0.2s; }
 .order-bill-btn:hover { transform:translateY(-1px);box-shadow:0 2px 8px rgba(64,158,255,0.35); }
 
+/* ── Tier history ──────────────────────────────────────────────────────────── */
 .tier-history-card { transition:all 0.3s; }
 .tier-history-card.upgrade { border-left:4px solid #67c23a; }
 .tier-history-card.downgrade { border-left:4px solid #f56c6c; }
@@ -1222,9 +1600,12 @@ onMounted(async () => {
 .tier-icon { display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:50%;background:rgba(103,194,58,0.1); }
 .tier-history-card.downgrade .tier-icon { background:rgba(245,108,108,0.1); }
 .tier-change-display { display:flex;align-items:center; }
+
+/* ── Payment detail ────────────────────────────────────────────────────────── */
 .payment-detail { padding:10px 0; }
 .payment-totals { background:#f5f7fa;padding:16px;border-radius:8px; }
 
+/* ── Order bill dialog ─────────────────────────────────────────────────────── */
 .bill-dialog-header { display:flex;align-items:center;justify-content:space-between; }
 .bill-header-left { display:flex;align-items:center;gap:8px; }
 .bill-title { font-size:16px;font-weight:700;color:#303133; }
@@ -1254,6 +1635,11 @@ onMounted(async () => {
 .bill-notes-label { display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0369a1;margin-bottom:6px; }
 .bill-notes-content { font-size:13px;color:#0c4a6e;line-height:1.6; }
 
+/* ── Summary bars ──────────────────────────────────────────────────────────── */
+.summary-bar-wrap { display:flex;flex-direction:column;gap:3px;width:100%;padding:2px 0; }
+.summary-bar-earn { height:6px;background:linear-gradient(90deg,#67c23a,#95d475);border-radius:3px;min-width:2px;transition:width 0.4s ease; }
+.summary-bar-deduct { height:6px;background:linear-gradient(90deg,#e6a23c,#f3d19e);border-radius:3px;min-width:2px;transition:width 0.4s ease; }
+
 @media (max-width:768px) {
   .stats-content { flex-direction:column;text-align:center; }
   .history-card-content { flex-direction:column; }
@@ -1263,27 +1649,8 @@ onMounted(async () => {
   .promo-discount-badge { width:100%;text-align:left; }
   .bill-items-header,.bill-item-row { grid-template-columns:1fr 40px 100px; }
   .bill-meta { grid-template-columns:1fr; }
-}
-/* Summary bar */
-.summary-bar-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 100%;
-  padding: 2px 0;
-}
-.summary-bar-earn {
-  height: 6px;
-  background: linear-gradient(90deg, #67c23a, #95d475);
-  border-radius: 3px;
-  min-width: 2px;
-  transition: width 0.4s ease;
-}
-.summary-bar-deduct {
-  height: 6px;
-  background: linear-gradient(90deg, #e6a23c, #f3d19e);
-  border-radius: 3px;
-  min-width: 2px;
-  transition: width 0.4s ease;
+  .kpi-card { padding: 14px; }
+  .kpi-value { font-size: 20px; }
+  .vip-milestone { flex-wrap: wrap; }
 }
 </style>

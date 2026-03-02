@@ -14,23 +14,7 @@
       </div>
 
       <el-divider />
-<!-- LOYALTY RESET BUTTONS -->
-<div class="d-flex align-items-center gap-3 mb-3">
-  <el-button 
-    type="warning" 
-    :loading="resettingYearEnd" 
-    @click="handleYearEndReset"
-  >
-    🎯 Reset cuối năm (31/12)
-  </el-button>
-  <el-button 
-    type="danger" 
-    :loading="resettingMonthly" 
-    @click="handleMonthlyCheck"
-  >
-    📅 Check inactivity tháng này
-  </el-button>
-</div>
+
       <div class="row g-3">
         <div
           class="col-12 col-md-6 col-xl-4"
@@ -136,34 +120,7 @@ const totalRevenue = computed(() =>
     0
   )
 );
-import { customersApi } from "../../api/customers.api";
 
-const resettingYearEnd = ref(false);
-const resettingMonthly = ref(false);
-
-const handleYearEndReset = async () => {
-  try {
-    resettingYearEnd.value = true;
-    await customersApi.triggerYearEndReset();
-    toast("Reset cuối năm thành công!", "success");
-  } catch (e) {
-    toast("Lỗi: " + e.message, "error");
-  } finally {
-    resettingYearEnd.value = false;
-  }
-};
-
-const handleMonthlyCheck = async () => {
-  try {
-    resettingMonthly.value = true;
-    await customersApi.triggerMonthlyCheck();
-    toast("Check inactivity thành công!", "success");
-  } catch (e) {
-    toast("Lỗi: " + e.message, "error");
-  } finally {
-    resettingMonthly.value = false;
-  }
-};
 const loadRevenueByCustomer = async () => {
   loadingRevenue.value = true;
   try {
