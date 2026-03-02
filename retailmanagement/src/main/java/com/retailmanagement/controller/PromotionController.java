@@ -4,8 +4,10 @@ import com.retailmanagement.dto.request.PromotionRequest;
 import com.retailmanagement.dto.response.ApiResponse;
 import com.retailmanagement.entity.Customer;
 import com.retailmanagement.entity.Promotion;
+import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.PromotionRepository;
 import com.retailmanagement.repository.CustomRes;
+import com.retailmanagement.repository.UserRepository;
 import com.retailmanagement.service.PromotionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +22,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/promotions")
-@RequiredArgsConstructor  // ✅ FIX 1: dùng Lombok inject — không cần constructor thủ công
+@RequiredArgsConstructor // ✅ FIX 1: dùng Lombok inject — không cần constructor thủ công
 public class PromotionController {
 
     // ✅ FIX 2: khai báo đủ 3 field để @RequiredArgsConstructor inject
-    private final PromotionService    promotionService;
+    private final PromotionService promotionService;
     private final PromotionRepository promotionRepository;
-    private final CustomRes           customerRepository;   // ✅ FIX 3: dùng CustomRes (entity repo) thay CustomerService để lấy Customer entity
+    private final CustomRes customerRepository; // ✅ FIX 3: dùng CustomRes (entity repo) thay CustomerService để lấy
+                                                // Customer entity
+    private final UserRepository userRepository;
 
     // ================================================================
     // ADMIN CRUD
@@ -34,7 +38,19 @@ public class PromotionController {
 
     @PostMapping
     public ApiResponse<Promotion> create(@RequestBody PromotionRequest req) {
-        return ApiResponse.success(promotionService.create(req, 0));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("User chưa đăng nhập");
+        }
+
+        String email = auth.getName();
+
+        User user = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        return ApiResponse.success(promotionService.create(req, user.getId()));
     }
 
     /**
@@ -100,11 +116,10 @@ public class PromotionController {
     // ✅ VALIDATE MÃ — FE gọi trước khi tạo đơn / thanh toán
     // GET /api/promotions/validate?code=BIRTHDAY250K&orderTotal=1500000
     // ================================================================
-    @GetMapping("/validate")   // ✅ FIX: bỏ prefix "/api/promotions" thừa (class đã có @RequestMapping)
+    @GetMapping("/validate") // ✅ FIX: bỏ prefix "/api/promotions" thừa (class đã có @RequestMapping)
     public ResponseEntity<Map<String, Object>> validateCode(
             @RequestParam String code,
-            @RequestParam(defaultValue = "0") BigDecimal orderTotal
-    ) {
+            @RequestParam(defaultValue = "0") BigDecimal orderTotal) {
         try {
             String upper = code.trim().toUpperCase();
             Promotion promo = promotionRepository.findByCode(upper).orElse(null);
@@ -117,36 +132,34 @@ public class PromotionController {
             if (!promo.getIsActive()
                     || promo.getStartDate().isAfter(now)
                     || promo.getEndDate().isBefore(now)) {
-                return ResponseEntity.ok(Map.of("valid", false, "message", "Mã '" + upper + "' đã hết hạn hoặc chưa có hiệu lực"));
+                return ResponseEntity
+                        .ok(Map.of("valid", false, "message", "Mã '" + upper + "' đã hết hạn hoặc chưa có hiệu lực"));
             }
 
             if (promo.getMinOrderAmount() != null
                     && orderTotal.compareTo(promo.getMinOrderAmount()) < 0) {
                 return ResponseEntity.ok(Map.of(
-                        "valid",   false,
+                        "valid", false,
                         "message", String.format(
                                 "Đơn hàng cần tối thiểu %,.0f đ (hiện tại: %,.0f đ)",
                                 promo.getMinOrderAmount().doubleValue(),
-                                orderTotal.doubleValue()
-                        )
-                ));
+                                orderTotal.doubleValue())));
             }
 
             BigDecimal discountAmount = promotionService.applyDiscount(
-                    orderTotal, promo.getDiscountType(), promo.getDiscountValue()
-            );
-            if (discountAmount.compareTo(orderTotal) > 0) discountAmount = orderTotal;
+                    orderTotal, promo.getDiscountType(), promo.getDiscountValue());
+            if (discountAmount.compareTo(orderTotal) > 0)
+                discountAmount = orderTotal;
 
             return ResponseEntity.ok(Map.of(
-                    "valid",          true,
-                    "message",        "Mã hợp lệ",
-                    "code",           upper,
-                    "discountType",   promo.getDiscountType(),
-                    "discountValue",  promo.getDiscountValue(),
+                    "valid", true,
+                    "message", "Mã hợp lệ",
+                    "code", upper,
+                    "discountType", promo.getDiscountType(),
+                    "discountValue", promo.getDiscountValue(),
                     "discountAmount", discountAmount,
                     "minOrderAmount", promo.getMinOrderAmount() != null ? promo.getMinOrderAmount() : 0,
-                    "endDate",        promo.getEndDate().toString()
-            ));
+                    "endDate", promo.getEndDate().toString()));
 
         } catch (Exception e) {
             return ResponseEntity.ok(Map.of("valid", false, "message", "Lỗi kiểm tra mã: " + e.getMessage()));
@@ -155,17 +168,17 @@ public class PromotionController {
 
     // ================================================================
     // ✅ CLAIM VOUCHER — Khách bấm "Nhận voucher"
-    // POST /api/promotions/claim  (được map qua /api/auth/... ở Security config)
+    // POST /api/promotions/claim (được map qua /api/auth/... ở Security config)
     // Body: { "code": "BIRTHDAY250K" }
     // ================================================================
-
 
     // ================================================================
     // HELPER
     // ================================================================
     private Customer getCurrentCustomer() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) return null;
+        if (auth == null || !auth.isAuthenticated())
+            return null;
         // ✅ FIX: customerRepository.findByEmail() trả về Customer entity trực tiếp
         return customerRepository.findByEmail(auth.getName()).orElse(null);
     }

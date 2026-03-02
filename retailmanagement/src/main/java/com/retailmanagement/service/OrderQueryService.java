@@ -22,6 +22,7 @@ public class OrderQueryService {
     private final OrderRepository orderRepository;
     private final ReturnRepository returnRepository;
     private final ModelMapper modelMapper;
+    private final PdfService pdfService;
 
     public List<OrderListResponse> getNewOrders() {
         return orderRepository.findByStatusOrderByCreatedAtDesc(
@@ -34,7 +35,7 @@ public class OrderQueryService {
 
     public List<OrderListResponse> getProcessingOrders() {
         return orderRepository.findByStatusOrderByCreatedAtDesc(
-                        OrderStatuses.SHIPPING
+                        OrderStatuses.PROCESSING
                 ).stream()
                 .map(this::toOrderListResponse)
                 .toList();
@@ -135,6 +136,23 @@ public class OrderQueryService {
 
     public List<RevenueByCustomerResponse> getRevenueByCustomer() {
         return orderRepository.getRevenueByCustomer();
+    }
+
+    public List<OrderListResponse> getOrdersByStaff(Integer staffId) {
+
+        return orderRepository
+                .findByUserIdOrderByCreatedAtDesc(staffId)
+                .stream()
+                .map(this::toOrderListResponse)
+                .toList();
+    }
+
+    public byte[] generateOrderPdf(Long orderId) {
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        return pdfService.generateOrderPdf(order);
     }
 
 }

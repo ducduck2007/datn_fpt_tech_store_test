@@ -59,6 +59,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 """)
     List<RevenueByCustomerResponse> getRevenueByCustomer();
 
+    List<Order> findByUserIdOrderByCreatedAtDesc(Integer userId);
+
+
+
     long countByCustomerId(Integer customerId);
 
 

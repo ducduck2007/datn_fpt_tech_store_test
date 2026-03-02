@@ -1,10 +1,10 @@
 package com.retailmanagement.service;
 
-import com.retailmanagement.constants.OrderStatuses;
 import com.retailmanagement.audit.Audit;
 import com.retailmanagement.audit.AuditAction;
 import com.retailmanagement.audit.AuditModule;
 import com.retailmanagement.audit.TargetType;
+import com.retailmanagement.constants.OrderStatuses;
 import com.retailmanagement.dto.request.CreateOrderItemRequest;
 import com.retailmanagement.dto.request.CreateOrderRequest;
 import com.retailmanagement.dto.request.UpdateOrderRequest;
@@ -18,7 +18,10 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +58,8 @@ public class OrderService {
     private final UserRepository             userRepository;
     private final CustomerService            customerService;
     private final SpinWheelService           spinWheelService;
+    private final EmailService               emailService;
+    private final OrderEmailService          orderEmailService;
     // ✅ THÊM MỚI
     private final PromotionRepository        promotionRepository;
     private final PromotionService           promotionService;
@@ -65,7 +70,7 @@ public class OrderService {
     private String generateOrderNumber() {
         LocalDate today = LocalDate.now();
         Instant start = today.atStartOfDay(ZoneId.systemDefault()).toInstant();
-        Instant end   = today.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+        Instant end = today.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
         long countToday = orderRepository.countByCreatedAtBetween(start, end);
         return "ORD-" + today.format(DateTimeFormatter.BASIC_ISO_DATE)
                 + "-" + String.format("%06d", countToday + 1);
@@ -101,8 +106,8 @@ public class OrderService {
 
         // ── 2. Spin Wheel discount ────────────────────────────────────
         BigDecimal spinDiscount = BigDecimal.ZERO;
-        BigDecimal spinRate     = BigDecimal.ZERO;
-        boolean    hasSpinBonus = false;
+        BigDecimal spinRate = BigDecimal.ZERO;
+        boolean hasSpinBonus = false;
 
         if (customer.getSpinDiscountBonus() != null
                 && customer.getSpinDiscountBonus().compareTo(BigDecimal.ZERO) > 0) {
@@ -392,6 +397,8 @@ public class OrderService {
         response.setPromoCode(discountCalc.getPromoCode());
         response.setPromoDiscount(discountCalc.getPromoDiscount());
 
+        emailService.sendOrderCreatedEmail(order);
+
         return response;
     }
 
@@ -515,9 +522,30 @@ public class OrderService {
     // STATUS TRANSITIONS — GIỮ NGUYÊN
     // ================================================================
     @Transactional
+    public void markAsProcessing(Long orderId) {
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        // ✅ chỉ cho phép PAID -> PROCESSING
+        if (!OrderStatuses.PAID.equals(order.getStatus())) {
+            throw new IllegalStateException("Only PAID orders can be processed");
+        }
+
+        order.setStatus(OrderStatuses.PROCESSING);
+        order.setUpdatedAt(Instant.now());
+
+        orderRepository.save(order);
+    }
+
+    @Transactional
     public void markAsShipping(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+        // ✅ chỉ cho phép PROCESSING -> SHIPPING
+        if (!OrderStatuses.PROCESSING.equals(order.getStatus())) {
+            throw new IllegalStateException("Only PAID orders can be processed");
+        }
         order.setStatus(OrderStatuses.SHIPPING);
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
@@ -525,14 +553,65 @@ public class OrderService {
 
     @Transactional
     public void markAsDelivered(Long orderId) {
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (order.getDeliveredAt() != null) {
+            return;
+        }
+
         if (!OrderStatuses.SHIPPING.equals(order.getStatus()))
             throw new IllegalStateException("Only SHIPPING orders can be delivered");
+
+        // ===== 1. Convert RESERVED -> SOLD =====
+        for (OrderItem item : order.getOrderItems()) {
+
+            ProductVariant variant = variantRepository.findById(
+                    item.getVariant().getId()
+            ).orElseThrow();
+
+            int newReserved =
+                    Math.max(0, variant.getReservedQty() - item.getQuantity());
+
+            int newStock =
+                    Math.max(0, variant.getStockQuantity() - item.getQuantity());
+
+            variant.setReservedQty(newReserved);
+            variant.setStockQuantity(newStock);
+
+            variantRepository.save(variant);
+
+            // stock transaction
+            StockTransaction tx = new StockTransaction();
+            tx.setVariant(variant);
+            tx.setQuantity(-item.getQuantity());
+            tx.setType("STOCK_OUT");
+            tx.setReferenceType("orders");
+            tx.setReferenceId(order.getId());
+            tx.setCreatedAt(Instant.now());
+            tx.setCreatedBy(order.getUser());
+
+            stockTransactionRepository.save(tx);
+        }
+
+        // ===== 2. Update order =====
         order.setStatus(OrderStatuses.DELIVERED);
         order.setDeliveredAt(Instant.now());
         order.setUpdatedAt(Instant.now());
+
         orderRepository.save(order);
+
+        // ===== 3. Loyalty earn (Revenue finalized) =====
+        if (order.getCustomer() != null &&
+                "PAID".equals(order.getPaymentStatus())) {
+
+            customerService.addLoyaltyPoints(
+                    order.getCustomer().getId(),
+                    order.getTotalAmount()
+            );
+        }
+        orderEmailService.sendDeliveredEmail(order);
     }
 
     // ================================================================

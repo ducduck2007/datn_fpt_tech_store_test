@@ -2,6 +2,7 @@ package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.UpsertPriceRequest;
 import com.retailmanagement.dto.response.ApiResponse;
+import com.retailmanagement.dto.response.PriceHistoryResponse;
 import com.retailmanagement.dto.response.VariantPriceResponse;
 import com.retailmanagement.entity.PriceHistory;
 import com.retailmanagement.service.PricingService;
@@ -52,7 +53,7 @@ public class PriceController {
      * Update price history record
      */
     @PutMapping("/history/{id}")
-    public ApiResponse<PriceHistory> updateLatest(@PathVariable Long id, @RequestBody UpsertPriceRequest req) {
+    public ApiResponse<PriceHistoryResponse> updateLatest(@PathVariable Long id, @RequestBody UpsertPriceRequest req) {
         return ApiResponse.success(pricingService.updateLatestHistory(id, req));
     }
 
@@ -88,7 +89,7 @@ public class PriceController {
 
     // Lịch sử giá của variant
     @GetMapping("/variants/{variantId}/history")
-    public ApiResponse<List<PriceHistory>> getPriceHistory(@PathVariable Integer variantId) {
+    public ApiResponse<List<PriceHistoryResponse>> getPriceHistory(@PathVariable Integer variantId) {
         return ApiResponse.success(pricingService.getPriceHistory(variantId));
     }
 

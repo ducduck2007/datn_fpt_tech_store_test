@@ -100,7 +100,7 @@ async function doLogin() {
     if (role === "CUSTOMER") {
       toast(
         "This is a CUSTOMER account. Redirecting to Customer portal.",
-        "warning"
+        "warning",
       );
       return router.replace("/login");
     }
@@ -109,7 +109,12 @@ async function doLogin() {
     auth.setSession({ token, user });
 
     toast("System login successful.", "success");
-    router.replace("/system/dashboard");
+
+    if (role === "INVENTORY") {
+      router.replace("/inventory/orders");
+    } else {
+      router.replace("/system/dashboard");
+    }
   } catch (e) {
     alert.value = errToText(e);
   } finally {

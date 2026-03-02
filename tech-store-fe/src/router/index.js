@@ -33,9 +33,17 @@ import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue";
 import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
-import Birthday from "../pages/system/BirthdayManager.vue"
+import Birthday from "../pages/system/BirthdayManager.vue";
 import Customerspendinganalytics from "../pages/system/Customerspendinganalytics.vue";
 import Spinwheel from "../pages/customer/Spinwheel.vue";
+
+// ===== INVENTORY =====
+
+import InventoryShell from "../pages/inventory/InventoryShell.vue";
+import InventoryOrders from "../pages/inventory/InventoryOrders.vue";
+import InventoryOrderDetail from "../pages/inventory/InventoryOrderDetail.vue";
+import InventoryOrdersPaid from "../pages/inventory/InventoryOrdersPaid.vue";
+import InventoryOrdersProcessing from "../pages/inventory/InventoryOrdersProcessing.vue";
 import InactiveCustomers from "../pages/system/InactiveCustomers.vue";
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
 import AuditLog from "../pages/system/AuditLog.vue";
@@ -132,8 +140,8 @@ const routes = [
         component: UserManager,
         meta: { title: "User Management" },
       },
-       {
-     path: "customer-spending",
+      {
+        path: "customer-spending",
         name: "system-customers-spend",
         component: Customerspendinganalytics,
         meta: { title: "Customers & Loyalty" },
@@ -274,6 +282,38 @@ const routes = [
     ],
   },
 
+  {
+    path: "/inventory",
+    component: InventoryShell,
+    meta: { portal: "inventory", requiresAuth: true },
+    children: [
+      {
+        path: "orders",
+        name: "Inventory Orders",
+        component: InventoryOrders,
+        meta: { title: "Inventory Orders" },
+      },
+      {
+        path: "orders/paid",
+        name: "Inventory Orders Paid",
+        component: InventoryOrdersPaid,
+        meta: { title: "Inventory Orders Paid" },
+      },
+      {
+        path: "orders/processing",
+        name: "Inventory Orders Processing",
+        component: InventoryOrdersProcessing,
+        meta: { title: "Inventory Orders Processing" },
+      },
+      {
+        path: "orders/:orderId",
+        name: "Inventory Order Details",
+        component: InventoryOrderDetail,
+        meta: { title: "Inventory Order Details" },
+      },
+    ],
+  },
+
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];
 
@@ -288,6 +328,8 @@ router.beforeEach((to) => {
   const isAuthed = !!token;
 
   const portal = to.meta?.portal || "customer";
+  const isInventoryRoute = portal === "inventory";
+  const isInventory = role === "INVENTORY";
   const isSystemRoute = portal === "system";
   const isCustomer = role === "CUSTOMER";
 
@@ -306,10 +348,33 @@ router.beforeEach((to) => {
     }
   }
 
-  // 3) Cross-portal protection
+  // 3) Cross-portal protection (FIXED)
   if (isAuthed) {
-    if (!isSystemRoute && !isCustomer) return "/system/dashboard";
-    if (isSystemRoute && isCustomer) return "/";
+    // CUSTOMER only customer portal
+    if (role === "CUSTOMER" && portal !== "customer") {
+      return "/";
+    }
+
+    // INVENTORY only inventory portal
+    if (role === "INVENTORY" && portal !== "inventory") {
+      return "/inventory/orders";
+    }
+
+    // ADMIN / SALES only system portal
+    if ((role === "ADMIN" || role === "SALES") && portal !== "system") {
+      return "/system/dashboard";
+    }
+  }
+
+  // inventory protection
+  if (isAuthed) {
+    if (isInventoryRoute && !isInventory) {
+      return isCustomer ? "/" : "/system/dashboard";
+    }
+
+    if (!isInventoryRoute && isInventory) {
+      return "/inventory/orders";
+    }
   }
 
   return true;

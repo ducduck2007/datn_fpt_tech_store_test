@@ -1,165 +1,317 @@
 <template>
-  <div class="container-xl">
-    <el-card shadow="never">
-      <div
-        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
-      >
-        <div>
-          <div class="kicker">Admin</div>
-          <div class="title">Promotions</div>
-          <div class="muted">Base: /api/promotions</div>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-          <el-switch
-            v-model="activeOnly"
-            active-text="Active only"
-            @change="load"
-          />
-          <el-button @click="load" :loading="loading">Reload</el-button>
-          <el-button type="primary" @click="openCreate">Create</el-button>
-        </div>
+  <div class="promo-wrap">
+    <!-- Page header -->
+    <div class="promo-header">
+      <div>
+        <div class="promo-kicker">Admin · Promotions</div>
+        <div class="promo-title">Quản lý khuyến mãi</div>
       </div>
+      <div class="promo-header-actions">
+        <el-switch
+          v-model="activeOnly"
+          active-text="Active only"
+          @change="load"
+        />
+        <el-button @click="load" :loading="loading" plain>Reload</el-button>
+        <el-button @click="loadConflicts" :loading="conflictLoading" plain
+          >⚠️ Conflicts</el-button
+        >
+        <el-button type="primary" @click="openCreate">+ Tạo mới</el-button>
+      </div>
+    </div>
 
-      <el-divider />
-
-      <el-table :data="rows" border :loading="loading">
-        <el-table-column prop="id" label="ID" width="90" />
-        <el-table-column prop="code" label="Code" width="160" />
-        <el-table-column prop="name" label="Name" min-width="220" />
-        <el-table-column prop="discountType" label="Type" width="140" />
-        <el-table-column prop="discountValue" label="Value" width="120" />
-        <el-table-column prop="isActive" label="Active" width="110">
-          <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'info'" effect="light">{{
-              row.isActive ? "YES" : "NO"
+    <!-- Conflicts panel -->
+    <transition name="slide-down">
+      <div v-if="conflicts !== null" class="promo-conflicts">
+        <el-alert
+          v-if="conflicts.length === 0"
+          title="Không có xung đột khuyến mãi"
+          type="success"
+          show-icon
+          :closable="true"
+          @close="conflicts = null"
+        />
+        <template v-else>
+          <div class="promo-section-label">
+            ⚠️ Xung đột khuyến mãi
+            <el-tag type="danger" size="small" round>{{
+              conflicts.length
             }}</el-tag>
+            <el-button
+              text
+              size="small"
+              @click="conflicts = null"
+              style="margin-left: auto"
+              >Ẩn</el-button
+            >
+          </div>
+          <el-table :data="conflicts" border size="small" class="promo-table">
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column prop="code" label="Code" width="140" />
+            <el-table-column prop="name" label="Name" min-width="200" />
+            <el-table-column
+              prop="conflictReason"
+              label="Lý do xung đột"
+              min-width="200"
+            />
+          </el-table>
+        </template>
+      </div>
+    </transition>
+
+    <!-- Main card -->
+    <div class="promo-card">
+      <el-table :data="rows" border :loading="loading" class="promo-table">
+        <el-table-column prop="id" label="ID" width="75" />
+        <el-table-column prop="code" label="Code" width="140">
+          <template #default="{ row }">
+            <span class="promo-code">{{ row.code }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="240">
+        <el-table-column prop="name" label="Tên chiến dịch" min-width="200" />
+        <el-table-column label="Giảm giá" width="120">
           <template #default="{ row }">
-            <el-button size="small" @click="openEdit(row)">Edit</el-button>
+            <span class="promo-discount">
+              {{ row.discountValue
+              }}{{ row.discountType === "PERCENT" ? "%" : " ₫" }}
+            </span>
+            <div class="promo-type-badge">{{ row.discountType }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="priority"
+          label="Ưu tiên"
+          width="85"
+          align="center"
+        />
+        <el-table-column label="Thời gian" width="230">
+          <template #default="{ row }">
+            <div class="promo-date-range">
+              <span>{{ fmtDate(row.startDate) }}</span>
+              <span class="promo-date-sep">→</span>
+              <span>{{ fmtDate(row.endDate) }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="isActive"
+          label="Trạng thái"
+          width="110"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-tag
+              :type="row.isActive ? 'success' : 'info'"
+              effect="light"
+              size="small"
+            >
+              {{ row.isActive ? "Đang chạy" : "Tắt" }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="Thao tác" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">Sửa</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              @click="openPreview(row)"
+              >Preview</el-button
+            >
             <el-button size="small" type="danger" plain @click="remove(row)"
-              >Delete</el-button
+              >Xóa</el-button
             >
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
 
+    <!-- Preview panel -->
+    <transition name="slide-down">
+      <div v-if="previewPromo" class="promo-card mt-3">
+        <div class="promo-preview-head">
+          <div>
+            <div class="promo-section-label" style="margin-bottom: 2px">
+              Xem giá chiến dịch:
+              <el-tag type="warning" size="small">{{
+                previewPromo.code
+              }}</el-tag>
+            </div>
+            <div class="promo-endpoint">
+              GET /api/prices/products/{productId}
+            </div>
+          </div>
+          <div class="promo-preview-inputs">
+            <el-input
+              v-model.number="previewProductId"
+              placeholder="Product ID"
+              style="width: 130px"
+            />
+            <el-input
+              v-model.number="previewCustomerId"
+              placeholder="Customer ID (tùy chọn)"
+              style="width: 180px"
+            />
+            <el-button
+              type="primary"
+              :loading="previewLoading"
+              @click="loadPreviewPrices"
+              >Tải giá</el-button
+            >
+            <el-button
+              @click="
+                previewPromo = null;
+                previewPrices = [];
+              "
+              plain
+              >Đóng</el-button
+            >
+          </div>
+        </div>
+        <el-table
+          v-if="previewPrices.length"
+          :data="previewPrices"
+          border
+          class="promo-table mt-3"
+          size="small"
+        >
+          <el-table-column prop="variantId" label="Variant ID" width="90" />
+          <el-table-column
+            prop="variantName"
+            label="Tên variant"
+            min-width="160"
+          />
+          <el-table-column prop="sku" label="SKU" width="150" />
+          <el-table-column prop="currencyCode" label="Currency" width="90" />
+          <el-table-column label="Giá gốc" width="130">
+            <template #default="{ row }">{{ fmtMoney(row.price) }}</template>
+          </el-table-column>
+          <el-table-column label="Giá sau KM" width="140">
+            <template #default="{ row }">
+              <span
+                :class="
+                  row.finalPrice < row.price ? 'promo-price-discount' : ''
+                "
+              >
+                {{ fmtMoney(row.finalPrice) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Mã KM áp dụng" width="140">
+            <template #default="{ row }">
+              <el-tag v-if="row.promotionCode" type="warning" size="small">{{
+                row.promotionCode
+              }}</el-tag>
+              <span v-else class="promo-muted">—</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty
+          v-else-if="previewLoaded"
+          description="Không có dữ liệu"
+          :image-size="60"
+        />
+      </div>
+    </transition>
+
+    <!-- Create / Update dialog -->
     <el-dialog
       v-model="dlg.open"
-      :title="dlg.mode === 'create' ? 'Create Promotion' : 'Update Promotion'"
-      width="920px"
+      :title="dlg.mode === 'create' ? '+ Tạo khuyến mãi' : 'Sửa khuyến mãi'"
+      width="860px"
+      align-center
     >
       <el-alert
         v-if="dlg.alert"
         :title="dlg.alert"
         type="error"
         show-icon
+        :closable="false"
         class="mb-3"
       />
 
-      <el-form :model="dlg.form" label-position="top" class="row g-3">
-        <div class="col-12 col-md-4">
-          <el-form-item label="code">
-            <el-input v-model="dlg.form.code" />
+      <el-form :model="dlg.form" label-position="top">
+        <div class="dlg-grid-4">
+          <el-form-item label="Code" style="grid-column: span 1">
+            <el-input v-model="dlg.form.code" :disabled="dlg.mode === 'edit'" />
           </el-form-item>
-        </div>
-        <div class="col-12 col-md-8">
-          <el-form-item label="name">
+          <el-form-item label="Tên chiến dịch" style="grid-column: span 3">
             <el-input v-model="dlg.form.name" />
           </el-form-item>
         </div>
 
-        <div class="col-12">
-          <el-form-item label="description">
-            <el-input
-              v-model="dlg.form.description"
-              type="textarea"
-              :rows="2"
-            />
-          </el-form-item>
-        </div>
+        <el-form-item label="Mô tả">
+          <el-input v-model="dlg.form.description" type="textarea" :rows="2" />
+        </el-form-item>
 
-        <div class="col-12 col-md-4">
-          <el-form-item label="discountType">
-            <el-select v-model="dlg.form.discountType">
-              <el-option label="PERCENT" value="PERCENT" />
-              <el-option label="FIXED" value="FIXED" />
+        <div class="dlg-grid-3">
+          <el-form-item label="Loại giảm giá">
+            <el-select v-model="dlg.form.discountType" class="w-100">
+              <el-option label="PERCENT (%)" value="PERCENT" />
+              <el-option label="FIXED (₫)" value="FIXED" />
             </el-select>
           </el-form-item>
-        </div>
-        <div class="col-12 col-md-4">
-          <el-form-item label="discountValue">
+          <el-form-item label="Giá trị giảm">
             <el-input-number
               v-model="dlg.form.discountValue"
               :min="0"
               :max="999999999"
               class="w-100"
+              :controls="false"
             />
           </el-form-item>
-        </div>
-        <div class="col-12 col-md-4">
-          <el-form-item label="priority">
+          <el-form-item label="Ưu tiên (priority)">
             <el-input-number
               v-model="dlg.form.priority"
               :min="0"
               :max="9999"
               class="w-100"
+              :controls="false"
             />
           </el-form-item>
         </div>
 
-        <div class="col-12 col-md-6">
-          <el-form-item label="startDate">
+        <div class="dlg-grid-2">
+          <el-form-item label="Ngày bắt đầu">
             <el-date-picker
               v-model="dlg.form.startDate"
-              type="date"
-              value-format="YYYY-MM-DD"
+              type="datetime"
+              value-format="YYYY-MM-DDTHH:mm:ss"
               class="w-100"
             />
           </el-form-item>
-        </div>
-        <div class="col-12 col-md-6">
-          <el-form-item label="endDate">
+          <el-form-item label="Ngày kết thúc">
             <el-date-picker
               v-model="dlg.form.endDate"
-              type="date"
-              value-format="YYYY-MM-DD"
+              type="datetime"
+              value-format="YYYY-MM-DDTHH:mm:ss"
               class="w-100"
             />
           </el-form-item>
         </div>
 
-        <div class="col-12 col-md-4">
-          <el-form-item label="scope">
-            <el-select v-model="dlg.form.scope">
-              <el-option label="ALL" value="ALL" />
-              <el-option label="PRODUCT" value="PRODUCT" />
-              <el-option label="VARIANT" value="VARIANT" />
+        <div class="dlg-grid-3">
+          <el-form-item label="Phạm vi (scope)">
+            <el-select v-model="dlg.form.scope" class="w-100">
+              <el-option label="ALL — Tất cả" value="ALL" />
+              <el-option label="PRODUCT — Theo sản phẩm" value="PRODUCT" />
+              <el-option label="VARIANT — Theo biến thể" value="VARIANT" />
             </el-select>
           </el-form-item>
-        </div>
-
-        <div class="col-12 col-md-4">
-          <el-form-item label="stackable">
+          <el-form-item label="Stackable (cộng dồn)">
             <el-switch v-model="dlg.form.stackable" />
           </el-form-item>
-        </div>
-
-        <div class="col-12 col-md-4">
-          <el-form-item label="isActive">
+          <el-form-item label="Kích hoạt">
             <el-switch v-model="dlg.form.isActive" />
           </el-form-item>
         </div>
 
-        <div class="col-12 col-md-6">
-          <el-form-item label="productIds (comma-separated)">
+        <div class="dlg-grid-2">
+          <el-form-item label="Product IDs (cách nhau bởi dấu phẩy)">
             <el-input v-model="dlg.form.productIdsText" placeholder="1,2,3" />
           </el-form-item>
-        </div>
-        <div class="col-12 col-md-6">
-          <el-form-item label="variantIds (comma-separated)">
+          <el-form-item label="Variant IDs (cách nhau bởi dấu phẩy)">
             <el-input
               v-model="dlg.form.variantIdsText"
               placeholder="10,11,12"
@@ -169,9 +321,9 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="dlg.open = false">Cancel</el-button>
+        <el-button @click="dlg.open = false">Hủy</el-button>
         <el-button type="primary" :loading="dlg.loading" @click="save">
-          {{ dlg.mode === "create" ? "Create" : "Update" }}
+          {{ dlg.mode === "create" ? "Tạo mới" : "Lưu thay đổi" }}
         </el-button>
       </template>
     </el-dialog>
@@ -181,6 +333,7 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
 import { promotionsApi } from "../../api/promotions.api";
+import { pricesApi } from "../../api/prices.api";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
 
@@ -210,14 +363,35 @@ function normalize(list) {
     discountValue: p?.discountValue ?? 0,
     startDate: p?.startDate ?? "",
     endDate: p?.endDate ?? "",
-    scope: p?.scope ?? "",
-    productIds: Array.isArray(p?.productIds) ? p.productIds : [],
-    variantIds: Array.isArray(p?.variantIds) ? p.variantIds : [],
+    scope: parseScope(p?.applicabilityJson) ?? p?.scope ?? "ALL",
+    productIds:
+      parseApplicability(p?.applicabilityJson, "product_ids") ??
+      p?.productIds ??
+      [],
+    variantIds:
+      parseApplicability(p?.applicabilityJson, "variant_ids") ??
+      p?.variantIds ??
+      [],
     priority: p?.priority ?? 0,
     stackable: !!p?.stackable,
     isActive: !!p?.isActive,
     raw: p,
   }));
+}
+
+function parseScope(json) {
+  try {
+    return JSON.parse(json)?.scope ?? null;
+  } catch {
+    return null;
+  }
+}
+function parseApplicability(json, key) {
+  try {
+    return JSON.parse(json)?.[key] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function load() {
@@ -227,12 +401,69 @@ async function load() {
     rows.value = normalize(extractList(res?.data));
   } catch {
     rows.value = [];
-    toast("Failed to load promotions.", "error");
+    toast("Tải thất bại.", "error");
   } finally {
     loading.value = false;
   }
 }
 
+// Conflicts
+const conflictLoading = ref(false);
+const conflicts = ref(null);
+async function loadConflicts() {
+  conflictLoading.value = true;
+  try {
+    const res = await promotionsApi.getConflicts();
+    conflicts.value = res?.data?.data ?? res?.data ?? [];
+  } catch {
+    toast("Tải conflicts thất bại.", "error");
+  } finally {
+    conflictLoading.value = false;
+  }
+}
+
+// Preview
+const previewPromo = ref(null);
+const previewProductId = ref(null);
+const previewCustomerId = ref(null);
+const previewLoading = ref(false);
+const previewPrices = ref([]);
+const previewLoaded = ref(false);
+
+function openPreview(row) {
+  previewPromo.value = row;
+  previewPrices.value = [];
+  previewLoaded.value = false;
+  previewProductId.value = null;
+  previewCustomerId.value = null;
+}
+
+async function loadPreviewPrices() {
+  if (!previewProductId.value)
+    return toast("Vui lòng nhập Product ID.", "warning");
+  previewLoading.value = true;
+  previewLoaded.value = false;
+  try {
+    let res;
+    if (previewCustomerId.value) {
+      res = await pricesApi.listByProductForCustomer(
+        previewProductId.value,
+        previewCustomerId.value,
+      );
+    } else {
+      res = await pricesApi.listByProduct(previewProductId.value);
+    }
+    previewPrices.value = res?.data?.data ?? res?.data ?? [];
+    previewLoaded.value = true;
+  } catch {
+    previewPrices.value = [];
+    toast("Tải giá thất bại.", "error");
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+// CRUD
 const dlg = reactive({
   open: false,
   mode: "create",
@@ -312,10 +543,9 @@ function openEdit(row) {
 async function save() {
   dlg.alert = "";
   if (!dlg.form.code || !dlg.form.name) {
-    dlg.alert = "code and name are required.";
+    dlg.alert = "Code và tên là bắt buộc.";
     return;
   }
-
   const payload = {
     code: dlg.form.code,
     name: dlg.form.name,
@@ -331,21 +561,19 @@ async function save() {
     stackable: dlg.form.stackable,
     isActive: dlg.form.isActive,
   };
-
   dlg.loading = true;
   try {
     if (dlg.mode === "create") {
       await promotionsApi.create(payload);
-      toast("Promotion created.", "success");
+      toast("Đã tạo khuyến mãi.", "success");
     } else {
       await promotionsApi.update(dlg.id, payload);
-      toast("Promotion updated.", "success");
+      toast("Đã cập nhật.", "success");
     }
     dlg.open = false;
     await load();
   } catch (e) {
-    const msg = e?.response?.data?.message || e?.message || "Save failed";
-    dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg);
+    dlg.alert = e?.response?.data?.message || e?.message || "Lưu thất bại";
   } finally {
     dlg.loading = false;
   }
@@ -353,38 +581,195 @@ async function save() {
 
 async function remove(row) {
   const ok = await confirmModal(
-    `Delete promotion #${row.id}?`,
-    "Confirm",
-    "Delete",
-    true
+    `Xóa khuyến mãi #${row.id} (${row.code})?`,
+    "Xác nhận",
+    "Xóa",
+    true,
   );
   if (!ok) return;
-
   try {
     await promotionsApi.remove(row.id);
-    toast("Promotion deleted.", "success");
+    toast("Đã xóa.", "success");
     await load();
   } catch {
-    toast("Delete failed.", "error");
+    toast("Xóa thất bại.", "error");
   }
+}
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("vi-VN");
+  } catch {
+    return iso;
+  }
+}
+function fmtMoney(val) {
+  if (val == null) return "—";
+  return Number(val).toLocaleString("vi-VN") + " ₫";
 }
 
 onMounted(load);
 </script>
 
 <style scoped>
-.kicker {
-  font-size: 12px;
-  opacity: 0.75;
-  font-weight: 900;
+.promo-wrap {
+  padding: 0 4px;
+}
+
+.promo-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.promo-kicker {
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(15, 23, 42, 0.45);
+  margin-bottom: 2px;
 }
-.title {
-  font-weight: 900;
-  font-size: 18px;
+.promo-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #0f172a;
 }
-.muted {
-  color: rgba(15, 23, 42, 0.62);
+.promo-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.promo-conflicts {
+  margin-bottom: 12px;
+}
+.promo-section-label {
   font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.promo-card {
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+.mt-3 {
+  margin-top: 12px;
+}
+.mb-3 {
+  margin-bottom: 12px;
+}
+
+.promo-endpoint {
+  font-size: 11px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.07);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.promo-code {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.promo-discount {
+  font-size: 15px;
+  font-weight: 800;
+  color: #dc2626;
+}
+.promo-type-badge {
+  font-size: 10px;
+  color: rgba(15, 23, 42, 0.45);
+  font-weight: 600;
+  margin-top: 1px;
+}
+.promo-date-range {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.promo-date-sep {
+  color: rgba(15, 23, 42, 0.3);
+}
+.promo-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.promo-price-discount {
+  color: #16a34a;
+  font-weight: 700;
+}
+.promo-muted {
+  color: rgba(15, 23, 42, 0.4);
+  font-size: 12px;
+}
+
+.promo-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.promo-preview-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Dialog grids */
+.dlg-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 12px;
+}
+.dlg-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+.dlg-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 700px) {
+  .dlg-grid-4,
+  .dlg-grid-3,
+  .dlg-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Transition */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.2s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>
