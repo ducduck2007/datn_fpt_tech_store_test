@@ -59,6 +59,7 @@
         <el-sub-menu index="audits">
           <template #title>Audit</template>
           <el-menu-item index="/system/audit-logs">Audit Logs</el-menu-item>
+          <el-menu-item index="/system/audit-report">Audit Report</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="settings">

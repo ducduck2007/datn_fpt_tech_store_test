@@ -49,6 +49,10 @@ export const auditApi = {
     return http.get(`${BASE}/report/user`);
   },
 
+  reportSummary() {
+    return http.get(`${BASE}/report/summary`);
+  },
+
   // ===== SEARCH ADVANCED =====
   search(payload, page = 0, size = 10, sortBy = "createdAt", sortDir = "DESC") {
     return http.post(`${BASE}/search`, payload, {

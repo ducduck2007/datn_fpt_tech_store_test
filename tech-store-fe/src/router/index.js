@@ -37,6 +37,11 @@ import Birthday from "../pages/system/BirthdayManager.vue";
 import Customerspendinganalytics from "../pages/system/Customerspendinganalytics.vue";
 import Spinwheel from "../pages/customer/Spinwheel.vue";
 
+// ===== Audit =====
+import AuditLog from "../pages/audit/AuditLog.vue";
+import AuditReportDashboard from "../pages/audit/AuditReportDashboard.vue";
+
+
 // ===== INVENTORY =====
 
 import InventoryShell from "../pages/inventory/InventoryShell.vue";
@@ -45,7 +50,6 @@ import InventoryOrdersPaid from "../pages/inventory/InventoryOrdersPaid.vue";
 import InventoryOrdersProcessing from "../pages/inventory/InventoryOrdersProcessing.vue";
 import InactiveCustomers from "../pages/system/InactiveCustomers.vue";
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
-import AuditLog from "../pages/system/AuditLog.vue";
 import Zeroordercustomers from "../pages/system/Zeroordercustomers.vue";
 const routes = [
   // ===== CUSTOMER PORTAL =====
@@ -278,6 +282,12 @@ const routes = [
        component: AuditLog,
       meta: { title: "Audit Logs" },
       },
+      {
+        path: "audit-report",
+        name: "system-audit-report",
+        component: AuditReportDashboard,
+        meta: { title: "Audit Report Dashboard" }
+      }
     ],
   },
 
