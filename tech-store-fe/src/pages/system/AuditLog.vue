@@ -59,6 +59,10 @@
 
         <el-button type="primary" @click="searchLogs"> Search </el-button>
 
+        <el-button type="warning" @click="loadThisWeek">
+          This Week
+        </el-button>
+
         <el-button @click="resetFilter"> Reset </el-button>
       </el-form>
     </el-card>
@@ -189,6 +193,39 @@ async function fetchLogs() {
   } finally {
     loading.value = false;
   }
+}
+
+/* 
+  Lấy ngày trong tuần
+*/
+function getWeekRange() {
+  const now = new Date();
+
+  const day = now.getDay() || 7; 
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - day + 1);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const format = (d) => d.toISOString().split("T")[0];
+
+  return [format(monday), format(sunday)];
+}
+
+/* 
+  Gán vào filter
+*/
+function loadThisWeek() {
+  const [start, end] = getWeekRange();
+
+  dateRange.value = [start, end];
+
+  filter.startDate = start;
+  filter.endDate = end;
+
+  page.value = 1;
+  fetchLogs();
 }
 
 /* =========================

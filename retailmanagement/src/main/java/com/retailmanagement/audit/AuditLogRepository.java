@@ -58,6 +58,30 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSp
         """)
     public Page<AuditLog> findByModule(@Param("module") String module, Pageable pageable);
 
+    long countByCreatedAtBetween(Instant from, Instant to);
+
+    @Query("SELECT COUNT(DISTINCT a.user.id) FROM AuditLog a")
+    long countDistinctUsers();
+
+    @Query("SELECT COUNT(a) FROM AuditLog a WHERE a.action = 'ERROR'")
+    long countErrors();
+
+    @Query("""
+    SELECT a.module, COUNT(a)
+    FROM AuditLog a
+    GROUP BY a.module
+    ORDER BY COUNT(a) DESC
+    """)
+    List<Object[]> findTopModule();
+
+    @Query("""
+    SELECT a.user.id, COUNT(a)
+    FROM AuditLog a
+    WHERE a.user IS NOT NULL
+    GROUP BY a.user.id
+    ORDER BY COUNT(a) DESC
+    """)
+    List<Object[]> findTopUser();
 
     List<AuditLog> findByModuleOrderByCreatedAtDesc(String module);
 }

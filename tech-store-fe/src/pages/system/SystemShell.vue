@@ -56,7 +56,10 @@
         <el-menu-item index="/system/pricing">Pricing</el-menu-item>
         <el-menu-item index="/system/payments">Payment</el-menu-item>
         <el-menu-item index="/system/promotions">Promotions</el-menu-item>
-        <el-menu-item index="/system/audit-logs">Audit Logs</el-menu-item>
+        <el-sub-menu index="audits">
+          <template #title>Audit</template>
+          <el-menu-item index="/system/audit-logs">Audit Logs</el-menu-item>
+        </el-sub-menu>
 
         <el-sub-menu index="settings">
           <template #title>Settings</template>

@@ -5,6 +5,7 @@ import com.retailmanagement.audit.AuditLogFilterRequest;
 import com.retailmanagement.audit.AuditLogService;
 import com.retailmanagement.audit.AuditReportService;
 import com.retailmanagement.dto.response.AuditLogResponse;
+import com.retailmanagement.dto.response.AuditSummaryResponse;
 import com.retailmanagement.dto.response.ModuleLogReportResponse;
 import com.retailmanagement.dto.response.UserActionReportResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,11 +29,13 @@ public class AuditLogController {
     private final AuditLogService auditLogService;
     private final AuditReportService reportService;
 
+    // Get all
     @GetMapping("")
     public List<AuditLogResponse> getAllAuditLogs(){
         return auditLogService.findAll();
     }
 
+    // filters
     @GetMapping("filter/day")
     public List<AuditLogResponse> filterByDay(@RequestParam("day") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDate date){
         return auditLogService.getAuditLogsByDate(date);
@@ -67,6 +70,7 @@ public class AuditLogController {
         return auditLogService.getAuditLogByModule(module,page,size);
     }
 
+    // Reports
     @GetMapping("report/module")
     public List<ModuleLogReportResponse> reportByModule(){
         return reportService.reportByModule();
@@ -75,6 +79,12 @@ public class AuditLogController {
     @GetMapping("report/user")
     public List<UserActionReportResponse> reportByUser() {return reportService.getUserActionReport();}
 
+    @GetMapping("report/summary")
+    public AuditSummaryResponse getSummaryReport(){
+        return reportService.getSummaryReport();
+    }
+
+    // Advanced filter
     @PostMapping("search")
     public Page<AuditLog> search(
             @RequestBody AuditLogFilterRequest request,
@@ -86,6 +96,7 @@ public class AuditLogController {
         return  auditLogService.filterLogs(request,page,size,sortBy,sortDir);
     }
 
+    // Exports
     @GetMapping("export")
     public void exportAuditLogs(
             @RequestParam(required = false) LocalDate from,
