@@ -410,5 +410,28 @@
 
             return ResponseEntity.ok(history);
         }
+        @Autowired
+        private LoyaltyResetService loyaltyResetService;
+
+        @PostMapping("/loyalty/reset/year-end")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<Map<String, Object>> triggerYearEndReset() {
+            loyaltyResetService.triggerYearEndReset();
+            return ResponseEntity.ok(Map.of("success", true, "message", "Year-end reset hoàn tất"));
+        }
+
+        @PostMapping("/loyalty/reset/monthly")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<Map<String, Object>> triggerMonthlyCheck() {
+            try {
+                loyaltyResetService.triggerMonthlyCheck();
+                return ResponseEntity.ok(Map.of("success", true, "message", "Monthly check hoàn tất"));
+            } catch (Exception e) {
+                // ✅ In lỗi rõ ra
+                e.printStackTrace();
+                return ResponseEntity.status(500)
+                        .body(Map.of("success", false, "message", e.getMessage()));
+            }
+        }
     }
     

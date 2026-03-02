@@ -60,6 +60,7 @@ public class OrderService {
     private final SpinWheelService           spinWheelService;
     private final EmailService               emailService;
     private final OrderEmailService          orderEmailService;
+    private final LoyaltyResetService loyaltyResetService;
     // ✅ THÊM MỚI
     private final PromotionRepository        promotionRepository;
     private final PromotionService           promotionService;

@@ -158,5 +158,11 @@ getLoyaltyWeeklySummaryAdmin(weeks = 12) {
 },
 getLoyaltyMonthlySummaryAdmin(months = 12) {
   return http.get(`/api/auth/loyalty/summary/admin/monthly?months=${months}`);
+},
+triggerYearEndReset() {
+  return http.post("/api/auth/customers/loyalty/reset/year-end");
+},
+triggerMonthlyCheck() {
+  return http.post("/api/auth/customers/loyalty/reset/monthly");
 }
 };

@@ -93,4 +93,5 @@ public class BirthdayScheduler {
             System.err.println("❌ sendWelcomeToZeroOrderCustomers failed: " + e.getMessage());
         }
     }
+
 }

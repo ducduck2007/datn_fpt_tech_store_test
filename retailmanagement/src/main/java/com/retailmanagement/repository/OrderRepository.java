@@ -65,7 +65,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByCustomerId(Integer customerId);
 
-
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.customer.id = :customerId " +
+            "AND o.createdAt > :cutoff " +
+            "AND o.status IN :statuses")
+    long countByCustomerIdAndCreatedAtAfterAndStatusIn(
+            @Param("customerId") Integer customerId,
+            @Param("cutoff") Instant cutoff,
+            @Param("statuses") List<String> statuses
+    );
     long countByCustomerIdAndStatus(Integer customerId, String status);
 }
 
