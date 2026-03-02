@@ -158,11 +158,22 @@ getLoyaltyWeeklySummaryAdmin(weeks = 12) {
 },
 getLoyaltyMonthlySummaryAdmin(months = 12) {
   return http.get(`/api/auth/loyalty/summary/admin/monthly?months=${months}`);
-},
-triggerYearEndReset() {
-  return http.post("/api/auth/customers/loyalty/reset/year-end");
-},
-triggerMonthlyCheck() {
-  return http.post("/api/auth/customers/loyalty/reset/monthly");
-}
+}, 
+ getMyDashboard() {
+    return http.get("/api/auth/customers/my/dashboard");
+  },
+  /**
+   * Chỉ lấy summary nhẹ: điểm, hạng, % giảm giá, spin bonus.
+   * Dùng cho header / widget nhỏ.
+   */
+  getMySummary() {
+    return http.get("/api/auth/customers/my/summary");
+  },
+  /**
+   * Tiến trình VIP: tier hiện tại, % thanh progress, milestones.
+   * Dùng cho trang "Ưu đãi thành viên".
+   */
+  getMyVipJourney() {
+    return http.get("/api/auth/customers/my/vip-journey");
+  }
 };
