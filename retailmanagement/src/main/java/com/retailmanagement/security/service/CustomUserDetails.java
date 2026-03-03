@@ -1,9 +1,10 @@
-package com.retailmanagement.security;
+package com.retailmanagement.security.service;
 
 import com.retailmanagement.entity.User;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -28,7 +29,7 @@ public class CustomUserDetails implements UserDetails {
         this.role = user.getRole();
         this.enabled = Boolean.TRUE.equals(user.getIsActive());
         this.authorities = List.of(
-                () -> "ROLE_" + user.getRole()
+                new SimpleGrantedAuthority("ROLE_" + user.getRole())
         );
     }
 

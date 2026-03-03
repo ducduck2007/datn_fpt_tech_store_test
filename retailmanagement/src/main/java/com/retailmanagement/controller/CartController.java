@@ -2,7 +2,7 @@ package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.AddToCartRequest;
 import com.retailmanagement.dto.response.CartItemResponse;
-import com.retailmanagement.security.CustomUserDetails;
+import com.retailmanagement.security.service.CustomUserDetails;
 import com.retailmanagement.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

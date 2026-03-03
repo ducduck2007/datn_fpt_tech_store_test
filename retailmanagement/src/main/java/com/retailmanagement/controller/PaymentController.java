@@ -2,7 +2,7 @@ package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.PaymentRequest;
 import com.retailmanagement.dto.response.PaymentResponse;
-import com.retailmanagement.security.CustomUserDetails;
+import com.retailmanagement.security.service.CustomUserDetails;
 import com.retailmanagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

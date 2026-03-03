@@ -6,7 +6,7 @@ import com.retailmanagement.dto.response.CreateOrderResponse;
 import com.retailmanagement.dto.response.OrderDetailResponse;
 import com.retailmanagement.dto.response.OrderListResponse;
 import com.retailmanagement.dto.response.RevenueByCustomerResponse;
-import com.retailmanagement.security.CustomUserDetails;
+import com.retailmanagement.security.service.CustomUserDetails;
 import com.retailmanagement.service.OrderQueryService;
 import com.retailmanagement.service.OrderService;
 import lombok.RequiredArgsConstructor;

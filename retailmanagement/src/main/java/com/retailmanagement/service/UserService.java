@@ -11,6 +11,8 @@ import com.retailmanagement.dto.request.UpdateUserRoleRequest;
 import com.retailmanagement.dto.response.UserResponse;
 import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.UserRepository;
+import com.retailmanagement.security.log.ActionType;
+import com.retailmanagement.security.log.SensitiveOperation;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -100,6 +102,11 @@ public class UserService {
             action = AuditAction.CHANGE_ROLE,
             targetType = TargetType.USER
     )
+    @SensitiveOperation(
+            action = ActionType.ROLE_CHANGE,
+            entity = "USER",
+            description = "Change user role"
+    )
     @Transactional
     public UserResponse updateUserRole(UpdateUserRoleRequest request, Integer id) {
         User user = userRepository.findById(id)
@@ -114,6 +121,11 @@ public class UserService {
             module = AuditModule.USER,
             action = AuditAction.DELETE,
             targetType = TargetType.USER
+    )
+    @SensitiveOperation(
+            action = ActionType.DELETE_OPERATION,
+            entity = "USER",
+            description = "Delete user"
     )
     @Transactional
     public UserResponse deleteUser(Integer id) {

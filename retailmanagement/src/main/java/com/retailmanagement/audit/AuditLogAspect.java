@@ -1,6 +1,5 @@
 package com.retailmanagement.audit;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.retailmanagement.dto.response.CreateOrderResponse;
 import com.retailmanagement.dto.response.CustomerResponse;
 import com.retailmanagement.dto.response.UserResponse;
@@ -14,7 +13,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 

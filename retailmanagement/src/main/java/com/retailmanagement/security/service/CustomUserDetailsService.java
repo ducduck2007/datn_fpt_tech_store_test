@@ -1,4 +1,4 @@
-package com.retailmanagement.security;
+package com.retailmanagement.security.service;
 
 import com.retailmanagement.entity.Customer;
 import com.retailmanagement.entity.User;

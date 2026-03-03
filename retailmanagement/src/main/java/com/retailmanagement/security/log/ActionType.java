@@ -1,0 +1,13 @@
+package com.retailmanagement.security.log;
+
+public enum ActionType {
+    UNAUTHORIZED_ACCESS,
+    FORBIDDEN_ACCESS,
+    ROLE_CHANGE,
+    SENSITIVE_OPERATION,
+    DELETE_OPERATION,
+    ABNORMAL_ACCESS,
+    INTRUSION_ATTEMPT,
+    UNAUTHORIZED_OPERATION,
+    ABNORMAL_OPERATION
+}

@@ -9,7 +9,7 @@ import com.retailmanagement.entity.CustomerType;
 import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.UserRepository;
-import com.retailmanagement.security.JwtService;
+import com.retailmanagement.security.service.JwtService;
 import com.retailmanagement.util.SecurityUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class AuthService {
     private final ModelMapper modelMapper;
     private final AuthenticationManager authenticationManager;
     private final UserLoginLogService userLoginLogService;
+    private final Map<String, Integer> failedAttempts = new ConcurrentHashMap<>();
 
     @Transactional
     public AuthResponse register(RegisterRequest req) {

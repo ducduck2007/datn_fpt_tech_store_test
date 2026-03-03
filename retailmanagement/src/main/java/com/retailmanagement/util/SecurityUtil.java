@@ -1,7 +1,6 @@
 package com.retailmanagement.util;
 
-import com.retailmanagement.entity.User;
-import com.retailmanagement.security.CustomUserDetails;
+import com.retailmanagement.security.service.CustomUserDetails;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

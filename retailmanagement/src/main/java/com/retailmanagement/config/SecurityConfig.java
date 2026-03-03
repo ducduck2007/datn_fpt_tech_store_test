@@ -1,8 +1,10 @@
 package com.retailmanagement.config;
 
-import com.retailmanagement.security.BasicAuthenticationFilter;
-import com.retailmanagement.security.CustomUserDetailsService;
-import com.retailmanagement.security.JwtAuthenticationFilter;
+import com.retailmanagement.security.filter.BasicAuthenticationFilter;
+import com.retailmanagement.security.handler.CustomAccessDeniedHandler;
+import com.retailmanagement.security.handler.CustomAuthenticationEntryPoint;
+import com.retailmanagement.security.service.CustomUserDetailsService;
+import com.retailmanagement.security.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,16 +43,18 @@ public class SecurityConfig {
         return new ProviderManager(provider);
     }
 
-    @Bean
-    public BasicAuthenticationFilter basicAuthenticationFilter(AuthenticationManager authenticationManager) {
-        return new BasicAuthenticationFilter(authenticationManager);
-    }
+//    @Bean
+//    public BasicAuthenticationFilter basicAuthenticationFilter(AuthenticationManager authenticationManager) {
+//        return new BasicAuthenticationFilter(authenticationManager);
+//    }
 
     @Bean
     public SecurityFilterChain filterChain(
             HttpSecurity http,
             DaoAuthenticationProvider provider,
-            BasicAuthenticationFilter basicAuthenticationFilter
+//            BasicAuthenticationFilter basicAuthenticationFilter,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+            CustomAccessDeniedHandler customAccessDeniedHandler
     ) throws Exception {
 
         http
@@ -61,6 +65,7 @@ public class SecurityConfig {
                 .authenticationProvider(provider)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/error",
                                 "/api/auth/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
@@ -80,9 +85,15 @@ public class SecurityConfig {
 
                         .anyRequest().authenticated()
                 )
+
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler)
+                )
+
                 // ✅ Thứ tự đúng: Basic → JWT → UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(basicAuthenticationFilter, jwtAuthenticationFilter.getClass());
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+//                .addFilterBefore(basicAuthenticationFilter, jwtAuthenticationFilter.getClass());
 
         return http.build();
     }
