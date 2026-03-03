@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -22,6 +21,7 @@ public class LoyaltyResetService {
     private final CustomRes customerRepository;
     private final OrderRepository orderRepository;
     private final LoyaltyLedgerRepository loyaltyLedgerRepository;
+    private final CustomerEventNotificationService eventNotificationService; // ✅ THÊM
 
     // ================================================================
     // TIER ORDER: BRONZE(0) → SILVER(1) → GOLD(2) → PLATINUM(3) → DIAMOND(4)
@@ -36,7 +36,6 @@ public class LoyaltyResetService {
 
     // ================================================================
     // 1. RESET CUỐI NĂM — chạy lúc 00:00 ngày 31/12 hàng năm
-    //    Tất cả VIP bị hạ 1 bậc + reset điểm về min của rank mới
     // ================================================================
     @Scheduled(cron = "0 0 0 31 12 *")
     public void yearEndReset() {
@@ -47,7 +46,6 @@ public class LoyaltyResetService {
 
     // ================================================================
     // 2. CHECK HÀNG THÁNG — chạy lúc 00:00 ngày 1 mỗi tháng (tháng 1-6)
-    //    Không có giao dịch trong 30 ngày → hạ tiếp 1 bậc
     // ================================================================
     @Scheduled(cron = "0 0 0 1 1-6 *")
     public void monthlyInactivityCheck() {
@@ -128,13 +126,11 @@ public class LoyaltyResetService {
         log.info("🔄 [YEAR-END] Customer #{} | {} → {} | Điểm: {} → {}",
                 customer.getId(), tierBefore, tierAfter, pointsBefore, newPoints);
 
-        // Ghi PENALTY (thay đổi điểm)
         saveLedger(
                 customer,
                 newPoints - pointsBefore,
                 "PENALTY",
-                tierBefore,
-                tierAfter,
+                tierBefore, tierAfter,
                 "YEAR_END_RESET",
                 String.format("Reset cuối năm: điểm %d → %d | %s → %s",
                         pointsBefore, newPoints,
@@ -142,20 +138,19 @@ public class LoyaltyResetService {
                         tierAfter.getDisplayName())
         );
 
-        // Ghi TIER_DOWNGRADE (nếu rank thay đổi)
         if (tierBefore != tierAfter) {
             saveLedger(
-                    customer,
-                    0,
-                    "TIER_DOWNGRADE",
-                    tierBefore,
-                    tierAfter,
+                    customer, 0, "TIER_DOWNGRADE",
+                    tierBefore, tierAfter,
                     "YEAR_END_RESET",
                     String.format("Hạ hạng cuối năm: %s → %s",
-                            tierBefore.getDisplayName(),
-                            tierAfter.getDisplayName())
+                            tierBefore.getDisplayName(), tierAfter.getDisplayName())
             );
         }
+
+        // ✅ THÊM: thông báo reset cuối năm
+        eventNotificationService.onYearEndReset(
+                customer, tierBefore, tierAfter, pointsBefore, newPoints);
     }
 
     // ================================================================
@@ -165,7 +160,6 @@ public class LoyaltyResetService {
         VipTier tierBefore   = customer.getVipTier();
         int     pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
 
-        // Dừng ở BRONZE
         if (tierBefore == VipTier.BRONZE) {
             log.info("⏸ Customer #{} đang BRONZE, dừng hạ rank", customer.getId());
             return;
@@ -186,35 +180,32 @@ public class LoyaltyResetService {
                 customer,
                 newPoints - pointsBefore,
                 "PENALTY",
-                tierBefore,
-                tierAfter,
+                tierBefore, tierAfter,
                 "MONTHLY_INACTIVITY",
                 String.format("Không có GD trong 30 ngày: điểm %d → %d | %s → %s",
                         pointsBefore, newPoints,
-                        tierBefore.getDisplayName(),
-                        tierAfter.getDisplayName())
+                        tierBefore.getDisplayName(), tierAfter.getDisplayName())
         );
 
         if (tierBefore != tierAfter) {
             saveLedger(
-                    customer,
-                    0,
-                    "TIER_DOWNGRADE",
-                    tierBefore,
-                    tierAfter,
+                    customer, 0, "TIER_DOWNGRADE",
+                    tierBefore, tierAfter,
                     "MONTHLY_INACTIVITY",
                     String.format("Hạ hạng do không có GD: %s → %s",
-                            tierBefore.getDisplayName(),
-                            tierAfter.getDisplayName())
+                            tierBefore.getDisplayName(), tierAfter.getDisplayName())
             );
         }
+
+        // ✅ THÊM: thông báo hạ hạng do không hoạt động
+        eventNotificationService.onMonthlyInactivityDemotion(
+                customer, tierBefore, tierAfter, newPoints);
     }
 
     // ================================================================
     // HELPERS
     // ================================================================
 
-    // Hạ 1 bậc, dừng ở BRONZE
     private VipTier demoteTier(VipTier current) {
         if (current == null) return null;
         int index = TIER_ORDER.indexOf(current);
@@ -222,13 +213,11 @@ public class LoyaltyResetService {
         return TIER_ORDER.get(index - 1);
     }
 
-    // Lấy điểm tối thiểu của rank
     private int getMinPointsForTier(VipTier tier) {
         if (tier == null) return 0;
         return tier.getMinPoints();
     }
 
-    // GOLD trở lên = VIP, SILVER/BRONZE = REGULAR
     private void updateCustomerType(Customer customer, VipTier tier) {
         if (tier == null || tier == VipTier.BRONZE || tier == VipTier.SILVER) {
             customer.setCustomerType(CustomerType.REGULAR);
@@ -237,7 +226,6 @@ public class LoyaltyResetService {
         }
     }
 
-    // Ghi loyalty ledger
     private void saveLedger(Customer customer, int pointsDelta, String transactionType,
                             VipTier tierBefore, VipTier tierAfter, String reason, String note) {
         LoyaltyLedger ledger = LoyaltyLedger.builder()

@@ -17,6 +17,7 @@ import com.retailmanagement.repository.OrderRepository;
 import com.retailmanagement.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,8 @@ public class CustomerService {
     private final LoyaltyLedgerRepository loyaltyLedgerRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    @Lazy
+    private final CustomerEventNotificationService eventNotificationService; // ✅ THÊM
 
     @Audit(
             module = AuditModule.CUSTOMER,
@@ -130,6 +133,10 @@ public class CustomerService {
                 .build();
 
         Customer saved = customRes.save(customer);
+
+        // ✅ THÊM: thông báo chào mừng khách hàng mới
+        eventNotificationService.onCustomerRegistered(saved);
+
         return mapToResponse(saved);
     }
 
@@ -189,7 +196,6 @@ public class CustomerService {
 
     // ================================================================
     // MAIN: gọi từ PaymentService khi thanh toán thành công
-    //       truyền orderId để lưu referenceId vào loyalty ledger
     // ================================================================
     @Transactional
     public void addLoyaltyPoints(Integer customerId, BigDecimal orderTotal, Long orderId) {
@@ -219,6 +225,9 @@ public class CustomerService {
 
         customRes.save(customer);
 
+        // ✅ THÊM: thông báo cộng điểm
+        eventNotificationService.onPointsEarned(customer, pointsEarned, newTotalPoints, orderTotal);
+
         saveLoyaltyLedger(
                 customer,
                 pointsEarned,
@@ -228,13 +237,14 @@ public class CustomerService {
                 "PURCHASE",
                 "Cộng điểm từ thanh toán: " + formatMoney(orderTotal),
                 "orders",
-                orderId,  // ✅ lưu orderId để hiển thị "orders: #123"
+                orderId,
                 null
         );
 
         if (tierBefore != newTier) {
-            String transactionType = (newTier != null && (tierBefore == null ||
-                    newTier.ordinal() > tierBefore.ordinal())) ? "TIER_UPGRADE" : "TIER_DOWNGRADE";
+            boolean isUpgrade = newTier != null && (tierBefore == null ||
+                    newTier.ordinal() > tierBefore.ordinal());
+            String transactionType = isUpgrade ? "TIER_UPGRADE" : "TIER_DOWNGRADE";
 
             String note = String.format("🎉 Thăng hạng từ %s → %s (Điểm: %d)",
                     tierBefore != null ? tierBefore.getDisplayName() : "Member",
@@ -242,17 +252,17 @@ public class CustomerService {
                     newTotalPoints);
 
             saveLoyaltyLedger(
-                    customer,
-                    0,
-                    transactionType,
-                    tierBefore,
-                    newTier,
-                    "TIER_CHANGE",
-                    note,
-                    null,
-                    null,
-                    null
+                    customer, 0, transactionType,
+                    tierBefore, newTier, "TIER_CHANGE", note,
+                    null, null, null
             );
+
+            // ✅ THÊM: thông báo thăng/hạ hạng
+            if (isUpgrade) {
+                eventNotificationService.onTierUpgrade(customer, tierBefore, newTier, newTotalPoints);
+            } else {
+                eventNotificationService.onTierDowngrade(customer, tierBefore, newTier, newTotalPoints, "PURCHASE");
+            }
         }
     }
 
@@ -300,7 +310,6 @@ public class CustomerService {
             customer.setVipNote(customerRequest.getVipNote());
         }
 
-
         String oldPhone = customer.getPhone();
         if (customerRequest.getPhone() != null && !customerRequest.getPhone().equals(oldPhone)) {
             if (customRes.findByPhone(customerRequest.getPhone()).isPresent()) {
@@ -324,15 +333,12 @@ public class CustomerService {
     }
 
     public CustomerResponse findByEmail(String email) {
-        // 1. Tìm theo email
         Optional<Customer> customerOpt = customRes.findByEmail(email.trim());
         if (customerOpt.isPresent()) return mapToResponse(customerOpt.get());
 
-        // 2. Tìm theo name
         customerOpt = customRes.findByName(email.trim());
         if (customerOpt.isPresent()) return mapToResponse(customerOpt.get());
 
-        // 3. Tìm theo username → lấy userId → tìm customer ← THÊM
         Optional<User> userOpt = userRepository.findByUsername(email.trim());
         if (userOpt.isPresent()) {
             customerOpt = customRes.findByUserId(userOpt.get().getId());
@@ -345,7 +351,6 @@ public class CustomerService {
     public List<CustomerResponse> findActiveInLast30Days() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         List<Customer> activeCustomers = customRes.findActiveCustomersSince(thirtyDaysAgo);
-
         return activeCustomers.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -381,20 +386,14 @@ public class CustomerService {
 
         customRes.save(customer);
 
-        String transactionType = "DEDUCT";
-        String note = getDeductNote(reason, orderTotal);
+        // ✅ THÊM: thông báo trừ điểm
+        eventNotificationService.onPointsDeducted(customer, pointsToDeduct, newTotalPoints, reason);
 
+        String note = getDeductNote(reason, orderTotal);
         saveLoyaltyLedger(
-                customer,
-                -pointsToDeduct,
-                transactionType,
-                tierBefore,
-                newTier,
-                reason,
-                note,
-                referenceType,
-                referenceId,
-                null
+                customer, -pointsToDeduct, "DEDUCT",
+                tierBefore, newTier, reason, note,
+                referenceType, referenceId, null
         );
 
         if (tierBefore != newTier) {
@@ -404,17 +403,13 @@ public class CustomerService {
                     newTotalPoints);
 
             saveLoyaltyLedger(
-                    customer,
-                    0,
-                    "TIER_DOWNGRADE",
-                    tierBefore,
-                    newTier,
-                    "TIER_CHANGE",
-                    note2,
-                    null,
-                    null,
-                    null
+                    customer, 0, "TIER_DOWNGRADE",
+                    tierBefore, newTier, "TIER_CHANGE", note2,
+                    null, null, null
             );
+
+            // ✅ THÊM: thông báo hạ hạng
+            eventNotificationService.onTierDowngrade(customer, tierBefore, newTier, newTotalPoints, reason);
         }
     }
 
@@ -438,15 +433,11 @@ public class CustomerService {
     }
 
     public List<CustomerResponse> findByVipTierAndPointsRange(
-            String tierName,
-            int minPoints,
-            int maxPoints
-    ) {
+            String tierName, int minPoints, int maxPoints) {
         try {
             VipTier tier = VipTier.valueOf(tierName.toUpperCase());
             List<Customer> customers = customRes.findByVipTierAndLoyaltyPointsBetween(
-                    tier, minPoints, maxPoints
-            );
+                    tier, minPoints, maxPoints);
             return customers.stream()
                     .map(this::mapToResponse)
                     .collect(Collectors.toList());
@@ -497,10 +488,7 @@ public class CustomerService {
         BigDecimal avgSpent = BigDecimal.ZERO;
         if (totalCustomers > 0 && totalSpent != null) {
             avgSpent = totalSpent.divide(
-                    BigDecimal.valueOf(totalCustomers),
-                    2,
-                    BigDecimal.ROUND_HALF_UP
-            );
+                    BigDecimal.valueOf(totalCustomers), 2, BigDecimal.ROUND_HALF_UP);
         }
         stats.put("averageSpent", avgSpent);
 
@@ -515,36 +503,26 @@ public class CustomerService {
             tierData.put("averageSpent", tierCount > 0 && tierTotal != null
                     ? tierTotal.divide(BigDecimal.valueOf(tierCount), 2, BigDecimal.ROUND_HALF_UP)
                     : BigDecimal.ZERO);
-
             tierStats.put(tier.name(), tierData);
         }
         stats.put("byTier", tierStats);
 
         Map<String, Long> spendingRanges = new HashMap<>();
         spendingRanges.put("under1M", customRes.countByTotalSpentBetween(
-                BigDecimal.ZERO,
-                BigDecimal.valueOf(1000000)
-        ));
+                BigDecimal.ZERO, BigDecimal.valueOf(1000000)));
         spendingRanges.put("1M-5M", customRes.countByTotalSpentBetween(
-                BigDecimal.valueOf(1000000),
-                BigDecimal.valueOf(5000000)
-        ));
+                BigDecimal.valueOf(1000000), BigDecimal.valueOf(5000000)));
         spendingRanges.put("5M-10M", customRes.countByTotalSpentBetween(
-                BigDecimal.valueOf(5000000),
-                BigDecimal.valueOf(10000000)
-        ));
+                BigDecimal.valueOf(5000000), BigDecimal.valueOf(10000000)));
         spendingRanges.put("10M-50M", customRes.countByTotalSpentBetween(
-                BigDecimal.valueOf(10000000),
-                BigDecimal.valueOf(50000000)
-        ));
+                BigDecimal.valueOf(10000000), BigDecimal.valueOf(50000000)));
         spendingRanges.put("over50M", customRes.countByTotalSpentBetween(
-                BigDecimal.valueOf(50000000),
-                BigDecimal.valueOf(999999999)
-        ));
+                BigDecimal.valueOf(50000000), BigDecimal.valueOf(999999999)));
         stats.put("spendingRanges", spendingRanges);
 
         return stats;
     }
+
     public List<CustomerResponse> findInactiveTransactionDays(int days) {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
         return customRes.findCustomersInactiveTransaction(cutoff)
@@ -552,6 +530,7 @@ public class CustomerService {
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+
     @Transactional
     public CustomerResponse updateVipNote(Integer id, String vipNote) {
         Customer customer = customRes.findById(id)
@@ -559,10 +538,7 @@ public class CustomerService {
         customer.setVipNote(vipNote);
         return mapToResponse(customRes.save(customer));
     }
-    /**
-     * Lấy danh sách khách hàng chưa phát sinh đơn hàng nào
-     * @param minDaysSinceRegistered chỉ lấy khách đã đăng ký >= X ngày (tránh khách mới toanh)
-     */
+
     public List<CustomerResponse> findZeroOrderCustomers(int minDaysSinceRegistered) {
         LocalDateTime registeredBefore = LocalDateTime.now().minusDays(minDaysSinceRegistered);
         return customRes.findZeroOrderCustomers(registeredBefore)
@@ -571,16 +547,11 @@ public class CustomerService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Thống kê zero-order customers
-     */
     public Map<String, Object> getZeroOrderStats() {
         Map<String, Object> stats = new HashMap<>();
-
         long total3Days  = customRes.countZeroOrderCustomers(LocalDateTime.now().minusDays(3));
         long total7Days  = customRes.countZeroOrderCustomers(LocalDateTime.now().minusDays(7));
         long total30Days = customRes.countZeroOrderCustomers(LocalDateTime.now().minusDays(30));
-
         stats.put("registeredOver3Days",  total3Days);
         stats.put("registeredOver7Days",  total7Days);
         stats.put("registeredOver30Days", total30Days);
