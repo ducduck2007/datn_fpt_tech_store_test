@@ -49,6 +49,12 @@ public class ProductService {
 
     private final String UPLOAD_DIR = "uploads/";
 
+    @SensitiveOperation(
+            action = ActionType.CREATE_OPERATION,
+            entity = "PRODUCT",
+            description = "Create new product",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(
             module = AuditModule.PRODUCT,
             action = AuditAction.CREATE,
@@ -137,6 +143,12 @@ public class ProductService {
         }
     }
 
+    @SensitiveOperation(
+            action = ActionType.UPDATE_OPERATION,
+            entity = "PRODUCT",
+            description = "Update product info",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(
             module = AuditModule.PRODUCT,
             action = AuditAction.UPDATE,
@@ -275,7 +287,7 @@ public class ProductService {
             action = ActionType.DELETE_OPERATION,
             entity = "PRODUCT",
             description = "Soft delete product",
-            severity = SeverityLevel.MEDIUM
+            severity = SeverityLevel.HIGH
     )
     @Audit(
             module = AuditModule.PRODUCT,

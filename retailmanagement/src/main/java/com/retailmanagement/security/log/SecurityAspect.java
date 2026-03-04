@@ -1,15 +1,20 @@
 package com.retailmanagement.security.log;
 
+import com.retailmanagement.security.service.CustomUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.lang.reflect.Field;
 
 @Aspect
 @Component
@@ -41,31 +46,56 @@ public class SecurityAspect {
         String description = sensitive.description();
 
         try {
-            Object result = joinPoint.proceed();
 
             // CHANGE_ROLE thì kiểm tra quyền
             if (sensitive.action() == ActionType.ROLE_CHANGE) {
 
-                boolean isAdmin = SecurityContextHolder.getContext()
-                        .getAuthentication()
-                        .getAuthorities()
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+                if (authentication == null || !authentication.isAuthenticated()) {
+                    throw new AccessDeniedException("Unauthenticated access");
+                }
+
+                boolean isAdmin = authentication.getAuthorities()
                         .stream()
                         .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
                 //  Không phải admin mà đổi quyền
                 if (!isAdmin) {
-                    severity = SeverityLevel.CRITICAL;
-                    status = "UNAUTHORIZED_CHANGE_ROLE";
-                    description = "Unauthorized role change attempt";
+                    securityLogService.log(
+                            username,
+                            sensitive.action(),
+                            sensitive.entity(),
+                            targetId,
+                            ip,
+                            SeverityLevel.CRITICAL,
+                            "BLOCKED",
+                            "Unauthorized role change attempt"
+                    );
+
+                    throw new AccessDeniedException("Không có quyền đổi role");
                 }
 
                 //  Tự nâng quyền
-                if (username.equals(targetId)) {
-                    severity = SeverityLevel.CRITICAL;
-                    status = "SELF_ROLE_ESCALATION";
-                    description = "User attempted to change own role";
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                Integer currentUserId = userDetails.getUserId();
+                if (String.valueOf(currentUserId).equals(targetId)) {
+                    securityLogService.log(
+                            username,
+                            sensitive.action(),
+                            sensitive.entity(),
+                            targetId,
+                            ip,
+                            SeverityLevel.CRITICAL,
+                            "BLOCKED",
+                            "User attempted to change own role"
+                    );
+
+                    throw new AccessDeniedException("Không được tự đổi role của chính mình");
                 }
             }
+
+            Object result = joinPoint.proceed();
 
             securityLogService.log(
                     username,
@@ -99,16 +129,25 @@ public class SecurityAspect {
 
     private String extractTargetId(ProceedingJoinPoint joinPoint) {
 
-        for (Object arg : joinPoint.getArgs()) {
+        Object[] args = joinPoint.getArgs();
 
+        for (Object arg : args) {
             if (arg == null) continue;
 
-            // Ưu tiên lấy id dạng số
-            if (arg instanceof Long || arg instanceof Integer) {
+            if (arg instanceof Integer || arg instanceof Long) {
                 return String.valueOf(arg);
             }
+
+            try {
+                Field field = arg.getClass().getDeclaredField("id");
+                field.setAccessible(true);
+                Object value = field.get(arg);
+                if (value != null) {
+                    return String.valueOf(value);
+                }
+            } catch (Exception ignored) {}
         }
 
-        return null;
+        return "UNKNOWN";
     }
 }

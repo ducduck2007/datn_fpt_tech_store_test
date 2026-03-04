@@ -15,6 +15,9 @@ import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.LoyaltyLedgerRepository;
 import com.retailmanagement.repository.OrderRepository;
 import com.retailmanagement.repository.UserRepository;
+import com.retailmanagement.security.log.ActionType;
+import com.retailmanagement.security.log.SensitiveOperation;
+import com.retailmanagement.security.log.SeverityLevel;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
@@ -98,6 +101,12 @@ public class CustomerService {
         };
     }
 
+    @SensitiveOperation(
+            action = ActionType.CREATE_OPERATION,
+            entity = "CUSTOMER",
+            description = "Create new customer",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.CREATE,
@@ -275,6 +284,12 @@ public class CustomerService {
                 .map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    @SensitiveOperation(
+            action = ActionType.DELETE_OPERATION,
+            entity = "CUSTOMER",
+            description = "Soft delete customer",
+            severity = SeverityLevel.HIGH
+    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.DELETE,
@@ -286,6 +301,12 @@ public class CustomerService {
         customRes.save(customer);
     }
 
+    @SensitiveOperation(
+            action = ActionType.UPDATE_OPERATION,
+            entity = "CUSTOMER",
+            description = "Update customer info",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.UPDATE,

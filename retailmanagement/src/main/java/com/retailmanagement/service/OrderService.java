@@ -205,6 +205,12 @@ public class OrderService {
     // ================================================================
     // CREATE ORDER
     // ================================================================
+    @SensitiveOperation(
+            action = ActionType.CREATE_OPERATION,
+            entity = "ORDER",
+            description = "Create new order",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(module = AuditModule.ORDER, action = AuditAction.CREATE, targetType = TargetType.ORDER)
     public CreateOrderResponse createOrder(CreateOrderRequest request, Integer userId) {
 
@@ -425,6 +431,12 @@ public class OrderService {
     // ================================================================
     // UPDATE ORDER — GIỮ NGUYÊN
     // ================================================================
+    @SensitiveOperation(
+            action = ActionType.UPDATE_OPERATION,
+            entity = "ORDER",
+            description = "Update order info",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(module = AuditModule.ORDER, action = AuditAction.UPDATE, targetType = TargetType.ORDER)
     public void updateOrder(Long orderId, UpdateOrderRequest request) {
         Order order = orderRepository.findById(orderId)
@@ -485,7 +497,7 @@ public class OrderService {
             action = ActionType.DELETE_OPERATION,
             entity = "ORDER",
             description = "Delete order",
-            severity = SeverityLevel.MEDIUM
+            severity = SeverityLevel.HIGH
     )
     @Audit(module = AuditModule.ORDER, action = AuditAction.DELETE, targetType = TargetType.ORDER)
     public void deleteOrder(Long orderId) {
