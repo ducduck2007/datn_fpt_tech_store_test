@@ -15,9 +15,6 @@ import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.LoyaltyLedgerRepository;
 import com.retailmanagement.repository.OrderRepository;
 import com.retailmanagement.repository.UserRepository;
-import com.retailmanagement.security.log.ActionType;
-import com.retailmanagement.security.log.SensitiveOperation;
-import com.retailmanagement.security.log.SeverityLevel;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
@@ -101,12 +98,6 @@ public class CustomerService {
         };
     }
 
-    @SensitiveOperation(
-            action = ActionType.CREATE_OPERATION,
-            entity = "CUSTOMER",
-            description = "Create new customer",
-            severity = SeverityLevel.MEDIUM
-    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.CREATE,
@@ -206,6 +197,10 @@ public class CustomerService {
     // ================================================================
     // MAIN: gọi từ PaymentService khi thanh toán thành công
     // ================================================================
+    // ===== HELPER =====
+
+
+    // ===== MAIN METHOD =====
     @Transactional
     public void addLoyaltyPoints(Integer customerId, BigDecimal orderTotal, Long orderId) {
         Customer customer = customRes.findById(customerId)
@@ -214,7 +209,11 @@ public class CustomerService {
         int pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         VipTier tierBefore = customer.getVipTier();
 
-        int pointsEarned = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
+        // ✅ WEEKEND BONUS x1.5
+        int basePoints = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
+        boolean weekendBonus = isWeekend();
+        int pointsEarned = weekendBonus ? (int)(basePoints * 1.5) : basePoints;
+
         if (pointsEarned <= 0) return;
 
         int newTotalPoints = pointsBefore + pointsEarned;
@@ -234,8 +233,12 @@ public class CustomerService {
 
         customRes.save(customer);
 
-        // ✅ THÊM: thông báo cộng điểm
         eventNotificationService.onPointsEarned(customer, pointsEarned, newTotalPoints, orderTotal);
+
+        String earnNote = weekendBonus
+                ? "🎉 [Weekend x1.5] Cộng điểm từ thanh toán: " + formatMoney(orderTotal)
+                + " (gốc: " + basePoints + " → x1.5 = " + pointsEarned + " điểm)"
+                : "Cộng điểm từ thanh toán: " + formatMoney(orderTotal);
 
         saveLoyaltyLedger(
                 customer,
@@ -244,7 +247,7 @@ public class CustomerService {
                 tierBefore,
                 newTier,
                 "PURCHASE",
-                "Cộng điểm từ thanh toán: " + formatMoney(orderTotal),
+                earnNote,
                 "orders",
                 orderId,
                 null
@@ -266,7 +269,6 @@ public class CustomerService {
                     null, null, null
             );
 
-            // ✅ THÊM: thông báo thăng/hạ hạng
             if (isUpgrade) {
                 eventNotificationService.onTierUpgrade(customer, tierBefore, newTier, newTotalPoints);
             } else {
@@ -284,12 +286,6 @@ public class CustomerService {
                 .map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    @SensitiveOperation(
-            action = ActionType.DELETE_OPERATION,
-            entity = "CUSTOMER",
-            description = "Soft delete customer",
-            severity = SeverityLevel.HIGH
-    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.DELETE,
@@ -301,12 +297,6 @@ public class CustomerService {
         customRes.save(customer);
     }
 
-    @SensitiveOperation(
-            action = ActionType.UPDATE_OPERATION,
-            entity = "CUSTOMER",
-            description = "Update customer info",
-            severity = SeverityLevel.MEDIUM
-    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.UPDATE,
@@ -578,5 +568,9 @@ public class CustomerService {
         stats.put("registeredOver30Days", total30Days);
         stats.put("generatedAt", LocalDateTime.now());
         return stats;
+    }
+    private boolean isWeekend() {
+        java.time.DayOfWeek day = LocalDateTime.now().getDayOfWeek();
+        return day == java.time.DayOfWeek.SATURDAY || day == java.time.DayOfWeek.SUNDAY;
     }
 }
