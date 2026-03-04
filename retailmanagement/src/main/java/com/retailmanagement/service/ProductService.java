@@ -2,12 +2,19 @@ package com.retailmanagement.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.retailmanagement.audit.Audit;
+import com.retailmanagement.audit.AuditAction;
+import com.retailmanagement.audit.AuditModule;
+import com.retailmanagement.audit.TargetType;
 import com.retailmanagement.dto.request.AttributeRequest;
 import com.retailmanagement.dto.request.ProductRequest;
 import com.retailmanagement.dto.response.ImageResponse;
 import com.retailmanagement.dto.response.ProductResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
+import com.retailmanagement.security.log.ActionType;
+import com.retailmanagement.security.log.SensitiveOperation;
+import com.retailmanagement.security.log.SeverityLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.JpaSort;
@@ -42,6 +49,11 @@ public class ProductService {
 
     private final String UPLOAD_DIR = "uploads/";
 
+    @Audit(
+            module = AuditModule.PRODUCT,
+            action = AuditAction.CREATE,
+            targetType = TargetType.PRODUCT
+    )
     @Transactional
     public void createProduct(ProductRequest request) throws IOException {
         Product product = new Product();
@@ -125,6 +137,11 @@ public class ProductService {
         }
     }
 
+    @Audit(
+            module = AuditModule.PRODUCT,
+            action = AuditAction.UPDATE,
+            targetType = TargetType.PRODUCT
+    )
     @Transactional
     public void updateProduct(Integer id, ProductRequest request) throws IOException {
         Product product = productRepository.findById(id)
@@ -254,6 +271,17 @@ public class ProductService {
         return mapToResponse(product);
     }
 
+    @SensitiveOperation(
+            action = ActionType.DELETE_OPERATION,
+            entity = "PRODUCT",
+            description = "Soft delete product",
+            severity = SeverityLevel.MEDIUM
+    )
+    @Audit(
+            module = AuditModule.PRODUCT,
+            action = AuditAction.DELETE,
+            targetType = TargetType.PRODUCT
+    )
     @Transactional
     public void softDeleteProduct(Integer id) {
         Product product = productRepository.findById(id)

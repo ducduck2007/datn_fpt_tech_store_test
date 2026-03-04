@@ -12,6 +12,9 @@ import com.retailmanagement.dto.response.CreateOrderResponse;
 import com.retailmanagement.dto.response.OrderDetailResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
+import com.retailmanagement.security.log.ActionType;
+import com.retailmanagement.security.log.SensitiveOperation;
+import com.retailmanagement.security.log.SeverityLevel;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -478,6 +481,12 @@ public class OrderService {
     // ================================================================
     // DELETE ORDER — GIỮ NGUYÊN
     // ================================================================
+    @SensitiveOperation(
+            action = ActionType.DELETE_OPERATION,
+            entity = "ORDER",
+            description = "Delete order",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(module = AuditModule.ORDER, action = AuditAction.DELETE, targetType = TargetType.ORDER)
     public void deleteOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)

@@ -13,6 +13,7 @@ import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.UserRepository;
 import com.retailmanagement.security.log.ActionType;
 import com.retailmanagement.security.log.SensitiveOperation;
+import com.retailmanagement.security.log.SeverityLevel;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -105,7 +106,8 @@ public class UserService {
     @SensitiveOperation(
             action = ActionType.ROLE_CHANGE,
             entity = "USER",
-            description = "Change user role"
+            description = "Change user role",
+            severity = SeverityLevel.MEDIUM
     )
     @Transactional
     public UserResponse updateUserRole(UpdateUserRoleRequest request, Integer id) {
@@ -125,7 +127,8 @@ public class UserService {
     @SensitiveOperation(
             action = ActionType.DELETE_OPERATION,
             entity = "USER",
-            description = "Delete user"
+            description = "Delete user",
+            severity = SeverityLevel.MEDIUM
     )
     @Transactional
     public UserResponse deleteUser(Integer id) {
