@@ -207,4 +207,7 @@ public interface LoyaltyLedgerRepository extends JpaRepository<LoyaltyLedger, Lo
             @Param("from") Instant from,
             @Param("to") Instant to
     );
+
+
+
 }

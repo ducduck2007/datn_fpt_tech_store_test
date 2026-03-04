@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,13 +24,13 @@ public class PaymentService {
     private final CustomerService customerService;
     private final ImageRepository imageRepository;
     private final UserRepository userRepository;
+    private final CustomRes customerRepository;
+    private final SpinWheelService spinWheelService;
+    private final CustomerEventNotificationService eventNotificationService; // ✅ THÊM
 
     // ============================================================
     // PAYMENT CREATION & PROCESSING
     // ============================================================
-    // Thêm dependency
-    private final CustomRes customerRepository;
-    private final SpinWheelService spinWheelService;
 
     @Transactional
     public PaymentResponse createPayment(PaymentRequest request, Integer userId) {
@@ -42,8 +41,6 @@ public class PaymentService {
             throw new RuntimeException("Chỉ có thể thanh toán đơn hàng ở trạng thái PENDING");
         }
 
-        // ✅ Spin đã được tính vào order.totalAmount từ lúc tạo đơn (OrderService)
-        // KHÔNG trừ thêm — chỉ lấy finalAmount = order.totalAmount
         BigDecimal finalAmount = order.getTotalAmount();
         Customer customer = order.getCustomer();
 
@@ -75,7 +72,10 @@ public class PaymentService {
             customer.setLastOrderAt(
                     Instant.now().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
             );
+            // ✅ THÊM: thông báo thanh toán thành công
+            eventNotificationService.onOrderPaid(order, payment);
         }
+
         orderRepository.save(order);
         return mapToResponse(payment);
     }
@@ -157,32 +157,20 @@ public class PaymentService {
     // CUSTOMER PAYMENT QUERIES
     // ============================================================
 
-    /**
-     * ✅ FIXED: Only active (non-deleted) payments for customer
-     */
     public List<PaymentResponse> getPaymentsByCustomerId(Integer customerId) {
-        List<Payment> payments = paymentRepository.findActiveByCustomerId(customerId);
-        return payments.stream()
+        return paymentRepository.findActiveByCustomerId(customerId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * ✅ ALL payments including deleted - maps deletedAt to response
-     */
     public List<PaymentResponse> getAllPaymentsByCustomerIdIncludingDeleted(Integer customerId) {
-        List<Payment> payments = paymentRepository.findAllByCustomerIdIncludingDeleted(customerId);
-        return payments.stream()
+        return paymentRepository.findAllByCustomerIdIncludingDeleted(customerId).stream()
                 .map(this::mapToResponseWithDeleted)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * ✅ Only deleted payments for customer
-     */
     public List<PaymentResponse> getDeletedPaymentsByCustomerId(Integer customerId) {
-        List<Payment> payments = paymentRepository.findDeletedByCustomerId(customerId);
-        return payments.stream()
+        return paymentRepository.findDeletedByCustomerId(customerId).stream()
                 .map(this::mapToResponseWithDeleted)
                 .collect(Collectors.toList());
     }
@@ -233,15 +221,15 @@ public class PaymentService {
         }
 
         orderRepository.save(order);
+
+        // ✅ THÊM: thông báo hoàn tiền
+        eventNotificationService.onPaymentRefunded(order, payment.getAmount());
     }
 
     // ============================================================
     // SOFT DELETE OPERATIONS
     // ============================================================
 
-    /**
-     * ✅ FIXED: Uses findActiveById so it correctly fails if already deleted
-     */
     @Transactional
     public String softDeletePayment(Long paymentId, Integer userId) {
         Payment payment = paymentRepository.findActiveById(paymentId)
@@ -258,9 +246,6 @@ public class PaymentService {
         return "Payment #" + paymentId + " deleted successfully";
     }
 
-    /**
-     * ✅ FIXED: Uses findDeletedById to only restore actually deleted payments
-     */
     @Transactional
     public String restorePayment(Long paymentId) {
         Payment payment = paymentRepository.findDeletedById(paymentId)
@@ -284,12 +269,8 @@ public class PaymentService {
     // MAPPING METHODS
     // ============================================================
 
-    /**
-     * Basic response - active payment (no deletedAt field needed)
-     */
     private PaymentResponse mapToResponse(Payment payment) {
         Order order = payment.getOrder();
-
         PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
                 .id(payment.getId())
                 .orderId(order.getId())
@@ -309,12 +290,8 @@ public class PaymentService {
         return builder.build();
     }
 
-    /**
-     * ✅ NEW: Response WITH deletedAt - used when fetching all including deleted
-     */
     private PaymentResponse mapToResponseWithDeleted(Payment payment) {
         Order order = payment.getOrder();
-
         PaymentResponse.PaymentResponseBuilder builder = PaymentResponse.builder()
                 .id(payment.getId())
                 .orderId(order.getId())
@@ -324,7 +301,7 @@ public class PaymentService {
                 .status(payment.getStatus())
                 .paidAt(payment.getPaidAt())
                 .createdAt(payment.getCreatedAt())
-                .deletedAt(payment.getDeletedAt()); // ✅ Include deletedAt
+                .deletedAt(payment.getDeletedAt());
 
         Customer customer = order.getCustomer();
         if (customer != null) {
@@ -335,9 +312,6 @@ public class PaymentService {
         return builder.build();
     }
 
-    /**
-     * Detail response with items
-     */
     private PaymentResponse mapToDetailResponse(Payment payment) {
         Order order = payment.getOrder();
         Customer customer = order.getCustomer();

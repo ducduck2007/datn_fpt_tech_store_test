@@ -51,6 +51,7 @@ import InventoryOrdersProcessing from "../pages/inventory/InventoryOrdersProcess
 import InactiveCustomers from "../pages/system/InactiveCustomers.vue";
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
 import Zeroordercustomers from "../pages/system/Zeroordercustomers.vue";
+import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
 const routes = [
   // ===== CUSTOMER PORTAL =====
   {
@@ -274,6 +275,12 @@ const routes = [
         name: "Birthday Manager",
         component: Birthday,
         meta: { title: "Settings - Birthday Manager" },
+      },
+      {
+        path: "Loyaltysummaryadmin",
+        name: "Loyalty summary admin ",
+        component: Loyaltysummaryadmin,
+        meta: { title: "ADMIN - LOYALTY SUMMARY" },
       },
       // Audit
       {

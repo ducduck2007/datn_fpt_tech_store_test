@@ -177,6 +177,11 @@ const cards = [
     to: "/system/orders/processing",
   },
   {
+    title: "Loyalty Summary - Admin",
+    desc: "Loyalty Summary - Admin ",
+    to: "/system/Loyaltysummaryadmin ",
+  },
+  {
     title: "Pricing",
     desc: "Variant pricing & histories",
     to: "/system/pricing",

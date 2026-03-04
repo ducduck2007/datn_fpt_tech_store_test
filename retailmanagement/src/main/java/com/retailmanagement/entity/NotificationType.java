@@ -13,7 +13,8 @@ public enum NotificationType {
     LOYALTY_POINTS("Điểm tích lũy", "⭐"),
     VIP_TIER_UPGRADE("Nâng hạng VIP", "👑"),
     SYSTEM("Hệ thống", "🔔"),
-    SPIN_EXPIRY_WARNING("Ưu đãi vòng quay sắp hết hạn", "🎡");
+    SPIN_EXPIRY_WARNING("Ưu đãi vòng quay sắp hết hạn", "🎡"),
+    ORDER_UPDATE("Cập nhật về đơn hàng", "");
 
     private final String displayName;
     private final String icon;
