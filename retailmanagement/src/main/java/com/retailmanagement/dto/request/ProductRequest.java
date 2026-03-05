@@ -24,4 +24,7 @@ public class ProductRequest {
     private List<Long> idsToDelete;
 
     private List<Integer> tagIds;
+
+    private Boolean isNew;
+    private Boolean isFaulty;
 }

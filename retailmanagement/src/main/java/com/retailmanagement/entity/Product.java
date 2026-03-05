@@ -50,4 +50,10 @@ public class Product {
 
     @Column(name = "sold_count")
     private Integer soldCount;
+
+    @Column(name = "is_new")
+    private Boolean isNew = true;
+
+    @Column(name = "is_faulty")
+    private Boolean isFaulty = false;
 }

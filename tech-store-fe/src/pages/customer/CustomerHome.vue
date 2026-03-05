@@ -6,6 +6,8 @@ UPDATED:
   - Fix Image URL (Backend absolute path)
   - Fix Category Filtering (Match 'categoryIds' param)
   - Preserved all existing Banner & Event logic
+  - [MỚI] Ẩn hàng lỗi khỏi giao diện khách hàng
+  - [MỚI] Hiển thị nhãn NEW cho hàng mới
 ============================================================
 -->
 <template>
@@ -227,7 +229,11 @@ UPDATED:
                 <el-card shadow="hover" class="h-100">
                   <template #header>
                     <div class="d-flex align-items-center justify-content-between">
-                      <span class="fw-bold text-truncate" style="max-width: 220px" :title="p.name">{{ p.name }}</span>
+                      <span class="fw-bold text-truncate d-flex align-items-center" style="max-width: 220px" :title="p.name">
+                        {{ p.name }}
+                        <!-- THÊM 1: Hiển thị nhãn NEW nều là sản phẩm mới -->
+                        <el-tag v-if="p.isNew" type="danger" effect="dark" size="small" style="margin-left: 6px; padding: 0 4px; height: 18px; line-height: 16px; font-size: 10px;">NEW</el-tag>
+                      </span>
                       <el-tag size="small" effect="light">Laptop</el-tag>
                     </div>
                   </template>
@@ -414,6 +420,7 @@ function normalizeProducts(list) {
       description: p.description || "", 
       imageUrl, priceText, 
       defaultVariantId: variantId, 
+      isNew: p.isNew, // THÊM 2: Lấy dữ liệu isNew từ backend để render nhãn
       raw: p 
     };
   });
@@ -457,7 +464,8 @@ async function reloadProducts() {
     const params = { 
         page: page.value,
         categoryIds: categoryId.value ? String(categoryId.value) : undefined,
-        keyword: searchTerm.value || undefined
+        keyword: searchTerm.value || undefined,
+        isFaulty: false // THÊM 3: Ép buộc KHÔNG hiển thị hàng bị lỗi cho khách hàng xem
     };
     const res = await productsApi.list(params);
     const data = res.data?.data || res.data;

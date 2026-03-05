@@ -5,9 +5,11 @@ import com.retailmanagement.dto.response.ProductResponse;
 import com.retailmanagement.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -24,9 +26,13 @@ public class ProductController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "false") boolean inStockOnly,
-            @RequestParam(required = false) Integer tagId) {
+            @RequestParam(required = false) Integer tagId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) Boolean isNew,
+            @RequestParam(required = false) Boolean isFaulty) {
 
-        return ResponseEntity.ok(productService.getProducts(page, categoryIds, keyword, sortBy, inStockOnly, tagId));
+        return ResponseEntity.ok(productService.getProducts(page, categoryIds, keyword, sortBy, inStockOnly, tagId, startDate, endDate, isNew, isFaulty));
     }
 
     @GetMapping("/{id}")

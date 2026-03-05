@@ -28,7 +28,7 @@
         <div class="col-12 col-md-2">
           <el-input
             v-model="keyword"
-            placeholder="Search by Name/SKU..."
+            placeholder="Search Name/SKU..."
             clearable
             @clear="onFilter"
             @keyup.enter="onFilter"
@@ -68,6 +68,8 @@
 
         <div class="col-12 col-md-3">
           <el-select v-model="sortBy" placeholder="Sort by" @change="onFilter" style="width: 100%">
+            <!-- Yêu cầu 2: Lọc theo ngày nhập mới nhất -->
+            <el-option label="Newest Arrival (Ngày nhập)" value="newest_arrival" />
             <el-option label="Newest (Mới nhất)" value="newest" />
             <el-option label="Oldest (Cũ nhất)" value="oldest" />
             <el-option label="Best Selling (Bán chạy)" value="best_selling" />
@@ -82,6 +84,32 @@
           <el-checkbox v-model="inStockOnly" @change="onFilter" border>
             <span class="text-success fw-bold">Only Show In Stock</span>
           </el-checkbox>
+        </div>
+
+        <!-- BỘ LỌC NÂNG CAO (Yêu cầu 1, 3, 5) -->
+        <div class="col-12 col-md-4">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            start-placeholder="From Date"
+            end-placeholder="To Date"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD" 
+            @change="onFilter"
+            style="width: 100%"
+          />
+        </div>
+        <div class="col-12 col-md-2">
+          <el-select v-model="filterIsNew" placeholder="New Arrival?" clearable @change="onFilter" style="width: 100%">
+            <el-option label="Only New Arrivals" :value="true" />
+            <el-option label="Normal Products" :value="false" />
+          </el-select>
+        </div>
+        <div class="col-12 col-md-2">
+          <el-select v-model="filterIsFaulty" placeholder="Quality Status" clearable @change="onFilter" style="width: 100%">
+            <el-option label="Faulty (Hidden)" :value="true" />
+            <el-option label="Good Quality" :value="false" />
+          </el-select>
         </div>
       </div>
 
@@ -104,7 +132,12 @@
 
         <el-table-column prop="name" label="Product Info" min-width="250">
           <template #default="{ row }">
-            <div class="fw-bold text-primary">{{ row.name }}</div>
+            <div class="d-flex align-items-center gap-2">
+              <div class="fw-bold text-primary">{{ row.name }}</div>
+              <!-- Hiển thị nhãn Mới/Lỗi -->
+              <el-tag v-if="row.isNew" size="small" type="success" effect="dark">NEW</el-tag>
+              <el-tag v-if="row.isFaulty" size="small" type="danger" effect="dark">FAULTY</el-tag>
+            </div>
             <div class="small text-muted mb-1">SKU: {{ row.sku }}</div>
             
             <div v-if="row.tags && row.tags.length > 0" class="mb-1">
@@ -131,6 +164,13 @@
           </template>
         </el-table-column>
 
+        <!-- Yêu cầu 2: Hiển thị ngày nhập -->
+        <el-table-column label="Import Date" width="130" align="center">
+          <template #default="{ row }">
+            <div style="font-size: 11px; color: #666">{{ formatDate(row.createdAt) }}</div>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="isVisible" label="Status" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.isVisible ? 'success' : 'info'" size="small">
@@ -145,9 +185,11 @@
             <div v-if="viewMode === 'active'">
               <el-button type="success" link size="small" icon="Connection" @click="openVariantDrawer(row)">Variants</el-button>
               <el-button type="primary" link size="small" icon="Edit" @click="onEdit(row)">Edit</el-button>
-              <el-popconfirm title="Move to Trash Bin?" @confirm="onDelete(row.id)">
+              
+              <!-- Yêu cầu 5: Xóa thông minh (Xóa vĩnh viễn nếu là hàng lỗi) -->
+              <el-popconfirm :title="row.isFaulty ? 'Sản phẩm lỗi. Xóa vĩnh viễn?' : 'Move to Trash Bin?'" @confirm="onDelete(row)">
                 <template #reference>
-                  <el-button type="danger" link size="small" icon="Delete">Delete</el-button>
+                  <el-button type="danger" link size="small" icon="Delete">{{ row.isFaulty ? 'Kill' : 'Delete' }}</el-button>
                 </template>
               </el-popconfirm>
             </div>
@@ -244,6 +286,18 @@
         <div class="col-md-6"><el-form-item label="Product Name" required><el-input v-model="dlg.form.name" /></el-form-item></div>
         <div class="col-md-6"><el-form-item label="Master SKU" required><el-input v-model="dlg.form.sku" /></el-form-item></div>
 
+        <!-- Yêu cầu 4, 5: Công tắc đánh dấu Mới và Lỗi -->
+        <div class="col-md-3">
+          <el-form-item label="Mark as New Arrival">
+            <el-switch v-model="dlg.form.isNew" active-text="New" inactive-text="Normal" />
+          </el-form-item>
+        </div>
+        <div class="col-md-3">
+          <el-form-item label="Mark as Faulty (Hide)">
+            <el-switch v-model="dlg.form.isFaulty" active-color="#ff4949" active-text="Faulty" inactive-text="Good" />
+          </el-form-item>
+        </div>
+
         <div class="col-md-6">
           <el-form-item label="Categories">
             <el-select v-model="dlg.form.categoryIds" multiple placeholder="Select categories" style="width: 100%">
@@ -334,8 +388,18 @@ const page = ref(0);
 const totalElements = ref(0);
 const keyword = ref("");
 const categoryIds = ref([]); 
-const sortBy = ref("newest");
+const sortBy = ref("newest_arrival");
 const inStockOnly = ref(false);
+
+// Biến bộ lọc nâng cao
+const dateRange = ref([]);
+const filterIsNew = ref(null);
+const filterIsFaulty = ref(null);
+
+function formatDate(dateStr) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleString("vi-VN", { dateStyle: 'short', timeStyle: 'short' });
+}
 
 function fixImageUrl(url) {
   if (!url) return "https://via.placeholder.com/150?text=No+Image";
@@ -378,7 +442,11 @@ async function load() {
           keyword: keyword.value || undefined,
           sortBy: sortBy.value || undefined,
           inStockOnly: inStockOnly.value,
-          tagId: filterTagId.value || undefined
+          tagId: filterTagId.value || undefined,
+          startDate: dateRange.value?.[0] ? `${dateRange.value[0]}T00:00:00` : undefined,
+          endDate: dateRange.value?.[1] ? `${dateRange.value[1]}T23:59:59` : undefined,
+          isNew: filterIsNew.value === null ? undefined : filterIsNew.value,
+          isFaulty: filterIsFaulty.value === null ? undefined : filterIsFaulty.value
         };
         if (categoryIds.value?.length > 0) params.categoryIds = categoryIds.value.join(',');
         res = await productsApi.list(params); 
@@ -465,14 +533,18 @@ async function onRestore(id) {
   catch { toast("Restore failed", "error"); } 
 }
 
-async function onHardDelete(id) { 
-  try { await axios.delete(`${BASE_URL_API}/${id}/hard`); toast("Deleted permanently", "success"); load(); } 
-  catch { toast("Failed", "error"); } 
-}
-
-async function onDelete(id) { 
-  try { await axios.delete(`${BASE_URL_API}/${id}`); toast("Moved to Trash.", "success"); load(); } 
-  catch { toast("Delete failed.", "error"); } 
+// YÊU CẦU 5: CẬP NHẬT LOGIC XÓA (Xóa vĩnh viễn nếu là hàng lỗi)
+async function onDelete(row) { 
+  try { 
+    if (row.isFaulty) {
+      await axios.delete(`${BASE_URL_API}/${row.id}/hard`); 
+      toast("Đã xóa vĩnh viễn sản phẩm lỗi.", "success"); 
+    } else {
+      await axios.delete(`${BASE_URL_API}/${row.id}`); 
+      toast("Đã chuyển vào Thùng rác.", "success"); 
+    }
+    load(); 
+  } catch { toast("Delete failed.", "error"); } 
 }
 
 async function setPrimaryImage(imgId) { 
@@ -487,12 +559,18 @@ async function setPrimaryImage(imgId) {
 // --- Dialog Management ---
 const dlg = reactive({
   open: false, isEdit: false, loading: false, alert: "", editId: null, attributesList: [], existingImages: [], idsToDelete: [], 
-  form: { name: "", sku: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [] },
+  form: { 
+    name: "", sku: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [],
+    isNew: true, isFaulty: false 
+  },
 });
 
 function openCreateDialog() {
   dlg.isEdit = false; dlg.editId = null; dlg.attributesList = [{ name: "", value: "" }]; dlg.existingImages = []; dlg.idsToDelete = []; 
-  dlg.form = { name: "", sku: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [] };
+  dlg.form = { 
+    name: "", sku: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [],
+    isNew: true, isFaulty: false 
+  };
   dlg.alert = ""; dlg.open = true;
 }
 
@@ -503,7 +581,8 @@ async function onEdit(row) {
     const data = res.data?.data || res.data;
     dlg.form = {
       name: data.name, sku: data.sku, description: data.description, isVisible: data.isVisible,
-      categoryIds: data.categoryId ? [data.categoryId] : [], galleryImages: [], tagIds: []
+      categoryIds: data.categoryId ? [data.categoryId] : [], galleryImages: [], tagIds: [],
+      isNew: data.isNew, isFaulty: data.isFaulty
     };
     if (data.tags?.length > 0) {
        dlg.form.tagIds = data.tags.map(name => tags.value.find(t => t.name === name)?.id).filter(id => id);
@@ -526,31 +605,64 @@ function removeAttribute(index) { dlg.attributesList.splice(index, 1); }
 function onPickFiles(e) { dlg.form.galleryImages = Array.from(e.target.files); }
 
 async function submitForm() {
-  if (!dlg.form.name || !dlg.form.sku) return (dlg.alert = "Name/SKU required");
+  if (!dlg.form.name || !dlg.form.sku) return toast("Name/SKU required", "warning");
   dlg.loading = true;
   try {
     const formData = new FormData();
-    formData.append("name", dlg.form.name); 
-    formData.append("sku", dlg.form.sku); 
-    formData.append("description", dlg.form.description || ""); 
-    formData.append("isVisible", dlg.form.isVisible);
     
-    dlg.form.categoryIds.forEach(id => formData.append("categoryIds", id));
-    dlg.form.galleryImages.forEach(file => formData.append("galleryImages", file));
-    dlg.idsToDelete.forEach(id => formData.append("idsToDelete", id));
-    dlg.form.tagIds.forEach(id => formData.append("tagIds", id));
+    // 1. Text & Boolean
+    formData.append("name", String(dlg.form.name || "")); 
+    formData.append("sku", String(dlg.form.sku || "")); 
+    formData.append("description", String(dlg.form.description || "")); 
+    formData.append("isVisible", String(dlg.form.isVisible));
+    formData.append("isNew", String(dlg.form.isNew));
+    formData.append("isFaulty", String(dlg.form.isFaulty));
+    
+    // 2. Mảng ID
+    if (Array.isArray(dlg.form.categoryIds) && dlg.form.categoryIds.length > 0) {
+      dlg.form.categoryIds.forEach(id => formData.append("categoryIds", id));
+    }
+    if (Array.isArray(dlg.form.tagIds) && dlg.form.tagIds.length > 0) {
+      dlg.form.tagIds.forEach(id => formData.append("tagIds", id));
+    }
+    if (Array.isArray(dlg.idsToDelete) && dlg.idsToDelete.length > 0) {
+      dlg.idsToDelete.forEach(id => formData.append("idsToDelete", id));
+    }
 
-    const validAttrs = dlg.attributesList.filter(a => a.name && a.value);
-    if (validAttrs.length > 0) formData.append("attributes", JSON.stringify(validAttrs));
+    // 3. FILE UPLOAD (CHÌA KHÓA Ở ĐÂY)
+    if (dlg.form.galleryImages && dlg.form.galleryImages.length > 0) {
+      for (let i = 0; i < dlg.form.galleryImages.length; i++) {
+         let file = dlg.form.galleryImages[i];
+         if (file instanceof File || file instanceof Blob) {
+            formData.append("galleryImages", file);
+         }
+      }
+    }
 
-    if (dlg.isEdit) await axios.put(`${BASE_URL_API}/${dlg.editId}`, formData); 
-    else await axios.post(`${BASE_URL_API}`, formData);
+    // 4. JSON Attributes
+    const validAttrs = dlg.attributesList.filter(a => a.name && a.name.trim() !== "" && a.value && a.value.trim() !== "");
+    if (validAttrs.length > 0) {
+      formData.append("attributes", JSON.stringify(validAttrs));
+    }
 
-    dlg.open = false; await load(); 
+    // TÍNH NĂNG ĐÃ SỬA: BỎ HẲN CONFIG HEADER ĐI, CHỈ TRUYỀN FORMDATA
+    if (dlg.isEdit) {
+      await axios.put(`${BASE_URL_API}/${dlg.editId}`, formData); 
+    } else {
+      await axios.post(`${BASE_URL_API}`, formData);
+    }
+
+    dlg.open = false; 
+    await load(); 
     toast("Success", "success");
   } catch (e) { 
-    dlg.alert = e?.response?.data?.message || "Operation failed"; 
-  } finally { dlg.loading = false; }
+    console.error("LỖI GỬI LÊN:", e);
+    // Log ra lỗi chi tiết từ backend nếu có
+    const backendError = e.response?.data?.message || e.message;
+    toast("Lỗi: " + backendError, "error"); 
+  } finally { 
+    dlg.loading = false; 
+  }
 }
 
 onMounted(async () => {

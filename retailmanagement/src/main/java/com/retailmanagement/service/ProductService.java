@@ -70,6 +70,8 @@ public class ProductService {
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
         product.setSoldCount(0);
+        product.setIsNew(request.getIsNew() != null ? request.getIsNew() : true);
+        product.setIsFaulty(false);
 
         String finalDescription = request.getDescription();
 
@@ -163,6 +165,9 @@ public class ProductService {
         product.setSku(request.getSku());
         product.setUpdatedAt(LocalDateTime.now());
 
+        if (request.getIsNew() != null) product.setIsNew(request.getIsNew());
+        if (request.getIsFaulty() != null) product.setIsFaulty(request.getIsFaulty());
+
         String finalDescription = request.getDescription();
         if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
             try {
@@ -228,7 +233,7 @@ public class ProductService {
     /**
      * Hàm lấy danh sách sản phẩm với các bộ lọc và sắp xếp hoàn chỉnh
      */
-    public Page<ProductResponse> getProducts(int page, List<Integer> categoryIds, String keyword, String sortBy, boolean inStockOnly, Integer tagId) {
+    public Page<ProductResponse> getProducts(int page, List<Integer> categoryIds, String keyword, String sortBy, boolean inStockOnly, Integer tagId, LocalDateTime startDate, LocalDateTime endDate, Boolean isNew, Boolean isFaulty) {
         Sort sortObj = Sort.by(Sort.Direction.DESC, "id");
         if (sortBy != null) {
             switch (sortBy) {
@@ -244,6 +249,9 @@ public class ProductService {
                 case "best_selling":
                     sortObj = JpaSort.unsafe(Sort.Direction.DESC, "sold_count");
                     break;
+                case "newest_arrival":
+                    sortObj = Sort.by(Sort.Direction.DESC, "created_at");
+                    break;
             }
         }
 
@@ -254,15 +262,7 @@ public class ProductService {
         boolean hasCategory = (categoryIds != null && !categoryIds.isEmpty());
         List<Integer> filterIds = hasCategory ? categoryIds : List.of(-1);
         Integer finalTagId = (tagId != null) ? tagId : -1;
-        Page<Product> productPage = productRepository.searchProducts(
-                searchKey,
-                filterIds,
-                hasCategory,
-                true,
-                inStockOnly,
-                finalTagId,
-                pageable
-        );
+        Page<Product> productPage = productRepository.searchProducts(searchKey, filterIds, hasCategory, true, startDate, endDate, isNew, isFaulty, inStockOnly, tagId != null ? tagId : -1, pageable);
 
         List<ProductResponse> content = productPage.getContent().stream()
                 .map(this::mapToResponse)
@@ -329,6 +329,9 @@ public class ProductService {
         dto.setIsVisible(product.getIsVisible());
         dto.setCreatedAt(product.getCreatedAt());
         dto.setAttributes(product.getAttributesJson());
+        dto.setIsNew(product.getIsNew());
+        dto.setIsFaulty(product.getIsFaulty());
+        dto.setCreatedAt(product.getCreatedAt());
 
         List<Image> images = imageRepository.findByProductId(product.getId());
         if (images != null) {

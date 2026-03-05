@@ -35,4 +35,7 @@ public class ProductResponse {
     private Boolean inStock;    // Trạng thái còn hàng hay không
 
     private List<String> tags;
+
+    private Boolean isNew;
+    private Boolean isFaulty;
 }
