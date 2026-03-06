@@ -10,6 +10,8 @@ import CustomerOrderDetail from "../pages/customer/OrderDetail.vue";
 import CustomerProfile from "../pages/customer/CustomerProfile.vue";
 import CartPage from "../pages/customer/CartPage.vue";
 import CustomerOrders from "../pages/customer/CustomerOrders.vue";
+import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
+import Spinwheel from "../pages/customer/Spinwheel.vue";
 
 // ===== System (Admin) =====
 import SystemLogin from "../pages/system/SystemLogin.vue";
@@ -32,30 +34,27 @@ import PricingManager from "../pages/system/PricingManager.vue";
 import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue";
-import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
 import Birthday from "../pages/system/BirthdayManager.vue";
 import Customerspendinganalytics from "../pages/system/Customerspendinganalytics.vue";
-import Spinwheel from "../pages/customer/Spinwheel.vue";
+import InactiveCustomers from "../pages/system/InactiveCustomers.vue";
+import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
+import Zeroordercustomers from "../pages/system/Zeroordercustomers.vue";
+import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
+import ReportDashboard from "../pages/system/ReportDashboard.vue";
 
 // ===== Audit =====
 import AuditLog from "../pages/audit/AuditLog.vue";
 import AuditReportDashboard from "../pages/audit/AuditReportDashboard.vue";
 import SecurityLog from "../pages/audit/SecurityLog.vue";
 
-
-// ===== INVENTORY =====
-
+// ===== Inventory =====
 import InventoryShell from "../pages/inventory/InventoryShell.vue";
 import InventoryOrderDetail from "../pages/inventory/InventoryOrderDetail.vue";
 import InventoryOrdersPaid from "../pages/inventory/InventoryOrdersPaid.vue";
 import InventoryOrdersProcessing from "../pages/inventory/InventoryOrdersProcessing.vue";
-import InactiveCustomers from "../pages/system/InactiveCustomers.vue";
-import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
-import Zeroordercustomers from "../pages/system/Zeroordercustomers.vue";
-import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
 
 const routes = [
-  // ===== CUSTOMER PORTAL =====
+  // ===== CUSTOMER =====
   {
     path: "/",
     name: "home",
@@ -132,6 +131,7 @@ const routes = [
     meta: { portal: "system", requiresAuth: true },
     children: [
       { path: "", redirect: "/system/dashboard" },
+
       {
         path: "dashboard",
         name: "system-dashboard",
@@ -139,7 +139,6 @@ const routes = [
         meta: { title: "Dashboard" },
       },
 
-      // Admin modules
       {
         path: "users",
         name: "system-users",
@@ -162,20 +161,21 @@ const routes = [
         path: "Toployalcustomers",
         name: "Toployal customers",
         component: Toployalcustomers,
-        meta: { title: "Toployal - customers" },
+        meta: { title: "Top loyal customers" },
       },
-    {
+      {
         path: "Zeroordercustomers",
-        name: "Customers with zero oder",
+        name: "Customers with zero order",
         component: Zeroordercustomers,
-        meta: { title: "Zero oder - customers" },
+        meta: { title: "Zero order customers" },
       },
-       {
+      {
         path: "inactive-customers",
         name: "system-customers-inactive",
         component: InactiveCustomers,
         meta: { title: "Inactive Customers" },
       },
+
       {
         path: "categories",
         name: "system-categories",
@@ -189,7 +189,7 @@ const routes = [
         meta: { title: "Products" },
       },
 
-      // Orders
+      // ===== Orders =====
       {
         path: "orders/new",
         name: "system-orders-new",
@@ -221,16 +221,17 @@ const routes = [
         meta: { title: "Orders (Shipping)" },
       },
       {
+        path: "orders/:orderId",
+        name: "system-order-detail",
+        component: SystemOrderDetail,
+        meta: { title: "Order Detail" },
+      },
+
+      {
         path: "returns/pending",
         name: "system-returns-pending",
         component: ReturnListPending,
         meta: { title: "Returns (Pending)" },
-      },
-      {
-        path: "orders/filter",
-        name: "order-filter",
-        component: OrderFilter,
-        meta: { title: "Order Filter" },
       },
       {
         path: "returns/all",
@@ -240,13 +241,13 @@ const routes = [
       },
 
       {
-        path: "orders/:orderId",
-        name: "system-order-detail",
-        component: SystemOrderDetail,
-        meta: { title: "Return Requests" },
+        path: "orders/filter",
+        name: "order-filter",
+        component: OrderFilter,
+        meta: { title: "Order Filter" },
       },
 
-      // Pricing / Promotions / Settings
+      // ===== Pricing / Promotion =====
       {
         path: "pricing",
         name: "system-pricing",
@@ -259,54 +260,64 @@ const routes = [
         component: PromotionManager,
         meta: { title: "Promotions" },
       },
+
       {
         path: "settings/currency",
         name: "system-settings-currency",
         component: SettingsCurrency,
         meta: { title: "Settings - Currency" },
       },
-      // Payments
+
       {
         path: "payments",
         name: "system-payments",
         component: PaymentManagement,
         meta: { title: "Payment History" },
       },
+
       {
         path: "birthday",
         name: "Birthday Manager",
         component: Birthday,
         meta: { title: "Settings - Birthday Manager" },
       },
+
       {
         path: "Loyaltysummaryadmin",
-        name: "Loyalty summary admin ",
+        name: "Loyalty summary admin",
         component: Loyaltysummaryadmin,
         meta: { title: "ADMIN - LOYALTY SUMMARY" },
       },
-      // Audit
+
+      // ===== Audit =====
       {
         path: "audit-logs",
         name: "system-audit-logs",
-       component: AuditLog,
-      meta: { title: "Audit Logs" },
+        component: AuditLog,
+        meta: { title: "Audit Logs" },
       },
       {
         path: "audit-report",
         name: "system-audit-report",
         component: AuditReportDashboard,
-        meta: { title: "Audit Report Dashboard" }
+        meta: { title: "Audit Report Dashboard" },
       },
-      // Security log
+      {
+        path: "reports",
+        name: "reports",
+        component: ReportDashboard,
+        meta: { title: "Report Dashboard" },
+      },
       {
         path: "security-logs",
         name: "system-security-logs",
         component: SecurityLog,
-        meta: { title: "Security logs" }
-      }
+        meta: { title: "Security logs" },
+      },
     ],
   },
 
+  // ===== INVENTORY =====
   {
     path: "/inventory",
     component: InventoryShell,
@@ -352,47 +363,34 @@ router.beforeEach((to) => {
   const isSystemRoute = portal === "system";
   const isCustomer = role === "CUSTOMER";
 
-  // 1) Route requires auth
   if (to.meta?.requiresAuth && !isAuthed) {
     return isSystemRoute ? "/system/login" : "/login";
   }
 
-  // 2) Logged-in user goes to login/register pages
   if (isAuthed) {
     if (!isSystemRoute && (to.path === "/login" || to.path === "/register")) {
       return isCustomer ? "/" : "/system/dashboard";
     }
+
     if (isSystemRoute && to.path === "/system/login") {
       return !isCustomer ? "/system/dashboard" : "/";
     }
   }
 
-  // 3) Cross-portal protection (FIXED)
   if (isAuthed) {
-    // CUSTOMER only customer portal
-    if (role === "CUSTOMER" && portal !== "customer") {
-      return "/";
-    }
-
-    // INVENTORY only inventory portal
-    if (role === "INVENTORY" && portal !== "inventory") {
-      return "/inventory/orders";
-    }
-
-    // ADMIN / SALES only system portal
-    if ((role === "ADMIN" || role === "SALES") && portal !== "system") {
+    if (role === "CUSTOMER" && portal !== "customer") return "/";
+    if (role === "INVENTORY" && portal !== "inventory") return "/inventory/orders/paid";
+    if ((role === "ADMIN" || role === "SALES") && portal !== "system")
       return "/system/dashboard";
-    }
   }
 
-  // inventory protection
   if (isAuthed) {
     if (isInventoryRoute && !isInventory) {
       return isCustomer ? "/" : "/system/dashboard";
     }
 
     if (!isInventoryRoute && isInventory) {
-      return "/inventory/orders";
+      return "/inventory/orders/paid";
     }
   }
 

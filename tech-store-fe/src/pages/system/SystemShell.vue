@@ -22,11 +22,21 @@
           <template #title>Management</template>
           <el-menu-item index="/system/users">Users</el-menu-item>
           <el-menu-item index="/system/customers">Customers</el-menu-item>
-          <el-menu-item index="/system/Toployalcustomers">Toployal customers</el-menu-item>
-           <el-menu-item index="/system/inactive-customers">Inactive-Customers</el-menu-item>
-           <el-menu-item index="/system/Zeroordercustomers">Zero Order-Customers</el-menu-item>
-            <el-menu-item index="/system/Loyaltysummaryadmin">Loyalty Summary - Admin </el-menu-item>
-          <el-menu-item index="/system/customer-spending">Customers - Spending</el-menu-item>
+          <el-menu-item index="/system/Toployalcustomers"
+            >Toployal customers</el-menu-item
+          >
+          <el-menu-item index="/system/inactive-customers"
+            >Inactive-Customers</el-menu-item
+          >
+          <el-menu-item index="/system/Zeroordercustomers"
+            >Zero Order-Customers</el-menu-item
+          >
+          <el-menu-item index="/system/Loyaltysummaryadmin"
+            >Loyalty Summary - Admin
+          </el-menu-item>
+          <el-menu-item index="/system/customer-spending"
+            >Customers - Spending</el-menu-item
+          >
           <el-menu-item index="/system/birthday">Birthday Manager</el-menu-item>
           <el-menu-item index="/system/categories">Categories</el-menu-item>
           <el-menu-item index="/system/products">Products</el-menu-item>
@@ -53,6 +63,10 @@
           <el-menu-item index="/system/returns/pending"> Pending </el-menu-item>
           <el-menu-item index="/system/returns/all"> All Returns </el-menu-item>
         </el-sub-menu>
+
+        <el-menu-item index="/system/reports">
+          <span>Reports</span>
+        </el-menu-item>
 
         <el-menu-item index="/system/pricing">Pricing</el-menu-item>
         <el-menu-item index="/system/payments">Payment</el-menu-item>

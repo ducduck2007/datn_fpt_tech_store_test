@@ -171,12 +171,13 @@ public class OrderController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<OrderListResponse>> filterOrders(
-            @RequestParam Integer customerId,
-            @RequestParam Instant from,
-            @RequestParam Instant to
+            @RequestParam(required = false) Integer customerId,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            @RequestParam(required = false) String channel
     ) {
         return ResponseEntity.ok(
-                orderQueryService.filterOrders(customerId, from, to)
+                orderQueryService.filterOrders(customerId, from, to, channel)
         );
     }
 

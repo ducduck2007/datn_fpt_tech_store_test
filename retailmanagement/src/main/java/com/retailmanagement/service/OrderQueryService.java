@@ -123,14 +123,29 @@ public class OrderQueryService {
     public List<OrderListResponse> filterOrders(
             Integer customerId,
             Instant from,
-            Instant to
+            Instant to,
+            String channel
     ) {
 
-        List<Order> orders =
-                orderRepository.findOrdersByCustomerAndDate(customerId, from, to);
+        List<Order> orders = orderRepository.findAll();
 
         return orders.stream()
-                .map(order -> modelMapper.map(order, OrderListResponse.class))
+
+                .filter(o -> customerId == null ||
+                        o.getCustomer().getId().equals(customerId))
+
+                .filter(o -> from == null ||
+                        !o.getCreatedAt().isBefore(from))
+
+                .filter(o -> to == null ||
+                        !o.getCreatedAt().isAfter(to))
+
+                .filter(o -> channel == null ||
+                        channel.isBlank() ||
+                        channel.equalsIgnoreCase(o.getChannel()))
+
+                .map(this::toOrderListResponse)
+
                 .toList();
     }
 

@@ -33,6 +33,16 @@
             />
           </el-select>
         </el-col>
+        
+        <el-col :span="6">
+          <el-form-item label="Channel">
+            <el-select v-model="channel" placeholder="All Channels" clearable>
+              <el-option label="ONLINE" value="ONLINE" />
+
+              <el-option label="OFFLINE" value="OFFLINE" />
+            </el-select>
+          </el-form-item>
+        </el-col>
 
         <el-col :span="4">
           <el-button type="primary" @click="handleFilter"> Lọc </el-button>
@@ -63,6 +73,8 @@ const customers = ref([]);
 const orders = ref([]);
 const loading = ref(false);
 
+const channel = ref(null);
+
 const tableKey = ref(0);
 
 const handleFilter = () => {
@@ -83,13 +95,15 @@ const loadOrders = async () => {
     if (dateRange.value?.length === 2 && customerId.value) {
       const from = dateRange.value[0] + "T00:00:00Z";
       const to = dateRange.value[1] + "T23:59:59Z";
-      res = await ordersApi.filter(customerId.value, from, to);
+      res = await ordersApi.filter(customerId.value, from, to, channel.value);
     } else if (dateRange.value?.length === 2) {
       const from = dateRange.value[0] + "T00:00:00Z";
       const to = dateRange.value[1] + "T23:59:59Z";
-      res = await ordersApi.getByDate(from, to);
+      res = await ordersApi.filter(null, from, to, channel.value);
     } else if (customerId.value) {
-      res = await ordersApi.getByCustomer(customerId.value);
+      res = await ordersApi.filter(customerId.value, null, null, channel.value);
+    } else if (channel.value) {
+      res = await ordersApi.filter(null, null, null, channel.value);
     } else {
       return { data: [] };
     }

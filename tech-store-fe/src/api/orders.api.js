@@ -70,8 +70,10 @@ export const ordersApi = {
     return http.get("/api/orders/by-date", { params: { from, to } });
   },
 
-  filter(customerId, from, to) {
-    return http.get("/api/orders/filter", { params: { customerId, from, to } });
+  filter(customerId, from, to, channel) {
+    return http.get("/api/orders/filter", {
+      params: { customerId, from, to, channel },
+    });
   },
 
   getRevenueByCustomer() {
