@@ -510,7 +510,7 @@ public class OrderService {
     }
 
     // ================================================================
-    // GET ORDER DETAIL — GIỮ NGUYÊN
+    // GET ORDER DETAIL — với đầy đủ promotion info (6.2, 6.3, 3.8)
     // ================================================================
     public OrderDetailResponse getOrderDetail(Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -529,6 +529,7 @@ public class OrderService {
                         i.getLineTotal()
                 )).toList();
 
+        // ✅ FIX: dùng constructor đầy đủ với promoCode + appliedPromotionJson
         return new OrderDetailResponse(
                 order.getId(),
                 order.getOrderNumber(),
@@ -547,7 +548,9 @@ public class OrderService {
                 order.getShippingFee(),
                 order.getTotalAmount(),
                 order.getCreatedAt(),
-                items
+                items,
+                order.getAppliedPromotionCode(),         // ✅ promoCode
+                order.getAppliedPromotionJson()          // ✅ comboInfo parsing
         );
     }
 

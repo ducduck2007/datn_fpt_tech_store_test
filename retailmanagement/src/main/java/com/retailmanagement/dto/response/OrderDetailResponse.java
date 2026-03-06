@@ -34,6 +34,13 @@ public class OrderDetailResponse {
     private BigDecimal spinDiscountRate = BigDecimal.ZERO;
     private BigDecimal spinDiscount     = BigDecimal.ZERO;
 
+    // ✅ THÊM: Promotion code discount
+    private String     promoCode        = null;
+    private BigDecimal promoDiscount    = BigDecimal.ZERO;
+
+    // ✅ THÊM: Combo info (parse từ appliedPromotionJson)
+    private String     comboInfo        = null;  // e.g. "Mua 2 tặng 1"
+
     private BigDecimal subtotal;
     private BigDecimal discountTotal;
     private BigDecimal taxTotal;
@@ -89,24 +96,84 @@ public class OrderDetailResponse {
     }
 
     // ================================================================
+    // Constructor đầy đủ với promoCode + appliedPromotionJson
+    // ================================================================
+    public OrderDetailResponse(
+            Long orderId,
+            String orderNumber,
+            String channel,
+            String paymentMethod,
+            String status,
+            String paymentStatus,
+            Integer customerId,
+            String customerName,
+            Integer staffId,
+            String staffUsername,
+            String notes,
+            BigDecimal subtotal,
+            BigDecimal discountTotal,
+            BigDecimal taxTotal,
+            BigDecimal shippingFee,
+            BigDecimal totalAmount,
+            Instant createdAt,
+            List<CreateOrderResponse.Item> items,
+            String promoCode,
+            String appliedPromotionJson
+    ) {
+        this(orderId, orderNumber, channel, paymentMethod, status, paymentStatus,
+                customerId, customerName, staffId, staffUsername, notes,
+                subtotal, discountTotal, taxTotal, shippingFee, totalAmount, createdAt, items);
+        this.promoCode = promoCode;
+        this.comboInfo = parseComboInfo(appliedPromotionJson);
+    }
+
+    // ================================================================
+    // Parse combo info từ appliedPromotionJson
+    // Format JSON: {"code":"X","discountType":"COMBO","buyQty":2,"getQty":1,...}
+    // ================================================================
+    private String parseComboInfo(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            if (json.contains("\"buy_qty\"") || json.contains("buyQty")) {
+                // Tìm buy_qty
+                Integer buy = extractJsonInt(json, "buy_qty");
+                if (buy == null) buy = extractJsonInt(json, "buyQty");
+                Integer get = extractJsonInt(json, "get_qty");
+                if (get == null) get = extractJsonInt(json, "getQty");
+                if (buy != null && get != null) {
+                    return "Mua " + buy + " tặng " + get;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private Integer extractJsonInt(String json, String key) {
+        String search = "\"" + key + "\"";
+        int idx = json.indexOf(search);
+        if (idx < 0) return null;
+        int colon = json.indexOf(':', idx + search.length());
+        if (colon < 0) return null;
+        int start = colon + 1;
+        while (start < json.length() && (json.charAt(start) == ' ' || json.charAt(start) == '\t')) start++;
+        int end = start;
+        while (end < json.length() && Character.isDigit(json.charAt(end))) end++;
+        if (end == start) return null;
+        try { return Integer.parseInt(json.substring(start, end)); } catch (Exception e) { return null; }
+    }
+
+    // ================================================================
     // Parse discount breakdown từ notes
-    //
-    // OrderService ghi notes theo format:
-    //   "VIP Diamond: -5% (-1,500,000) | Spin: -3% (-900,000)"
-    //   "VIP Bronze: -100,000 (đơn từ 5,000,000)"   ← FIXED amount
-    //   "VIP Gold: không áp dụng (đơn < 5,000,000)"
-    //
-    // Regex-free parsing để tránh lỗi trên mọi JVM.
     // ================================================================
     private void parseDiscountFromNotes() {
         this.vipDiscountRate  = BigDecimal.ZERO;
         this.vipDiscount      = BigDecimal.ZERO;
         this.spinDiscountRate = BigDecimal.ZERO;
         this.spinDiscount     = BigDecimal.ZERO;
+        this.promoDiscount    = BigDecimal.ZERO;
 
         if (notes == null || notes.isBlank()) return;
 
-        // Tách từng segment bởi " | "
         String[] segments = notes.split("\\|");
 
         for (String seg : segments) {
@@ -114,37 +181,26 @@ public class OrderDetailResponse {
 
             // ── VIP segment ──────────────────────────────────────────
             if (s.startsWith("VIP ") && !s.contains("không áp dụng")) {
-
-                // Case 1: Percentage — "VIP Diamond: -5% (-1,500,000)"
                 if (s.contains("%")) {
-                    // Extract rate: số trước dấu %
                     int pctIdx = s.indexOf('%');
-                    // tìm số bắt đầu từ sau dấu '-' hoặc ':' gần nhất trước '%'
                     int dashIdx = s.lastIndexOf('-', pctIdx);
                     if (dashIdx >= 0) {
                         String rateStr = s.substring(dashIdx + 1, pctIdx).trim();
                         this.vipDiscountRate = parseSafe(rateStr);
                     }
-
-                    // Extract amount: số trong ngoặc "(-X,XXX)"
                     this.vipDiscount = extractParenAmount(s);
-                }
-                // Case 2: Fixed amount — "VIP Bronze: -100,000 (đơn từ ...)"
-                else if (s.contains("-")) {
+                } else if (s.contains("-")) {
                     int dashIdx = s.lastIndexOf('-');
-                    // lấy đến khoảng trắng hoặc '(' tiếp theo
                     int endIdx = s.indexOf('(', dashIdx);
                     String amtStr = endIdx > dashIdx
                             ? s.substring(dashIdx + 1, endIdx).trim()
                             : s.substring(dashIdx + 1).trim();
                     amtStr = amtStr.replace(",", "").replace(".", "");
                     this.vipDiscount = parseSafe(amtStr);
-                    // Fixed discount → vipDiscountRate = 0 (không có %)
                 }
             }
 
             // ── Spin segment ─────────────────────────────────────────
-            // Format: "Spin: -3% (-900,000)"
             if (s.startsWith("Spin:")) {
                 if (s.contains("%")) {
                     int pctIdx = s.indexOf('%');
@@ -156,19 +212,33 @@ public class OrderDetailResponse {
                     this.spinDiscount = extractParenAmount(s);
                 }
             }
+
+            // ── Promo code segment ───────────────────────────────────
+            // Format: "Mã: SUMMER10: -50,000"
+            if (s.startsWith("Mã:")) {
+                int lastDash = s.lastIndexOf('-');
+                if (lastDash >= 0) {
+                    String amtStr = s.substring(lastDash + 1).trim()
+                            .replace(",", "").replace(".", "");
+                    this.promoDiscount = parseSafe(amtStr);
+                }
+                // Extract code between "Mã: " and ":"
+                String after = s.substring(3).trim(); // remove "Mã:"
+                int colonIdx = after.indexOf(':');
+                if (colonIdx > 0) {
+                    this.promoCode = after.substring(0, colonIdx).trim();
+                }
+            }
         }
     }
 
-    /**
-     * Lấy số trong ngoặc cuối cùng: "(-1,234,567)" → 1234567
-     */
     private BigDecimal extractParenAmount(String s) {
         int openParen  = s.lastIndexOf("(-");
         int closeParen = s.lastIndexOf(')');
         if (openParen >= 0 && closeParen > openParen) {
             String raw = s.substring(openParen + 2, closeParen)
-                    .replace(".", "")   // ✅ thêm: xóa dấu chấm (locale châu Âu)
-                    .replace(",", "")   // xóa dấu phẩy
+                    .replace(".", "")
+                    .replace(",", "")
                     .trim();
             return parseSafe(raw);
         }
@@ -177,7 +247,6 @@ public class OrderDetailResponse {
 
     private BigDecimal parseSafe(String s) {
         try {
-            // Xóa hết ký tự không phải số
             String cleaned = s.trim().replaceAll("[^0-9]", "");
             if (cleaned.isEmpty()) return BigDecimal.ZERO;
             return new BigDecimal(cleaned);

@@ -63,12 +63,13 @@ public class PromotionController {
         return ApiResponse.success(promotionService.list(activeOnly));
     }
 
+   // ✅ FIX: dùng promoRepo.findById thay vì list().stream().filter()
     @GetMapping("/{id}")
     public ApiResponse<Promotion> getById(@PathVariable Integer id) {
-        return ApiResponse.success(promotionService.list(null).stream()
-                .filter(p -> p.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Promotion not found")));
+        return ApiResponse.success(
+            promotionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Promotion not found: " + id))
+        );
     }
 
     @PutMapping("/{id}")
