@@ -620,4 +620,11 @@ public class PromotionService {
 
         return report;
     }
+
+    // ================================================================
+    // ✅ THÊM: Public accessor cho Rules — dùng bởi PricingService
+    // ================================================================
+    public Rules parseRulesPublic(String json) {
+        return parseRules(json);
+    }
 }

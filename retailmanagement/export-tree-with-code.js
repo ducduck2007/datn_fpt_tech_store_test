@@ -39,49 +39,35 @@ const MODULE_PRESETS = {
       // ─── Controllers ───────────────────────────────────────────
       "controller/PriceController.java",
       "controller/PromotionController.java",
-      "controller/ProductController.java",
       "controller/SettingController.java",
-      "controller/NotificationController.java",
-      "controller/OrderController.java",
+      "controller/ReportController.java",
 
       // ─── Services ──────────────────────────────────────────────
       "service/PricingService.java",
       "service/PromotionService.java",
-      "service/ProductService.java",
-      "service/CustomerService.java",
+      "service/PromotionHistoryService.java",
       "service/SettingService.java",
-      "service/NotificationService.java",
-      "service/OrderService.java",
+      "service/ReportService.java",
 
       // ─── Repositories ──────────────────────────────────────────
       "repository/PriceHistoryRepository.java",
       "repository/PromotionRepository.java",
       "repository/PromotionRedemptionRepository.java",
+      "repository/PromotionHistoryRepository.java",
       "repository/ProductVariantRepository.java",
-      "repository/ProductRepository.java",
-      "repository/CustomRes.java",
-      "repository/LoyaltyLedgerRepository.java",
       "repository/SystemSettingRepository.java",
-      "repository/OrderRepository.java",
       "repository/OrderItemRepository.java",
-      "repository/NotificationRepository.java",
 
       // ─── DTO Requests ──────────────────────────────────────────
       "dto/request/UpsertPriceRequest.java",
       "dto/request/PromotionRequest.java",
       "dto/request/SetDefaultCurrencyRequest.java",
-      "dto/request/CreateOrderRequest.java",
-      "dto/request/CreateOrderItemRequest.java",
 
       // ─── DTO Responses ─────────────────────────────────────────
       "dto/response/ApiResponse.java",
       "dto/response/VariantPriceResponse.java",
-      "dto/response/ProductResponse.java",
-      "dto/response/OrderDetailResponse.java",
-      "dto/response/OrderListResponse.java",
-      "dto/response/CustomerResponse.java",
-      "dto/response/LoyaltyLedgerResponse.java",
-      "dto/response/NotificationResponse.java",
+      "dto/response/PriceHistoryResponse.java",
+      "dto/response/PromotionHistoryResponse.java",
 
       // ─── Entities ──────────────────────────────────────────────
       "entity/PriceHistory.java",
@@ -90,18 +76,12 @@ const MODULE_PRESETS = {
       "entity/ProductVariant.java",
       "entity/Product.java",
       "entity/Customer.java",
-      "entity/CustomerType.java",
       "entity/Customergroup.java",
-      "entity/VipTier.java",
       "entity/SystemSetting.java",
       "entity/Order.java",
       "entity/OrderItem.java",
-      "entity/StockTransaction.java",
-      "entity/Notification.java",
-      "entity/NotificationType.java",
 
       // ─── Exceptions ────────────────────────────────────────────
-      "exception/ErrorResponse.java",
       "exception/GlobalExceptionHandler.java",
     ],
   },
