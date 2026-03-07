@@ -309,6 +309,10 @@ public class PromotionService {
 
         if (req.getUsageLimit() != null || req.getBuyQty() != null || req.getGetQty() != null) {
             p.setRulesJson(buildRulesJson(req));
+            // Nếu là combo, reset discountValue về 0 để tránh conflict validation
+            if (req.getBuyQty() != null && req.getBuyQty() > 0) {
+                p.setDiscountValue(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            }
         }
 
         if (!p.getStartDate().isBefore(p.getEndDate()))
@@ -564,6 +568,7 @@ public class PromotionService {
     }
 
     // Báo cáo theo tuần/tháng
+    @Transactional(readOnly = true)
     public Map<String, Object> getReport(String period) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime from = "week".equalsIgnoreCase(period)
