@@ -1,26 +1,40 @@
 <template>
   <div class="container-xl">
     <el-card shadow="never">
-      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
+      <!-- Header -->
+      <div
+        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
+      >
         <div>
           <div class="kicker">Order</div>
           <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
           <div class="muted">
-            <el-tag :type="statusType" size="large">{{ detail?.status }}</el-tag>
+            <el-tag :type="statusType" size="large">{{
+              detail?.status
+            }}</el-tag>
             <el-tag class="ms-2" :type="paymentStatusType" size="large">
               Payment: {{ detail?.paymentStatus }}
             </el-tag>
-            <el-tag v-if="isReturned(detail?.status)" type="warning" size="large" class="ms-2">
+            <el-tag
+              v-if="isReturned(detail?.status)"
+              type="warning"
+              size="large"
+              class="ms-2"
+            >
               Returned
             </el-tag>
           </div>
         </div>
         <div class="d-flex gap-2">
-          <el-button @click="$router.push('/orders/new')">Create another</el-button>
+          <el-button @click="$router.push('/orders/new')"
+            >Create another</el-button
+          >
           <el-button @click="reload" :loading="loading">Reload</el-button>
 
           <el-button
-            v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'"
+            v-if="
+              detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'
+            "
             type="primary"
             @click="openPaymentDialog"
           >
@@ -29,7 +43,11 @@
           </el-button>
 
           <el-button
-            v-if="detail?.status === 'PENDING' || detail?.status === 'PAID' || detail?.status === 'SHIPPING'"
+            v-if="
+              detail?.status === 'PENDING' ||
+              detail?.status === 'PAID' ||
+              detail?.status === 'SHIPPING'
+            "
             type="danger"
             @click="showCancelDialog = true"
           >
@@ -71,6 +89,7 @@
           </div>
         </div>
 
+        <!-- Discount Breakdown Alert -->
         <div v-if="hasDiscountInfo" class="col-12">
           <el-alert
             :title="`💰 Ưu đãi áp dụng: Tổng giảm ${formatMoney(detail.discountTotal)}`"
@@ -80,25 +99,20 @@
           >
             <div class="discount-details">
               <div v-if="detail.vipDiscountRate > 0" class="discount-item">
-                <span class="discount-label">🏆 VIP {{ detail.vipDiscountRate }}%:</span>
-                <span class="discount-value">-{{ formatMoney(detail.vipDiscount) }}</span>
+                <span class="discount-label"
+                  >🏆 VIP {{ detail.vipDiscountRate }}%:</span
+                >
+                <span class="discount-value"
+                  >-{{ formatMoney(detail.vipDiscount) }}</span
+                >
               </div>
               <div v-if="detail.spinDiscountRate > 0" class="discount-item">
-                <span class="discount-label">🎡 Vòng quay {{ detail.spinDiscountRate }}%:</span>
-                <span class="discount-value">-{{ formatMoney(detail.spinDiscount) }}</span>
-              </div>
-              <!-- ✅ THÊM MỚI: Promotion code -->
-              <div v-if="detail.promoCode" class="discount-item">
-                <span class="discount-label">
-                  🎁 Mã KM
-                  <el-tag size="small" type="warning" class="ms-1">{{ detail.promoCode }}</el-tag>:
-                </span>
-                <span class="discount-value">-{{ formatMoney(detail.promoDiscount) }}</span>
-              </div>
-              <!-- ✅ THÊM MỚI: Combo info -->
-              <div v-if="detail.comboInfo" class="discount-item combo-item">
-                <span class="discount-label">🎀 Combo:</span>
-                <span class="discount-value combo-value">{{ detail.comboInfo }}</span>
+                <span class="discount-label"
+                  >🎡 Vòng quay {{ detail.spinDiscountRate }}%:</span
+                >
+                <span class="discount-value"
+                  >-{{ formatMoney(detail.spinDiscount) }}</span
+                >
               </div>
             </div>
           </el-alert>
@@ -119,11 +133,15 @@
               <template #default="{ row }">{{ row.quantity }}</template>
             </el-table-column>
             <el-table-column label="Đơn giá" width="150" align="right">
-              <template #default="{ row }">{{ formatMoney(row.price) }}</template>
+              <template #default="{ row }">{{
+                formatMoney(row.price)
+              }}</template>
             </el-table-column>
             <el-table-column label="Giảm giá" width="150" align="right">
               <template #default="{ row }">
-                <span v-if="row.discount > 0" class="text-danger">-{{ formatMoney(row.discount) }}</span>
+                <span v-if="row.discount > 0" class="text-danger"
+                  >-{{ formatMoney(row.discount) }}</span
+                >
                 <span v-else class="text-muted">—</span>
               </template>
             </el-table-column>
@@ -148,23 +166,44 @@
             </div>
 
             <!-- VIP discount thực tế -->
-            <div v-if="detail.vipDiscountRate > 0" class="d-flex justify-content-between ps-3 small">
-              <span class="text-muted">└ VIP {{ detail.vipDiscountRate }}%:</span>
-              <span class="text-muted">-{{ formatMoney(detail.vipDiscount) }}</span>
+            <div
+              v-if="detail.vipDiscountRate > 0"
+              class="d-flex justify-content-between ps-3 small"
+            >
+              <span class="text-muted"
+                >└ VIP {{ detail.vipDiscountRate }}%:</span
+              >
+              <span class="text-muted"
+                >-{{ formatMoney(detail.vipDiscount) }}</span
+              >
             </div>
 
             <!-- Spin discount thực tế (đã áp vào đơn) -->
-            <div v-if="detail.spinDiscountRate > 0" class="d-flex justify-content-between ps-3 small">
-              <span class="text-muted">└ 🎡 Spin {{ detail.spinDiscountRate }}%:</span>
-              <span class="text-muted">-{{ formatMoney(detail.spinDiscount) }}</span>
+            <div
+              v-if="detail.spinDiscountRate > 0"
+              class="d-flex justify-content-between ps-3 small"
+            >
+              <span class="text-muted"
+                >└ 🎡 Spin {{ detail.spinDiscountRate }}%:</span
+              >
+              <span class="text-muted"
+                >-{{ formatMoney(detail.spinDiscount) }}</span
+              >
             </div>
 
             <!-- Spin ước tính - CHỈ hiện khi đơn CHƯA có spin discount được áp -->
             <div
-              v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0 && !(detail.spinDiscountRate > 0)"
+              v-if="
+                spinStatus.hasActiveBonus &&
+                estimatedSpinDiscount > 0 &&
+                !(detail.spinDiscountRate > 0)
+              "
               class="d-flex justify-content-between ps-3 small spin-estimated-row"
             >
-              <span>└ 🎡 Spin {{ spinStatus.bonusRate }}% <em>(ước tính)</em>:</span>
+              <span
+                >└ 🎡 Spin {{ spinStatus.bonusRate }}%
+                <em>(ước tính)</em>:</span
+              >
               <span>-{{ formatMoney(estimatedSpinDiscount) }}</span>
             </div>
 
@@ -175,28 +214,38 @@
 
             <el-divider />
 
-          <div class="d-flex justify-content-between fs-5 align-items-start">
-  <span><strong>Tổng cộng:</strong></span>
+            <div class="d-flex justify-content-between fs-5 align-items-start">
+              <span><strong>Tổng cộng:</strong></span>
 
-  <!-- Khi có spin bonus chưa áp: gạch giá gốc, hiện giá ước tính -->
-  <div
-    v-if="spinStatus.hasActiveBonus && estimatedSpinDiscount > 0 && !(detail.spinDiscountRate > 0)"
-    class="text-end"
-  >
-    <div class="text-muted text-decoration-line-through" style="font-size: 14px;">
-      {{ formatMoney(detail.totalAmount) }}
-    </div>
-    <strong class="text-primary" style="font-size: 20px;">
-      {{ formatMoney(detail.totalAmount - estimatedSpinDiscount) }}
-    </strong>
-    <div class="estimated-total-note mt-1">
-      🎡 Ước tính sau giảm Spin {{ spinStatus.bonusRate }}% · Sẽ tính chính xác khi thanh toán
-    </div>
-  </div>
+              <!-- Khi có spin bonus chưa áp: gạch giá gốc, hiện giá ước tính -->
+              <div
+                v-if="
+                  spinStatus.hasActiveBonus &&
+                  estimatedSpinDiscount > 0 &&
+                  !(detail.spinDiscountRate > 0)
+                "
+                class="text-end"
+              >
+                <div
+                  class="text-muted text-decoration-line-through"
+                  style="font-size: 14px"
+                >
+                  {{ formatMoney(detail.totalAmount) }}
+                </div>
+                <strong class="text-primary" style="font-size: 20px">
+                  {{ formatMoney(detail.totalAmount - estimatedSpinDiscount) }}
+                </strong>
+                <div class="estimated-total-note mt-1">
+                  🎡 Ước tính sau giảm Spin {{ spinStatus.bonusRate }}% · Sẽ
+                  tính chính xác khi thanh toán
+                </div>
+              </div>
 
-  <!-- Bình thường -->
-  <strong v-else class="text-primary">{{ formatMoney(detail.totalAmount) }}</strong>
-</div>
+              <!-- Bình thường -->
+              <strong v-else class="text-primary">{{
+                formatMoney(detail.totalAmount)
+              }}</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -215,21 +264,30 @@
       <div v-if="spinStatus.loading" class="spin-loading-wrap mb-3">
         <div class="spin-loading-inner">
           <span class="spin-loading-icon">🎡</span>
-          <span class="spin-loading-text">Đang kiểm tra ưu đãi vòng quay...</span>
+          <span class="spin-loading-text"
+            >Đang kiểm tra ưu đãi vòng quay...</span
+          >
         </div>
       </div>
 
       <!-- Spin Bonus Banner -->
       <transition name="spin-bonus-fade">
-        <div v-if="!spinStatus.loading && spinStatus.hasActiveBonus" class="spin-bonus-banner mb-3">
+        <div
+          v-if="!spinStatus.loading && spinStatus.hasActiveBonus"
+          class="spin-bonus-banner mb-3"
+        >
           <div class="spin-bonus-inner">
             <div class="spin-bonus-left">
               <div class="spin-bonus-icon">🎡</div>
               <div>
-                <div class="spin-bonus-title">Mã giảm giá vòng quay đã được áp dụng!</div>
+                <div class="spin-bonus-title">
+                  Mã giảm giá vòng quay đã được áp dụng!
+                </div>
                 <div class="spin-bonus-sub">
                   Giảm thêm
-                  <strong class="spin-bonus-rate">{{ spinStatus.bonusRate }}%</strong>
+                  <strong class="spin-bonus-rate"
+                    >{{ spinStatus.bonusRate }}%</strong
+                  >
                   <span v-if="spinStatus.bonusExpiresAt">
                     · Hết hạn {{ formatExpiry(spinStatus.bonusExpiresAt) }}
                   </span>
@@ -246,15 +304,31 @@
             </div>
             <div v-if="detail?.vipDiscount > 0" class="breakdown-row">
               <span class="breakdown-label">🏆 Giảm VIP</span>
-              <span class="text-success">-{{ formatMoney(detail.vipDiscount) }}</span>
+              <span class="text-success"
+                >-{{ formatMoney(detail.vipDiscount) }}</span
+              >
             </div>
             <div class="breakdown-row">
-              <span class="breakdown-label">🎡 Giảm Spin ({{ spinStatus.bonusRate }}%)</span>
-              <span class="text-success">-{{ formatMoney(estimatedSpinDiscount) }}</span>
+              <span class="breakdown-label"
+                >🎡 Giảm Spin ({{ spinStatus.bonusRate }}%)</span
+              >
+              <span class="text-success"
+                >-{{ formatMoney(estimatedSpinDiscount) }}</span
+              >
             </div>
             <div class="breakdown-row breakdown-total">
-              <span class="breakdown-label"><strong>Tổng thanh toán</strong></span>
-              <span><strong>{{ formatMoney((detail?.totalAmount || 0) - estimatedSpinDiscount + (detail?.spinDiscount || 0)) }}</strong></span>
+              <span class="breakdown-label"
+                ><strong>Tổng thanh toán</strong></span
+              >
+              <span
+                ><strong>{{
+                  formatMoney(
+                    (detail?.totalAmount || 0) -
+                      estimatedSpinDiscount +
+                      (detail?.spinDiscount || 0),
+                  )
+                }}</strong></span
+              >
             </div>
           </div>
         </div>
@@ -263,31 +337,54 @@
       <!-- Không có spin bonus -->
       <transition name="spin-bonus-fade">
         <div
-          v-if="!spinStatus.loading && !spinStatus.hasActiveBonus && spinStatus.checked"
+          v-if="
+            !spinStatus.loading &&
+            !spinStatus.hasActiveBonus &&
+            spinStatus.checked
+          "
           class="spin-no-bonus mb-3"
         >
           <span class="spin-no-bonus-icon">🎡</span>
-          <span class="spin-no-bonus-text">Khách hàng chưa có ưu đãi vòng quay tuần này</span>
+          <span class="spin-no-bonus-text"
+            >Khách hàng chưa có ưu đãi vòng quay tuần này</span
+          >
         </div>
       </transition>
 
       <!-- Thông tin thanh toán -->
-      <el-alert title="Thông tin thanh toán" type="info" :closable="false" class="mb-3">
+      <el-alert
+        title="Thông tin thanh toán"
+        type="info"
+        :closable="false"
+        class="mb-3"
+      >
         <p>Sau khi thanh toán thành công:</p>
         <ul class="mb-0">
           <li>✅ Đơn hàng sẽ chuyển sang trạng thái <strong>PAID</strong></li>
           <li>✅ Xuất kho tự động</li>
-          <li>✅ <strong class="text-success">Cộng điểm loyalty</strong> cho khách hàng</li>
+          <li>
+            ✅ <strong class="text-success">Cộng điểm loyalty</strong> cho khách
+            hàng
+          </li>
         </ul>
       </el-alert>
 
       <el-form :model="paymentForm" label-position="top">
         <el-form-item label="Số tiền thanh toán">
-          <el-input :value="formatMoney(detail?.totalAmount)" disabled size="large" />
+          <el-input
+            :value="formatMoney(detail?.totalAmount)"
+            disabled
+            size="large"
+          />
         </el-form-item>
 
         <el-form-item label="Phương thức thanh toán" required>
-          <el-select v-model="paymentForm.method" placeholder="Chọn phương thức" class="w-100" size="large">
+          <el-select
+            v-model="paymentForm.method"
+            placeholder="Chọn phương thức"
+            class="w-100"
+            size="large"
+          >
             <el-option label="💵 Tiền mặt" value="CASH" />
             <el-option label="🏦 Chuyển khoản" value="BANK_TRANSFER" />
             <el-option label="💳 Thẻ tín dụng" value="CREDIT_CARD" />
@@ -296,12 +393,17 @@
         </el-form-item>
 
         <el-form-item label="Mã giao dịch (tùy chọn)">
-          <el-input v-model="paymentForm.transactionRef" placeholder="Ví dụ: TXN-123456" />
+          <el-input
+            v-model="paymentForm.transactionRef"
+            placeholder="Ví dụ: TXN-123456"
+          />
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="showPaymentDialog = false" size="large">Hủy</el-button>
+        <el-button @click="showPaymentDialog = false" size="large"
+          >Hủy</el-button
+        >
         <el-button
           type="primary"
           @click="confirmPayment"
@@ -337,15 +439,25 @@
       </el-form>
       <template #footer>
         <el-button @click="showCancelDialog = false">Đóng</el-button>
-        <el-button type="danger" @click="confirmCancel" :loading="cancelLoading">Xác nhận hủy</el-button>
+        <el-button type="danger" @click="confirmCancel" :loading="cancelLoading"
+          >Xác nhận hủy</el-button
+        >
       </template>
     </el-dialog>
 
     <!-- Return Dialog -->
-    <el-dialog v-model="showReturnDialog" title="🔄 Yêu cầu trả hàng" width="600px">
+    <el-dialog
+      v-model="showReturnDialog"
+      title="🔄 Yêu cầu trả hàng"
+      width="600px"
+    >
       <el-form :model="returnForm" label-position="top">
         <el-form-item label="Chọn sản phẩm">
-          <el-select v-model="returnForm.orderItemId" placeholder="Chọn sản phẩm muốn trả" class="w-100">
+          <el-select
+            v-model="returnForm.orderItemId"
+            placeholder="Chọn sản phẩm muốn trả"
+            class="w-100"
+          >
             <el-option
               v-for="item in detail?.items"
               :key="item.productId"
@@ -355,10 +467,20 @@
           </el-select>
         </el-form-item>
         <el-form-item label="Số lượng">
-          <el-input-number v-model="returnForm.quantity" :min="1" :max="getMaxReturnQuantity()" class="w-100" />
+          <el-input-number
+            v-model="returnForm.quantity"
+            :min="1"
+            :max="getMaxReturnQuantity()"
+            class="w-100"
+          />
         </el-form-item>
         <el-form-item label="Lý do trả hàng">
-          <el-input v-model="returnForm.reason" type="textarea" :rows="3" placeholder="Nhập lý do trả hàng..." />
+          <el-input
+            v-model="returnForm.reason"
+            type="textarea"
+            :rows="3"
+            placeholder="Nhập lý do trả hàng..."
+          />
         </el-form-item>
         <el-form-item label="Số tiền hoàn">
           <el-input v-model="returnForm.refundAmount" disabled>
@@ -380,99 +502,125 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ordersApi }    from "../../api/orders.api";
-import { returnsApi }   from "../../api/returns.api";
-import { paymentsApi }  from "../../api/payments";
+import { ordersApi } from "../../api/orders.api";
+import { returnsApi } from "../../api/returns.api";
+import { paymentsApi } from "../../api/payments";
 import { spinWheelApi } from "../../api/spinWheel.api";
 import { useAuthStore } from "../../stores/auth";
-import { toast }        from "../../ui/toast";
+import { toast } from "../../ui/toast";
 import { Close, CreditCard, RefreshLeft } from "@element-plus/icons-vue";
 
-const route  = useRoute();
+const route = useRoute();
 const router = useRouter();
-const auth   = useAuthStore();
+const auth = useAuthStore();
 
-const loading        = ref(false);
-const cancelLoading  = ref(false);
+const loading = ref(false);
+const cancelLoading = ref(false);
 const paymentLoading = ref(false);
-const detail         = ref(null);
-const orderId        = computed(() => route.params.orderId);
+const detail = ref(null);
+const orderId = computed(() => route.params.orderId);
 
-const showCancelDialog  = ref(false);
-const cancelReason      = ref("");
-const showReturnDialog  = ref(false);
+const showCancelDialog = ref(false);
+const cancelReason = ref("");
+const showReturnDialog = ref(false);
 const showPaymentDialog = ref(false);
 
+// ── Spin Bonus State ──────────────────────────────────────────────────
 const spinStatus = reactive({
-  loading:        false,
-  checked:        false,
+  loading: false,
+  checked: false,
   hasActiveBonus: false,
-  bonusRate:      0,
+  bonusRate: 0,
   bonusExpiresAt: null,
 });
 
-const returnForm  = reactive({ orderItemId: null, quantity: 1, reason: "", refundAmount: 0 });
+const returnForm = reactive({
+  orderItemId: null,
+  quantity: 1,
+  reason: "",
+  refundAmount: 0,
+});
 const paymentForm = reactive({ method: "CASH", transactionRef: "" });
 
+// ── Computed ──────────────────────────────────────────────────────────
 const statusType = computed(() => {
   const s = detail.value?.status;
   if (s === "DELIVERED") return "success";
-  if (s === "SHIPPING")  return "warning";
+  if (s === "SHIPPING") return "warning";
   if (s === "CANCELLED") return "danger";
-  if (s === "PAID")      return "success";
+  if (s === "PAID") return "success";
   return "info";
 });
 
 const paymentStatusType = computed(() => {
   const ps = detail.value?.paymentStatus;
-  if (ps === "PAID")    return "success";
+  if (ps === "PAID") return "success";
   if (ps === "PARTIAL") return "warning";
   return "info";
 });
 
-const hasDiscountInfo = computed(() =>
-  detail.value && (
-    (detail.value.vipDiscountRate  && detail.value.vipDiscountRate  > 0) ||
-    (detail.value.spinDiscountRate && detail.value.spinDiscountRate > 0) ||
-    !!detail.value.promoCode
-  )
+const hasDiscountInfo = computed(
+  () =>
+    detail.value &&
+    ((detail.value.vipDiscountRate && detail.value.vipDiscountRate > 0) ||
+      (detail.value.spinDiscountRate && detail.value.spinDiscountRate > 0)),
 );
 
-const spinAlreadyApplied = computed(() =>
-  detail.value?.spinDiscountRate > 0
-);
+// Spin đã được áp vào đơn rồi hay chưa
+const spinAlreadyApplied = computed(() => detail.value?.spinDiscountRate > 0);
 
+// Tính spin discount ước tính - chỉ dùng khi spin CHƯA được áp vào đơn
 const estimatedSpinDiscount = computed(() => {
   if (!detail.value?.subtotal || !spinStatus.bonusRate) return 0;
-  if (spinAlreadyApplied.value) return 0;
-  return Math.round(detail.value.subtotal * spinStatus.bonusRate / 100);
+  if (spinAlreadyApplied.value) return 0; // đã áp rồi → không ước tính nữa
+  return Math.round((detail.value.subtotal * spinStatus.bonusRate) / 100);
 });
 
-watch(() => returnForm.orderItemId, (newItemId) => {
-  if (!newItemId || !detail.value?.items) return;
-  const item = detail.value.items.find((i) => i.productId === newItemId);
-  if (item) { returnForm.quantity = 1; returnForm.refundAmount = item.price; }
-});
+// ── Watchers ──────────────────────────────────────────────────────────
+watch(
+  () => returnForm.orderItemId,
+  (newItemId) => {
+    if (!newItemId || !detail.value?.items) return;
+    const item = detail.value.items.find((i) => i.productId === newItemId);
+    if (item) {
+      returnForm.quantity = 1;
+      returnForm.refundAmount = item.price;
+    }
+  },
+);
 
-watch(() => returnForm.quantity, (newQty) => {
-  if (!returnForm.orderItemId || !detail.value?.items) return;
-  const item = detail.value.items.find((i) => i.productId === returnForm.orderItemId);
-  if (item) returnForm.refundAmount = item.price * newQty;
-});
+watch(
+  () => returnForm.quantity,
+  (newQty) => {
+    if (!returnForm.orderItemId || !detail.value?.items) return;
+    const item = detail.value.items.find(
+      (i) => i.productId === returnForm.orderItemId,
+    );
+    if (item) returnForm.refundAmount = item.price * newQty;
+  },
+);
 
+// ── Helpers ───────────────────────────────────────────────────────────
 function formatMoney(val) {
   if (val === null || val === undefined) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(val);
 }
 
 function formatExpiry(dateStr) {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleString("vi-VN", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
+// ── Data loading ──────────────────────────────────────────────────────
 async function reload() {
   loading.value = true;
   try {
@@ -485,25 +633,26 @@ async function reload() {
   }
 }
 
+// ── Spin Bonus ────────────────────────────────────────────────────────
 async function fetchSpinStatus() {
   const customerId = detail.value?.customerId;
   if (!customerId) return;
 
-  spinStatus.loading        = true;
-  spinStatus.checked        = false;
+  spinStatus.loading = true;
+  spinStatus.checked = false;
   spinStatus.hasActiveBonus = false;
-  spinStatus.bonusRate      = 0;
+  spinStatus.bonusRate = 0;
   spinStatus.bonusExpiresAt = null;
 
   try {
-    const res  = await spinWheelApi.getStatus(customerId);
+    const res = await spinWheelApi.getStatus(customerId);
     const data = res?.data?.data ?? res?.data ?? res;
 
     const bonus = Number(data?.currentBonus ?? 0);
 
     if (bonus > 0) {
       spinStatus.hasActiveBonus = true;
-      spinStatus.bonusRate      = bonus;
+      spinStatus.bonusRate = bonus;
       spinStatus.bonusExpiresAt = data?.bonusExpiresAt ?? null;
     }
   } catch (err) {
@@ -519,6 +668,7 @@ async function openPaymentDialog() {
   await fetchSpinStatus();
 }
 
+// ── Cancel ────────────────────────────────────────────────────────────
 function getCancelWarningTitle() {
   return detail.value?.paymentStatus === "PAID"
     ? "⚠️ Cảnh báo: Hủy đơn đã thanh toán"
@@ -543,21 +693,25 @@ function getCancelWarningMessage() {
 
 function getMaxReturnQuantity() {
   if (!returnForm.orderItemId || !detail.value?.items) return 1;
-  return detail.value.items.find((i) => i.productId === returnForm.orderItemId)?.quantity || 1;
+  return (
+    detail.value.items.find((i) => i.productId === returnForm.orderItemId)
+      ?.quantity || 1
+  );
 }
 
+// ── Payment ───────────────────────────────────────────────────────────
 async function confirmPayment() {
   if (!paymentForm.method) return;
   paymentLoading.value = true;
   try {
     await paymentsApi.create({
-      orderId:        Number(orderId.value),
-      method:         paymentForm.method,
+      orderId: Number(orderId.value),
+      method: paymentForm.method,
       transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`,
     });
     toast("✅ Thanh toán thành công!", "success");
     showPaymentDialog.value = false;
-    await reload();
+    await reload(); // ✅ Reload để lấy totalAmount mới đã trừ spin
   } catch (e) {
     toast(e?.response?.data?.message || "Lỗi thanh toán", "error");
   } finally {
@@ -597,28 +751,67 @@ onMounted(() => reload());
 </script>
 
 <style scoped>
-.info-box { padding: 16px; background: #f5f7fa; border-radius: 8px; }
-.info-box h5 { margin-bottom: 12px; color: #2c3e50; }
-.info-box p  { margin: 8px 0; }
+.info-box {
+  padding: 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+.info-box h5 {
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+.info-box p {
+  margin: 8px 0;
+}
 
-.totals-box { padding: 20px; background: #f8f9fa; border-radius: 8px; }
-.totals-box > div { padding: 8px 0; }
+.totals-box {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+.totals-box > div {
+  padding: 8px 0;
+}
 
-.kicker { font-size: 12px; opacity: 0.75; font-weight: 900; text-transform: uppercase; }
-.title  { font-weight: 900; font-size: 18px; }
-.muted  { color: rgba(15, 23, 42, 0.62); font-size: 13px; }
-.small  { font-size: 12px; }
+.kicker {
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.title {
+  font-weight: 900;
+  font-size: 18px;
+}
+.muted {
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 13px;
+}
+.small {
+  font-size: 12px;
+}
 
-.discount-details { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.discount-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
 .discount-item {
   display: flex;
   justify-content: space-between;
   padding: 8px 12px;
-  background: rgba(255,255,255,0.6);
+  background: rgba(255, 255, 255, 0.6);
   border-radius: 6px;
 }
-.discount-label { font-weight: 600; color: #2c3e50; }
-.discount-value { font-weight: 700; color: #67c23a; }
+.discount-label {
+  font-weight: 600;
+  color: #2c3e50;
+}
+.discount-value {
+  font-weight: 700;
+  color: #67c23a;
+}
 
 /* ── Spin Loading ─────────────────────────────────────────── */
 .spin-loading-wrap {
@@ -638,8 +831,12 @@ onMounted(() => reload());
   animation: spin-rotate 1.2s linear infinite;
 }
 @keyframes spin-rotate {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── No Bonus Notice ──────────────────────────────────────── */
@@ -654,7 +851,9 @@ onMounted(() => reload());
   font-size: 13px;
   color: #909399;
 }
-.spin-no-bonus-icon { font-size: 18px; }
+.spin-no-bonus-icon {
+  font-size: 18px;
+}
 
 /* ── Spin Bonus Banner ────────────────────────────────────── */
 .spin-bonus-banner {
@@ -682,12 +881,28 @@ onMounted(() => reload());
   animation: spin-pulse 2s ease-in-out infinite;
 }
 @keyframes spin-pulse {
-  0%, 100% { transform: rotate(0deg)   scale(1); }
-  50%       { transform: rotate(15deg) scale(1.1); }
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(15deg) scale(1.1);
+  }
 }
-.spin-bonus-title { font-weight: 700; font-size: 14px; color: #7c5200; }
-.spin-bonus-sub   { font-size: 12px; color: #9d6f0a; margin-top: 2px; }
-.spin-bonus-rate  { color: #e67e00; font-size: 15px; }
+.spin-bonus-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #7c5200;
+}
+.spin-bonus-sub {
+  font-size: 12px;
+  color: #9d6f0a;
+  margin-top: 2px;
+}
+.spin-bonus-rate {
+  color: #e67e00;
+  font-size: 15px;
+}
 .spin-bonus-badge {
   background: linear-gradient(135deg, #f0a500, #e67e00);
   color: white;
@@ -713,7 +928,9 @@ onMounted(() => reload());
   padding: 2px 0;
   color: #5a3d00;
 }
-.breakdown-label { opacity: 0.85; }
+.breakdown-label {
+  opacity: 0.85;
+}
 .breakdown-total {
   border-top: 1px dashed #f0d58a;
   margin-top: 4px;
@@ -727,7 +944,10 @@ onMounted(() => reload());
   color: #e67e00;
   font-style: italic;
 }
-.spin-estimated-row span { opacity: 1 !important; color: #e67e00; }
+.spin-estimated-row span {
+  opacity: 1 !important;
+  color: #e67e00;
+}
 
 .estimated-total-row {
   margin-top: 8px;
@@ -754,7 +974,12 @@ onMounted(() => reload());
 
 /* ── Transition ───────────────────────────────────────────── */
 .spin-bonus-fade-enter-active,
-.spin-bonus-fade-leave-active { transition: all 0.35s ease; }
+.spin-bonus-fade-leave-active {
+  transition: all 0.35s ease;
+}
 .spin-bonus-fade-enter-from,
-.spin-bonus-fade-leave-to     { opacity: 0; transform: translateY(-8px); }
+.spin-bonus-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
 </style>
