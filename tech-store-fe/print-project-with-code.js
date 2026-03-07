@@ -15,16 +15,11 @@ const INCLUDE_FILES = [
   "api/http.js",
   "api/promotions.api.js",
   "api/prices.api.js",
-  "pages/customer/OrderCreate.vue",
-  "pages/customer/OrderDetail.vue",
-  "pages/system/OrderDetail.vue",
   "pages/system/PricingManager.vue",
   "pages/system/PromotionManager.vue",
   "pages/system/SystemShell.vue",
   "router/index.js",
   "stores/auth.js",
-  // "ui/confirm.js",
-  // "ui/toast.js",
 ];
 
 const OUTPUT_FILE = path.resolve(__dirname, "project-tree-with-code.txt");
