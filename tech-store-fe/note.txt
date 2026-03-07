@@ -1,3 +1,0 @@
-Các chức năng còn thiếu ở frontend:
-- /api/reports/promotions/active (Tạo báo cáo khuyến mãi đang áp dụng)
-- /api/reports/promotions/conflicts (Cảnh báo xung đột khuyến mãi)
