@@ -517,7 +517,6 @@ public class CustomerService {
             tierStats.put(tier.name(), tierData);
         }
         stats.put("byTier", tierStats);
-
         Map<String, Long> spendingRanges = new HashMap<>();
         spendingRanges.put("under1M", customRes.countByTotalSpentBetween(
                 BigDecimal.ZERO, BigDecimal.valueOf(1000000)));
