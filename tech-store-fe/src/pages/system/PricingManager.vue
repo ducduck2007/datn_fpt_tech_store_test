@@ -1,5 +1,8 @@
 <template>
   <div class="pm">
+    <!-- Quick Navigator -->
+    <QuickNav page="pricing" :onSwitchTab="handleQuickNavTab" />
+
     <!-- Header -->
     <header class="pm-header">
       <div class="pm-header-left">
@@ -74,7 +77,7 @@
             <span class="pm-card-title">Giá hiệu lực</span>
             <code class="pm-badge">GET /effective</code>
           </div>
-          <p class="pm-hint-text">Dùng Variant ID đã nhập bên trái.</p>
+          <p id="p-anchor-effective" class="pm-hint-text">Dùng Variant ID đã nhập bên trái.</p>
           <button class="pm-btn pm-btn-outline" :class="{ loading: effLoading }" @click="loadEffective" :disabled="effLoading">
             <span v-if="!effLoading">⚡ Tải giá hiệu lực</span><span v-else class="pm-spin"></span>
           </button>
@@ -96,7 +99,7 @@
           <div class="pm-divider"></div>
 
           <div class="pm-card-head" style="margin-bottom:10px">
-            <span class="pm-card-title" style="font-size:12px">Giá theo khách hàng</span>
+            <span id="p-anchor-custprice" class="pm-card-title" style="font-size:12px">Giá theo khách hàng</span>
             <code class="pm-badge">GET /effective/customer/{id}</code>
           </div>
           <div class="pm-inline">
@@ -120,7 +123,7 @@
 
     <!-- ===== TAB: LỊCH SỬ GIÁ ===== -->
     <div v-show="activeTab === 'history'" class="pm-pane">
-      <div class="pm-card mb3">
+      <div id="p-anchor-prodprices" class="pm-card mb3">
         <div class="pm-card-head">
           <span class="pm-card-title">Giá theo sản phẩm</span>
           <code class="pm-badge">GET /products/{productId}</code>
@@ -150,7 +153,7 @@
 
       <div class="pm-card">
         <div class="pm-card-head">
-          <span class="pm-card-title">Lịch sử giá variant</span>
+          <span class="pm-card-title" id="p-anchor-history">Lịch sử giá variant</span>
           <code class="pm-badge">GET /variants/{id}/history</code>
         </div>
         <div class="pm-inline">
@@ -206,7 +209,7 @@
           </div>
         </div>
 
-        <div class="pm-card">
+        <div id="p-anchor-promoend" class="pm-card">
           <div class="pm-card-head">
             <span class="pm-card-title">Cập nhật giá sau khuyến mãi</span>
             <code class="pm-badge">PUT /history/{id}</code>
@@ -423,11 +426,12 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, nextTick } from "vue";
 import { pricesApi } from "../../api/prices.api";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
 import "../../assets/styles/pricing-manager.css";
+import QuickNav from "../../components/QuickNav.vue";
 
 const activeTab = ref("set");
 const tabs = [
@@ -537,6 +541,16 @@ async function loadDashboard() {
   dashLoading.value = true;
   try { const r = await pricesApi.getDashboard(); dashData.value = r?.data?.data ?? r?.data ?? null; }
   catch { toast("Tải dashboard thất bại.", "error"); } finally { dashLoading.value = false; }
+}
+
+function handleQuickNavTab(tabKey, scrollId) {
+  activeTab.value = tabKey;
+  if (scrollId) {
+    nextTick(() => {
+      const el = document.getElementById(scrollId);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 }
 
 onMounted(loadDashboard);

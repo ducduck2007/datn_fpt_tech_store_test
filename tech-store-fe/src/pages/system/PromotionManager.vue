@@ -74,8 +74,11 @@
       </div>
     </header>
 
+    <!-- Quick Navigator -->
+    <QuickNav page="promotion" :onTriggerAction="handleQuickNav" />
+
     <!-- Validate bar -->
-    <div class="prm-validate-bar">
+    <div id="prm-validate-bar" class="prm-validate-bar">
       <div class="prm-validate-label">🔍 Validate mã KM</div>
       <div class="prm-validate-inputs">
         <div class="prm-vfield">
@@ -398,7 +401,7 @@
     </transition>
 
     <!-- Main table -->
-    <div class="prm-table-card">
+    <div id="prm-main-table" class="prm-table-card">
       <div class="prm-table-toolbar">
         <span class="prm-table-count">{{ rows.length }} khuyến mãi</span>
       </div>
@@ -828,12 +831,13 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, nextTick } from "vue";
 import { promotionsApi } from "../../api/promotions.api";
 import { pricesApi } from "../../api/prices.api";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
 import "../../assets/styles/promotion-manager.css";
+import QuickNav from "../../components/QuickNav.vue";
 
 const loading = ref(false);
 const activeOnly = ref(false);
@@ -1240,6 +1244,48 @@ function fmtDate(iso) {
 function fmtMoney(val) {
   if (val == null) return "—";
   return Number(val).toLocaleString("vi-VN") + " ₫";
+}
+
+function handleQuickNav(actionKey, hint) {
+  switch (actionKey) {
+    case "openCreate":
+      openCreate();
+      if (hint === "combo") {
+        // Scroll dialog to combo section after open
+        nextTick(() => {
+          const el = document.querySelector(".prm-dlg-body");
+          if (el) el.scrollTo({ top: 400, behavior: "smooth" });
+        });
+      }
+      if (hint === "vip") {
+        nextTick(() => {
+          const el = document.querySelector(".prm-dlg-body");
+          if (el) el.scrollTo({ top: 9999, behavior: "smooth" });
+        });
+      }
+      break;
+    case "scrollTable":
+      document.getElementById("prm-main-table")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      break;
+    case "scrollValidate":
+      document.getElementById("prm-validate-bar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      break;
+    case "loadConflicts":
+      loadConflicts();
+      break;
+    case "loadExpiring":
+      loadExpiring();
+      break;
+    case "loadActiveReport":
+      loadActiveReport();
+      break;
+    case "loadReport":
+      loadReport();
+      break;
+    case "loadSummaryReport":
+      loadSummaryReport();
+      break;
+  }
 }
 
 onMounted(load);
