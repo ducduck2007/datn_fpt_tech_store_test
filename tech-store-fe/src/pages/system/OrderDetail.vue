@@ -63,16 +63,15 @@
             Yêu cầu trả hàng
           </el-button>
 
-          
-        <el-button
-          v-if="detail?.status === 'SHIPPING'"
-          type="success"
-          :loading="deliverLoading"
-          @click="confirmDelivered"
-        >
-          <el-icon class="me-1"><Check /></el-icon>
-          Đã giao hàng
-        </el-button>
+          <el-button
+            v-if="detail?.status === 'SHIPPING'"
+            type="success"
+            :loading="deliverLoading"
+            @click="confirmDelivered"
+          >
+            <el-icon class="me-1"><Check /></el-icon>
+            Đã giao hàng
+          </el-button>
         </div>
       </div>
 
@@ -166,6 +165,41 @@
               </div>
             </div>
 
+            <!-- ✅ THÊM MỚI: Promotion Code Discount -->
+            <div v-if="detail.promoCode" class="col-12 col-md-6">
+              <div class="discount-item promo-discount">
+                <div class="discount-icon promo-icon">
+                  <el-icon :size="32"><Ticket /></el-icon>
+                </div>
+                <div class="discount-details">
+                  <div class="discount-label">
+                    Mã giảm giá
+                    <el-tag size="small" type="warning" class="ms-1">{{
+                      detail.promoCode
+                    }}</el-tag>
+                  </div>
+                  <div class="discount-amount">
+                    -{{ formatMoney(detail.promoDiscount) }}
+                  </div>
+                  <div class="discount-note">Áp dụng 1 lần cho đơn này</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ THÊM MỚI: Combo Info -->
+            <div v-if="detail.comboInfo" class="col-12">
+              <div class="discount-item combo-discount">
+                <div class="discount-icon combo-icon">
+                  <el-icon :size="32"><Gift /></el-icon>
+                </div>
+                <div class="discount-details">
+                  <div class="discount-label">Khuyến mãi combo</div>
+                  <div class="combo-info-text">{{ detail.comboInfo }}</div>
+                  <div class="discount-note">Tặng miễn phí theo bộ</div>
+                </div>
+              </div>
+            </div>
+
             <!-- Total Discount Summary -->
             <el-divider />
             <div class="d-flex justify-content-between align-items-center">
@@ -230,6 +264,28 @@
             </div>
 
             <!-- Spin Discount Line -->
+            <!-- ✅ THÊM MỚI: Promotion Code Line -->
+            <div
+              v-if="detail.promoCode"
+              class="d-flex justify-content-between text-info"
+            >
+              <span>
+                <el-icon class="me-1"><Ticket /></el-icon>
+                Mã <strong>{{ detail.promoCode }}</strong
+                >:
+              </span>
+              <strong>- {{ formatMoney(detail.promoDiscount) }}</strong>
+            </div>
+
+            <!-- ✅ THÊM MỚI: Combo Info Line -->
+            <div
+              v-if="detail.comboInfo"
+              class="d-flex justify-content-between text-warning"
+            >
+              <span>🎀 {{ detail.comboInfo }}</span>
+              <span class="text-muted small">Tặng kèm</span>
+            </div>
+
             <div
               v-if="detail.spinDiscount && detail.spinDiscount > 0"
               class="d-flex justify-content-between text-warning"
@@ -450,13 +506,14 @@ import {
   Present,
   Star,
   TrophyBase,
-  Check
+  Check,
+  Ticket,
+  Gift,
 } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
 
-// State
 const loading = ref(false);
 const cancelLoading = ref(false);
 const paymentLoading = ref(false);
@@ -465,7 +522,6 @@ const vipTierName = ref("");
 const orderId = computed(() => route.params.orderId);
 const deliverLoading = ref(false);
 
-// Dialog controls
 const showCancelDialog = ref(false);
 const cancelReason = ref("");
 const showReturnDialog = ref(false);
@@ -482,7 +538,7 @@ async function confirmDelivered() {
   } catch (e) {
     toast(
       e?.response?.data?.message || "Lỗi khi cập nhật trạng thái giao hàng",
-      "error"
+      "error",
     );
   } finally {
     deliverLoading.value = false;
@@ -501,7 +557,6 @@ const paymentForm = reactive({
   transactionRef: "",
 });
 
-// Computed
 const statusType = computed(() => {
   const s = detail.value?.status;
   if (s === "DELIVERED") return "success";
@@ -521,11 +576,11 @@ const paymentStatusType = computed(() => {
 const hasDiscount = computed(() => {
   return (
     (detail.value?.vipDiscount && detail.value.vipDiscount > 0) ||
-    (detail.value?.spinDiscount && detail.value.spinDiscount > 0)
+    (detail.value?.spinDiscount && detail.value.spinDiscount > 0) ||
+    !!detail.value?.promoCode
   );
 });
 
-// Watchers
 watch(
   () => returnForm.orderItemId,
   (newItemId) => {
@@ -551,7 +606,6 @@ watch(
   },
 );
 
-// Methods
 function formatMoney(val) {
   if (!val) return "0 ₫";
   return new Intl.NumberFormat("vi-VN", {
@@ -566,7 +620,6 @@ async function reload() {
     const res = await ordersApi.getById(orderId.value);
     detail.value = res?.data?.data || res?.data;
 
-    // Load customer info to get VIP tier name
     if (detail.value?.customerId) {
       try {
         const customerRes = await customersApi.getById(detail.value.customerId);
@@ -770,5 +823,27 @@ onMounted(() => reload());
   font-weight: 700;
   color: #1f2937;
   margin: 4px 0;
+}
+
+.discount-item.promo-discount {
+  border-left: 4px solid #f59e0b;
+}
+
+.discount-icon.promo-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.discount-item.combo-discount {
+  border-left: 4px solid #10b981;
+}
+
+.discount-icon.combo-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.combo-info-text {
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 4px;
 }
 </style>

@@ -5,9 +5,10 @@ export const promotionsApi = {
     return http.post("/api/promotions", payload);
   },
   list(activeOnly = false) {
-    return http.get("/api/promotions", {
-      params: { activeOnly: !!activeOnly },
-    });
+    return http.get("/api/promotions", { params: { activeOnly: !!activeOnly } });
+  },
+  getById(id) {
+    return http.get(`/api/promotions/${id}`);
   },
   update(id, payload) {
     return http.put(`/api/promotions/${id}`, payload);
@@ -17,5 +18,14 @@ export const promotionsApi = {
   },
   getConflicts() {
     return http.get("/api/promotions/conflicts");
+  },
+  getExpiring(withinDays = 3) {
+    return http.get("/api/promotions/expiring", { params: { withinDays } });
+  },
+  validate(code, orderTotal) {
+    return http.get("/api/promotions/validate", { params: { code, orderTotal } });
+  },
+  getReport(period = "month") {
+    return http.get("/api/promotions/report", { params: { period } });
   },
 };

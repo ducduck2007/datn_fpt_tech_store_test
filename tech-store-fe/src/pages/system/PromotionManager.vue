@@ -16,6 +16,12 @@
         <el-button @click="loadConflicts" :loading="conflictLoading" plain
           >⚠️ Conflicts</el-button
         >
+        <el-button @click="loadExpiring" :loading="expiringLoading" plain>
+          ⏰ Sắp hết hạn
+        </el-button>
+        <el-button @click="loadReport" :loading="reportLoading" plain>
+          📊 Báo cáo
+        </el-button>
         <el-button type="primary" @click="openCreate">+ Tạo mới</el-button>
       </div>
     </div>
@@ -215,6 +221,107 @@
       </div>
     </transition>
 
+    <!-- Expiring panel -->
+    <transition name="slide-down">
+      <div v-if="expiringRows !== null" class="promo-conflicts">
+        <div class="promo-section-label">
+          ⏰ Khuyến mãi sắp hết hạn (trong 3 ngày)
+          <el-tag
+            :type="expiringRows.length ? 'warning' : 'success'"
+            size="small"
+            round
+          >
+            {{ expiringRows.length }}
+          </el-tag>
+          <el-button
+            text
+            size="small"
+            @click="expiringRows = null"
+            style="margin-left: auto"
+            >Ẩn</el-button
+          >
+        </div>
+        <el-alert
+          v-if="expiringRows.length === 0"
+          title="Không có khuyến mãi nào sắp hết hạn"
+          type="success"
+          show-icon
+          :closable="false"
+        />
+        <el-table
+          v-else
+          :data="expiringRows"
+          border
+          size="small"
+          class="promo-table"
+        >
+          <el-table-column prop="id" label="ID" width="75" />
+          <el-table-column prop="code" label="Code" width="140">
+            <template #default="{ row }"
+              ><span class="promo-code">{{ row.code }}</span></template
+            >
+          </el-table-column>
+          <el-table-column prop="name" label="Tên" min-width="200" />
+          <el-table-column label="Hết hạn" width="170">
+            <template #default="{ row }">
+              <el-tag type="warning" size="small">{{
+                fmtDate(row.endDate)
+              }}</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </transition>
+
+    <!-- Report panel -->
+    <transition name="slide-down">
+      <div v-if="reportData !== null" class="promo-card mt-3">
+        <div class="promo-section-label">
+          📊 Báo cáo khuyến mãi
+          <el-select
+            v-model="reportPeriod"
+            size="small"
+            @change="loadReport"
+            style="width: 100px; margin-left: 8px"
+          >
+            <el-option label="Tuần" value="week" />
+            <el-option label="Tháng" value="month" />
+          </el-select>
+          <el-button
+            text
+            size="small"
+            @click="reportData = null"
+            style="margin-left: auto"
+            >Ẩn</el-button
+          >
+        </div>
+        <div class="promo-report-grid mt-2">
+          <div class="promo-stat-card">
+            <div class="promo-stat-value">{{ reportData.total ?? 0 }}</div>
+            <div class="promo-stat-label">Tổng KM</div>
+          </div>
+          <div class="promo-stat-card">
+            <div class="promo-stat-value text-success">
+              {{ reportData.activeCount ?? 0 }}
+            </div>
+            <div class="promo-stat-label">Đang chạy</div>
+          </div>
+          <div class="promo-stat-card">
+            <div class="promo-stat-value text-warning">
+              {{ reportData.comboCount ?? 0 }}
+            </div>
+            <div class="promo-stat-label">Combo</div>
+          </div>
+          <div class="promo-stat-card">
+            <div class="promo-stat-value text-danger">
+              {{ reportData.totalRedemptions ?? 0 }}
+            </div>
+            <div class="promo-stat-label">Lượt dùng</div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- Create / Update dialog -->
     <el-dialog
       v-model="dlg.open"
@@ -407,7 +514,6 @@ async function load() {
   }
 }
 
-// Conflicts
 const conflictLoading = ref(false);
 const conflicts = ref(null);
 async function loadConflicts() {
@@ -422,7 +528,6 @@ async function loadConflicts() {
   }
 }
 
-// Preview
 const previewPromo = ref(null);
 const previewProductId = ref(null);
 const previewCustomerId = ref(null);
@@ -463,7 +568,6 @@ async function loadPreviewPrices() {
   }
 }
 
-// CRUD
 const dlg = reactive({
   open: false,
   mode: "create",
@@ -607,6 +711,35 @@ function fmtDate(iso) {
 function fmtMoney(val) {
   if (val == null) return "—";
   return Number(val).toLocaleString("vi-VN") + " ₫";
+}
+
+const expiringLoading = ref(false);
+const expiringRows = ref(null);
+async function loadExpiring() {
+  expiringLoading.value = true;
+  try {
+    const res = await promotionsApi.getExpiring(3);
+    expiringRows.value = res?.data?.data ?? res?.data ?? [];
+  } catch {
+    toast("Tải danh sách sắp hết hạn thất bại.", "error");
+  } finally {
+    expiringLoading.value = false;
+  }
+}
+
+const reportLoading = ref(false);
+const reportData = ref(null);
+const reportPeriod = ref("month");
+async function loadReport() {
+  reportLoading.value = true;
+  try {
+    const res = await promotionsApi.getReport(reportPeriod.value);
+    reportData.value = res?.data?.data ?? res?.data ?? {};
+  } catch {
+    toast("Tải báo cáo thất bại.", "error");
+  } finally {
+    reportLoading.value = false;
+  }
 }
 
 onMounted(load);

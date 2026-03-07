@@ -23,9 +23,10 @@ public class PriceController {
 
     /** Set price for a variant */
     @PostMapping("/variants/{variantId}")
-    public ApiResponse<PriceHistory> setVariantPrice(@PathVariable Integer variantId,
+    public ApiResponse<PriceHistoryResponse> setVariantPrice(@PathVariable Integer variantId,
             @RequestBody UpsertPriceRequest req) {
-        return ApiResponse.success(pricingService.setVariantPrice(variantId, req, 0));
+        PriceHistory ph = pricingService.setVariantPrice(variantId, req, 0);
+        return ApiResponse.success(pricingService.toPriceHistoryResponse(ph));
     }
 
     /** List all variant prices for a product */

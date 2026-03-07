@@ -367,7 +367,7 @@ public class PricingService {
         return dashboard;
     }
 
-    private PriceHistoryResponse toPriceHistoryResponse(PriceHistory ph) {
+    public PriceHistoryResponse toPriceHistoryResponse(PriceHistory ph) {
         PriceHistoryResponse dto = new PriceHistoryResponse();
         dto.setId(ph.getId());
         dto.setVariantId(ph.getVariant().getId());

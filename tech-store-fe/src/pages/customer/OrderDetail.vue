@@ -1,7 +1,6 @@
 <template>
   <div class="container-xl">
     <el-card shadow="never">
-      <!-- Header -->
       <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
         <div>
           <div class="kicker">Order</div>
@@ -72,7 +71,6 @@
           </div>
         </div>
 
-        <!-- Discount Breakdown Alert -->
         <div v-if="hasDiscountInfo" class="col-12">
           <el-alert
             :title="`💰 Ưu đãi áp dụng: Tổng giảm ${formatMoney(detail.discountTotal)}`"
@@ -88,6 +86,19 @@
               <div v-if="detail.spinDiscountRate > 0" class="discount-item">
                 <span class="discount-label">🎡 Vòng quay {{ detail.spinDiscountRate }}%:</span>
                 <span class="discount-value">-{{ formatMoney(detail.spinDiscount) }}</span>
+              </div>
+              <!-- ✅ THÊM MỚI: Promotion code -->
+              <div v-if="detail.promoCode" class="discount-item">
+                <span class="discount-label">
+                  🎁 Mã KM
+                  <el-tag size="small" type="warning" class="ms-1">{{ detail.promoCode }}</el-tag>:
+                </span>
+                <span class="discount-value">-{{ formatMoney(detail.promoDiscount) }}</span>
+              </div>
+              <!-- ✅ THÊM MỚI: Combo info -->
+              <div v-if="detail.comboInfo" class="discount-item combo-item">
+                <span class="discount-label">🎀 Combo:</span>
+                <span class="discount-value combo-value">{{ detail.comboInfo }}</span>
               </div>
             </div>
           </el-alert>
@@ -392,7 +403,6 @@ const cancelReason      = ref("");
 const showReturnDialog  = ref(false);
 const showPaymentDialog = ref(false);
 
-// ── Spin Bonus State ──────────────────────────────────────────────────
 const spinStatus = reactive({
   loading:        false,
   checked:        false,
@@ -404,7 +414,6 @@ const spinStatus = reactive({
 const returnForm  = reactive({ orderItemId: null, quantity: 1, reason: "", refundAmount: 0 });
 const paymentForm = reactive({ method: "CASH", transactionRef: "" });
 
-// ── Computed ──────────────────────────────────────────────────────────
 const statusType = computed(() => {
   const s = detail.value?.status;
   if (s === "DELIVERED") return "success";
@@ -424,23 +433,21 @@ const paymentStatusType = computed(() => {
 const hasDiscountInfo = computed(() =>
   detail.value && (
     (detail.value.vipDiscountRate  && detail.value.vipDiscountRate  > 0) ||
-    (detail.value.spinDiscountRate && detail.value.spinDiscountRate > 0)
+    (detail.value.spinDiscountRate && detail.value.spinDiscountRate > 0) ||
+    !!detail.value.promoCode
   )
 );
 
-// Spin đã được áp vào đơn rồi hay chưa
 const spinAlreadyApplied = computed(() =>
   detail.value?.spinDiscountRate > 0
 );
 
-// Tính spin discount ước tính - chỉ dùng khi spin CHƯA được áp vào đơn
 const estimatedSpinDiscount = computed(() => {
   if (!detail.value?.subtotal || !spinStatus.bonusRate) return 0;
-  if (spinAlreadyApplied.value) return 0; // đã áp rồi → không ước tính nữa
+  if (spinAlreadyApplied.value) return 0;
   return Math.round(detail.value.subtotal * spinStatus.bonusRate / 100);
 });
 
-// ── Watchers ──────────────────────────────────────────────────────────
 watch(() => returnForm.orderItemId, (newItemId) => {
   if (!newItemId || !detail.value?.items) return;
   const item = detail.value.items.find((i) => i.productId === newItemId);
@@ -453,7 +460,6 @@ watch(() => returnForm.quantity, (newQty) => {
   if (item) returnForm.refundAmount = item.price * newQty;
 });
 
-// ── Helpers ───────────────────────────────────────────────────────────
 function formatMoney(val) {
   if (val === null || val === undefined) return "0 ₫";
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
@@ -467,7 +473,6 @@ function formatExpiry(dateStr) {
   });
 }
 
-// ── Data loading ──────────────────────────────────────────────────────
 async function reload() {
   loading.value = true;
   try {
@@ -480,7 +485,6 @@ async function reload() {
   }
 }
 
-// ── Spin Bonus ────────────────────────────────────────────────────────
 async function fetchSpinStatus() {
   const customerId = detail.value?.customerId;
   if (!customerId) return;
@@ -515,7 +519,6 @@ async function openPaymentDialog() {
   await fetchSpinStatus();
 }
 
-// ── Cancel ────────────────────────────────────────────────────────────
 function getCancelWarningTitle() {
   return detail.value?.paymentStatus === "PAID"
     ? "⚠️ Cảnh báo: Hủy đơn đã thanh toán"
@@ -543,7 +546,6 @@ function getMaxReturnQuantity() {
   return detail.value.items.find((i) => i.productId === returnForm.orderItemId)?.quantity || 1;
 }
 
-// ── Payment ───────────────────────────────────────────────────────────
 async function confirmPayment() {
   if (!paymentForm.method) return;
   paymentLoading.value = true;
@@ -555,7 +557,7 @@ async function confirmPayment() {
     });
     toast("✅ Thanh toán thành công!", "success");
     showPaymentDialog.value = false;
-    await reload(); // ✅ Reload để lấy totalAmount mới đã trừ spin
+    await reload();
   } catch (e) {
     toast(e?.response?.data?.message || "Lỗi thanh toán", "error");
   } finally {

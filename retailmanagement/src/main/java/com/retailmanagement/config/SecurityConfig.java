@@ -1,17 +1,15 @@
 package com.retailmanagement.config;
 
-import com.retailmanagement.security.filter.BasicAuthenticationFilter;
+import com.retailmanagement.security.filter.JwtAuthenticationFilter;
 import com.retailmanagement.security.handler.CustomAccessDeniedHandler;
 import com.retailmanagement.security.handler.CustomAuthenticationEntryPoint;
 import com.retailmanagement.security.service.CustomUserDetailsService;
-import com.retailmanagement.security.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -31,28 +29,17 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // AuthenticationManager chuẩn cho Spring Boot 3+
     @Bean
-    public DaoAuthenticationProvider authenticationProvider(PasswordEncoder encoder) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(encoder);
-        return provider;
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration
+    ) throws Exception {
+        return configuration.getAuthenticationManager();
     }
-
-    @Bean
-    public AuthenticationManager authenticationManager(DaoAuthenticationProvider provider) {
-        return new ProviderManager(provider);
-    }
-
-//    @Bean
-//    public BasicAuthenticationFilter basicAuthenticationFilter(AuthenticationManager authenticationManager) {
-//        return new BasicAuthenticationFilter(authenticationManager);
-//    }
 
     @Bean
     public SecurityFilterChain filterChain(
             HttpSecurity http,
-            DaoAuthenticationProvider provider,
-//            BasicAuthenticationFilter basicAuthenticationFilter,
             CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
             CustomAccessDeniedHandler customAccessDeniedHandler
     ) throws Exception {
@@ -60,9 +47,16 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> { })
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(provider)
+
+                // bật BasicAuth để test Postman
+                .httpBasic(Customizer.withDefaults())
+
+                .sessionManagement(sm ->
+                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                .userDetailsService(userDetailsService)
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/error",
@@ -76,12 +70,19 @@ public class SecurityConfig {
                                 "/api/tags/**",
                                 "/uploads/**"
                         ).permitAll()
+
                         .requestMatchers("/api/auth/logout").authenticated()
+
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                         .requestMatchers("/api/sales/**").hasAnyRole("SALES", "ADMIN")
+
                         .requestMatchers("/api/inventory/**").hasAnyRole("INVENTORY", "ADMIN")
+
                         .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
-                        .requestMatchers("/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN", "INVENTORY")
+
+                        .requestMatchers("/api/orders/**")
+                        .hasAnyRole("CUSTOMER", "ADMIN", "INVENTORY")
 
                         .anyRequest().authenticated()
                 )
@@ -91,9 +92,11 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
 
-                // ✅ Thứ tự đúng: Basic → JWT → UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-//                .addFilterBefore(basicAuthenticationFilter, jwtAuthenticationFilter.getClass());
+                // JWT filter
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }

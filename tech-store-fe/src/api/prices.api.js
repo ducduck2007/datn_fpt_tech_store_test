@@ -20,14 +20,21 @@ export const pricesApi = {
     return http.get(`/api/prices/variants/${variantId}/effective`);
   },
   getEffectiveForCustomer(variantId, customerId) {
-    return http.get(
-      `/api/prices/variants/${variantId}/effective/customer/${customerId}`,
-    );
+    return http.get(`/api/prices/variants/${variantId}/effective/customer/${customerId}`);
   },
   getVariantHistory(variantId) {
     return http.get(`/api/prices/variants/${variantId}/history`);
   },
   getCostWarning(variantId) {
     return http.get(`/api/prices/variants/${variantId}/cost-warning`);
+  },
+  getConflicts() {
+    return http.get("/api/prices/conflicts");
+  },
+  calculateOrder(customerId, items) {
+    return http.post("/api/prices/calculate-order", { customerId, items });
+  },
+  getDashboard() {
+    return http.get("/api/prices/dashboard");
   },
 };
