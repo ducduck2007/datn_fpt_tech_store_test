@@ -367,7 +367,7 @@
                     <h3 class="mb-0 fw-bold">Ưu đãi của bạn</h3>
                   </div>
                   <div class="text-center py-3">
-                    <div class="discount-display">{{ customer.discountRate || 0 }}%</div>
+                    <div class="discount-display">{{ customer.discountRate || 0 }}</div>
                     <div class="discount-desc">Giảm giá mọi đơn hàng</div>
                   </div>
                 </el-card>
