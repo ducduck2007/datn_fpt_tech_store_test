@@ -10,4 +10,7 @@ export const authApi = {
   testProtected(path = "/api/test/protected") {
     return http.get(path);
   },
+   changePassword(payload) {
+    return http.post("/api/auth/change-password", payload);
+  }
 };

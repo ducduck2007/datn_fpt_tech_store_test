@@ -1,5 +1,6 @@
 package com.retailmanagement.controller;
 
+import com.retailmanagement.dto.request.ChangePasswordRequest;
 import com.retailmanagement.dto.request.LoginRequest;
 import com.retailmanagement.dto.request.RegisterRequest;
 import com.retailmanagement.dto.response.ApiResponse;
@@ -31,5 +32,12 @@ public class AuthController {
     public ApiResponse<AuthResponse> logout() {
         authService.logout();
         return ApiResponse.success("Đăng xuất thành công", null);
+    }
+    // Thêm endpoint này vào AuthController.java
+
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ApiResponse.success("Đổi mật khẩu thành công", null);
     }
 }

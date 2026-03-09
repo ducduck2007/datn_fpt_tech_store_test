@@ -52,6 +52,7 @@ import InventoryShell from "../pages/inventory/InventoryShell.vue";
 import InventoryOrderDetail from "../pages/inventory/InventoryOrderDetail.vue";
 import InventoryOrdersPaid from "../pages/inventory/InventoryOrdersPaid.vue";
 import InventoryOrdersProcessing from "../pages/inventory/InventoryOrdersProcessing.vue";
+import Changepassword from "../pages/customer/Changepassword.vue";
 
 const routes = [
   // ===== CUSTOMER =====
@@ -67,6 +68,12 @@ const routes = [
     component: CustomerLogin,
     meta: { portal: "customer", hideHeader: true },
   },
+{
+  path: "/change-password",
+  name: "change-password",
+  component: Changepassword,
+  meta: { portal: "customer", requiresAuth: true, hideHeader: true },
+},
   {
     path: "/register",
     name: "register",

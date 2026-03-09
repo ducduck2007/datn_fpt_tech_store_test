@@ -177,7 +177,13 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
                   Profile
                 </button>
-
+                <button class="toolbar-btn toolbar-btn--security" @click="$router.push('/change-password')">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>
+  Đổi mật khẩu
+</button>
                 <button class="toolbar-btn toolbar-btn--event" @click="$router.push('/spin-wheel')">
                   <span>🎡</span> Sự kiện
                   <span class="event-ping"></span>
@@ -1496,6 +1502,11 @@ onMounted(async () => {
   padding: 14px 12px;
   border-radius: 12px;
   transition: background 0.15s;
+}
+.toolbar-btn--security {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #3730a3;
 }
 
 .notif-item:hover { background: #f9f6f2; }

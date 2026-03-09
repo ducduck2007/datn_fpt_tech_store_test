@@ -1,5 +1,6 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.dto.request.ChangePasswordRequest;
 import com.retailmanagement.dto.request.LoginRequest;
 import com.retailmanagement.dto.request.RegisterRequest;
 import com.retailmanagement.dto.response.AuthResponse;
@@ -169,5 +170,34 @@ public class AuthService {
         if (userId != null) {
             userLoginLogService.logLogout(userId);
         }
+    }
+    // ========================= CHANGE PASSWORD =========================
+// Thêm method này vào AuthService.java
+
+    @Transactional
+    public void changePassword(ChangePasswordRequest req) {
+
+        // 1️⃣ Lấy user hiện tại từ SecurityContext
+        Integer userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new RuntimeException("Bạn chưa đăng nhập");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+        // 2️⃣ Kiểm tra mật khẩu hiện tại
+        if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu hiện tại không đúng");
+        }
+
+        // 3️⃣ Kiểm tra mật khẩu mới ≠ mật khẩu cũ
+        if (passwordEncoder.matches(req.getNewPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu mới phải khác mật khẩu hiện tại");
+        }
+
+        // 4️⃣ Cập nhật
+        user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        userRepository.save(user);
     }
 }
