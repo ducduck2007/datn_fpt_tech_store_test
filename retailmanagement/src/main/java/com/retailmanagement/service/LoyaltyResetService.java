@@ -47,7 +47,7 @@ public class LoyaltyResetService {
     // ================================================================
     // 2. CHECK HÀNG THÁNG — chạy lúc 00:00 ngày 1 mỗi tháng (tháng 1-6)
     // ================================================================
-    @Scheduled(cron = "0 0 0 1 1-6 *")
+    @Scheduled(cron = "0 0 0 1 * *")
     public void monthlyInactivityCheck() {
         log.info("📅 [MONTHLY CHECK] Kiểm tra inactivity tháng {}...",
                 LocalDateTime.now().getMonthValue());

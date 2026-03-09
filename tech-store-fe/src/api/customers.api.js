@@ -175,5 +175,11 @@ getLoyaltyMonthlySummaryAdmin(months = 12) {
    */
   getMyVipJourney() {
     return http.get("/api/auth/customers/my/vip-journey");
-  }
+  },
+   triggerYearEndReset() {
+    return http.post("/api/auth/customers/loyalty/reset/year-end");
+  },
+  triggerMonthlyReset() {
+    return http.post("/api/auth/customers/loyalty/reset/monthly");
+  },
 };
