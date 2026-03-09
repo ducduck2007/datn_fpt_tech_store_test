@@ -68,6 +68,10 @@ public class AuthService {
             Customer customer = Customer.builder()
                     .name(req.getUsername())
                     .email(req.getEmail())
+                    .dateOfBirth(req.getDateOfBirth())   // ← add
+                    .address(req.getAddress())
+                    .phone(req.getPhone())
+                    .userId(user.getId())
                     .customerType(CustomerType.REGULAR)
                     .loyaltyPoints(0)
                     .totalSpent(BigDecimal.ZERO)
@@ -82,9 +86,12 @@ public class AuthService {
             Customer customer = existingCus.get();
             customer.setIsActive(true);
             customer.setLastLoginAt(LocalDateTime.now());
-
+            customer.setUserId(user.getId());
             if (customer.getName() == null || customer.getName().isBlank()) {
                 customer.setName(req.getUsername());
+            }
+            if (customer.getPhone() == null || customer.getPhone().isBlank()) {
+                customer.setPhone(req.getPhone());  // ← thêm
             }
 
             customerRepository.save(customer);

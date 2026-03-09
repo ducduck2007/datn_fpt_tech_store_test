@@ -8,9 +8,9 @@ import java.math.BigDecimal;
 public enum VipTier {
     // DiscountRate: dùng cho PLATINUM & DIAMOND (theo %)
     // DiscountAmount: dùng cho BRONZE, SILVER, GOLD (số tiền cố định)
-    BRONZE("Bronze",   1000,   1999, 0.0,  BigDecimal.valueOf(100_000)),
-    SILVER("Silver",   2000,   4999, 0.0,  BigDecimal.valueOf(200_000)),
-    GOLD("Gold",       5000,   9999, 0.0,  BigDecimal.valueOf(500_000)),
+    BRONZE("Bronze",   1000,   1999, 0.0,  BigDecimal.valueOf(50_000)),
+    SILVER("Silver",   2000,   4999, 0.0,  BigDecimal.valueOf(100_000)),
+    GOLD("Gold",       5000,   9999, 0.0,  BigDecimal.valueOf(150_000)),
     PLATINUM("Platinum", 10000, 19999, 0.03, BigDecimal.ZERO),
     DIAMOND("Diamond",   20000, Integer.MAX_VALUE, 0.05, BigDecimal.ZERO);
 

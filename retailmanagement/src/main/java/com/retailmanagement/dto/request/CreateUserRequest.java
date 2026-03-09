@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,4 +29,10 @@ public class CreateUserRequest {
     private String password; // plaintext từ client
 
     private String role; //Chỉ được nhập ADMIN,SALES,INVENTORY,CUSTOMER
+
+    /** Optional — mapped to Customer.dateOfBirth (LocalDate) */
+    private LocalDate dateOfBirth;
+
+    /** Optional — mapped to Customer.address */
+    private String address;
 }

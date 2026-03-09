@@ -96,6 +96,36 @@
           </div>
         </div>
 
+        <!-- Phone -->
+        <div class="field-group">
+          <label class="field-label">Phone number</label>
+          <div class="field-wrapper" :class="{ focused: focusedField === 'phone', error: fieldErrors.phone }">
+            <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <input
+              v-model="form.phone"
+              type="tel"
+              class="field-input"
+              placeholder="0912 345 678"
+              autocomplete="tel"
+              @focus="focusedField = 'phone'"
+              @blur="focusedField = ''; validateField('phone')"
+            />
+            <svg v-if="fieldErrors.phone" class="field-error-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <svg v-else-if="form.phone && !fieldErrors.phone" class="field-ok-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <transition name="hint-slide">
+            <p v-if="fieldErrors.phone" class="field-hint-error">Please enter a valid phone number</p>
+          </transition>
+        </div>
+
         <!-- Password -->
         <div class="field-group">
           <label class="field-label">Password</label>
@@ -176,6 +206,61 @@
           </transition>
         </div>
 
+        <!-- ───── Optional fields divider ───── -->
+        <div class="optional-divider">
+          <span class="optional-line"></span>
+          <span class="optional-label">Optional info</span>
+          <span class="optional-line"></span>
+        </div>
+
+        <!-- Row: Date of Birth + Address -->
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">
+              Date of birth
+              <span class="optional-badge">optional</span>
+            </label>
+            <div class="field-wrapper" :class="{ focused: focusedField === 'dateOfBirth' }">
+              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <input
+                v-model="form.dateOfBirth"
+                type="date"
+                class="field-input date-input"
+                :max="today"
+                @focus="focusedField = 'dateOfBirth'"
+                @blur="focusedField = ''"
+              />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">
+              Address
+              <span class="optional-badge">optional</span>
+            </label>
+            <div class="field-wrapper" :class="{ focused: focusedField === 'address' }">
+              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <input
+                v-model="form.address"
+                type="text"
+                class="field-input"
+                placeholder="Your address"
+                autocomplete="street-address"
+                @focus="focusedField = 'address'"
+                @blur="focusedField = ''"
+              />
+            </div>
+          </div>
+        </div>
+
         <button type="submit" class="register-btn" :class="{ loading }" :disabled="loading">
           <span class="btn-content">
             <svg v-if="!loading" width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -214,16 +299,23 @@ const focusedField = ref("");
 const showPassword = ref(false);
 const showPassword2 = ref(false);
 
+// Today's date as yyyy-MM-dd for max attribute on date input
+const today = new Date().toISOString().split("T")[0];
+
 const form = reactive({
   username: "",
   email: "",
+  phone: "",         // required
   password: "",
   password2: "",
+  dateOfBirth: "",   // optional – LocalDate on backend
+  address: "",       // optional
 });
 
 const fieldErrors = reactive({
   username: false,
   email: false,
+  phone: false,
 });
 
 function validateField(field) {
@@ -232,6 +324,9 @@ function validateField(field) {
   }
   if (field === "email") {
     fieldErrors.email = form.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+  }
+  if (field === "phone") {
+    fieldErrors.phone = form.phone.length > 0 && !/^[0-9+\s\-().]{7,15}$/.test(form.phone.trim());
   }
 }
 
@@ -275,8 +370,13 @@ function errToText(e) {
 
 async function doRegister() {
   alert.value = "";
-  if (!form.username || !form.email || !form.password) {
+  if (!form.username || !form.email || !form.phone || !form.password) {
     alert.value = "Please fill all required fields.";
+    triggerShake();
+    return;
+  }
+  if (fieldErrors.phone) {
+    alert.value = "Please enter a valid phone number.";
     triggerShake();
     return;
   }
@@ -288,11 +388,16 @@ async function doRegister() {
 
   loading.value = true;
   try {
-    await authApi.register({
+    const payload = {
       username: form.username,
       email: form.email,
+      phone: form.phone.trim(),
       password: form.password,
-    });
+      // Only include optional fields when they have a value
+      ...(form.dateOfBirth && { dateOfBirth: form.dateOfBirth }),
+      ...(form.address.trim() && { address: form.address.trim() }),
+    };
+    await authApi.register(payload);
     toast("Account created! Please sign in.", "success");
     router.replace("/login");
   } catch (e) {
@@ -485,8 +590,48 @@ async function doRegister() {
   color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
+/* ─── Optional Badge ────────────────────────────────────── */
+.optional-badge {
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 100px;
+}
+
+/* ─── Optional Divider ──────────────────────────────────── */
+.optional-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+}
+
+.optional-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.optional-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* ─── Field Wrapper ─────────────────────────────────────── */
 .field-wrapper {
   display: flex;
   align-items: center;
@@ -532,6 +677,17 @@ async function doRegister() {
 }
 
 .field-input::placeholder { color: rgba(255, 255, 255, 0.18); }
+
+/* Date input native picker styling */
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.4);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+.date-input::-webkit-calendar-picker-indicator:hover { opacity: 0.9; }
+.date-input::-webkit-datetime-edit { color: rgba(255, 255, 255, 0.6); }
+.date-input::-webkit-datetime-edit-fields-wrapper { color: #e8eaf0; }
 
 .field-error-icon { color: rgba(239, 68, 68, 0.7); flex-shrink: 0; }
 .field-ok-icon    { color: rgba(52, 211, 153, 0.8); flex-shrink: 0; }
