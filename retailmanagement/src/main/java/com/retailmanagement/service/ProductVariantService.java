@@ -5,6 +5,7 @@ import com.retailmanagement.dto.response.ProductVariantResponse;
 import com.retailmanagement.entity.Product;
 import com.retailmanagement.entity.ProductVariant;
 import com.retailmanagement.repository.ProductRepository;
+import com.retailmanagement.repository.ProductSerialRepository;
 import com.retailmanagement.repository.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class ProductVariantService {
 
     private final ProductVariantRepository productVariantRepository;
     private final ProductRepository productRepository;
+    private final ProductSerialRepository productSerialRepository;
 
     public List<ProductVariantResponse> getVariantsByProductId(Integer productId) {
         return productVariantRepository.findByProduct_Id(productId)
@@ -76,6 +78,9 @@ public class ProductVariantService {
         variant.setBarcode(request.getBarcode());
         variant.setPrice(request.getPrice());
         variant.setCostPrice(request.getCostPrice());
+        if (variant.getId() == null) {
+            variant.setStockQuantity(0);
+        }
         variant.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
         variant.setReservedQty(0);
         variant.setAttributesJson(request.getAttributesJson());
@@ -96,6 +101,12 @@ public class ProductVariantService {
         response.setCurrencyCode(variant.getCurrencyCode());
         response.setPrice(variant.getPrice());
         response.setCostPrice(variant.getCostPrice());
+        int actualStock = productSerialRepository.countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+        response.setStockQuantity(actualStock);
+        if (variant.getStockQuantity() == null || variant.getStockQuantity() != actualStock) {
+            variant.setStockQuantity(actualStock);
+            productVariantRepository.save(variant);
+        }
         response.setStockQuantity(variant.getStockQuantity());
         response.setAttributesJson(variant.getAttributesJson());
         response.setIsActive(variant.getIsActive());

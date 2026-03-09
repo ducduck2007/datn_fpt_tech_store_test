@@ -68,7 +68,6 @@
 
         <div class="col-12 col-md-3">
           <el-select v-model="sortBy" placeholder="Sort by" @change="onFilter" style="width: 100%">
-            <!-- Yêu cầu 2: Lọc theo ngày nhập mới nhất -->
             <el-option label="Newest Arrival (Ngày nhập)" value="newest_arrival" />
             <el-option label="Newest (Mới nhất)" value="newest" />
             <el-option label="Oldest (Cũ nhất)" value="oldest" />
@@ -86,7 +85,7 @@
           </el-checkbox>
         </div>
 
-        <!-- BỘ LỌC NÂNG CAO (Yêu cầu 1, 3, 5) -->
+        <!-- BỘ LỌC NÂNG CAO -->
         <div class="col-12 col-md-4">
           <el-date-picker
             v-model="dateRange"
@@ -134,7 +133,6 @@
           <template #default="{ row }">
             <div class="d-flex align-items-center gap-2">
               <div class="fw-bold text-primary">{{ row.name }}</div>
-              <!-- Hiển thị nhãn Mới/Lỗi -->
               <el-tag v-if="row.isNew" size="small" type="success" effect="dark">NEW</el-tag>
               <el-tag v-if="row.isFaulty" size="small" type="danger" effect="dark">FAULTY</el-tag>
             </div>
@@ -164,7 +162,6 @@
           </template>
         </el-table-column>
 
-        <!-- Yêu cầu 2: Hiển thị ngày nhập -->
         <el-table-column label="Import Date" width="130" align="center">
           <template #default="{ row }">
             <div style="font-size: 11px; color: #666">{{ formatDate(row.createdAt) }}</div>
@@ -181,12 +178,10 @@
 
         <el-table-column label="Actions" width="220" align="center" fixed="right">
           <template #default="{ row }">
-            <!-- CHẾ ĐỘ HOẠT ĐỘNG: Đầy đủ chức năng -->
             <div v-if="viewMode === 'active'">
               <el-button type="success" link size="small" icon="Connection" @click="openVariantDrawer(row)">Variants</el-button>
               <el-button type="primary" link size="small" icon="Edit" @click="onEdit(row)">Edit</el-button>
               
-              <!-- Yêu cầu 5: Xóa thông minh (Xóa vĩnh viễn nếu là hàng lỗi) -->
               <el-popconfirm :title="row.isFaulty ? 'Sản phẩm lỗi. Xóa vĩnh viễn?' : 'Move to Trash Bin?'" @confirm="onDelete(row)">
                 <template #reference>
                   <el-button type="danger" link size="small" icon="Delete">{{ row.isFaulty ? 'Kill' : 'Delete' }}</el-button>
@@ -194,7 +189,6 @@
               </el-popconfirm>
             </div>
 
-            <!-- CHẾ ĐỘ THÙNG RÁC:-->
             <div v-else>
               <el-button 
                 type="warning" 
@@ -223,7 +217,7 @@
     </el-card>
 
     <!-- DRAWER VARIANTS -->
-    <el-drawer v-model="vr.open" :title="'Manage Variants: ' + vr.productName" size="50%" destroy-on-close>
+    <el-drawer v-model="vr.open" :title="'Manage Variants: ' + vr.productName" size="60%" destroy-on-close>
       <div class="mb-4">
         <h6 class="fw-bold mb-3">Existing Variants</h6>
         <el-table :data="vr.variants" border size="small" v-loading="vr.loading">
@@ -232,11 +226,13 @@
           <el-table-column label="Price / Stock" width="160">
             <template #default="{ row }">
               <div class="text-danger fw-bold">{{ formatCurrency(row.price) }}</div>
-              <div class="small">Stock: <span :class="row.stockQuantity > 0 ? 'text-success' : 'text-danger'">{{ row.stockQuantity }}</span></div>
+              <div class="small">Stock: <span :class="row.stockQuantity > 0 ? 'text-success fw-bold' : 'text-danger'">{{ row.stockQuantity }}</span></div>
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="120" align="center">
+          <el-table-column label="Actions" width="180" align="center">
             <template #default="{ row }">
+              <!-- NÚT MỚI: QUẢN LÝ SỐ SERI -->
+              <el-button type="warning" link size="small" @click="openSerialDialog(row)">Serials</el-button>
               <el-button type="primary" link size="small" @click="editVariant(row)">Edit</el-button>
               <el-popconfirm title="Delete variant?" @confirm="deleteVariant(row.id)">
                 <template #reference><el-button type="danger" link size="small">Delete</el-button></template>
@@ -254,7 +250,13 @@
           <div class="col-md-6"><el-form-item label="Variant Name" required><el-input v-model="vr.form.variantName" placeholder="e.g. Red, 16GB..."/></el-form-item></div>
           <div class="col-md-6"><el-form-item label="SKU" required><el-input v-model="vr.form.sku" /></el-form-item></div>
           <div class="col-md-6"><el-form-item label="Price (VND)" required><el-input-number v-model="vr.form.price" style="width: 100%" :min="0"/></el-form-item></div>
-          <div class="col-md-6"><el-form-item label="Stock Quantity" required><el-input-number v-model="vr.form.stockQuantity" style="width: 100%" :min="0"/></el-form-item></div>
+          
+          <!-- KHÓA Ô TỒN KHO - ÉP ĐẾM BẰNG SERI -->
+          <div class="col-md-6">
+            <el-form-item label="Stock Quantity (Auto-calculated by Serials)" required>
+              <el-input-number v-model="vr.form.stockQuantity" style="width: 100%" :min="0" disabled />
+            </el-form-item>
+          </div>
           
           <div class="col-12 mt-2">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -277,6 +279,43 @@
         </el-form>
       </div>
     </el-drawer>
+
+    <!-- DIALOG SERIAL NUMBERS (GIAO DIỆN ĐÃ SỬA LỖI ẨN NÚT) -->
+    <el-dialog v-model="serialDlg.open" :title="'Quản lý số Seri: ' + serialDlg.variantName" width="650px" append-to-body>
+      <div class="mb-3">
+         <label class="fw-bold small mb-1">Thêm số Seri (Nhập nhiều số cách nhau bằng dấu phẩy hoặc xuống dòng)</label>
+         <el-input type="textarea" :rows="4" v-model="serialDlg.inputText" placeholder="Ví dụ:&#10;SN-ASUS-001&#10;SN-ASUS-002"></el-input>
+         <div class="mt-2 text-end">
+           <el-button type="primary" :loading="serialDlg.adding" @click="submitSerials">Nhập kho (Thêm Seri)</el-button>
+         </div>
+      </div>
+      <el-divider />
+      <div class="fw-bold small mb-2 text-muted">Danh sách máy trong kho:</div>
+      
+      <!-- Bỏ fixed height="300" để bảng tự giãn, thêm max-height để vẫn có thanh cuộn nếu quá nhiều -->
+      <!-- Tăng width của cột Hành động lên 100 để không bị lẹm -->
+      <el-table :data="serialDlg.list" border size="small" v-loading="serialDlg.loading" max-height="400">
+         <el-table-column type="index" width="50" align="center" />
+         <el-table-column prop="serialNumber" label="Số Seri / IMEI" min-width="150" />
+         <el-table-column prop="status" label="Trạng thái" width="120" align="center">
+           <template #default="{ row }">
+             <el-tag :type="row.status === 'IN_STOCK' ? 'success' : (row.status === 'SOLD' ? 'info' : 'danger')" size="small">
+               {{ row.status === 'IN_STOCK' ? 'Trong kho' : row.status }}
+             </el-tag>
+           </template>
+         </el-table-column>
+         <el-table-column label="Hành động" width="100" align="center">
+           <template #default="{ row }">
+             <el-popconfirm title="Xóa seri này?" @confirm="deleteSerial(row.id)">
+               <template #reference>
+                 <!-- Sửa icon thành chữ cho rõ ràng và dễ bấm hơn -->
+                 <el-button type="danger" size="small" :disabled="row.status !== 'IN_STOCK'">Xóa</el-button>
+               </template>
+             </el-popconfirm>
+           </template>
+         </el-table-column>
+      </el-table>
+    </el-dialog>
 
     <!-- DIALOG PRODUCT -->
     <el-dialog v-model="dlg.open" :title="dlg.isEdit ? 'Update Product' : 'Create Product'" width="850px">
@@ -527,13 +566,87 @@ async function deleteVariant(id) {
   catch { toast("Failed", "error"); } 
 }
 
+// ==========================================
+// LOGIC QUẢN LÝ SỐ SERI MỚI (YÊU CẦU THÊM)
+// ==========================================
+const serialDlg = reactive({
+  open: false,
+  variantId: null,
+  variantName: "",
+  list: [],
+  inputText: "",
+  loading: false,
+  adding: false
+});
+
+async function openSerialDialog(row) {
+  serialDlg.variantId = row.id;
+  serialDlg.variantName = row.variantName;
+  serialDlg.inputText = "";
+  serialDlg.open = true;
+  await loadSerials();
+}
+
+async function loadSerials() {
+  serialDlg.loading = true;
+  try {
+    const res = await axios.get(`http://localhost:8080/api/products/variants/${serialDlg.variantId}/serials`);
+    serialDlg.list = res.data || [];
+  } catch (e) {
+    toast("Lỗi tải danh sách seri", "error");
+  } finally {
+    serialDlg.loading = false;
+  }
+}
+
+async function submitSerials() {
+  if (!serialDlg.inputText.trim()) return;
+  
+  // Tách text bằng dấu phẩy hoặc xuống dòng
+  const rawSerials = serialDlg.inputText.split(/[\n,]+/);
+  const serials = rawSerials.map(s => s.trim()).filter(s => s.length > 0);
+  
+  if (serials.length === 0) return;
+
+  serialDlg.adding = true;
+  try {
+    const payload = { serialNumbers: serials };
+    await axios.post(`http://localhost:8080/api/products/variants/${serialDlg.variantId}/serials`, payload);
+    toast("Thêm Seri thành công", "success");
+    serialDlg.inputText = "";
+    
+    // Tải lại dữ liệu để đồng bộ Tồn kho (Stock)
+    await loadSerials();
+    await loadVariants(); 
+    await load(); 
+  } catch (e) {
+    const msg = e.response?.data || "Có lỗi xảy ra (có thể Seri bị trùng)";
+    toast(msg, "error");
+  } finally {
+    serialDlg.adding = false;
+  }
+}
+
+async function deleteSerial(serialId) {
+  try {
+    await axios.delete(`http://localhost:8080/api/products/variants/serials/${serialId}`);
+    toast("Xóa Seri thành công", "success");
+    await loadSerials();
+    await loadVariants();
+    await load(); 
+  } catch (e) {
+    toast("Xóa thất bại", "error");
+  }
+}
+// ==========================================
+
+
 // --- Product Actions ---
 async function onRestore(id) { 
   try { await axios.put(`${BASE_URL_API}/${id}/restore`); toast("Restored!", "success"); load(); } 
   catch { toast("Restore failed", "error"); } 
 }
 
-// YÊU CẦU 5: CẬP NHẬT LOGIC XÓA (Xóa vĩnh viễn nếu là hàng lỗi)
 async function onDelete(row) { 
   try { 
     if (row.isFaulty) {
@@ -610,7 +723,6 @@ async function submitForm() {
   try {
     const formData = new FormData();
     
-    // 1. Text & Boolean
     formData.append("name", String(dlg.form.name || "")); 
     formData.append("sku", String(dlg.form.sku || "")); 
     formData.append("description", String(dlg.form.description || "")); 
@@ -618,7 +730,6 @@ async function submitForm() {
     formData.append("isNew", String(dlg.form.isNew));
     formData.append("isFaulty", String(dlg.form.isFaulty));
     
-    // 2. Mảng ID
     if (Array.isArray(dlg.form.categoryIds) && dlg.form.categoryIds.length > 0) {
       dlg.form.categoryIds.forEach(id => formData.append("categoryIds", id));
     }
@@ -629,7 +740,6 @@ async function submitForm() {
       dlg.idsToDelete.forEach(id => formData.append("idsToDelete", id));
     }
 
-    // 3. FILE UPLOAD (CHÌA KHÓA Ở ĐÂY)
     if (dlg.form.galleryImages && dlg.form.galleryImages.length > 0) {
       for (let i = 0; i < dlg.form.galleryImages.length; i++) {
          let file = dlg.form.galleryImages[i];
@@ -639,13 +749,11 @@ async function submitForm() {
       }
     }
 
-    // 4. JSON Attributes
     const validAttrs = dlg.attributesList.filter(a => a.name && a.name.trim() !== "" && a.value && a.value.trim() !== "");
     if (validAttrs.length > 0) {
       formData.append("attributes", JSON.stringify(validAttrs));
     }
 
-    // TÍNH NĂNG ĐÃ SỬA: BỎ HẲN CONFIG HEADER ĐI, CHỈ TRUYỀN FORMDATA
     if (dlg.isEdit) {
       await axios.put(`${BASE_URL_API}/${dlg.editId}`, formData); 
     } else {
@@ -657,7 +765,6 @@ async function submitForm() {
     toast("Success", "success");
   } catch (e) { 
     console.error("LỖI GỬI LÊN:", e);
-    // Log ra lỗi chi tiết từ backend nếu có
     const backendError = e.response?.data?.message || e.message;
     toast("Lỗi: " + backendError, "error"); 
   } finally { 
