@@ -1,255 +1,289 @@
 <template>
-  <div class="container-xl">
-    <el-card shadow="never">
-      <!-- Header -->
-      <div
-        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
-      >
-        <div>
-          <div class="kicker">Order</div>
-          <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
-          <div class="muted">
-            <el-tag :type="statusType" size="large">{{
-              detail?.status
-            }}</el-tag>
-            <el-tag class="ms-2" :type="paymentStatusType" size="large">
-              Payment: {{ detail?.paymentStatus }}
-            </el-tag>
-            <el-tag
-              v-if="isReturned(detail?.status)"
-              type="warning"
-              size="large"
-              class="ms-2"
-            >
-              Returned
-            </el-tag>
+  <div class="container-xl order-layout">
+    <div class="order-left">
+      <el-card shadow="never" class="order-card">
+        <!-- HEADER -->
+        <div class="order-header">
+          <div>
+            <div class="kicker">Order</div>
+            <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
+
+            <div class="muted mt-1">
+              <el-tag :type="statusType" size="large">
+                {{ detail?.status }}
+              </el-tag>
+
+              <!-- <el-tag class="ms-2" :type="paymentStatusType" size="large">
+                Payment: {{ detail?.paymentStatus }}
+              </el-tag> -->
+
+              <el-tag
+                v-if="isReturned(detail?.status)"
+                type="warning"
+                size="large"
+                class="ms-2"
+              >
+                Returned
+              </el-tag>
+            </div>
           </div>
-        </div>
-        <div class="d-flex gap-2">
-          <el-button @click="$router.push('/orders/new')"
-            >Create another</el-button
-          >
-          <el-button @click="reload" :loading="loading">Reload</el-button>
 
-          <el-button
-            v-if="
-              detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'
-            "
-            type="primary"
-            @click="openPaymentDialog"
-          >
-            <el-icon class="me-1"><CreditCard /></el-icon>
-            Thanh toán
-          </el-button>
+          <div class="order-actions">
+            <el-button @click="reload" :loading="loading"> Reload </el-button>
 
-          <el-button
-            v-if="
-              detail?.status === 'PENDING' ||
-              detail?.status === 'PAID' ||
-              detail?.status === 'SHIPPING'
-            "
-            type="danger"
-            @click="showCancelDialog = true"
-          >
-            <el-icon class="me-1"><Close /></el-icon>
-            Hủy đơn
-          </el-button>
-
-          <el-button
-            v-if="detail?.status === 'DELIVERED' && !isReturned(detail?.status)"
-            type="warning"
-            @click="showReturnDialog = true"
-          >
-            <el-icon class="me-1"><RefreshLeft /></el-icon>
-            Yêu cầu trả hàng
-          </el-button>
-        </div>
-      </div>
-
-      <el-divider />
-
-      <!-- Order Info -->
-      <el-skeleton v-if="loading" :rows="6" animated />
-      <div v-else-if="detail" class="row g-3">
-        <!-- Customer & Payment Info -->
-        <div class="col-12 col-md-6">
-          <div class="info-box">
-            <h5>Thông tin khách hàng</h5>
-            <p><strong>Tên:</strong> {{ detail.customerName }}</p>
-            <p><strong>ID:</strong> {{ detail.customerId }}</p>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <div class="info-box">
-            <h5>Thanh toán & Giao hàng</h5>
-            <p><strong>Phương thức:</strong> {{ detail.paymentMethod }}</p>
-            <p><strong>Kênh:</strong> {{ detail.channel }}</p>
-            <p><strong>Ghi chú:</strong> {{ detail.notes || "—" }}</p>
-          </div>
-        </div>
-
-        <!-- Discount Breakdown Alert -->
-        <div v-if="hasDiscountInfo" class="col-12">
-          <el-alert
-            :title="`💰 Ưu đãi áp dụng: Tổng giảm ${formatMoney(detail.discountTotal)}`"
-            type="success"
-            :closable="false"
-            show-icon
-          >
-            <div class="discount-details">
-              <div v-if="detail.vipDiscountRate > 0" class="discount-item">
-                <span class="discount-label"
-                  >🏆 VIP {{ detail.vipDiscountRate }}%:</span
-                >
-                <span class="discount-value"
-                  >-{{ formatMoney(detail.vipDiscount) }}</span
-                >
-              </div>
-              <div v-if="detail.spinDiscountRate > 0" class="discount-item">
-                <span class="discount-label"
-                  >🎡 Vòng quay {{ detail.spinDiscountRate }}%:</span
-                >
-                <span class="discount-value"
-                  >-{{ formatMoney(detail.spinDiscount) }}</span
-                >
-              </div>
-            </div>
-          </el-alert>
-        </div>
-
-        <!-- Items Table -->
-        <div class="col-12">
-          <h5 class="mb-2">Chi tiết sản phẩm</h5>
-          <el-table :data="detail.items" border>
-            <el-table-column label="Sản phẩm" min-width="200">
-              <template #default="{ row }">
-                <div class="fw-bold">{{ row.productName }}</div>
-                <div class="muted small">{{ row.variantName }}</div>
-                <div class="muted small">SKU: {{ row.sku }}</div>
-              </template>
-            </el-table-column>
-            <el-table-column label="Số lượng" width="100" align="center">
-              <template #default="{ row }">{{ row.quantity }}</template>
-            </el-table-column>
-            <el-table-column label="Đơn giá" width="150" align="right">
-              <template #default="{ row }">{{
-                formatMoney(row.price)
-              }}</template>
-            </el-table-column>
-            <el-table-column label="Giảm giá" width="150" align="right">
-              <template #default="{ row }">
-                <span v-if="row.discount > 0" class="text-danger"
-                  >-{{ formatMoney(row.discount) }}</span
-                >
-                <span v-else class="text-muted">—</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Tổng" width="150" align="right">
-              <template #default="{ row }">
-                <strong>{{ formatMoney(row.lineTotal) }}</strong>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-
-        <!-- Totals -->
-        <div class="col-12">
-          <div class="totals-box">
-            <div class="d-flex justify-content-between">
-              <span>Tạm tính:</span>
-              <strong>{{ formatMoney(detail.subtotal) }}</strong>
-            </div>
-            <div class="d-flex justify-content-between text-success">
-              <span>Giảm giá:</span>
-              <strong>- {{ formatMoney(detail.discountTotal) }}</strong>
-            </div>
-
-            <!-- VIP discount thực tế -->
-            <div
-              v-if="detail.vipDiscountRate > 0"
-              class="d-flex justify-content-between ps-3 small"
-            >
-              <span class="text-muted"
-                >└ VIP {{ detail.vipDiscountRate }}%:</span
-              >
-              <span class="text-muted"
-                >-{{ formatMoney(detail.vipDiscount) }}</span
-              >
-            </div>
-
-            <!-- Spin discount thực tế (đã áp vào đơn) -->
-            <div
-              v-if="detail.spinDiscountRate > 0"
-              class="d-flex justify-content-between ps-3 small"
-            >
-              <span class="text-muted"
-                >└ 🎡 Spin {{ detail.spinDiscountRate }}%:</span
-              >
-              <span class="text-muted"
-                >-{{ formatMoney(detail.spinDiscount) }}</span
-              >
-            </div>
-
-            <!-- Spin ước tính - CHỈ hiện khi đơn CHƯA có spin discount được áp -->
-            <div
+            <el-button
               v-if="
-                spinStatus.hasActiveBonus &&
-                estimatedSpinDiscount > 0 &&
-                !(detail.spinDiscountRate > 0)
+                detail?.status === 'PENDING' &&
+                detail?.paymentStatus === 'UNPAID' &&
+                detail?.paymentMethod !== 'CASH'
               "
-              class="d-flex justify-content-between ps-3 small spin-estimated-row"
+              type="primary"
+              @click="openPaymentDialog"
             >
-              <span
-                >└ 🎡 Spin {{ spinStatus.bonusRate }}%
-                <em>(ước tính)</em>:</span
-              >
-              <span>-{{ formatMoney(estimatedSpinDiscount) }}</span>
-            </div>
+              <el-icon class="me-1"><CreditCard /></el-icon>
+              Thanh toán
+            </el-button>
 
-            <div class="d-flex justify-content-between">
-              <span>Phí ship:</span>
-              <strong>{{ formatMoney(detail.shippingFee) }}</strong>
-            </div>
+            <el-button
+              v-if="
+                detail?.status === 'PENDING' ||
+                detail?.status === 'PAID' ||
+                detail?.status === 'SHIPPING'
+              "
+              type="danger"
+              @click="showCancelDialog = true"
+            >
+              <el-icon class="me-1"><Close /></el-icon>
+              Hủy đơn
+            </el-button>
 
-            <el-divider />
-
-            <div class="d-flex justify-content-between fs-5 align-items-start">
-              <span><strong>Tổng cộng:</strong></span>
-
-              <!-- Khi có spin bonus chưa áp: gạch giá gốc, hiện giá ước tính -->
-              <div
-                v-if="
-                  spinStatus.hasActiveBonus &&
-                  estimatedSpinDiscount > 0 &&
-                  !(detail.spinDiscountRate > 0)
-                "
-                class="text-end"
-              >
-                <div
-                  class="text-muted text-decoration-line-through"
-                  style="font-size: 14px"
-                >
-                  {{ formatMoney(detail.totalAmount) }}
-                </div>
-                <strong class="text-primary" style="font-size: 20px">
-                  {{ formatMoney(detail.totalAmount - estimatedSpinDiscount) }}
-                </strong>
-                <div class="estimated-total-note mt-1">
-                  🎡 Ước tính sau giảm Spin {{ spinStatus.bonusRate }}% · Sẽ
-                  tính chính xác khi thanh toán
-                </div>
-              </div>
-
-              <!-- Bình thường -->
-              <strong v-else class="text-primary">{{
-                formatMoney(detail.totalAmount)
-              }}</strong>
-            </div>
+            <el-button
+              v-if="
+                detail?.status === 'DELIVERED' && !isReturned(detail?.status)
+              "
+              type="warning"
+              @click="showReturnDialog = true"
+            >
+              <el-icon class="me-1"><RefreshLeft /></el-icon>
+              Yêu cầu trả hàng
+            </el-button>
           </div>
         </div>
+
+        <el-divider />
+
+        <!-- ORDER TRACKING -->
+        <div v-if="detail" class="order-timeline">
+          <!-- ① Đặt hàng ─────────────────────────── -->
+          <div class="timeline-step">
+            <div
+              class="timeline-dot"
+              :class="{
+                active: [
+                  'PENDING',
+                  'PAID',
+                  'PROCESSING',
+                  'SHIPPING',
+                  'DELIVERED',
+                ].includes(detail.status),
+              }"
+            ></div>
+            <div class="timeline-label">Đặt hàng</div>
+          </div>
+
+          <!-- ② Thanh toán (ẩn khi CASH) ─────────── -->
+          <template v-if="detail.paymentMethod !== 'CASH'">
+            <div
+              class="timeline-line"
+              :class="{
+                'line-active': [
+                  'PAID',
+                  'PROCESSING',
+                  'SHIPPING',
+                  'DELIVERED',
+                ].includes(detail.status),
+              }"
+            ></div>
+            <div class="timeline-step">
+              <div
+                class="timeline-dot"
+                :class="{
+                  active: [
+                    'PAID',
+                    'PROCESSING',
+                    'SHIPPING',
+                    'DELIVERED',
+                  ].includes(detail.status),
+                }"
+              ></div>
+              <div class="timeline-label">Thanh toán</div>
+            </div>
+          </template>
+
+          <!-- ③ Chuẩn bị hàng ─────────────────────── -->
+          <div
+            class="timeline-line"
+            :class="{
+              'line-active': ['PROCESSING', 'SHIPPING', 'DELIVERED'].includes(
+                detail.status,
+              ),
+            }"
+          ></div>
+          <div class="timeline-step">
+            <div
+              class="timeline-dot"
+              :class="{
+                active: ['PROCESSING', 'SHIPPING', 'DELIVERED'].includes(
+                  detail.status,
+                ),
+              }"
+            ></div>
+            <div class="timeline-label">Chuẩn bị hàng</div>
+          </div>
+
+          <!-- ④ Đang giao ─────────────────────────── -->
+          <div
+            class="timeline-line"
+            :class="{
+              'line-active': ['SHIPPING', 'DELIVERED'].includes(detail.status),
+            }"
+          ></div>
+          <div class="timeline-step">
+            <div
+              class="timeline-dot"
+              :class="{
+                active: ['SHIPPING', 'DELIVERED'].includes(detail.status),
+              }"
+            ></div>
+            <div class="timeline-label">Đang giao</div>
+          </div>
+
+          <!-- ⑤ Đã giao ──────────────────────────── -->
+          <div
+            class="timeline-line"
+            :class="{ 'line-active': detail.status === 'DELIVERED' }"
+          ></div>
+          <div class="timeline-step">
+            <div
+              class="timeline-dot"
+              :class="{ active: detail.status === 'DELIVERED' }"
+            ></div>
+            <div class="timeline-label">Đã giao</div>
+          </div>
+        </div>
+
+        <!-- CONTENT -->
+        <el-skeleton v-if="loading" :rows="6" animated />
+
+        <div v-else-if="detail" class="row g-4 mt-2">
+          <!-- CUSTOMER -->
+          <div class="col-12 col-md-6">
+            <div class="info-box">
+              <h5>Thông tin khách hàng</h5>
+
+              <p><strong>Tên:</strong> {{ detail.customerName }}</p>
+
+              <p><strong>ID:</strong> {{ detail.customerId }}</p>
+            </div>
+          </div>
+
+          <!-- PAYMENT -->
+          <div class="col-12 col-md-6">
+            <div class="info-box">
+              <h5>Thanh toán & Giao hàng</h5>
+
+              <p><strong>Phương thức:</strong> {{ detail.paymentMethod }}</p>
+
+              <p><strong>Kênh:</strong> {{ detail.channel }}</p>
+
+              <p><strong>Ghi chú:</strong> {{ detail.notes || "—" }}</p>
+            </div>
+          </div>
+
+          <!-- ITEMS -->
+          <div class="col-12">
+            <h5 class="section-title">Chi tiết sản phẩm</h5>
+
+            <el-table :data="detail.items" border class="order-table">
+              <el-table-column label="Sản phẩm" min-width="240">
+                <template #default="{ row }">
+                  <div class="product-cell">
+                    <div class="product-info">
+                      <div class="product-name">
+                        {{ row.productName }}
+                      </div>
+
+                      <div class="product-meta">
+                        {{ row.variantName }}
+                      </div>
+
+                      <div class="product-meta">SKU: {{ row.sku }}</div>
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="Số lượng" width="110" align="center">
+                <template #default="{ row }">
+                  {{ row.quantity }}
+                </template>
+              </el-table-column>
+
+              <el-table-column label="Đơn giá" width="160" align="right">
+                <template #default="{ row }">
+                  {{ formatMoney(row.price) }}
+                </template>
+              </el-table-column>
+
+              <el-table-column label="Giảm giá" width="160" align="right">
+                <template #default="{ row }">
+                  <span v-if="row.discount > 0" class="discount-text">
+                    -{{ formatMoney(row.discount) }}
+                  </span>
+
+                  <span v-else class="text-muted">—</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="Tổng" width="170" align="right">
+                <template #default="{ row }">
+                  <strong>{{ formatMoney(row.lineTotal) }}</strong>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="order-right" v-if="detail">
+      <div class="totals-box">
+        <div class="total-row">
+          <span>Tạm tính</span>
+          <strong>{{ formatMoney(detail.subtotal) }}</strong>
+        </div>
+
+        <div class="total-row discount">
+          <span>Giảm giá</span>
+          <strong>- {{ formatMoney(detail.discountTotal) }}</strong>
+        </div>
+
+        <div class="total-row">
+          <span>Phí ship</span>
+          <strong>{{ formatMoney(detail.shippingFee) }}</strong>
+        </div>
+
+        <el-divider />
+
+        <div class="total-final">
+          <span>Tổng cộng</span>
+          <strong class="total-price">
+            {{ formatMoney(detail.totalAmount) }}
+          </strong>
+        </div>
       </div>
-    </el-card>
+    </div>
 
     <!-- ================================================================ -->
     <!-- Payment Dialog                                                    -->
@@ -369,7 +403,8 @@
         </ul>
       </el-alert>
 
-      <el-form :model="paymentForm" label-position="top">
+      <!-- Số tiền -->
+      <el-form label-position="top">
         <el-form-item label="Số tiền thanh toán">
           <el-input
             :value="formatMoney(detail?.totalAmount)"
@@ -378,26 +413,64 @@
           />
         </el-form-item>
 
-        <el-form-item label="Phương thức thanh toán" required>
-          <el-select
-            v-model="paymentForm.method"
-            placeholder="Chọn phương thức"
-            class="w-100"
-            size="large"
-          >
-            <el-option label="💵 Tiền mặt" value="CASH" />
-            <el-option label="🏦 Chuyển khoản" value="BANK_TRANSFER" />
-            <el-option label="💳 Thẻ tín dụng" value="CREDIT_CARD" />
-            <el-option label="📱 Ví điện tử" value="E_WALLET" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Mã giao dịch (tùy chọn)">
-          <el-input
-            v-model="paymentForm.transactionRef"
-            placeholder="Ví dụ: TXN-123456"
+        <!-- ================= BANK TRANSFER ================= -->
+        <div v-if="detail?.paymentMethod === 'TRANSFER'" class="qr-box">
+          <el-alert
+            title="Thanh toán bằng chuyển khoản"
+            type="success"
+            :closable="false"
+            class="mb-3"
           />
-        </el-form-item>
+
+          <div class="qr-payment">
+            <img :src="qrCodeUrl" class="qr-img" v-if="qrCodeUrl" />
+
+            <p class="qr-note">
+              Quét mã QR bằng ứng dụng ngân hàng để thanh toán
+            </p>
+          </div>
+        </div>
+
+        <!-- ================= CREDIT CARD ================= -->
+        <el-form
+          v-if="detail?.paymentMethod === 'CARD'"
+          ref="cardFormRef"
+          :model="cardForm"
+          :rules="cardRules"
+          label-position="top"
+        >
+          <el-form-item label="Loại thẻ" prop="type">
+            <el-select v-model="cardForm.type" class="w-100">
+              <el-option label="VISA" value="VISA" />
+              <el-option label="Credit Card" value="CREDIT" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Số thẻ" prop="number">
+            <el-input
+              v-model="cardForm.number"
+              placeholder="1234567812345678"
+            />
+          </el-form-item>
+
+          <el-form-item label="Tên chủ thẻ" prop="holder">
+            <el-input v-model="cardForm.holder" />
+          </el-form-item>
+
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="Expiry" prop="expiry">
+                <el-input v-model="cardForm.expiry" placeholder="MM/YY" />
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="CVV" prop="cvv">
+                <el-input v-model="cardForm.cvv" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
       </el-form>
 
       <template #footer>
@@ -408,7 +481,7 @@
           type="primary"
           @click="confirmPayment"
           :loading="paymentLoading"
-          :disabled="!paymentForm.method"
+          :disabled="false"
           size="large"
         >
           Xác nhận thanh toán
@@ -520,6 +593,40 @@ const paymentLoading = ref(false);
 const detail = ref(null);
 const orderId = computed(() => route.params.orderId);
 
+const cardFormRef = ref(null);
+const cardRules = {
+  type: [{ required: true, message: "Chọn loại thẻ", trigger: "change" }],
+
+  number: [
+    { required: true, message: "Nhập số thẻ", trigger: "blur" },
+    {
+      pattern: /^[0-9]{16}$/,
+      message: "Số thẻ phải gồm 16 chữ số",
+      trigger: "blur",
+    },
+  ],
+
+  holder: [{ required: true, message: "Nhập tên chủ thẻ", trigger: "blur" }],
+
+  expiry: [
+    { required: true, message: "Nhập ngày hết hạn", trigger: "blur" },
+    {
+      pattern: /^(0[1-9]|1[0-2])\/[0-9]{2}$/,
+      message: "Định dạng MM/YY",
+      trigger: "blur",
+    },
+  ],
+
+  cvv: [
+    { required: true, message: "Nhập CVV", trigger: "blur" },
+    {
+      pattern: /^[0-9]{3,4}$/,
+      message: "CVV phải 3 hoặc 4 số",
+      trigger: "blur",
+    },
+  ],
+};
+
 const showCancelDialog = ref(false);
 const cancelReason = ref("");
 const showReturnDialog = ref(false);
@@ -540,7 +647,33 @@ const returnForm = reactive({
   reason: "",
   refundAmount: 0,
 });
-const paymentForm = reactive({ method: "CASH", transactionRef: "" });
+const cardForm = reactive({
+  type: "VISA",
+  number: "",
+  holder: "",
+  expiry: "",
+  cvv: "",
+});
+
+const qrCodeUrl = ref("");
+
+function generateFakeBankQR() {
+  const amount = detail.value?.totalAmount || 0;
+  const order = detail.value?.orderNumber || orderId.value;
+
+  const bank = "VCB";
+  const account = "1234567890"; // fake account
+
+  qrCodeUrl.value = `https://img.vietqr.io/image/${bank}-${account}-compact2.png?amount=${amount}&addInfo=ORDER${order}`;
+}
+
+async function openPaymentDialog() {
+  showPaymentDialog.value = true;
+  await fetchSpinStatus();
+  if (detail.value.paymentMethod === "TRANSFER") {
+    generateFakeBankQR();
+  }
+}
 
 // ── Computed ──────────────────────────────────────────────────────────
 const statusType = computed(() => {
@@ -626,6 +759,7 @@ async function reload() {
   try {
     const res = await ordersApi.getById(orderId.value);
     detail.value = res?.data?.data || res?.data;
+    console.log("PAYMENT METHOD:", detail.value?.paymentMethod);
   } catch (e) {
     toast("Không thể tải chi tiết đơn hàng", "error");
   } finally {
@@ -663,11 +797,6 @@ async function fetchSpinStatus() {
   }
 }
 
-async function openPaymentDialog() {
-  showPaymentDialog.value = true;
-  await fetchSpinStatus();
-}
-
 // ── Cancel ────────────────────────────────────────────────────────────
 function getCancelWarningTitle() {
   return detail.value?.paymentStatus === "PAID"
@@ -701,19 +830,31 @@ function getMaxReturnQuantity() {
 
 // ── Payment ───────────────────────────────────────────────────────────
 async function confirmPayment() {
-  if (!paymentForm.method) return;
+  if (detail.value?.paymentMethod === "CARD") {
+    const valid = await cardFormRef.value.validate().catch(() => false);
+
+    if (!valid) {
+      toast("Vui lòng nhập đúng thông tin thẻ", "error");
+      return;
+    }
+  }
+
   paymentLoading.value = true;
+
   try {
     await paymentsApi.create({
       orderId: Number(orderId.value),
-      method: paymentForm.method,
-      transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`,
+      method: detail.value.paymentMethod,
+      transactionRef: `TXN-${Date.now()}`,
     });
-    toast("✅ Thanh toán thành công!", "success");
+
+    toast("Thanh toán thành công", "success");
+
     showPaymentDialog.value = false;
-    await reload(); // ✅ Reload để lấy totalAmount mới đã trừ spin
+
+    await reload();
   } catch (e) {
-    toast(e?.response?.data?.message || "Lỗi thanh toán", "error");
+    toast("Lỗi thanh toán", "error");
   } finally {
     paymentLoading.value = false;
   }
@@ -751,235 +892,290 @@ onMounted(() => reload());
 </script>
 
 <style scoped>
-.info-box {
-  padding: 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
-}
-.info-box h5 {
-  margin-bottom: 12px;
-  color: #2c3e50;
-}
-.info-box p {
-  margin: 8px 0;
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+.order-page {
+  padding: 20px 0;
+  font-family: "Inter", sans-serif;
 }
 
-.totals-box {
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
+.order-card {
+  border-radius: 12px;
+  padding: 8px;
 }
-.totals-box > div {
-  padding: 8px 0;
+
+/* HEADER */
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .kicker {
   font-size: 12px;
-  opacity: 0.75;
-  font-weight: 900;
   text-transform: uppercase;
+  font-weight: 900;
+  opacity: 0.7;
 }
+
 .title {
-  font-weight: 900;
-  font-size: 18px;
-}
-.muted {
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 13px;
-}
-.small {
-  font-size: 12px;
-}
-
-.discount-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-.discount-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 6px;
-}
-.discount-label {
-  font-weight: 600;
-  color: #2c3e50;
-}
-.discount-value {
-  font-weight: 700;
-  color: #67c23a;
-}
-
-/* ── Spin Loading ─────────────────────────────────────────── */
-.spin-loading-wrap {
-  background: #f5f7fa;
-  border-radius: 10px;
-  padding: 12px 16px;
-}
-.spin-loading-inner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #888;
-  font-size: 14px;
-}
-.spin-loading-icon {
   font-size: 20px;
-  animation: spin-rotate 1.2s linear infinite;
-}
-@keyframes spin-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ── No Bonus Notice ──────────────────────────────────────── */
-.spin-no-bonus {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  border: 1px dashed #dcdfe6;
-  font-size: 13px;
-  color: #909399;
-}
-.spin-no-bonus-icon {
-  font-size: 18px;
-}
-
-/* ── Spin Bonus Banner ────────────────────────────────────── */
-.spin-bonus-banner {
-  border-radius: 12px;
-  overflow: hidden;
-  border: 2px solid #f0a500;
-  background: linear-gradient(135deg, #fffbec 0%, #fff8db 100%);
-  box-shadow: 0 4px 16px rgba(240, 165, 0, 0.18);
-}
-.spin-bonus-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
-  gap: 12px;
-}
-.spin-bonus-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.spin-bonus-icon {
-  font-size: 28px;
-  line-height: 1;
-  animation: spin-pulse 2s ease-in-out infinite;
-}
-@keyframes spin-pulse {
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-  50% {
-    transform: rotate(15deg) scale(1.1);
-  }
-}
-.spin-bonus-title {
-  font-weight: 700;
-  font-size: 14px;
-  color: #7c5200;
-}
-.spin-bonus-sub {
-  font-size: 12px;
-  color: #9d6f0a;
-  margin-top: 2px;
-}
-.spin-bonus-rate {
-  color: #e67e00;
-  font-size: 15px;
-}
-.spin-bonus-badge {
-  background: linear-gradient(135deg, #f0a500, #e67e00);
-  color: white;
   font-weight: 900;
-  font-size: 18px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(230, 126, 0, 0.4);
+  color: #0f172a;
 }
 
-.spin-bonus-breakdown {
-  border-top: 1px solid #f0d58a;
-  padding: 10px 16px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.breakdown-row {
-  display: flex;
-  justify-content: space-between;
+.muted {
   font-size: 13px;
-  padding: 2px 0;
-  color: #5a3d00;
-}
-.breakdown-label {
-  opacity: 0.85;
-}
-.breakdown-total {
-  border-top: 1px dashed #f0d58a;
-  margin-top: 4px;
-  padding-top: 6px;
-  font-size: 14px;
-  color: #3d2800;
+  color: #64748b;
 }
 
-/* ── Spin Estimated Row (totals box) ─────────────────────── */
-.spin-estimated-row {
-  color: #e67e00;
-  font-style: italic;
-}
-.spin-estimated-row span {
-  opacity: 1 !important;
-  color: #e67e00;
+/* ORDER TRACKING */
+
+.order-tracking {
+  display: flex;
+  align-items: center;
+  margin: 20px 0 10px;
 }
 
-.estimated-total-row {
-  margin-top: 8px;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, #fffbec, #fff3cd);
-  border: 1.5px dashed #f0a500;
-  border-radius: 8px;
+.track-step {
+  text-align: center;
+  width: 120px;
 }
-.estimated-total-label {
-  font-size: 14px;
-  color: #7c5200;
+
+.track-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  font-weight: 700;
+}
+
+.track-icon.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.track-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.track-line {
+  flex: 1;
+  height: 3px;
+  background: #e5e7eb;
+}
+
+/* INFO BOX */
+
+.info-box {
+  padding: 20px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.info-box h5 {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.info-box p {
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+/* TABLE */
+
+.order-table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.product-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.product-meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.discount-text {
+  color: #dc2626;
   font-weight: 600;
 }
-.estimated-total-value {
-  font-size: 15px;
-  color: #e67e00;
-}
-.estimated-total-note {
-  font-size: 11px;
-  color: #9d6f0a;
-  margin-top: 4px;
-  font-style: italic;
+
+/* TOTAL BOX */
+
+.totals-box {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 26px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
 }
 
-/* ── Transition ───────────────────────────────────────────── */
-.spin-bonus-fade-enter-active,
-.spin-bonus-fade-leave-active {
-  transition: all 0.35s ease;
+.totals-box strong {
+  font-weight: 700;
 }
-.spin-bonus-fade-enter-from,
-.spin-bonus-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
+
+.totals-box .fs-5 strong {
+  font-size: 22px;
+  color: #3b82f6;
+}
+
+/* TOTAL ROW */
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.total-row.discount {
+  color: #16a34a;
+}
+
+.total-final {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.total-price {
+  color: #3b82f6;
+}
+
+.section-title {
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+/* TIMELINE */
+
+.order-timeline {
+  display: flex;
+  align-items: center;
+  margin: 28px 0 10px;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 140px;
+  position: relative;
+}
+
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  transition: all 0.3s;
+}
+
+.timeline-dot.active {
+  background: #3b82f6;
+  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.15);
+}
+
+.timeline-label {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.timeline-line {
+  flex: 1;
+  height: 3px;
+  background: #e5e7eb;
+}
+
+/* TABLE (element overrides) */
+
+.el-table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.el-table th {
+  background: #f8fafc;
+  font-weight: 700;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.el-table td {
+  font-size: 14px;
+  color: #374151;
+}
+
+/* LAYOUT */
+
+.order-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+.order-left {
+  min-width: 0;
+}
+
+.order-right {
+  position: sticky;
+  align-self: start;
+}
+
+.container-xl {
+  max-width: 1280px;
+}
+
+.qr-payment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+.qr-img {
+  width: 440px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+.qr-note {
+  font-size: 13px;
+  color: #888;
+  text-align: center;
 }
 </style>

@@ -15,6 +15,7 @@ import com.retailmanagement.repository.*;
 import com.retailmanagement.security.log.ActionType;
 import com.retailmanagement.security.log.SensitiveOperation;
 import com.retailmanagement.security.log.SeverityLevel;
+import com.retailmanagement.security.service.CustomUserDetails;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -453,9 +454,22 @@ public class OrderService {
         orderRepository.delete(order);
     }
 
-    public OrderDetailResponse getOrderDetail(Long orderId) {
+    public OrderDetailResponse getOrderDetail(Long orderId, CustomUserDetails user) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        // Nếu là CUSTOMER thì kiểm tra ownership
+        boolean isCustomer = user.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+
+        if (isCustomer) {
+            Long customerIdOfOrder = order.getCustomer().getId().longValue(); // hoặc getCustomerId()
+            if (!customerIdOfOrder.equals(Long.valueOf(user.getCustomerId()))) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "You do not have permission to view this order"
+                );
+            }
+        }
 
         List<CreateOrderResponse.Item> items = order.getOrderItems().stream()
                 .map(i -> new CreateOrderResponse.Item(

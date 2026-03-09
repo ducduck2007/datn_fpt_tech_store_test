@@ -418,9 +418,11 @@ async function doRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0a0b0f;
+  background: #f0f2fa;
   font-family: 'DM Sans', sans-serif;
-  position: relative;
+  position: fixed;   /* ← đổi từ relative */
+  inset: 0;          /* ← thêm dòng này */
+  z-index: 9999;     /* ← thêm dòng này, phủ lên toàn bộ layout */
   overflow: hidden;
   padding: 24px;
 }
@@ -436,26 +438,26 @@ async function doRegister() {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.18;
+  opacity: 0.22;
 }
 
 .orb-1 {
   width: 500px; height: 500px;
-  background: radial-gradient(circle, #4f6ef7, transparent 70%);
+  background: radial-gradient(circle, #a5b8ff, transparent 70%);
   top: -150px; left: -100px;
   animation: drift1 12s ease-in-out infinite alternate;
 }
 
 .orb-2 {
   width: 400px; height: 400px;
-  background: radial-gradient(circle, #7c3aed, transparent 70%);
+  background: radial-gradient(circle, #c4b5fd, transparent 70%);
   bottom: -120px; right: -80px;
   animation: drift2 15s ease-in-out infinite alternate;
 }
 
 .orb-3 {
   width: 300px; height: 300px;
-  background: radial-gradient(circle, #0ea5e9, transparent 70%);
+  background: radial-gradient(circle, #7dd3fc, transparent 70%);
   top: 40%; left: 60%;
   animation: drift1 18s ease-in-out infinite alternate-reverse;
 }
@@ -463,8 +465,8 @@ async function doRegister() {
 .bg-grid {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
@@ -482,14 +484,14 @@ async function doRegister() {
   position: relative;
   width: 100%;
   max-width: 480px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.07);
   border-radius: 24px;
   padding: 40px;
   backdrop-filter: blur(24px);
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.04) inset,
-    0 32px 64px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,255,255,0.9) inset,
+    0 32px 64px rgba(100, 120, 200, 0.12),
     0 0 80px rgba(79, 110, 247, 0.06);
   animation: cardEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -517,9 +519,9 @@ async function doRegister() {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(79, 110, 247, 0.12);
-  border: 1px solid rgba(79, 110, 247, 0.25);
-  color: #7b9cff;
+  background: rgba(79, 110, 247, 0.08);
+  border: 1px solid rgba(79, 110, 247, 0.2);
+  color: #4f6ef7;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -533,7 +535,7 @@ async function doRegister() {
   font-family: 'Instrument Serif', serif;
   font-size: 30px;
   font-weight: 400;
-  color: #f0f1f5;
+  color: #1a1d2e;
   margin: 0 0 7px;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -541,7 +543,7 @@ async function doRegister() {
 
 .card-subtitle {
   font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(20, 25, 60, 0.45);
   margin: 0;
   font-weight: 300;
 }
@@ -551,9 +553,9 @@ async function doRegister() {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.07);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #dc2626;
   font-size: 13px;
   padding: 11px 14px;
   border-radius: 12px;
@@ -587,7 +589,7 @@ async function doRegister() {
 .field-label {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(20, 25, 60, 0.5);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   display: flex;
@@ -601,9 +603,9 @@ async function doRegister() {
   font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: lowercase;
-  color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(20, 25, 60, 0.35);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   padding: 1px 6px;
   border-radius: 100px;
 }
@@ -619,12 +621,12 @@ async function doRegister() {
 .optional-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .optional-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(20, 25, 60, 0.3);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 400;
@@ -636,8 +638,8 @@ async function doRegister() {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.09);
   border-radius: 11px;
   padding: 0 13px;
   height: 46px;
@@ -645,18 +647,18 @@ async function doRegister() {
 }
 
 .field-wrapper.focused {
-  border-color: rgba(79, 110, 247, 0.6);
-  background: rgba(79, 110, 247, 0.06);
+  border-color: rgba(79, 110, 247, 0.5);
+  background: rgba(79, 110, 247, 0.04);
   box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.1);
 }
 
 .field-wrapper.error {
-  border-color: rgba(239, 68, 68, 0.5);
-  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.04);
 }
 
 .field-icon {
-  color: rgba(255, 255, 255, 0.22);
+  color: rgba(20, 25, 60, 0.28);
   flex-shrink: 0;
   transition: color 0.2s;
 }
@@ -669,32 +671,32 @@ async function doRegister() {
   background: transparent;
   border: none;
   outline: none;
-  color: #e8eaf0;
+  color: #1a1d2e;
   font-family: 'DM Sans', sans-serif;
   font-size: 13.5px;
   font-weight: 400;
   min-width: 0;
 }
 
-.field-input::placeholder { color: rgba(255, 255, 255, 0.18); }
+.field-input::placeholder { color: rgba(20, 25, 60, 0.28); }
 
 /* Date input native picker styling */
 .date-input::-webkit-calendar-picker-indicator {
-  filter: invert(0.4);
+  filter: invert(0.2);
   cursor: pointer;
-  opacity: 0.5;
+  opacity: 0.45;
   transition: opacity 0.2s;
 }
-.date-input::-webkit-calendar-picker-indicator:hover { opacity: 0.9; }
-.date-input::-webkit-datetime-edit { color: rgba(255, 255, 255, 0.6); }
-.date-input::-webkit-datetime-edit-fields-wrapper { color: #e8eaf0; }
+.date-input::-webkit-calendar-picker-indicator:hover { opacity: 0.8; }
+.date-input::-webkit-datetime-edit { color: rgba(20, 25, 60, 0.5); }
+.date-input::-webkit-datetime-edit-fields-wrapper { color: #1a1d2e; }
 
 .field-error-icon { color: rgba(239, 68, 68, 0.7); flex-shrink: 0; }
-.field-ok-icon    { color: rgba(52, 211, 153, 0.8); flex-shrink: 0; }
+.field-ok-icon    { color: rgba(16, 185, 129, 0.85); flex-shrink: 0; }
 
 .field-hint-error {
   font-size: 11.5px;
-  color: rgba(239, 68, 68, 0.7);
+  color: rgba(220, 38, 38, 0.8);
   margin: 0;
   padding-left: 2px;
 }
@@ -709,14 +711,14 @@ async function doRegister() {
   border: none;
   padding: 3px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.22);
+  color: rgba(20, 25, 60, 0.28);
   display: flex;
   align-items: center;
   transition: color 0.2s;
   flex-shrink: 0;
 }
 
-.toggle-password:hover { color: rgba(255, 255, 255, 0.55); }
+.toggle-password:hover { color: rgba(20, 25, 60, 0.6); }
 
 /* ─── Strength Bar ──────────────────────────────────────── */
 .strength-bar {
@@ -729,7 +731,7 @@ async function doRegister() {
 .strength-track {
   flex: 1;
   height: 3px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -740,9 +742,9 @@ async function doRegister() {
   transition: width 0.4s ease, background-color 0.4s ease;
 }
 
-.strength-fill[data-level="weak"]   { background: #f87171; }
-.strength-fill[data-level="fair"]   { background: #fbbf24; }
-.strength-fill[data-level="strong"] { background: #34d399; }
+.strength-fill[data-level="weak"]   { background: #ef4444; }
+.strength-fill[data-level="fair"]   { background: #f59e0b; }
+.strength-fill[data-level="strong"] { background: #10b981; }
 
 .strength-label {
   font-size: 11px;
@@ -751,9 +753,9 @@ async function doRegister() {
   text-align: right;
 }
 
-.strength-label[data-level="weak"]   { color: #f87171; }
-.strength-label[data-level="fair"]   { color: #fbbf24; }
-.strength-label[data-level="strong"] { color: #34d399; }
+.strength-label[data-level="weak"]   { color: #ef4444; }
+.strength-label[data-level="fair"]   { color: #f59e0b; }
+.strength-label[data-level="strong"] { color: #10b981; }
 
 /* ─── Button ────────────────────────────────────────────── */
 .register-btn {
@@ -771,16 +773,16 @@ async function doRegister() {
   cursor: pointer;
   overflow: hidden;
   transition: transform 0.15s, box-shadow 0.2s;
-  box-shadow: 0 4px 24px rgba(79, 110, 247, 0.3);
+  box-shadow: 0 4px 24px rgba(79, 110, 247, 0.25);
 }
 
 .register-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 32px rgba(79, 110, 247, 0.4);
+  box-shadow: 0 8px 32px rgba(79, 110, 247, 0.35);
 }
 
 .register-btn:active:not(:disabled) { transform: translateY(0); }
-.register-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+.register-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-content {
   position: relative;
@@ -793,7 +795,7 @@ async function doRegister() {
 
 .btn-shimmer {
   position: absolute; inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
   transform: translateX(-100%);
   transition: transform 0.6s;
 }
@@ -802,7 +804,7 @@ async function doRegister() {
 
 .spinner {
   width: 15px; height: 15px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255,255,255,0.35);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -821,7 +823,7 @@ async function doRegister() {
 
 .footer-text {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.32);
+  color: rgba(20, 25, 60, 0.4);
 }
 
 .link-btn {
@@ -831,12 +833,12 @@ async function doRegister() {
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: #7b9cff;
+  color: #4f6ef7;
   padding: 0;
   transition: color 0.15s;
 }
 
-.link-btn:hover { color: #a5baff; }
+.link-btn:hover { color: #2f4fd4; }
 
 /* ─── Responsive ────────────────────────────────────────── */
 @media (max-width: 480px) {

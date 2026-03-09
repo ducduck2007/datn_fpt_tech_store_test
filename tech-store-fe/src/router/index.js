@@ -54,6 +54,9 @@ import InventoryOrdersPaid from "../pages/inventory/InventoryOrdersPaid.vue";
 import InventoryOrdersProcessing from "../pages/inventory/InventoryOrdersProcessing.vue";
 import Changepassword from "../pages/customer/Changepassword.vue";
 
+//===== 403 =====
+import Forbidden from "../pages/customer/Forbidden.vue";
+
 const routes = [
   // ===== CUSTOMER =====
   {
@@ -121,6 +124,14 @@ const routes = [
     name: "my orders",
     component: CustomerOrders,
     meta: { portal: "customer", requiresAuth: true },
+  },
+
+  // ===== 403 FORBIDDEN =====
+  {
+    path: "/403",
+    name: "forbidden",
+    component: Forbidden,
+    meta: { hideHeader: true },
   },
 
   // ===== SYSTEM LOGIN =====

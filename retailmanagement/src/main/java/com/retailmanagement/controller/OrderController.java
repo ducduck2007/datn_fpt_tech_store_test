@@ -88,10 +88,11 @@ public class OrderController {
     // =========================================================
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderDetailResponse> getOrderDetail(
-            @PathVariable Long orderId) {
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal CustomUserDetails user) {
 
         return ResponseEntity.ok(
-                orderService.getOrderDetail(orderId)
+                orderService.getOrderDetail(orderId, user)
         );
     }
 

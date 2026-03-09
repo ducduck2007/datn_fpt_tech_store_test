@@ -207,7 +207,7 @@ async function doLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #060810;
+  background: #eef4f0;
   font-family: 'Syne', sans-serif;
   position: relative;
   overflow: hidden;
@@ -225,13 +225,13 @@ async function doLogin() {
   position: absolute;
   border-radius: 50%;
   filter: blur(90px);
-  opacity: 0.14;
+  opacity: 0.2;
 }
 
 .orb-1 {
   width: 600px;
   height: 400px;
-  background: radial-gradient(ellipse, #00ff88, transparent 70%);
+  background: radial-gradient(ellipse, #6ee7b7, transparent 70%);
   top: -160px;
   right: -100px;
   animation: drift1 14s ease-in-out infinite alternate;
@@ -240,7 +240,7 @@ async function doLogin() {
 .orb-2 {
   width: 450px;
   height: 450px;
-  background: radial-gradient(circle, #00c8ff, transparent 70%);
+  background: radial-gradient(circle, #a7f3d0, transparent 70%);
   bottom: -150px;
   left: -80px;
   animation: drift2 17s ease-in-out infinite alternate;
@@ -249,19 +249,19 @@ async function doLogin() {
 .orb-3 {
   width: 250px;
   height: 250px;
-  background: radial-gradient(circle, #39ff88, transparent 70%);
+  background: radial-gradient(circle, #34d399, transparent 70%);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  opacity: 0.06;
+  opacity: 0.12;
 }
 
 .bg-grid {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    linear-gradient(rgba(0,180,100,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,180,100,0.05) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
@@ -272,8 +272,8 @@ async function doLogin() {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 255, 136, 0.012) 2px,
-    rgba(0, 255, 136, 0.012) 4px
+    rgba(0, 160, 90, 0.018) 2px,
+    rgba(0, 160, 90, 0.018) 4px
   );
   pointer-events: none;
 }
@@ -292,35 +292,29 @@ async function doLogin() {
   position: relative;
   width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(0, 255, 136, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(0, 160, 90, 0.14);
   border-radius: 20px;
   padding: 0 36px 36px;
   backdrop-filter: blur(32px);
   box-shadow:
-    0 0 0 1px rgba(0,255,136,0.04) inset,
-    0 40px 80px rgba(0,0,0,0.6),
-    0 0 60px rgba(0, 255, 136, 0.04);
+    0 0 0 1px rgba(255,255,255,0.9) inset,
+    0 40px 80px rgba(0, 80, 40, 0.1),
+    0 0 60px rgba(0, 180, 100, 0.06);
   animation: cardEnter 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) both;
   overflow: hidden;
 }
 
 .card-accent-bar {
   height: 3px;
-  background: linear-gradient(90deg, transparent, #00ff88 30%, #00c8ff 70%, transparent);
+  background: linear-gradient(90deg, transparent, #00c878 30%, #00b4d8 70%, transparent);
   margin: 0 -36px 36px;
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 @keyframes cardEnter {
-  from {
-    opacity: 0;
-    transform: translateY(28px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .card-shake {
@@ -345,9 +339,9 @@ async function doLogin() {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(0, 255, 136, 0.08);
-  border: 1px solid rgba(0, 255, 136, 0.2);
-  color: #00ff88;
+  background: rgba(0, 180, 100, 0.08);
+  border: 1px solid rgba(0, 180, 100, 0.22);
+  color: #00965a;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -361,7 +355,7 @@ async function doLogin() {
 .card-title {
   font-size: 30px;
   font-weight: 700;
-  color: #e8f0ea;
+  color: #0f2318;
   margin: 0 0 8px;
   line-height: 1.2;
   letter-spacing: -0.03em;
@@ -369,13 +363,13 @@ async function doLogin() {
 
 .card-title em {
   font-style: italic;
-  color: #00ff88;
+  color: #00965a;
   font-weight: 600;
 }
 
 .card-subtitle {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(15, 35, 24, 0.4);
   margin: 0;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -387,15 +381,14 @@ async function doLogin() {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: rgba(255, 80, 80, 0.08);
-  border: 1px solid rgba(255, 80, 80, 0.2);
-  color: #ff9999;
-  font-size: 13px;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  color: #b91c1c;
+  font-size: 12px;
   padding: 11px 14px;
   border-radius: 10px;
   margin-bottom: 20px;
   font-family: 'DM Mono', monospace;
-  font-size: 12px;
 }
 
 .alert-slide-enter-active { transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1); }
@@ -419,7 +412,7 @@ async function doLogin() {
 .field-label {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(0, 255, 136, 0.5);
+  color: rgba(0, 140, 80, 0.65);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   font-family: 'DM Mono', monospace;
@@ -429,8 +422,8 @@ async function doLogin() {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
   padding: 0 14px;
   height: 48px;
@@ -438,19 +431,19 @@ async function doLogin() {
 }
 
 .field-wrapper.focused {
-  border-color: rgba(0, 255, 136, 0.4);
-  background: rgba(0, 255, 136, 0.04);
-  box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.07);
+  border-color: rgba(0, 180, 100, 0.45);
+  background: rgba(0, 180, 100, 0.04);
+  box-shadow: 0 0 0 3px rgba(0, 180, 100, 0.08);
 }
 
 .field-icon {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(15, 35, 24, 0.25);
   flex-shrink: 0;
   transition: color 0.2s;
 }
 
 .field-wrapper.focused .field-icon {
-  color: rgba(0, 255, 136, 0.7);
+  color: rgba(0, 160, 90, 0.75);
 }
 
 .field-input {
@@ -458,7 +451,7 @@ async function doLogin() {
   background: transparent;
   border: none;
   outline: none;
-  color: #d4edd9;
+  color: #0f2318;
   font-family: 'DM Mono', monospace;
   font-size: 13.5px;
   font-weight: 300;
@@ -467,7 +460,7 @@ async function doLogin() {
 }
 
 .field-input::placeholder {
-  color: rgba(255, 255, 255, 0.18);
+  color: rgba(15, 35, 24, 0.25);
 }
 
 .toggle-password {
@@ -475,7 +468,7 @@ async function doLogin() {
   border: none;
   padding: 4px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(15, 35, 24, 0.25);
   display: flex;
   align-items: center;
   transition: color 0.2s;
@@ -483,7 +476,7 @@ async function doLogin() {
 }
 
 .toggle-password:hover {
-  color: rgba(0, 255, 136, 0.6);
+  color: rgba(0, 160, 90, 0.7);
 }
 
 /* ─── Button ────────────────────────────────────────────── */
@@ -491,10 +484,10 @@ async function doLogin() {
   position: relative;
   margin-top: 8px;
   height: 50px;
-  border: 1px solid rgba(0, 255, 136, 0.3);
+  border: 1px solid rgba(0, 160, 90, 0.35);
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 200, 100, 0.1) 100%);
-  color: #00ff88;
+  background: linear-gradient(135deg, rgba(0, 180, 100, 0.12) 0%, rgba(0, 160, 80, 0.08) 100%);
+  color: #007a50;
   font-family: 'Syne', sans-serif;
   font-size: 14px;
   font-weight: 600;
@@ -503,13 +496,13 @@ async function doLogin() {
   cursor: pointer;
   overflow: hidden;
   transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
-  box-shadow: 0 4px 24px rgba(0, 255, 136, 0.1);
+  box-shadow: 0 4px 24px rgba(0, 180, 100, 0.1);
 }
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.22) 0%, rgba(0, 200, 100, 0.16) 100%);
-  box-shadow: 0 8px 32px rgba(0, 255, 136, 0.2), 0 0 0 1px rgba(0,255,136,0.4) inset;
+  background: linear-gradient(135deg, rgba(0, 180, 100, 0.18) 0%, rgba(0, 160, 80, 0.13) 100%);
+  box-shadow: 0 8px 32px rgba(0, 180, 100, 0.18), 0 0 0 1px rgba(0,180,100,0.4) inset;
 }
 
 .login-btn:active:not(:disabled) {
@@ -533,7 +526,7 @@ async function doLogin() {
 .btn-shimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg, transparent 35%, rgba(0,255,136,0.12) 50%, transparent 65%);
+  background: linear-gradient(105deg, transparent 35%, rgba(0,200,120,0.12) 50%, transparent 65%);
   transform: translateX(-100%);
   transition: transform 0.7s;
 }
@@ -545,8 +538,8 @@ async function doLogin() {
 .spinner {
   width: 15px;
   height: 15px;
-  border: 1.5px solid rgba(0,255,136,0.3);
-  border-top-color: #00ff88;
+  border: 1.5px solid rgba(0,160,90,0.3);
+  border-top-color: #007a50;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -570,7 +563,7 @@ async function doLogin() {
   gap: 7px;
   font-family: 'DM Mono', monospace;
   font-size: 11px;
-  color: rgba(0, 255, 136, 0.3);
+  color: rgba(0, 140, 80, 0.45);
   letter-spacing: 0.03em;
   text-align: center;
 }
@@ -582,7 +575,7 @@ async function doLogin() {
   gap: 10px;
   font-family: 'DM Mono', monospace;
   font-size: 10px;
-  color: rgba(255,255,255,0.12);
+  color: rgba(15, 35, 24, 0.2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -592,7 +585,7 @@ async function doLogin() {
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(0, 0, 0, 0.07);
 }
 
 .link-btn {
@@ -608,13 +601,13 @@ async function doLogin() {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(15, 35, 24, 0.35);
   font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
 
 .link-btn.customer:hover {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(15, 35, 24, 0.65);
 }
 </style>
