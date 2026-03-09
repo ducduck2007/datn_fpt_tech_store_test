@@ -20,10 +20,12 @@ public class BirthdayScheduler {
     private final NotificationService notificationService;
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
+    // ================================================================
+    // PRODUCTION JOBS
+    // ================================================================
+
     /**
-     * Chạy mỗi ngày lúc 6:00 sáng để gửi thông báo sinh nhật
-     * Cron format: giây phút giờ ngày tháng thứ
-     * 0 0 6 * * * = 6:00 AM mỗi ngày
+     * Gửi thông báo sinh nhật — 6:00 sáng mỗi ngày
      */
     @Scheduled(cron = "0 0 6 * * *", zone = "Asia/Ho_Chi_Minh")
     public void sendDailyBirthdayNotifications() {
@@ -43,55 +45,45 @@ public class BirthdayScheduler {
         log.info("═══════════════════════════════════════════════════\n");
     }
 
-
-
-    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Ho_Chi_Minh")
-    public void sendBirthdayNotificationsEvery5Minutes() {
-        String currentTime = LocalDateTime.now().format(formatter);
-        log.info("🧪 [TEST MODE] Gửi thông báo sinh nhật - {}", currentTime);
-
-        try {
-            notificationService.sendBirthdayNotifications();
-            log.info("✅ [TEST MODE] Hoàn thành - {}",
-                    LocalDateTime.now().format(formatter));
-        } catch (Exception e) {
-            log.error("❌ [TEST MODE] Lỗi: {}", e.getMessage(), e);
-        }
-    }
-
     /**
-     * ✅ KIỂM TRA HỆ THỐNG - Chạy mỗi 30 giây để đảm bảo scheduler hoạt động
-     * Comment lại khi đã xác nhận scheduler hoạt động
+     * Nhắc mua hàng — 9:00 sáng mỗi ngày
      */
-    @Scheduled(fixedRate = 30000) // 30 seconds
-    public void healthCheck() {
-        log.info("💓 Scheduler đang hoạt động - {}",
-                LocalDateTime.now().format(formatter));
-    }
-
-    @Scheduled(cron = "0 0 9 * * *")
+    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Ho_Chi_Minh")
     public void sendPurchaseReminders() {
         log.info("⏰ Chạy job nhắc mua hàng...");
         notificationService.sendPurchaseReminders();
     }
-    @Scheduled(cron = "0 0 10 * * *")
+
+    /**
+     * Chào mừng khách chưa có đơn — 9:30 sáng mỗi ngày
+     * (stagger 30 phút so với sendPurchaseReminders để tránh load đồng thời)
+     */
+    @Scheduled(cron = "0 30 9 * * *", zone = "Asia/Ho_Chi_Minh")
+    public void sendWelcomeToZeroOrderCustomers() {
+        log.info("⏰ [SCHEDULED] sendWelcomeToZeroOrderCustomers start...");
+        try {
+            notificationService.sendWelcomeToZeroOrderCustomers();
+        } catch (Exception e) {
+            log.error("❌ sendWelcomeToZeroOrderCustomers failed: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Kiểm tra lên hạng VIP — 10:00 sáng mỗi ngày
+     */
+    @Scheduled(cron = "0 0 10 * * *", zone = "Asia/Ho_Chi_Minh")
     public void checkTierUpgrades() {
         log.info("⏰ Chạy job kiểm tra lên hạng...");
         notificationService.checkAndSendTierUpgradeNotifications();
     }
-    @Scheduled(cron = "0 0 */6 * * *")
+
+    /**
+     * Cảnh báo spin bonus sắp hết hạn — mỗi 6 tiếng
+     */
+    @Scheduled(cron = "0 0 */6 * * *", zone = "Asia/Ho_Chi_Minh")
     public void checkExpiringSpinBonuses() {
-        System.out.println("⏰ [Scheduler] Checking expiring spin bonuses...");
+        log.info("⏰ [Scheduler] Checking expiring spin bonuses...");
         notificationService.sendSpinExpiryWarnings();
-    }
-    @Scheduled(cron = "0 0 9 * * *")
-    public void sendWelcomeToZeroOrderCustomers() {
-        System.out.println("⏰ [SCHEDULED] sendWelcomeToZeroOrderCustomers start...");
-        try {
-            notificationService.sendWelcomeToZeroOrderCustomers();
-        } catch (Exception e) {
-            System.err.println("❌ sendWelcomeToZeroOrderCustomers failed: " + e.getMessage());
-        }
     }
 
 }
