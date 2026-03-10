@@ -2,6 +2,9 @@
 ============================================================
 FILE: src/pages/customer/CustomerHome.vue
 REDESIGNED: Premium warm editorial e-commerce aesthetic
+UPDATED: 
+  - Thêm sự kiện click vào thẻ sản phẩm để sang trang Chi Tiết
+  - Thêm .stop vào các nút bấm để tránh bị trùng lặp sự kiện click
 ============================================================
 -->
 <template>
@@ -22,7 +25,7 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
       />
 
       <!-- ══════════════════════════════════════════════
-           WELCOME BANNER
+            WELCOME BANNER
       ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
@@ -67,7 +70,7 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
       </transition-group>
 
       <!-- ══════════════════════════════════════════════
-           BIRTHDAY BANNER
+            BIRTHDAY BANNER
       ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
@@ -115,7 +118,7 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
       </transition-group>
 
       <!-- ══════════════════════════════════════════════
-           REMINDER / WINBACK BANNER
+            REMINDER / WINBACK BANNER
       ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
@@ -157,7 +160,7 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
       </transition-group>
 
       <!-- ══════════════════════════════════════════════
-           SPIN EXPIRY BANNER
+            SPIN EXPIRY BANNER
       ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
@@ -201,7 +204,7 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
       </transition-group>
 
       <!-- ══════════════════════════════════════════════
-           MAIN LAYOUT
+            MAIN LAYOUT
       ══════════════════════════════════════════════ -->
       <div class="ch-layout">
         <!-- ── Sidebar ── -->
@@ -254,9 +257,8 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
               <div class="ch-toolbar__meta">
                 Trang {{ page + 1 }}
                 <span v-if="searchTerm">
-                  · "<em>{{ searchTerm }}</em
-                  >"</span
-                >
+                  · "<em>{{ searchTerm }}</em>"
+                </span>
               </div>
             </div>
 
@@ -283,8 +285,6 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
                   />
                 </svg>
               </button>
-
-
             </div>
           </div>
 
@@ -311,11 +311,13 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
             </div>
 
             <div v-else class="product-grid">
+              <!-- LIÊN KẾT TRANG CHI TIẾT SẢN PHẨM Ở ĐÂY -->
               <div
                 v-for="(p, idx) in products"
                 :key="p.id"
                 class="product-card"
-                :style="{ '--delay': idx * 0.04 + 's' }"
+                :style="{ '--delay': idx * 0.04 + 's', cursor: 'pointer' }"
+                @click="$router.push('/product/' + p.id)"
               >
                 <div class="product-card__img-wrap">
                   <img
@@ -325,10 +327,11 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
                     loading="lazy"
                   />
                   <div v-if="p.isNew" class="product-card__new-badge">NEW</div>
+                  <!-- NÚT THÊM VÀO GIỎ: Dùng .stop để tránh lan sự kiện click -->
                   <button
                     class="product-card__quick-add"
                     :disabled="!isCustomer || !p.defaultVariantId"
-                    @click="goOrder(p)"
+                    @click.stop="goOrder(p)"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <path
@@ -364,13 +367,6 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
                   </div>
                   <div class="product-card__footer">
                     <div class="product-card__price">{{ p.priceText }}</div>
-                    <button
-                      class="product-card__order-btn"
-                      :disabled="!isCustomer || !p.defaultVariantId"
-                      @click="goOrder(p)"
-                    >
-                      Order
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1657,31 +1653,6 @@ onMounted(async () => {
   font-weight: 700;
   color: #3b82f6;
   font-variant-numeric: tabular-nums;
-}
-
-.product-card__order-btn {
-  padding: 5px 14px;
-  background: #0f172a;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-family: "Inter", sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    transform 0.1s;
-}
-
-.product-card__order-btn:hover {
-  background: #1e293b;
-  transform: scale(1.03);
-}
-.product-card__order-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
 }
 
 /* ══════════════════════════════════════════════
