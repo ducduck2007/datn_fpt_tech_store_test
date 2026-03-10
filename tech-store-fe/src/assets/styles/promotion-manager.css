@@ -292,12 +292,63 @@
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   box-shadow: var(--glass-shadow);
 }
+
+/* ===================== TABLE TOOLBAR ===================== */
 .prm-table-toolbar {
-  display: flex; align-items: center; padding: 12px 18px;
-  border-bottom: 1px solid rgba(255,255,255,.6);
-  background: rgba(255,255,255,.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.3);
+  gap: 12px;
 }
-.prm-table-count { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.prm-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.prm-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prm-table-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+.prm-table-count-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-faint);
+  margin-left: 2px;
+}
+
+/* Filter active badge — hiện khi đang lọc chỉ ACTIVE */
+.prm-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--green-light);
+  color: var(--green-text);
+  border: 1px solid var(--green-border);
+  backdrop-filter: blur(6px);
+  animation: fadeUp .18s ease both;
+}
+
+/* Switch label mờ khi đang ở chế độ lọc */
+.prm-switch-lbl-dim {
+  color: var(--text-faint) !important;
+}
+
 .prm-tw { overflow-x: auto; }
 .prm-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .prm-tbl th {
@@ -512,3 +563,33 @@
 .prm-empty {
   text-align: center; padding: 36px 0; color: var(--text-faint); font-size: 13px; font-style: italic;
 }
+
+/* ===================== COMBINED REPORT PANEL ===================== */
+.prm-report-section-label {
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  letter-spacing: 1px; text-transform: uppercase;
+  margin: 14px 0 8px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.prm-report-ratios {
+  display: flex; flex-direction: column; gap: 10px; margin-top: 4px;
+}
+.prm-ratio-item { display: flex; flex-direction: column; gap: 5px; }
+.prm-ratio-label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; font-weight: 500; color: var(--text-secondary);
+}
+.prm-ratio-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700; }
+.prm-ratio-bar {
+  height: 6px; background: rgba(255,255,255,0.5);
+  border-radius: 99px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.7);
+}
+.prm-ratio-fill {
+  height: 100%; border-radius: 99px;
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+}
+.prm-ratio-fill-g { background: linear-gradient(90deg, #00c896, #38f0c0); }
+.prm-ratio-fill-o { background: linear-gradient(90deg, #ff8c42, #ffb347); }
+.prm-ratio-fill-b { background: linear-gradient(90deg, #4f6ef7, #38b6f0); }

@@ -22,6 +22,6 @@ public interface PromotionRepository extends JpaRepository<Promotion, Integer> {
         List<Promotion> findByIsActiveTrueAndEndDateBetween(LocalDateTime from, LocalDateTime to);
 
         // Tổng hợp theo khoảng thời gian
-        @Query("SELECT p FROM Promotion p WHERE p.isActive = true AND p.startDate >= :from AND p.startDate <= :to")
+        @Query("SELECT p FROM Promotion p WHERE p.isActive = true AND p.startDate <= :to AND p.endDate >= :from")
         List<Promotion> findActiveInPeriod(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

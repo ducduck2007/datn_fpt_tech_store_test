@@ -129,38 +129,70 @@ public class PromotionService {
         return !s1.isAfter(e2) && !e1.isBefore(s2);
     }
 
+    private boolean customerSegmentOverlap(Applicability a, Applicability b) {
+        boolean aHasTypes = a.customer_types != null && !a.customer_types.isEmpty();
+        boolean bHasTypes = b.customer_types != null && !b.customer_types.isEmpty();
+        boolean aHasTiers = a.vip_tiers != null && !a.vip_tiers.isEmpty();
+        boolean bHasTiers = b.vip_tiers != null && !b.vip_tiers.isEmpty();
+
+        // Cả 2 đều không giới hạn nhóm → overlap
+        if (!aHasTypes && !bHasTypes && !aHasTiers && !bHasTiers) return true;
+
+        // Check customer_types: nếu cả 2 đều có types và disjoint → không overlap
+        if (aHasTypes && bHasTypes) {
+            if (Collections.disjoint(a.customer_types, b.customer_types)) return false;
+        }
+
+        // Check vip_tiers: nếu cả 2 đều có tiers và disjoint → không overlap
+        if (aHasTiers && bHasTiers) {
+            if (Collections.disjoint(a.vip_tiers, b.vip_tiers)) return false;
+        }
+
+        // Một bên có vip_tiers, bên kia có customer_types "REGULAR"/"NEW" (không phải VIP)
+        // → VIP tier KM không áp dụng cho non-VIP customer_types
+        if (aHasTiers && bHasTypes) {
+            boolean bTargetsNonVip = b.customer_types.stream()
+                    .anyMatch(t -> !"VIP".equalsIgnoreCase(t));
+            if (bTargetsNonVip && !b.customer_types.contains("VIP")) return false;
+        }
+        if (bHasTiers && aHasTypes) {
+            boolean aTargetsNonVip = a.customer_types.stream()
+                    .anyMatch(t -> !"VIP".equalsIgnoreCase(t));
+            if (aTargetsNonVip && !a.customer_types.contains("VIP")) return false;
+        }
+
+        return true;
+    }
+
     private boolean applicabilityOverlap(Applicability a, Applicability b) {
+        // --- 1. Check customer segment overlap trước ---
+        // Nếu 2 KM target khác nhóm khách hàng hoàn toàn → không xung đột
+        if (!customerSegmentOverlap(a, b)) return false;
+
+        // --- 2. Check scope/product/variant như cũ ---
         String sa = (a.scope == null) ? "ALL" : a.scope.toUpperCase();
         String sb = (b.scope == null) ? "ALL" : b.scope.toUpperCase();
-        if ("ALL".equals(sa) || "ALL".equals(sb))
-            return true;
+        if ("ALL".equals(sa) || "ALL".equals(sb)) return true;
 
         Set<Integer> aProducts = a.product_ids == null ? Set.of() : new HashSet<>(a.product_ids);
         Set<Integer> bProducts = b.product_ids == null ? Set.of() : new HashSet<>(b.product_ids);
-
         Set<Integer> aVariants = a.variant_ids == null ? Set.of() : new HashSet<>(a.variant_ids);
         Set<Integer> bVariants = b.variant_ids == null ? Set.of() : new HashSet<>(b.variant_ids);
 
-        if (!aProducts.isEmpty() && !bProducts.isEmpty()) {
+        if (!aProducts.isEmpty() && !bProducts.isEmpty())
             return !Collections.disjoint(aProducts, bProducts);
-        }
-
-        if (!aVariants.isEmpty() && !bVariants.isEmpty()) {
+        if (!aVariants.isEmpty() && !bVariants.isEmpty())
             return !Collections.disjoint(aVariants, bVariants);
-        }
-
         if (!aProducts.isEmpty() && !bVariants.isEmpty()) {
             List<ProductVariant> vs = variantRepo.findAllById(bVariants);
             Set<Integer> bVariantProducts = vs.stream().map(v -> v.getProduct().getId()).collect(Collectors.toSet());
             return !Collections.disjoint(aProducts, bVariantProducts);
         }
-
         if (!bProducts.isEmpty() && !aVariants.isEmpty()) {
             List<ProductVariant> vs = variantRepo.findAllById(aVariants);
             Set<Integer> aVariantProducts = vs.stream().map(v -> v.getProduct().getId()).collect(Collectors.toSet());
             return !Collections.disjoint(bProducts, aVariantProducts);
         }
-
         return false;
     }
 
@@ -576,27 +608,35 @@ public class PromotionService {
                 : now.minusMonths(1);
 
         List<Promotion> all = promoRepo.findActiveInPeriod(from, now);
-        Map<String, Object> report = new HashMap<>();
-        report.put("total", all.size());
-        report.put("period", period == null ? "month" : period);
-        report.put("promotions", all);
+
+        // Đếm số KM đang thực sự active tại thời điểm hiện tại
+        long activeCount = all.stream().filter(p ->
+                !p.getStartDate().isAfter(now) && !p.getEndDate().isBefore(now)
+        ).count();
 
         long comboCount = all.stream().filter(p -> {
             Rules r = parseRules(p.getRulesJson());
             return r != null && r.combo != null;
         }).count();
-        report.put("comboCount", comboCount);
 
         long usageLimitedCount = all.stream().filter(p -> {
             Rules r = parseRules(p.getRulesJson());
             return r != null && r.usage_limit != null;
         }).count();
+
+        long totalUsed = all.stream().mapToLong(p ->
+                redemptionRepo.findByPromotionId(p.getId())
+                        .map(PromotionRedemption::getUsedCount).orElse(0L)
+        ).sum();
+
+        Map<String, Object> report = new HashMap<>();
+        report.put("total", all.size());
+        report.put("activeCount", activeCount);   // ← thêm mới
+        report.put("period", period == null ? "month" : period);
+        report.put("comboCount", comboCount);
         report.put("usageLimitedCount", usageLimitedCount);
-
-        long totalUsed = all.stream().mapToLong(p -> redemptionRepo.findByPromotionId(p.getId())
-                .map(PromotionRedemption::getUsedCount).orElse(0L)).sum();
         report.put("totalRedemptions", totalUsed);
-
+        // Bỏ "promotions" ra khỏi report response để response gọn hơn
         return report;
     }
 

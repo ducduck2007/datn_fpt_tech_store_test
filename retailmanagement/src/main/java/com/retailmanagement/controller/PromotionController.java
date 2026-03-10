@@ -136,8 +136,9 @@ public class PromotionController {
                                 orderTotal.doubleValue())));
             }
 
-            BigDecimal discountAmount = promotionService.applyDiscount(
+            BigDecimal afterDiscount = promotionService.applyDiscount(
                     orderTotal, promo.getDiscountType(), promo.getDiscountValue());
+            BigDecimal discountAmount = orderTotal.subtract(afterDiscount);
             if (discountAmount.compareTo(orderTotal) > 0)
                 discountAmount = orderTotal;
 

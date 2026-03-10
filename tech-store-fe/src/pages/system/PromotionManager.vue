@@ -9,28 +9,14 @@
         </h1>
       </div>
       <div class="prm-header-actions">
-        <label class="prm-switch">
-          <input type="checkbox" v-model="activeOnly" @change="load" />
-          <span class="prm-switch-track"></span>
-          <span class="prm-switch-lbl">Active only</span>
-        </label>
-        <button
-          class="prm-btn prm-btn-ghost"
-          :class="{ loading: loading }"
-          @click="load"
-          :disabled="loading"
-        >
-          <span v-if="!loading">🔄 Reload</span
-          ><span v-else class="prm-spin"></span>
-        </button>
         <button
           class="prm-btn prm-btn-ghost"
           :class="{ loading: conflictLoading }"
           @click="loadConflicts"
           :disabled="conflictLoading"
         >
-          <span v-if="!conflictLoading">⚠️ Conflicts</span
-          ><span v-else class="prm-spin"></span>
+          <span v-if="!conflictLoading">⚠️ Conflicts</span>
+          <span v-else class="prm-spin"></span>
         </button>
         <button
           class="prm-btn prm-btn-ghost"
@@ -38,17 +24,8 @@
           @click="loadExpiring"
           :disabled="expiringLoading"
         >
-          <span v-if="!expiringLoading">⏰ Sắp hết hạn</span
-          ><span v-else class="prm-spin"></span>
-        </button>
-        <button
-          class="prm-btn prm-btn-ghost"
-          :class="{ loading: reportLoading }"
-          @click="loadReport"
-          :disabled="reportLoading"
-        >
-          <span v-if="!reportLoading">📊 Báo cáo</span
-          ><span v-else class="prm-spin"></span>
+          <span v-if="!expiringLoading">⏰ Sắp hết hạn</span>
+          <span v-else class="prm-spin"></span>
         </button>
         <button
           class="prm-btn prm-btn-ghost"
@@ -56,17 +33,17 @@
           @click="loadActiveReport"
           :disabled="activeReportLoading"
         >
-          <span v-if="!activeReportLoading">📋 KM Active</span
-          ><span v-else class="prm-spin"></span>
+          <span v-if="!activeReportLoading">📋 KM Active</span>
+          <span v-else class="prm-spin"></span>
         </button>
         <button
           class="prm-btn prm-btn-ghost"
-          :class="{ loading: summaryReportLoading }"
-          @click="loadSummaryReport"
-          :disabled="summaryReportLoading"
+          :class="{ loading: reportLoading || summaryReportLoading }"
+          @click="loadCombinedReport"
+          :disabled="reportLoading || summaryReportLoading"
         >
-          <span v-if="!summaryReportLoading">📈 Tổng hợp</span
-          ><span v-else class="prm-spin"></span>
+          <span v-if="!reportLoading && !summaryReportLoading">📊 Báo cáo</span>
+          <span v-else class="prm-spin"></span>
         </button>
         <button class="prm-btn prm-btn-primary" @click="openCreate">
           + Tạo mới
@@ -279,70 +256,12 @@
       </div>
     </transition>
 
-    <!-- Summary report panel -->
+    <!-- Combined report panel -->
     <transition name="slide">
-      <div v-if="summaryReportData !== null" class="prm-panel prm-panel-report">
-        <div class="prm-panel-head">
-          <span>📈 Báo cáo tổng hợp</span>
-          <div class="prm-period-tabs">
-            <button
-              class="prm-period-btn"
-              :class="{ active: summaryPeriod === 'week' }"
-              @click="
-                summaryPeriod = 'week';
-                loadSummaryReport();
-              "
-            >
-              Tuần
-            </button>
-            <button
-              class="prm-period-btn"
-              :class="{ active: summaryPeriod === 'month' }"
-              @click="
-                summaryPeriod = 'month';
-                loadSummaryReport();
-              "
-            >
-              Tháng
-            </button>
-          </div>
-          <button
-            class="prm-btn-icon ml-auto"
-            @click="summaryReportData = null"
-          >
-            ✕
-          </button>
-        </div>
-        <div class="prm-report-stats">
-          <div class="prm-rstat">
-            <div class="prm-rstat-n">{{ summaryReportData.total ?? 0 }}</div>
-            <div class="prm-rstat-l">Tổng KM</div>
-          </div>
-          <div class="prm-rstat prm-rstat-o">
-            <div class="prm-rstat-n">
-              {{ summaryReportData.comboCount ?? 0 }}
-            </div>
-            <div class="prm-rstat-l">Combo</div>
-          </div>
-          <div class="prm-rstat prm-rstat-b">
-            <div class="prm-rstat-n">
-              {{ summaryReportData.usageLimitedCount ?? 0 }}
-            </div>
-            <div class="prm-rstat-l">Giới hạn lượt</div>
-          </div>
-          <div class="prm-rstat prm-rstat-r">
-            <div class="prm-rstat-n">
-              {{ summaryReportData.totalRedemptions ?? 0 }}
-            </div>
-            <div class="prm-rstat-l">Tổng lượt dùng</div>
-          </div>
-        </div>
-      </div>
-    </transition>
-
-    <!-- Report panel -->
-    <transition name="slide">
-      <div v-if="reportData !== null" class="prm-panel prm-panel-report">
+      <div
+        v-if="reportData !== null || summaryReportData !== null"
+        class="prm-panel prm-panel-report"
+      >
         <div class="prm-panel-head">
           <span>📊 Báo cáo khuyến mãi</span>
           <div class="prm-period-tabs">
@@ -351,7 +270,7 @@
               :class="{ active: reportPeriod === 'week' }"
               @click="
                 reportPeriod = 'week';
-                loadReport();
+                loadCombinedReport();
               "
             >
               Tuần
@@ -361,40 +280,145 @@
               :class="{ active: reportPeriod === 'month' }"
               @click="
                 reportPeriod = 'month';
-                loadReport();
+                loadCombinedReport();
               "
             >
               Tháng
             </button>
           </div>
-          <button class="prm-btn-icon ml-auto" @click="reportData = null">
+          <button
+            class="prm-btn-icon ml-auto"
+            @click="
+              reportData = null;
+              summaryReportData = null;
+            "
+          >
             ✕
           </button>
         </div>
-        <div class="prm-report-stats">
+
+        <!-- Section 1: Tổng quan -->
+        <div class="prm-report-section-label">Tổng quan</div>
+        <div class="prm-report-stats prm-report-stats-main">
           <div class="prm-rstat">
-            <div class="prm-rstat-n">{{ reportData.total ?? 0 }}</div>
+            <div class="prm-rstat-n">{{ reportData?.total ?? 0 }}</div>
             <div class="prm-rstat-l">Tổng KM</div>
           </div>
           <div class="prm-rstat prm-rstat-g">
-            <div class="prm-rstat-n">{{ reportData.activeCount ?? 0 }}</div>
+            <div class="prm-rstat-n">{{ reportData?.activeCount ?? 0 }}</div>
             <div class="prm-rstat-l">Đang chạy</div>
           </div>
           <div class="prm-rstat prm-rstat-o">
-            <div class="prm-rstat-n">{{ reportData.comboCount ?? 0 }}</div>
+            <div class="prm-rstat-n">
+              {{ reportData?.comboCount ?? summaryReportData?.comboCount ?? 0 }}
+            </div>
             <div class="prm-rstat-l">Combo</div>
           </div>
           <div class="prm-rstat prm-rstat-b">
             <div class="prm-rstat-n">
-              {{ reportData.usageLimitedCount ?? 0 }}
+              {{
+                reportData?.usageLimitedCount ??
+                summaryReportData?.usageLimitedCount ??
+                0
+              }}
             </div>
             <div class="prm-rstat-l">Giới hạn lượt</div>
           </div>
           <div class="prm-rstat prm-rstat-r">
             <div class="prm-rstat-n">
-              {{ reportData.totalRedemptions ?? 0 }}
+              {{
+                summaryReportData?.totalRedemptions ??
+                reportData?.totalRedemptions ??
+                0
+              }}
             </div>
             <div class="prm-rstat-l">Tổng lượt dùng</div>
+          </div>
+        </div>
+
+        <!-- Section 2: Tỉ lệ -->
+        <div class="prm-report-section-label" style="margin-top: 16px">
+          Tỉ lệ hoạt động
+        </div>
+        <div class="prm-report-ratios">
+          <div class="prm-ratio-item">
+            <div class="prm-ratio-label">
+              <span>Đang chạy</span>
+              <span class="prm-ratio-val clr-green">
+                {{
+                  reportData?.total
+                    ? Math.round(
+                        (reportData.activeCount / reportData.total) * 100,
+                      )
+                    : 0
+                }}%
+              </span>
+            </div>
+            <div class="prm-ratio-bar">
+              <div
+                class="prm-ratio-fill prm-ratio-fill-g"
+                :style="{
+                  width: reportData?.total
+                    ? (reportData.activeCount / reportData.total) * 100 + '%'
+                    : '0%',
+                }"
+              ></div>
+            </div>
+          </div>
+          <div class="prm-ratio-item">
+            <div class="prm-ratio-label">
+              <span>Combo</span>
+              <span class="prm-ratio-val" style="color: var(--orange-text)">
+                {{
+                  reportData?.total
+                    ? Math.round(
+                        ((reportData?.comboCount ?? 0) / reportData.total) *
+                          100,
+                      )
+                    : 0
+                }}%
+              </span>
+            </div>
+            <div class="prm-ratio-bar">
+              <div
+                class="prm-ratio-fill prm-ratio-fill-o"
+                :style="{
+                  width: reportData?.total
+                    ? ((reportData?.comboCount ?? 0) / reportData.total) * 100 +
+                      '%'
+                    : '0%',
+                }"
+              ></div>
+            </div>
+          </div>
+          <div class="prm-ratio-item">
+            <div class="prm-ratio-label">
+              <span>Giới hạn lượt</span>
+              <span class="prm-ratio-val" style="color: var(--accent)">
+                {{
+                  reportData?.total
+                    ? Math.round(
+                        ((reportData?.usageLimitedCount ?? 0) /
+                          reportData.total) *
+                          100,
+                      )
+                    : 0
+                }}%
+              </span>
+            </div>
+            <div class="prm-ratio-bar">
+              <div
+                class="prm-ratio-fill prm-ratio-fill-b"
+                :style="{
+                  width: reportData?.total
+                    ? ((reportData?.usageLimitedCount ?? 0) /
+                        reportData.total) *
+                        100 +
+                      '%'
+                    : '0%',
+                }"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
@@ -403,7 +427,33 @@
     <!-- Main table -->
     <div id="prm-main-table" class="prm-table-card">
       <div class="prm-table-toolbar">
-        <span class="prm-table-count">{{ rows.length }} khuyến mãi</span>
+        <div class="prm-toolbar-left">
+          <span class="prm-table-count">
+            {{ displayRows.length }}
+            <span class="prm-table-count-sub"
+              >/ {{ rows.length }} khuyến mãi</span
+            >
+          </span>
+          <span
+            v-if="!showInactive"
+            class="prm-tag prm-tag-g"
+            style="font-size: 11px"
+          >
+            🟢 Đang lọc: Chỉ ACTIVE
+          </span>
+        </div>
+        <div class="prm-toolbar-right">
+          <label class="prm-switch">
+            <input type="checkbox" v-model="showInactive" />
+            <span class="prm-switch-track"></span>
+            <span
+              class="prm-switch-lbl"
+              :style="!showInactive ? 'color:#6b7280' : ''"
+            >
+              {{ showInactive ? "Hiện tất cả" : "Ẩn km ff" }}
+            </span>
+          </label>
+        </div>
       </div>
       <div class="prm-tw">
         <table class="prm-tbl">
@@ -430,7 +480,7 @@
             <tr v-else-if="!rows.length">
               <td colspan="10" class="prm-empty-row">Không có dữ liệu</td>
             </tr>
-            <tr v-for="row in rows" :key="row.id">
+            <tr v-for="row in displayRows" :key="row.id">
               <td class="mono dim">{{ row.id }}</td>
               <td>
                 <span class="prm-code">{{ row.code }}</span>
@@ -831,7 +881,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, nextTick } from "vue";
+import { onMounted, reactive, ref, nextTick, computed } from "vue";
 import { promotionsApi } from "../../api/promotions.api";
 import { pricesApi } from "../../api/prices.api";
 import { toast } from "../../ui/toast";
@@ -842,6 +892,11 @@ import QuickNav from "../../components/QuickNav.vue";
 const loading = ref(false);
 const activeOnly = ref(false);
 const rows = ref([]);
+const showInactive = ref(false);
+
+const displayRows = computed(() =>
+  showInactive.value ? rows.value : rows.value.filter((r) => r.isActive),
+);
 
 function extractList(p) {
   if (!p) return [];
@@ -910,7 +965,9 @@ async function load() {
   loading.value = true;
   try {
     const r = await promotionsApi.list(activeOnly.value);
-    rows.value = normalize(extractList(r?.data));
+    rows.value = normalize(extractList(r?.data)).sort(
+      (a, b) => Number(b.isActive) - Number(a.isActive),
+    );
   } catch {
     rows.value = [];
     toast("Tải thất bại.", "error");
@@ -1233,6 +1290,24 @@ async function loadReport() {
   }
 }
 
+async function loadCombinedReport() {
+  reportLoading.value = true;
+  summaryReportLoading.value = true;
+  try {
+    const [r1, r2] = await Promise.all([
+      promotionsApi.getReport(reportPeriod.value),
+      promotionsApi.getSummaryReport(reportPeriod.value),
+    ]);
+    reportData.value = r1?.data?.data ?? r1?.data ?? {};
+    summaryReportData.value = r2?.data?.data ?? r2?.data ?? null;
+  } catch {
+    toast("Tải báo cáo thất bại.", "error");
+  } finally {
+    reportLoading.value = false;
+    summaryReportLoading.value = false;
+  }
+}
+
 function fmtDate(iso) {
   if (!iso) return "—";
   try {
@@ -1265,10 +1340,14 @@ function handleQuickNav(actionKey, hint) {
       }
       break;
     case "scrollTable":
-      document.getElementById("prm-main-table")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById("prm-main-table")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
       break;
     case "scrollValidate":
-      document.getElementById("prm-validate-bar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById("prm-validate-bar")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
       break;
     case "loadConflicts":
       loadConflicts();

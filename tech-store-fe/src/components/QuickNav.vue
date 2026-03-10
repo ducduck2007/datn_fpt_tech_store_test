@@ -90,7 +90,7 @@ const allItems = [
   { id: "p-custprice",  page: "pricing",   icon: "👤", name: "Giá theo khách hàng",                desc: "Giá hiệu lực theo nhóm / VIP tier",                   action: { type: "tab", key: "set",     scroll: "p-anchor-custprice",  scrollDelay: 130 } },
   { id: "p-prodlist",   page: "pricing",   icon: "📦", name: "Giá theo sản phẩm (danh sách)",     desc: "Tất cả variant + giá của 1 sản phẩm",                 action: { type: "tab", key: "history", scroll: "p-anchor-prodprices", scrollDelay: 160 } },
   { id: "p-prodpage",   page: "pricing",   icon: "🛍️", name: "Giá trên danh sách sản phẩm",       desc: "Xem giá & KM trên trang Products",      crossPage: "Products", action: { type: "cross" } },
-  { id: "p-currency",  page: "pricing",   icon: "💱", name: "Thiết lập tiền tệ mặc định",          desc: "GET/PUT /api/settings/currency/default", crossPage: "Settings - Currency", action: { type: "cross", route: "/settings/currency" } },
+  { id: "p-currency",   page: "pricing",   icon: "💱", name: "Thiết lập tiền tệ mặc định",         desc: "GET/PUT /api/settings/currency/default", crossPage: "Settings - Currency", action: { type: "cross", route: "/settings/currency" } },
 
   { id: "p-g2",         page: "pricing",   isGroup: true, label: "LỊCH SỬ & CHỈNH SỬA GIÁ" },
   { id: "p-history",    page: "pricing",   icon: "📋", name: "Lịch sử giá variant",                desc: "Xem lịch sử thay đổi giá theo Variant ID",            action: { type: "tab", key: "history", scroll: "p-anchor-history",   scrollDelay: 160 } },
@@ -110,7 +110,7 @@ const allItems = [
   // ══ PROMOTION ══
   { id: "pm-g1",        page: "promotion", isGroup: true, label: "QUẢN LÝ KHUYẾN MÃI" },
   { id: "pm-create",    page: "promotion", icon: "➕", name: "Tạo khuyến mãi mới",               desc: "KM % giảm, cố định, combo, nhóm KH",                  action: { type: "action", key: "openCreate" } },
-  { id: "pm-list",      page: "promotion", icon: "📋", name: "Danh sách khuyến mãi",             desc: "Xem toàn bộ / chỉ active — toggle Active only",       action: { type: "action", key: "scrollTable" } },
+  { id: "pm-list",      page: "promotion", icon: "📋", name: "Danh sách khuyến mãi",             desc: "Xem toàn bộ hoặc lọc chỉ ACTIVE trong bảng",          action: { type: "action", key: "scrollTable" } },
   { id: "pm-edit",      page: "promotion", icon: "✏️", name: "Chỉnh sửa khuyến mãi",             desc: "PUT /promotions/{id}",                                 action: { type: "action", key: "scrollTable", tip: "Tìm KM trong bảng → bấm nút Sửa ở cột Action" } },
   { id: "pm-del",       page: "promotion", icon: "🗑️", name: "Xóa khuyến mãi (soft deactivate)", desc: "DELETE /promotions/{id} — tắt isActive",              action: { type: "action", key: "scrollTable", tip: "Tìm KM trong bảng → bấm nút Xóa ở cột Action" } },
   { id: "pm-validate",  page: "promotion", icon: "🔍", name: "Validate mã khuyến mãi",           desc: "Kiểm tra mã & tính tiền giảm theo tổng đơn",          action: { type: "action", key: "scrollValidate" } },
@@ -128,8 +128,7 @@ const allItems = [
   { id: "pm-conflicts", page: "promotion", icon: "⚠️", name: "Xung đột khuyến mãi",             desc: "Phát hiện KM chồng chéo phạm vi & thời gian",         action: { type: "action", key: "loadConflicts" } },
   { id: "pm-expiring",  page: "promotion", icon: "⏰", name: "KM sắp hết hạn (3 ngày)",          desc: "Cảnh báo danh sách KM hết hạn sắp tới",              action: { type: "action", key: "loadExpiring" } },
   { id: "pm-active",    page: "promotion", icon: "📋", name: "Báo cáo KM đang áp dụng",         desc: "GET /api/reports/promotions/active",                   action: { type: "action", key: "loadActiveReport" } },
-  { id: "pm-report",    page: "promotion", icon: "📊", name: "Báo cáo KM theo tuần / tháng",    desc: "GET /api/promotions/report?period=month|week",         action: { type: "action", key: "loadReport" } },
-  { id: "pm-summary",   page: "promotion", icon: "📈", name: "Báo cáo tổng hợp giá & KM",       desc: "GET /api/reports/promotions/summary?period=...",       action: { type: "action", key: "loadSummaryReport" } },
+  { id: "pm-report",    page: "promotion", icon: "📊", name: "Báo cáo KM (tổng hợp)",           desc: "Tổng quan + tỉ lệ hoạt động theo tuần / tháng",       action: { type: "action", key: "loadCombinedReport" } },
 ];
 
 const filteredItems = computed(() => {
@@ -192,7 +191,7 @@ function navigate(item) {
   if (item.action.type === "cross") {
     const routeHint = item.action.route ? ` (${item.action.route})` : "";
     showFeedback(`↗ Chức năng này nằm trên trang ${item.crossPage}${routeHint}`, "info", 5000);
-    return; // don't close — let user see feedback
+    return;
   }
   isOpen.value = false; query.value = "";
   if (item.action.type === "tab")    doTabNav(item);
@@ -212,7 +211,6 @@ function doTabNav(item) {
       el.classList.add("qnav-highlight");
       setTimeout(() => el.classList.remove("qnav-highlight"), 2000);
     } else {
-      // Fallback: target not found — tab switched ok but scroll failed
       showFeedback("✅ Đã chuyển tab — kéo xuống để tìm mục", "ok", 2500);
     }
   }, delay);
