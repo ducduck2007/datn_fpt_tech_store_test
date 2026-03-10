@@ -1,6 +1,6 @@
 <template>
   <div class="inactive-wrapper">
-    <!-- Header Section -->
+    <!-- Header -->
     <div class="page-header">
       <div class="header-left">
         <div class="header-badge">
@@ -11,23 +11,24 @@
         <p class="page-sub">Theo dõi khách hàng chưa có giao dịch trong 30 · 60 · 90 ngày</p>
       </div>
       <div class="header-right">
-        <el-button class="reload-btn" @click="loadAll" :loading="loading">
-          <el-icon><Refresh /></el-icon>
+        <button class="reload-btn" @click="loadAll" :disabled="loading">
+          <svg v-if="!loading" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span class="spinner-sm" v-else />
           Làm mới
-        </el-button>
+        </button>
       </div>
     </div>
 
-    <!-- Time Window Tabs -->
+    <!-- Tabs -->
     <div class="tab-strip">
       <button
         v-for="tab in tabs"
         :key="tab.days"
         class="tab-btn"
-        :class="{ active: activeTab === tab.days, 'tab-danger': tab.days === 90, 'tab-warn': tab.days === 60, 'tab-info': tab.days === 30 }"
+        :class="{ active: activeTab === tab.days, [`tab-${tab.color}`]: true }"
         @click="switchTab(tab.days)"
       >
-        <span class="tab-icon">{{ tab.icon }}</span>
+        <span class="tab-dot" :class="`dot-${tab.color}`" />
         <span class="tab-label">{{ tab.label }}</span>
         <span class="tab-count" :class="{ loaded: counts[tab.days] !== null }">
           {{ counts[tab.days] !== null ? counts[tab.days] : '—' }}
@@ -35,78 +36,79 @@
       </button>
     </div>
 
-    <!-- Summary Stats -->
+    <!-- Stats Row -->
     <div class="stats-row" v-if="!loading && current.length > 0">
       <div class="stat-card">
+        <div class="stat-icon">👥</div>
         <div class="stat-val">{{ current.length }}</div>
         <div class="stat-lbl">Khách hàng</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val text-gold">{{ totalPoints }}</div>
+        <div class="stat-icon">⭐</div>
+        <div class="stat-val gold">{{ totalPoints }}</div>
         <div class="stat-lbl">Tổng điểm tích lũy</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val text-green">{{ formatMoney(totalSpent) }}</div>
+        <div class="stat-icon">💰</div>
+        <div class="stat-val green">{{ formatMoneyShort(totalSpent) }}</div>
         <div class="stat-lbl">Tổng đã chi</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val text-tier">{{ topTier }}</div>
+        <div class="stat-icon">🏅</div>
+        <div class="stat-val blue">{{ topTier }}</div>
         <div class="stat-lbl">Tier cao nhất</div>
       </div>
     </div>
 
     <!-- Filter bar -->
     <div class="filter-bar" v-if="!loading">
-      <el-input
-        v-model="q"
-        placeholder="Tìm theo tên, email, SĐT..."
-        clearable
-        class="search-input"
-        :prefix-icon="Search"
-      />
-      <el-select v-model="tierFilter" placeholder="VIP Tier" clearable class="tier-select">
-        <el-option v-for="t in tiers" :key="t" :label="t" :value="t">
-          <el-tag :type="tierType(t)" size="small" effect="dark">{{ t }}</el-tag>
-        </el-option>
-      </el-select>
-      <el-select v-model="sortBy" class="sort-select">
-        <el-option label="Chi tiêu nhiều nhất" value="spent" />
-        <el-option label="Điểm nhiều nhất" value="points" />
-        <el-option label="Tên A→Z" value="name" />
-      </el-select>
+      <div class="search-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input v-model="q" placeholder="Tìm theo tên, email, SĐT..." class="search-input" />
+        <button v-if="q" class="clear-btn" @click="q = ''">✕</button>
+      </div>
+      <select v-model="tierFilter" class="filter-select">
+        <option value="">Tất cả Tier</option>
+        <option v-for="t in tiers" :key="t" :value="t">{{ t }}</option>
+      </select>
+      <select v-model="sortBy" class="filter-select">
+        <option value="spent">Chi tiêu nhiều nhất</option>
+        <option value="points">Điểm nhiều nhất</option>
+        <option value="name">Tên A→Z</option>
+      </select>
     </div>
 
-    <!-- Empty State -->
+    <!-- Skeleton -->
+    <div class="cards-grid" v-if="loading">
+      <div class="skeleton-card" v-for="i in 6" :key="i">
+        <div class="sk sk-avatar" />
+        <div class="sk-lines">
+          <div class="sk sk-line" style="width:70%" />
+          <div class="sk sk-line" style="width:50%" />
+          <div class="sk sk-line" style="width:40%" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty -->
     <div class="empty-state" v-if="!loading && filtered.length === 0">
       <div class="empty-icon">🎉</div>
       <div class="empty-title">Không có khách hàng nào!</div>
       <div class="empty-sub">Tất cả khách hàng đều hoạt động trong {{ activeTab }} ngày qua.</div>
     </div>
 
-    <!-- Skeleton Loading -->
-    <div class="skeleton-grid" v-if="loading">
-      <div class="skeleton-card" v-for="i in 6" :key="i">
-        <div class="sk sk-avatar" />
-        <div class="sk-lines">
-          <div class="sk sk-line w80" />
-          <div class="sk sk-line w60" />
-          <div class="sk sk-line w40" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Customer Cards Grid -->
-    <transition-group name="card-list" tag="div" class="cards-grid" v-if="!loading && paged.length > 0">
+    <!-- Cards Grid -->
+    <div class="cards-grid" v-if="!loading && paged.length > 0">
       <div
         class="cust-card"
         v-for="(row, idx) in paged"
         :key="row.id"
-        :style="{ '--delay': idx * 0.04 + 's' }"
+        :style="{ animationDelay: idx * 0.05 + 's' }"
       >
-        <!-- Top bar with tier color -->
-        <div class="card-top-bar" :class="'bar-' + (row.raw?.vipTier || 'none').toLowerCase()" />
+        <!-- Tier stripe -->
+        <div class="tier-stripe" :class="'stripe-' + (row.raw?.vipTier || 'none').toLowerCase()" />
 
-        <!-- Avatar + Name -->
+        <!-- Head -->
         <div class="card-head">
           <div class="avatar" :style="{ background: avatarColor(row.fullName) }">
             {{ initials(row.fullName) }}
@@ -115,132 +117,118 @@
             <div class="card-name">{{ row.fullName }}</div>
             <div class="card-email">{{ row.email }}</div>
           </div>
-          <div class="card-tier-badge" v-if="row.raw?.vipTier">
-            <el-tag :type="tierType(row.raw.vipTier)" size="small" effect="dark">
-              {{ row.raw.vipTier }}
-            </el-tag>
-          </div>
+          <span v-if="row.raw?.vipTier" class="tier-pill" :class="'pill-' + row.raw.vipTier.toLowerCase()">
+            {{ row.raw.vipTier }}
+          </span>
         </div>
+
+        <!-- Divider -->
+        <div class="card-divider" />
 
         <!-- Metrics -->
         <div class="card-metrics">
           <div class="metric">
-            <span class="metric-icon">🏆</span>
-            <span class="metric-val">{{ (row.loyaltyPoints || 0).toLocaleString() }}</span>
-            <span class="metric-lbl">điểm</span>
+            <div class="metric-val">{{ (row.loyaltyPoints || 0).toLocaleString() }}</div>
+            <div class="metric-lbl">Điểm</div>
           </div>
-          <div class="metric-divider" />
+          <div class="metric-sep" />
           <div class="metric">
-            <span class="metric-icon">💸</span>
-            <span class="metric-val">{{ formatMoneyShort(row.raw?.totalSpent) }}</span>
-            <span class="metric-lbl">chi tiêu</span>
+            <div class="metric-val">{{ formatMoneyShort(row.raw?.totalSpent) }}</div>
+            <div class="metric-lbl">Chi tiêu</div>
           </div>
-          <div class="metric-divider" />
+          <div class="metric-sep" />
           <div class="metric">
-            <span class="metric-icon">📦</span>
-            <span class="metric-val text-muted-val">{{ row.phone || '—' }}</span>
-            <span class="metric-lbl">SĐT</span>
+            <div class="metric-val sm">{{ row.phone || '—' }}</div>
+            <div class="metric-lbl">SĐT</div>
           </div>
         </div>
 
-        <!-- Last Order -->
+        <!-- Footer -->
         <div class="card-footer">
-          <div class="last-order" v-if="row.raw?.lastOrderAt">
-            <el-icon><Clock /></el-icon>
-            <span>Đơn cuối: <strong>{{ relativeDate(row.raw.lastOrderAt) }}</strong></span>
+          <div class="last-order" :class="{ 'no-order': !row.raw?.lastOrderAt }">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {{ row.raw?.lastOrderAt ? 'Đơn cuối: ' + relativeDate(row.raw.lastOrderAt) : 'Chưa có đơn hàng' }}
           </div>
-          <div class="last-order no-order" v-else>
-            <el-icon><Warning /></el-icon>
-            <span>Chưa có đơn hàng nào</span>
-          </div>
-
-          <div class="card-actions">
-            <el-tooltip content="Xem chi tiết">
-              <el-button class="icon-btn" circle size="small" @click="openDetail(row)">
-                <el-icon><View /></el-icon>
-              </el-button>
-            </el-tooltip>
-          </div>
+          <button class="view-btn" @click="openDetail(row)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
 
-        <!-- Inactive badge -->
-        <div class="inactive-ribbon">
-          <span>Không giao dịch {{ activeTab }}+ ngày</span>
-        </div>
+        <!-- Hover badge -->
+        <div class="inactive-badge">{{ activeTab }}+ ngày không GD</div>
       </div>
-    </transition-group>
+    </div>
 
     <!-- Pagination -->
     <div class="pagination-row" v-if="!loading && filtered.length > pageSize">
-      <el-pagination
-        background
-        layout="prev, pager, next"
-        :page-size="pageSize"
-        :total="filtered.length"
-        :current-page="page"
-        @current-change="v => page = v"
-      />
-      <span class="pagination-info">
-        {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, filtered.length) }} / {{ filtered.length }}
-      </span>
+      <button class="page-btn" :disabled="page === 1" @click="page--">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button
+        v-for="p in totalPages"
+        :key="p"
+        class="page-btn"
+        :class="{ 'page-active': p === page }"
+        @click="page = p"
+      >{{ p }}</button>
+      <button class="page-btn" :disabled="page === totalPages" @click="page++">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <span class="page-info">{{ (page-1)*pageSize+1 }}–{{ Math.min(page*pageSize, filtered.length) }} / {{ filtered.length }}</span>
     </div>
 
-    <!-- Detail Dialog -->
-    <el-dialog v-model="detail.open" width="520px" class="detail-dialog" :title="''" align-center>
-      <div v-if="detail.customer" class="detail-body">
-        <div class="detail-avatar" :style="{ background: avatarColor(detail.customer.fullName) }">
+    <!-- Detail Modal -->
+    <div class="modal-overlay" v-if="detail.open" @click.self="detail.open = false">
+      <div class="modal-box" v-if="detail.customer">
+        <button class="modal-close" @click="detail.open = false">✕</button>
+
+        <div class="modal-avatar" :style="{ background: avatarColor(detail.customer.fullName) }">
           {{ initials(detail.customer.fullName) }}
         </div>
-        <div class="detail-name">{{ detail.customer.fullName }}</div>
-        <div class="detail-email">{{ detail.customer.email }}</div>
+        <div class="modal-name">{{ detail.customer.fullName }}</div>
+        <div class="modal-email">{{ detail.customer.email }}</div>
 
-        <div class="detail-tier" v-if="detail.customer.raw?.vipTier">
-          <el-tag :type="tierType(detail.customer.raw.vipTier)" effect="dark" size="large">
-            {{ detail.customer.raw.vipTier }}
-          </el-tag>
-        </div>
+        <span v-if="detail.customer.raw?.vipTier" class="tier-pill lg" :class="'pill-' + detail.customer.raw.vipTier.toLowerCase()">
+          {{ detail.customer.raw.vipTier }}
+        </span>
 
-        <div class="detail-stats">
-          <div class="ds-item">
-            <div class="ds-val text-gold">{{ (detail.customer.loyaltyPoints || 0).toLocaleString() }}</div>
-            <div class="ds-lbl">Điểm tích lũy</div>
+        <div class="modal-stats">
+          <div class="ms-item">
+            <div class="ms-val gold">{{ (detail.customer.loyaltyPoints || 0).toLocaleString() }}</div>
+            <div class="ms-lbl">Điểm tích lũy</div>
           </div>
-          <div class="ds-item">
-            <div class="ds-val text-green">{{ formatMoney(detail.customer.raw?.totalSpent) }}</div>
-            <div class="ds-lbl">Tổng chi tiêu</div>
+          <div class="ms-item">
+            <div class="ms-val green">{{ formatMoney(detail.customer.raw?.totalSpent) }}</div>
+            <div class="ms-lbl">Tổng chi tiêu</div>
           </div>
         </div>
 
-        <div class="detail-info-grid">
-          <div class="di-row"><span class="di-lbl">SĐT</span><span>{{ detail.customer.phone || '—' }}</span></div>
-          <div class="di-row"><span class="di-lbl">Ngày sinh</span><span>{{ detail.customer.birthDate || '—' }}</span></div>
-          <div class="di-row"><span class="di-lbl">Địa chỉ</span><span>{{ detail.customer.raw?.address || '—' }}</span></div>
-          <div class="di-row">
-            <span class="di-lbl">Đơn cuối</span>
-            <span class="text-warn">{{ relativeDate(detail.customer.raw?.lastOrderAt) }}</span>
+        <div class="modal-info">
+          <div class="mi-row"><span class="mi-lbl">SĐT</span><span>{{ detail.customer.phone || '—' }}</span></div>
+          <div class="mi-row"><span class="mi-lbl">Ngày sinh</span><span>{{ detail.customer.birthDate || '—' }}</span></div>
+          <div class="mi-row"><span class="mi-lbl">Địa chỉ</span><span>{{ detail.customer.raw?.address || '—' }}</span></div>
+          <div class="mi-row">
+            <span class="mi-lbl">Đơn cuối</span>
+            <span class="warn-text">{{ relativeDate(detail.customer.raw?.lastOrderAt) }}</span>
           </div>
-          <div class="di-row" v-if="detail.customer.notes">
-            <span class="di-lbl">Ghi chú</span><span>{{ detail.customer.notes }}</span>
+          <div class="mi-row" v-if="detail.customer.notes">
+            <span class="mi-lbl">Ghi chú</span><span>{{ detail.customer.notes }}</span>
           </div>
         </div>
 
-        <div class="detail-alert">
-          <el-icon><WarnTriangleFilled /></el-icon>
+        <div class="modal-alert">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Khách hàng này chưa giao dịch trong <strong>{{ activeTab }}+ ngày</strong>. Cân nhắc liên hệ lại!
         </div>
       </div>
-    </el-dialog>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, reactive } from "vue";
-import {
-  Refresh, Search, View, Clock, Warning, WarnTriangleFilled
-} from "@element-plus/icons-vue";
 import { customersApi } from "../../api/customers.api";
 
-// ── State ──────────────────────────────────────────────
 const loading = ref(false);
 const data = reactive({ 30: [], 60: [], 90: [] });
 const counts = reactive({ 30: null, 60: null, 90: null });
@@ -252,16 +240,14 @@ const page = ref(1);
 const pageSize = 9;
 
 const tabs = [
-  { days: 30, label: "30 ngày", icon: "🟡" },
-  { days: 60, label: "60 ngày", icon: "🟠" },
-  { days: 90, label: "90 ngày", icon: "🔴" },
+  { days: 30, label: "30 ngày", color: "yellow" },
+  { days: 60, label: "60 ngày", color: "orange" },
+  { days: 90, label: "90 ngày", color: "red" },
 ];
 
 const tiers = ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"];
-
 const detail = reactive({ open: false, customer: null });
 
-// ── Current data ───────────────────────────────────────
 const current = computed(() => data[activeTab.value] || []);
 
 const filtered = computed(() => {
@@ -281,6 +267,8 @@ const paged = computed(() => {
   return filtered.value.slice(s, s + pageSize);
 });
 
+const totalPages = computed(() => Math.ceil(filtered.value.length / pageSize));
+
 const totalPoints = computed(() =>
   current.value.reduce((s, r) => s + (r.loyaltyPoints || 0), 0).toLocaleString()
 );
@@ -295,7 +283,6 @@ const topTier = computed(() => {
   return "—";
 });
 
-// ── API ────────────────────────────────────────────────
 function normalize(list) {
   return (list || []).map(c => ({
     id: c.id,
@@ -335,13 +322,8 @@ function switchTab(days) {
   tierFilter.value = "";
 }
 
-// ── Helpers ────────────────────────────────────────────
-function tierType(tier) {
-  return { BRONZE: "info", SILVER: "", GOLD: "warning", PLATINUM: "danger", DIAMOND: "success" }[tier] || "info";
-}
-
 function avatarColor(name) {
-  const palette = ["#e07a5f","#3d405b","#81b29a","#f2cc8f","#264653","#2a9d8f","#e76f51","#457b9d"];
+  const palette = ["#3b82f6","#8b5cf6","#ec4899","#f59e0b","#10b981","#ef4444","#06b6d4","#6366f1"];
   const h = (name || "?").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   return palette[h % palette.length];
 }
@@ -386,406 +368,543 @@ onMounted(loadAll);
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap');
-
+/* ── Base ──────────────────────────────────────────── */
 .inactive-wrapper {
-  font-family: 'DM Sans', sans-serif;
-  padding: 28px 32px;
-  background: #f7f6f3;
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  padding: 32px 36px 80px;
+  background: #f5f5f5;
   min-height: 100vh;
 }
 
-/* ── Header ───────────────────────────── */
+/* ── Header ────────────────────────────────────────── */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .header-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: #e07a5f;
+  color: #6b7280;
   margin-bottom: 6px;
 }
 
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px; height: 7px;
   border-radius: 50%;
-  background: #e07a5f;
-  animation: pulse 1.5s ease-in-out infinite;
+  background: #3b82f6;
+  animation: pulse 1.8s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.4); }
+  50% { opacity: 0.4; transform: scale(1.5); }
 }
 
 .page-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 800;
-  color: #1a1a2e;
+  color: #111827;
   margin: 0 0 4px;
-  line-height: 1.1;
+  letter-spacing: -0.5px;
 }
 
 .page-sub {
-  color: #888;
-  font-size: 14px;
+  font-size: 13px;
+  color: #9ca3af;
   margin: 0;
 }
 
 .reload-btn {
-  font-family: 'Syne', sans-serif;
-  font-weight: 600;
-  border: 2px solid #1a1a2e;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border: 1.5px solid #e5e7eb;
   border-radius: 10px;
-  background: #1a1a2e;
-  color: #fff;
-  padding: 10px 20px;
-  transition: all 0.2s;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all .15s;
 }
-.reload-btn:hover {
-  background: #2d2d4a;
-  border-color: #2d2d4a;
-}
+.reload-btn:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+.reload-btn:disabled { opacity: .6; cursor: not-allowed; }
 
-/* ── Tabs ─────────────────────────────── */
+.spinner-sm {
+  width: 14px; height: 14px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Tabs ──────────────────────────────────────────── */
 .tab-strip {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .tab-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 22px;
-  border-radius: 14px;
-  border: 2px solid #e8e6e0;
-  background: #fff;
+  gap: 9px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: white;
   cursor: pointer;
-  font-family: 'Syne', sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  color: #555;
-  transition: all 0.2s;
-}
-
-.tab-btn:hover { border-color: #aaa; transform: translateY(-2px); }
-
-.tab-icon { font-size: 18px; }
-.tab-count {
-  display: inline-block;
-  min-width: 28px;
-  text-align: center;
-  padding: 2px 8px;
-  border-radius: 20px;
   font-size: 13px;
-  font-weight: 700;
-  background: #f0ede8;
-  color: #888;
-  transition: all 0.3s;
+  font-weight: 600;
+  color: #6b7280;
+  transition: all .15s;
 }
-.tab-count.loaded { background: #1a1a2e; color: #fff; }
+.tab-btn:hover { border-color: #d1d5db; color: #111827; }
 
-.tab-btn.active.tab-info  { border-color: #f2cc8f; background: #fffbf0; color: #b8860b; }
-.tab-btn.active.tab-warn  { border-color: #e07a5f; background: #fff5f2; color: #c0392b; }
-.tab-btn.active.tab-danger{ border-color: #c0392b; background: #fff0ee; color: #a61c00; box-shadow: 0 4px 16px rgba(192,57,43,0.15); }
+.tab-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-yellow { background: #f59e0b; }
+.dot-orange { background: #f97316; }
+.dot-red    { background: #ef4444; }
 
-/* ── Stats Row ────────────────────────── */
+.tab-count {
+  padding: 1px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f3f4f6;
+  color: #9ca3af;
+  transition: all .2s;
+}
+.tab-count.loaded { background: #111827; color: white; }
+
+.tab-btn.active {
+  border-color: #111827;
+  background: #111827;
+  color: white;
+}
+.tab-btn.active .tab-count { background: white; color: #111827; }
+.tab-btn.active .tab-dot { opacity: 1; }
+
+/* ── Stats ─────────────────────────────────────────── */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 22px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
-  background: #fff;
-  border-radius: 16px;
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 14px;
   padding: 18px 20px;
-  border: 2px solid #f0ede8;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-
+.stat-icon { font-size: 18px; margin-bottom: 2px; }
 .stat-val {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
-  color: #1a1a2e;
-  margin-bottom: 4px;
+  color: #111827;
+  line-height: 1.2;
 }
+.stat-val.gold  { color: #d97706; }
+.stat-val.green { color: #059669; font-size: 16px; }
+.stat-val.blue  { color: #2563eb; }
+.stat-lbl { font-size: 12px; color: #9ca3af; }
 
-.stat-lbl { font-size: 12px; color: #aaa; font-weight: 500; }
-.text-gold { color: #c9993b; }
-.text-green { color: #2a9d8f; font-size: 16px !important; }
-.text-tier { color: #e07a5f; }
-
-/* ── Filter Bar ───────────────────────── */
+/* ── Filter ────────────────────────────────────────── */
 .filter-bar {
   display: flex;
-  gap: 12px;
-  margin-bottom: 22px;
+  gap: 10px;
+  margin-bottom: 20px;
   align-items: center;
 }
 
-.search-input { flex: 1; }
-.tier-select { width: 160px; }
-.sort-select { width: 200px; }
+.search-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 12px;
+  transition: border-color .15s;
+}
+.search-wrap:focus-within { border-color: #3b82f6; }
 
-/* ── Cards Grid ───────────────────────── */
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #111827;
+  padding: 9px 0;
+  background: transparent;
+  font-family: inherit;
+}
+.search-input::placeholder { color: #d1d5db; }
+
+.clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+.clear-btn:hover { color: #374151; }
+
+.filter-select {
+  padding: 9px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+.filter-select:focus { border-color: #3b82f6; }
+
+/* ── Cards ─────────────────────────────────────────── */
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  margin-bottom: 28px;
+  gap: 14px;
+  margin-bottom: 24px;
 }
-
 @media (max-width: 1100px) { .cards-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px)  { .cards-grid { grid-template-columns: 1fr; } }
 
 .cust-card {
-  background: #fff;
-  border-radius: 18px;
-  border: 2px solid #f0ede8;
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 16px;
   overflow: hidden;
-  transition: all 0.25s;
+  transition: all .2s;
   position: relative;
-  animation: fadeUp 0.4s ease both;
-  animation-delay: var(--delay);
+  animation: fadeUp .35s ease both;
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 .cust-card:hover {
-  border-color: #1a1a2e;
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(26,26,46,0.10);
+  border-color: #e5e7eb;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  transform: translateY(-3px);
 }
 
-/* Top tier bar */
-.card-top-bar { height: 5px; width: 100%; }
-.bar-bronze   { background: linear-gradient(90deg, #cd7f32, #e8a87c); }
-.bar-silver   { background: linear-gradient(90deg, #9e9e9e, #e0e0e0); }
-.bar-gold     { background: linear-gradient(90deg, #f7c948, #ffe082); }
-.bar-platinum { background: linear-gradient(90deg, #e53935, #ef9a9a); }
-.bar-diamond  { background: linear-gradient(90deg, #43a047, #a5d6a7); }
-.bar-none     { background: #f0ede8; }
+/* Tier stripe */
+.tier-stripe { height: 4px; width: 100%; }
+.stripe-bronze   { background: linear-gradient(90deg, #cd7f32, #f0a96a); }
+.stripe-silver   { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+.stripe-gold     { background: linear-gradient(90deg, #f59e0b, #fde68a); }
+.stripe-platinum { background: linear-gradient(90deg, #6366f1, #a5b4fc); }
+.stripe-diamond  { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
+.stripe-none     { background: #f3f4f6; }
 
 /* Card head */
 .card-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 16px 10px;
+  gap: 11px;
+  padding: 14px 14px 12px;
 }
 
 .avatar {
-  width: 44px;
-  height: 44px;
+  width: 42px; height: 42px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 15px;
-  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px; color: white;
   flex-shrink: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: .5px;
 }
 
 .card-name-block { flex: 1; min-width: 0; }
-.card-name { font-weight: 700; font-size: 15px; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-email { font-size: 12px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-email {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.tier-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.tier-pill.lg { font-size: 13px; padding: 5px 14px; border-radius: 8px; }
+.pill-bronze   { background: #fef3c7; color: #92400e; }
+.pill-silver   { background: #f1f5f9; color: #475569; }
+.pill-gold     { background: #fef9c3; color: #b45309; }
+.pill-platinum { background: #ede9fe; color: #6d28d9; }
+.pill-diamond  { background: #dbeafe; color: #1d4ed8; }
+
+.card-divider { height: 1px; background: #f3f4f6; margin: 0 14px; }
 
 /* Metrics */
 .card-metrics {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 10px 16px;
-  background: #f9f8f5;
-  border-top: 1px solid #f0ede8;
-  border-bottom: 1px solid #f0ede8;
+  padding: 12px 14px;
 }
 
-.metric {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+.metric { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.metric-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111827;
 }
-
-.metric-icon { font-size: 15px; }
-.metric-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: #1a1a2e; }
-.metric-lbl { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
-.text-muted-val { font-size: 12px !important; color: #666; }
-.metric-divider { width: 1px; height: 32px; background: #e8e6e0; }
+.metric-val.sm { font-size: 12px; font-weight: 600; color: #6b7280; }
+.metric-lbl {
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.metric-sep { width: 1px; height: 30px; background: #f3f4f6; }
 
 /* Footer */
 .card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 12px;
+  padding: 10px 14px 13px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .last-order {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #e07a5f;
+  gap: 5px;
+  font-size: 11px;
   font-weight: 500;
+  color: #f97316;
 }
-.last-order.no-order { color: #c0392b; }
+.last-order.no-order { color: #ef4444; }
 
-.card-actions { display: flex; gap: 6px; }
-.icon-btn { border-color: #eee !important; }
+.view-btn {
+  width: 30px; height: 30px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all .15s;
+}
+.view-btn:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
 
-/* Ribbon */
-.inactive-ribbon {
+/* Hover badge */
+.inactive-badge {
   position: absolute;
-  top: 14px;
-  right: -22px;
-  background: #c0392b;
-  color: #fff;
+  top: 10px; right: -30px;
+  background: #ef4444;
+  color: white;
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.4px;
   text-transform: uppercase;
+  letter-spacing: .5px;
   padding: 3px 28px;
   transform: rotate(35deg);
-  transform-origin: center;
   white-space: nowrap;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity .2s;
+  pointer-events: none;
 }
-.cust-card:hover .inactive-ribbon { opacity: 1; }
+.cust-card:hover .inactive-badge { opacity: 1; }
 
-/* ── Skeleton ────────────────────────── */
-.skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  margin-bottom: 28px;
-}
-
+/* ── Skeleton ──────────────────────────────────────── */
 .skeleton-card {
-  background: #fff;
-  border-radius: 18px;
-  border: 2px solid #f0ede8;
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 16px;
   padding: 20px;
   display: flex;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
 }
 
-.sk { border-radius: 8px; background: linear-gradient(90deg, #f0ede8 25%, #e8e5de 50%, #f0ede8 75%); background-size: 200%; animation: shimmer 1.4s infinite; }
-.sk-avatar { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; }
+.sk {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background-size: 200%;
+  animation: shimmer 1.4s infinite;
+}
+.sk-avatar { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; }
 .sk-lines { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .sk-line { height: 12px; }
-.w80 { width: 80%; }
-.w60 { width: 60%; }
-.w40 { width: 40%; }
 
 @keyframes shimmer {
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
 }
 
-/* ── Empty ──────────────────────────── */
+/* ── Empty ─────────────────────────────────────────── */
 .empty-state {
   text-align: center;
   padding: 80px 20px;
 }
-.empty-icon { font-size: 56px; margin-bottom: 16px; }
-.empty-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; }
-.empty-sub { color: #aaa; font-size: 15px; }
+.empty-icon { font-size: 52px; margin-bottom: 16px; }
+.empty-title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+.empty-sub { color: #9ca3af; font-size: 14px; }
 
-/* ── Pagination ─────────────────────── */
+/* ── Pagination ────────────────────────────────────── */
 .pagination-row {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 6px;
 }
-.pagination-info { font-size: 13px; color: #aaa; }
 
-/* ── Detail Dialog ──────────────────── */
-.detail-body { text-align: center; padding: 16px 8px 8px; }
+.page-btn {
+  min-width: 34px; height: 34px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  padding: 0 8px;
+}
+.page-btn:hover:not(:disabled) { border-color: #3b82f6; color: #3b82f6; }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+.page-btn.page-active { background: #111827; border-color: #111827; color: white; }
+.page-info { font-size: 12px; color: #9ca3af; margin-left: 8px; }
 
-.detail-avatar {
-  width: 72px;
-  height: 72px;
+/* ── Modal ─────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.4);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-box {
+  background: white;
   border-radius: 20px;
-  margin: 0 auto 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Syne', sans-serif;
-  font-size: 24px;
-  font-weight: 800;
-  color: #fff;
+  padding: 32px 28px 24px;
+  width: 460px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp .25s cubic-bezier(.34,1.56,.64,1);
+  text-align: center;
+}
+@keyframes slideUp {
+  from { transform: translateY(20px) scale(.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-.detail-name { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: #1a1a2e; }
-.detail-email { color: #aaa; font-size: 14px; margin-bottom: 10px; }
-.detail-tier { margin-bottom: 20px; }
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 30px; height: 30px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  color: #6b7280;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.modal-close:hover { border-color: #ef4444; color: #ef4444; }
 
-.detail-stats {
+.modal-avatar {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800; color: white;
+}
+.modal-name { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 4px; }
+.modal-email { font-size: 13px; color: #9ca3af; margin-bottom: 12px; }
+
+.modal-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin: 16px 0;
 }
-.ds-item { background: #f9f8f5; border-radius: 14px; padding: 14px; border: 1px solid #f0ede8; }
-.ds-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 4px; }
-.ds-lbl { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+.ms-item {
+  background: #f9fafb;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+.ms-val { font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 3px; }
+.ms-val.gold  { color: #d97706; }
+.ms-val.green { color: #059669; font-size: 14px; }
+.ms-lbl { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: .4px; }
 
-.detail-info-grid { text-align: left; margin-bottom: 16px; }
-.di-row {
+.modal-info { text-align: left; margin-bottom: 16px; }
+.mi-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #f0ede8;
-  font-size: 14px;
-}
-.di-row:last-child { border-bottom: none; }
-.di-lbl { color: #888; font-weight: 600; }
-.text-warn { color: #e07a5f; font-weight: 600; }
-
-.detail-alert {
-  background: #fff5f2;
-  border: 1.5px solid #e07a5f;
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
   font-size: 13px;
-  color: #c0392b;
+  color: #374151;
+}
+.mi-row:last-child { border-bottom: none; }
+.mi-lbl { font-weight: 600; color: #9ca3af; }
+.warn-text { color: #f97316; font-weight: 600; }
+
+.modal-alert {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #dc2626;
   text-align: left;
 }
-
-/* Transitions */
-.card-list-enter-active, .card-list-leave-active { transition: all 0.3s ease; }
-.card-list-enter-from { opacity: 0; transform: translateY(12px); }
-.card-list-leave-to { opacity: 0; transform: scale(0.95); }
 </style>

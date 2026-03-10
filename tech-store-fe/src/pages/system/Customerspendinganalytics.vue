@@ -1,510 +1,355 @@
 <template>
-  <div class="container-xl">
-    <el-card shadow="never">
-      <!-- Header -->
-      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
-        <div>
-          <div class="kicker">Analytics</div>
-          <div class="title">Customer Spending Analytics</div>
-          <div class="muted">Analyze customer spending patterns and top performers</div>
+  <div class="sa-root">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <div class="sa-header">
+      <div class="sa-header-left">
+        <div class="sa-kicker">Analytics</div>
+        <h1 class="sa-title">Customer Spending Analytics</h1>
+        <p class="sa-sub">Analyze customer spending patterns and top performers</p>
+      </div>
+      <button class="sa-btn-reload" @click="loadAll" :disabled="loading">
+        <svg :class="{ spin: loading }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Reload
+      </button>
+    </div>
+
+    <!-- ── KPI Cards ───────────────────────────────────────────── -->
+    <div class="sa-kpi-row">
+      <div class="sa-kpi" style="--c:#3b82f6;--bg:#eff6ff">
+        <div class="sa-kpi-icon" style="background:#eff6ff;color:#3b82f6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         </div>
-        <div class="d-flex gap-2">
-          <el-button @click="loadAll" :loading="loading">
-            <el-icon class="me-1"><Refresh /></el-icon>
-            Reload
-          </el-button>
+        <div class="sa-kpi-body">
+          <div class="sa-kpi-label">Total Spent</div>
+          <div class="sa-kpi-value">{{ formatCurrency(stats.totalSpent) }}</div>
+        </div>
+      </div>
+      <div class="sa-kpi" style="--c:#10b981;--bg:#ecfdf5">
+        <div class="sa-kpi-icon" style="background:#ecfdf5;color:#10b981">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div class="sa-kpi-body">
+          <div class="sa-kpi-label">Total Customers</div>
+          <div class="sa-kpi-value">{{ (stats.totalCustomers || 0).toLocaleString() }}</div>
+        </div>
+      </div>
+      <div class="sa-kpi" style="--c:#f59e0b;--bg:#fffbeb">
+        <div class="sa-kpi-icon" style="background:#fffbeb;color:#f59e0b">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <div class="sa-kpi-body">
+          <div class="sa-kpi-label">Average Spent</div>
+          <div class="sa-kpi-value">{{ formatCurrency(stats.averageSpent) }}</div>
+        </div>
+      </div>
+      <div class="sa-kpi" style="--c:#8b5cf6;--bg:#f5f3ff">
+        <div class="sa-kpi-icon" style="background:#f5f3ff;color:#8b5cf6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+        </div>
+        <div class="sa-kpi-body">
+          <div class="sa-kpi-label">Top Spender</div>
+          <div class="sa-kpi-value sm">{{ topSpenders[0]?.fullName || 'N/A' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tabs ────────────────────────────────────────────────── -->
+    <div class="sa-tabs">
+      <button v-for="tab in tabList" :key="tab.id"
+        class="sa-tab" :class="{ active: activeTab === tab.id }"
+        @click="switchTab(tab.id)">
+        <span v-html="tab.icon"></span>
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <!-- ── Tab: Top Spenders ───────────────────────────────────── -->
+    <div v-if="activeTab === 'topSpenders'" class="sa-panel">
+      <div class="sa-filter-bar">
+        <div class="sa-filter-group">
+          <label class="sa-label">Limit</label>
+          <div class="sa-number-input">
+            <button @click="topSpendersLimit = Math.max(5, topSpendersLimit - 5)">−</button>
+            <span>{{ topSpendersLimit }}</span>
+            <button @click="topSpendersLimit = Math.min(100, topSpendersLimit + 5)">+</button>
+          </div>
+        </div>
+        <div class="sa-filter-group">
+          <label class="sa-label">VIP Tier</label>
+          <select v-model="topSpendersTier" class="sa-select">
+            <option value="">All Tiers</option>
+            <option v-for="t in tiers" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </div>
+        <button class="sa-btn-primary" @click="loadTopSpenders" :disabled="loadingTopSpenders">
+          <span v-if="loadingTopSpenders" class="spinner-sm"></span>
+          <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Load
+        </button>
+      </div>
+
+      <div class="sa-table-wrap">
+        <div v-if="loadingTopSpenders" class="sa-table-skeleton">
+          <div v-for="i in 5" :key="i" class="sk-row">
+            <div class="sk sk-rank"></div>
+            <div class="sk-user"><div class="sk sk-av"></div><div class="sk-lines"><div class="sk sk-l w70"></div><div class="sk sk-l w50"></div></div></div>
+            <div class="sk sk-pill"></div>
+            <div class="sk sk-money"></div>
+            <div class="sk sk-pill"></div>
+          </div>
+        </div>
+        <table v-else-if="topSpenders.length" class="sa-table">
+          <thead>
+            <tr>
+              <th style="width:70px;text-align:center">Rank</th>
+              <th>Customer</th>
+              <th style="width:110px;text-align:center">VIP Tier</th>
+              <th style="width:180px;text-align:right">Total Spent</th>
+              <th style="width:130px;text-align:center">Points</th>
+              <th style="width:110px;text-align:center">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in topSpenders" :key="row.id">
+              <td style="text-align:center">
+                <div class="rank-badge" :class="['rank-' + getRankKey(idx)]">
+                  <svg v-if="idx < 3" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9H4.5a2.5 2.5 0 010-5H6m12 0h1.5a2.5 2.5 0 010 5H18M4 22h16M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+                  <span v-else>{{ idx + 1 }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="cust-cell">
+                  <div class="cust-av" :style="`background:${avatarColor(row.fullName)}`">{{ initials(row.fullName) }}</div>
+                  <div>
+                    <div class="cust-name">{{ row.fullName }}</div>
+                    <div class="cust-email">{{ row.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="text-align:center">
+                <span v-if="row.raw.vipTier" class="tier-chip" :class="'tier-' + row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
+                <span v-else class="muted-dash">—</span>
+              </td>
+              <td style="text-align:right">
+                <span class="spend-amount">{{ formatCurrency(row.raw.totalSpent) }}</span>
+              </td>
+              <td style="text-align:center">
+                <span class="points-badge">⭐ {{ row.loyaltyPoints }}</span>
+              </td>
+              <td style="text-align:center">
+                <span class="type-chip" :class="row.customerType === 'VIP' ? 'type-vip' : 'type-reg'">{{ row.customerType }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="sa-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <p>Chưa có dữ liệu</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Spending Range ─────────────────────────────────── -->
+    <div v-else-if="activeTab === 'spendingRange'" class="sa-panel">
+      <div class="sa-filter-bar wrap">
+        <div class="sa-filter-group">
+          <label class="sa-label">Min Spending (₫)</label>
+          <input type="number" v-model.number="spendingMin" class="sa-input" placeholder="0" min="0" step="1000000"/>
+        </div>
+        <div class="sa-filter-group">
+          <label class="sa-label">Max Spending (₫)</label>
+          <input type="number" v-model.number="spendingMax" class="sa-input" placeholder="999,999,999" min="0" step="1000000"/>
+        </div>
+        <div class="sa-filter-actions">
+          <button class="sa-btn-primary" @click="loadBySpendingRange" :disabled="loadingSpendingRange">
+            <span v-if="loadingSpendingRange" class="spinner-sm"></span>
+            <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 9 11 13 15 22 22 3"/></svg>
+            Apply
+          </button>
+          <button class="sa-btn-ghost" @click="clearSpendingRange">Clear</button>
         </div>
       </div>
 
-      <el-divider />
+      <!-- Quick Ranges -->
+      <div class="sa-quick-ranges">
+        <span class="sa-label">Quick:</span>
+        <button v-for="q in quickRanges" :key="q.label" class="sa-quick-btn" @click="setQuickRange(q.min, q.max)">
+          {{ q.label }}
+        </button>
+      </div>
 
-      <!-- Statistics Overview -->
-      <div class="row g-3 mb-4">
-        <div class="col-12 col-md-3">
-          <el-card shadow="hover" class="stat-card stat-card-primary">
-            <div class="stat-icon">
-              <el-icon :size="32"><Money /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">Total Spent</div>
-              <div class="stat-value">{{ formatCurrency(stats.totalSpent) }}</div>
-            </div>
-          </el-card>
+      <!-- Active Range Alert -->
+      <div class="sa-range-alert" v-if="appliedSpendingRange.min !== null || appliedSpendingRange.max !== null">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <strong>Active Range:</strong>
+        {{ formatCurrency(appliedSpendingRange.min || 0) }} – {{ formatCurrency(appliedSpendingRange.max || 999999999) }}
+        <span class="range-count-badge">{{ customersBySpending.length }} customers</span>
+      </div>
+
+      <div class="sa-table-wrap">
+        <div v-if="loadingSpendingRange" class="sa-table-skeleton">
+          <div v-for="i in 5" :key="i" class="sk-row">
+            <div class="sk sk-id"></div>
+            <div class="sk-user"><div class="sk sk-av"></div><div class="sk-lines"><div class="sk sk-l w70"></div><div class="sk sk-l w50"></div></div></div>
+            <div class="sk sk-pill"></div>
+            <div class="sk sk-money"></div>
+          </div>
         </div>
-
-        <div class="col-12 col-md-3">
-          <el-card shadow="hover" class="stat-card stat-card-success">
-            <div class="stat-icon">
-              <el-icon :size="32"><User /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">Total Customers</div>
-              <div class="stat-value">{{ stats.totalCustomers?.toLocaleString() || 0 }}</div>
-            </div>
-          </el-card>
-        </div>
-
-        <div class="col-12 col-md-3">
-          <el-card shadow="hover" class="stat-card stat-card-warning">
-            <div class="stat-icon">
-              <el-icon :size="32"><TrendCharts /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">Average Spent</div>
-              <div class="stat-value">{{ formatCurrency(stats.averageSpent) }}</div>
-            </div>
-          </el-card>
-        </div>
-
-        <div class="col-12 col-md-3">
-          <el-card shadow="hover" class="stat-card stat-card-danger">
-            <div class="stat-icon">
-              <el-icon :size="32"><Trophy /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">Top Spender</div>
-              <div class="stat-value-small">
-                {{ topSpenders[0]?.fullName || 'N/A' }}
-              </div>
-            </div>
-          </el-card>
+        <table v-else-if="pagedSpending.length" class="sa-table">
+          <thead>
+            <tr>
+              <th style="width:60px">ID</th>
+              <th>Customer</th>
+              <th style="width:130px">Phone</th>
+              <th style="width:110px;text-align:center">VIP Tier</th>
+              <th style="width:180px;text-align:right">Total Spent</th>
+              <th style="width:120px;text-align:center">Points</th>
+              <th style="width:100px;text-align:center">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in pagedSpending" :key="row.id">
+              <td class="muted-text">{{ row.id }}</td>
+              <td>
+                <div class="cust-cell">
+                  <div class="cust-av sm" :style="`background:${avatarColor(row.fullName)}`">{{ initials(row.fullName) }}</div>
+                  <div>
+                    <div class="cust-name">{{ row.fullName }}</div>
+                    <div class="cust-email">{{ row.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="muted-text">{{ row.phone || '—' }}</td>
+              <td style="text-align:center">
+                <span v-if="row.raw.vipTier" class="tier-chip" :class="'tier-' + row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
+                <span v-else class="muted-dash">—</span>
+              </td>
+              <td style="text-align:right"><span class="spend-amount">{{ formatCurrency(row.raw.totalSpent) }}</span></td>
+              <td style="text-align:center"><span class="points-badge">⭐ {{ row.loyaltyPoints }}</span></td>
+              <td style="text-align:center">
+                <span class="type-chip" :class="row.customerType === 'VIP' ? 'type-vip' : 'type-reg'">{{ row.customerType }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="sa-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+          <p>Chưa có dữ liệu. Hãy nhập khoảng chi tiêu và nhấn Apply.</p>
         </div>
       </div>
 
-      <!-- Tabs -->
-      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-        <!-- Top Spenders Tab -->
-        <el-tab-pane label="Top Spenders" name="topSpenders">
-          <div class="mb-3">
-            <div class="row g-3 align-items-end">
-              <div class="col-12 col-md-3">
-                <label class="form-label text-muted small">Limit</label>
-                <el-input-number
-                  v-model="topSpendersLimit"
-                  :min="5"
-                  :max="100"
-                  :step="5"
-                  controls-position="right"
-                  style="width: 100%"
-                />
-              </div>
+      <!-- Pagination -->
+      <div class="sa-pagination" v-if="customersBySpending.length > pageSize">
+        <button class="page-btn" :disabled="spendingPage === 1" @click="spendingPage--">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button v-for="p in totalSpendingPages" :key="p"
+          class="page-btn" :class="{ active: p === spendingPage }"
+          @click="spendingPage = p">{{ p }}</button>
+        <button class="page-btn" :disabled="spendingPage === totalSpendingPages" @click="spendingPage++">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <span class="page-info">{{ (spendingPage-1)*pageSize+1 }}–{{ Math.min(spendingPage*pageSize, customersBySpending.length) }} / {{ customersBySpending.length }}</span>
+      </div>
+    </div>
 
-              <div class="col-12 col-md-3">
-                <label class="form-label text-muted small">VIP Tier Filter</label>
-                <el-select
-                  v-model="topSpendersTier"
-                  placeholder="All Tiers"
-                  clearable
-                  style="width: 100%"
-                >
-                  <el-option label="BRONZE" value="BRONZE">
-                    <el-tag type="info" size="small">BRONZE</el-tag>
-                  </el-option>
-                  <el-option label="SILVER" value="SILVER">
-                    <el-tag type="" size="small">SILVER</el-tag>
-                  </el-option>
-                  <el-option label="GOLD" value="GOLD">
-                    <el-tag type="warning" size="small">GOLD</el-tag>
-                  </el-option>
-                  <el-option label="PLATINUM" value="PLATINUM">
-                    <el-tag type="danger" size="small">PLATINUM</el-tag>
-                  </el-option>
-                  <el-option label="DIAMOND" value="DIAMOND">
-                    <el-tag type="success" size="small">DIAMOND</el-tag>
-                  </el-option>
-                </el-select>
-              </div>
+    <!-- ── Tab: Statistics ─────────────────────────────────────── -->
+    <div v-else-if="activeTab === 'statistics'" class="sa-panel">
 
-              <div class="col-12 col-md-3">
-                <el-button type="primary" @click="loadTopSpenders" :loading="loadingTopSpenders">
-                  <el-icon class="me-1"><Search /></el-icon>
-                  Load Top Spenders
-                </el-button>
-              </div>
+      <!-- Distribution chart -->
+      <div class="sa-card mb-14">
+        <div class="sa-card-header">
+          <div class="sa-card-title">Distribution by Spending Range</div>
+          <div class="sa-card-sub">Số khách hàng theo mức chi tiêu</div>
+        </div>
+        <div class="sa-ranges">
+          <div v-for="(count, range) in stats.spendingRanges" :key="range" class="sa-range-row">
+            <div class="sa-range-label">{{ formatRangeLabel(range) }}</div>
+            <div class="sa-range-bar-wrap">
+              <div class="sa-range-bar" :style="`width:${getPercentage(count, stats.totalCustomers)}%;background:${getRangeColor(range)}`"></div>
             </div>
+            <div class="sa-range-pct">{{ getPercentage(count, stats.totalCustomers) }}%</div>
+            <div class="sa-range-count">{{ count }} khách</div>
           </div>
+        </div>
+      </div>
 
-          <!-- Top Spenders Table -->
-          <el-table
-            :data="topSpenders"
-            border
-            :loading="loadingTopSpenders"
-            stripe
-            class="top-spenders-table"
-          >
-            <el-table-column label="Rank" width="80" align="center">
-              <template #default="{ $index }">
-                <div class="rank-badge" :class="getRankClass($index)">
-                  <el-icon v-if="$index === 0"><Trophy /></el-icon>
-                  <el-icon v-else-if="$index === 1"><Medal /></el-icon>
-                  <el-icon v-else-if="$index === 2"><Medal /></el-icon>
-                  <span v-else>{{ $index + 1 }}</span>
-                </div>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Customer" min-width="250">
-              <template #default="{ row }">
-                <div class="d-flex align-items-center gap-3">
-                  <el-avatar :size="40" :style="{ backgroundColor: getAvatarColor(row.fullName) }">
-                    {{ getInitials(row.fullName) }}
-                  </el-avatar>
-                  <div>
-                    <div class="fw-semibold">{{ row.fullName }}</div>
-                    <div class="text-muted small">{{ row.email }}</div>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="VIP Tier" width="120" align="center">
-              <template #default="{ row }">
-                <el-tag
-                  v-if="row.raw.vipTier"
-                  :type="getTierTagType(row.raw.vipTier)"
-                  effect="dark"
-                >
-                  {{ row.raw.vipTier }}
-                </el-tag>
-                <span v-else class="text-muted">—</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Total Spent" width="200" align="right">
-              <template #default="{ row }">
-                <div class="spending-amount">
-                  {{ formatCurrency(row.raw.totalSpent) }}
-                </div>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Loyalty Points" width="140" align="center">
-              <template #default="{ row }">
-                <el-tag type="warning" effect="plain" size="large">
-                  <el-icon class="me-1"><Coin /></el-icon>
-                  {{ row.loyaltyPoints }}
-                </el-tag>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Customer Type" width="120" align="center">
-              <template #default="{ row }">
-                <el-tag :type="row.customerType === 'VIP' ? 'warning' : 'info'">
-                  {{ row.customerType }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-
-        <!-- Spending Range Tab -->
-        <el-tab-pane label="By Spending Range" name="spendingRange">
-          <div class="mb-3">
-            <div class="row g-3 align-items-end">
-              <div class="col-12 col-md-3">
-                <label class="form-label text-muted small">Min Spending (VNĐ)</label>
-                <el-input-number
-                  v-model="spendingMin"
-                  :min="0"
-                  :step="1000000"
-                  controls-position="right"
-                  style="width: 100%"
-                  :formatter="(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-                  :parser="(value) => value.replace(/,/g, '')"
-                />
-              </div>
-
-              <div class="col-12 col-md-3">
-                <label class="form-label text-muted small">Max Spending (VNĐ)</label>
-                <el-input-number
-                  v-model="spendingMax"
-                  :min="0"
-                  :step="1000000"
-                  controls-position="right"
-                  style="width: 100%"
-                  :formatter="(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-                  :parser="(value) => value.replace(/,/g, '')"
-                />
-              </div>
-
-              <div class="col-12 col-md-3">
-                <el-button type="primary" @click="loadBySpendingRange" :loading="loadingSpendingRange">
-                  <el-icon class="me-1"><Filter /></el-icon>
-                  Apply Filter
-                </el-button>
-              </div>
-
-              <div class="col-12 col-md-3">
-                <el-button @click="clearSpendingRange">
-                  <el-icon class="me-1"><Close /></el-icon>
-                  Clear
-                </el-button>
-              </div>
-            </div>
-
-            <!-- Quick Range Buttons -->
-            <div class="mt-3">
-              <label class="form-label text-muted small">Quick Ranges:</label>
-              <div class="d-flex gap-2 flex-wrap">
-                <el-button size="small" @click="setQuickRange(0, 1000000)">
-                  Under 1M
-                </el-button>
-                <el-button size="small" @click="setQuickRange(1000000, 5000000)">
-                  1M - 5M
-                </el-button>
-                <el-button size="small" @click="setQuickRange(5000000, 10000000)">
-                  5M - 10M
-                </el-button>
-                <el-button size="small" @click="setQuickRange(10000000, 50000000)">
-                  10M - 50M
-                </el-button>
-                <el-button size="small" @click="setQuickRange(50000000, 999999999)">
-                  Over 50M
-                </el-button>
-              </div>
-            </div>
+      <!-- Tier stats grid -->
+      <div class="sa-tier-grid">
+        <div v-for="(tierData, tier) in stats.byTier" :key="tier" class="sa-tier-card">
+          <div class="sa-tier-card-top">
+            <span class="tier-chip" :class="'tier-' + tier.toLowerCase()">{{ tier }}</span>
+            <span class="sa-tier-count">{{ tierData.customerCount }} khách</span>
           </div>
-
-          <!-- Applied Range Display -->
-          <div class="mb-3" v-if="appliedSpendingRange.min !== null || appliedSpendingRange.max !== null">
-            <el-alert type="info" :closable="false">
-              <template #default>
-                <div class="d-flex align-items-center gap-2">
-                  <strong>Active Range:</strong>
-                  <span>
-                    {{ formatCurrency(appliedSpendingRange.min || 0) }}
-                    -
-                    {{ formatCurrency(appliedSpendingRange.max || 999999999) }}
-                  </span>
-                  <el-tag type="info" size="small">
-                    {{ customersBySpending.length }} customers found
-                  </el-tag>
-                </div>
-              </template>
-            </el-alert>
+          <div class="sa-tier-divider"/>
+          <div class="sa-tier-row">
+            <div class="sa-tier-lbl">Total Spent</div>
+            <div class="sa-tier-val">{{ formatCurrency(tierData.totalSpent) }}</div>
           </div>
-
-          <!-- Customers by Spending Table -->
-          <el-table
-            :data="pagedSpending"
-            border
-            :loading="loadingSpendingRange"
-            stripe
-          >
-            <el-table-column prop="id" label="ID" width="80" />
-
-            <el-table-column label="Customer" min-width="250">
-              <template #default="{ row }">
-                <div class="d-flex align-items-center gap-3">
-                  <el-avatar :size="36" :style="{ backgroundColor: getAvatarColor(row.fullName) }">
-                    {{ getInitials(row.fullName) }}
-                  </el-avatar>
-                  <div>
-                    <div class="fw-semibold">{{ row.fullName }}</div>
-                    <div class="text-muted small">{{ row.email }}</div>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Phone" width="140">
-              <template #default="{ row }">
-                <span class="text-muted">{{ row.phone || '—' }}</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="VIP Tier" width="120" align="center">
-              <template #default="{ row }">
-                <el-tag
-                  v-if="row.raw.vipTier"
-                  :type="getTierTagType(row.raw.vipTier)"
-                  effect="dark"
-                  size="small"
-                >
-                  {{ row.raw.vipTier }}
-                </el-tag>
-                <span v-else class="text-muted">—</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Total Spent" width="180" align="right" sortable>
-              <template #default="{ row }">
-                <div class="spending-amount">
-                  {{ formatCurrency(row.raw.totalSpent) }}
-                </div>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Points" width="120" align="center" sortable>
-              <template #default="{ row }">
-                <el-tag type="warning" effect="plain">
-                  <el-icon class="me-1"><Coin /></el-icon>
-                  {{ row.loyaltyPoints }}
-                </el-tag>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Type" width="120" align="center">
-              <template #default="{ row }">
-                <el-tag :type="row.customerType === 'VIP' ? 'warning' : 'info'" size="small">
-                  {{ row.customerType }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <!-- Pagination -->
-          <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="text-muted small">
-              Showing {{ (spendingPage - 1) * pageSize + 1 }} 
-              to {{ Math.min(spendingPage * pageSize, customersBySpending.length) }} 
-              of {{ customersBySpending.length }} results
-            </div>
-            <el-pagination
-              background
-              layout="prev, pager, next, jumper"
-              :page-size="pageSize"
-              :total="customersBySpending.length"
-              :current-page="spendingPage"
-              @current-change="(v) => (spendingPage = v)"
-            />
+          <div class="sa-tier-divider"/>
+          <div class="sa-tier-row">
+            <div class="sa-tier-lbl">Avg Spent</div>
+            <div class="sa-tier-val blue">{{ formatCurrency(tierData.averageSpent) }}</div>
           </div>
-        </el-tab-pane>
+        </div>
+      </div>
+    </div>
 
-        <!-- Spending Statistics Tab -->
-        <el-tab-pane label="Statistics" name="statistics">
-          <!-- Spending Ranges Chart -->
-          <div class="row g-3 mb-4">
-            <div class="col-12">
-              <el-card shadow="hover">
-                <template #header>
-                  <div class="fw-bold">Distribution by Spending Range</div>
-                </template>
-                <div class="spending-ranges">
-                  <div
-                    v-for="(count, range) in stats.spendingRanges"
-                    :key="range"
-                    class="spending-range-item"
-                  >
-                    <div class="range-label">{{ formatRangeLabel(range) }}</div>
-                    <div class="range-progress">
-                      <el-progress
-                        :percentage="getPercentage(count, stats.totalCustomers)"
-                        :color="getProgressColor(range)"
-                      />
-                    </div>
-                    <div class="range-count">
-                      <el-tag type="info" size="small">{{ count }} customers</el-tag>
-                    </div>
-                  </div>
-                </div>
-              </el-card>
-            </div>
-          </div>
-
-          <!-- By VIP Tier Statistics -->
-          <div class="row g-3">
-            <div
-              v-for="(tierData, tier) in stats.byTier"
-              :key="tier"
-              class="col-12 col-md-6 col-lg-4"
-            >
-              <el-card shadow="hover" class="tier-stat-card">
-                <template #header>
-                  <div class="d-flex align-items-center justify-content-between">
-                    <el-tag :type="getTierTagType(tier)" effect="dark">
-                      {{ tier }}
-                    </el-tag>
-                    <span class="text-muted small">{{ tierData.customerCount }} customers</span>
-                  </div>
-                </template>
-                <div class="tier-stats">
-                  <div class="tier-stat-item">
-                    <div class="stat-label-small">Total Spent</div>
-                    <div class="stat-value-medium">
-                      {{ formatCurrency(tierData.totalSpent) }}
-                    </div>
-                  </div>
-                  <el-divider />
-                  <div class="tier-stat-item">
-                    <div class="stat-label-small">Average Spent</div>
-                    <div class="stat-value-medium">
-                      {{ formatCurrency(tierData.averageSpent) }}
-                    </div>
-                  </div>
-                </div>
-              </el-card>
-            </div>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import {
-  Refresh,
-  Search,
-  Filter,
-  Close,
-  Money,
-  User,
-  TrendCharts,
-  Trophy,
-  Medal,
-  Coin,
-  Calendar,
-} from "@element-plus/icons-vue";
 import { customersApi } from "../../api/customers.api";
 import { toast } from "../../ui/toast";
 
-// ===========================
-// STATE
-// ===========================
-const loading = ref(false);
-const loadingTopSpenders = ref(false);
-const loadingSpendingRange = ref(false);
+// ── State ──────────────────────────────────────────────────────────
+const loading               = ref(false);
+const loadingTopSpenders    = ref(false);
+const loadingSpendingRange  = ref(false);
+const activeTab             = ref("topSpenders");
 
-const activeTab = ref("topSpenders");
+const topSpenders       = ref([]);
+const topSpendersLimit  = ref(10);
+const topSpendersTier   = ref("");
 
-// Top Spenders
-const topSpenders = ref([]);
-const topSpendersLimit = ref(10);
-const topSpendersTier = ref("");
-
-// Spending Range
 const customersBySpending = ref([]);
-const spendingMin = ref(null);
-const spendingMax = ref(null);
-const appliedSpendingRange = reactive({
-  min: null,
-  max: null,
-});
-const spendingPage = ref(1);
-const pageSize = 10;
+const spendingMin         = ref(null);
+const spendingMax         = ref(null);
+const appliedSpendingRange = reactive({ min: null, max: null });
+const spendingPage        = ref(1);
+const pageSize            = 10;
 
-// Statistics
-const stats = ref({
-  totalSpent: 0,
-  totalCustomers: 0,
-  averageSpent: 0,
-  byTier: {},
-  spendingRanges: {},
-});
+const stats = ref({ totalSpent: 0, totalCustomers: 0, averageSpent: 0, byTier: {}, spendingRanges: {} });
 
-// ===========================
-// COMPUTED
-// ===========================
+const tiers = ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"];
+
+const tabList = [
+  { id: 'topSpenders',   label: 'Top Spenders',    icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6m12 0h1.5a2.5 2.5 0 010 5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg>` },
+  { id: 'spendingRange', label: 'By Spending Range', icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 9 11 13 15 22 22 3"/></svg>` },
+  { id: 'statistics',    label: 'Statistics',       icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>` },
+];
+
+const quickRanges = [
+  { label: 'Under 1M',   min: 0,        max: 1000000   },
+  { label: '1M – 5M',    min: 1000000,  max: 5000000   },
+  { label: '5M – 10M',   min: 5000000,  max: 10000000  },
+  { label: '10M – 50M',  min: 10000000, max: 50000000  },
+  { label: 'Over 50M',   min: 50000000, max: 999999999 },
+];
+
+// ── Computed ───────────────────────────────────────────────────────
 const pagedSpending = computed(() => {
-  const start = (spendingPage.value - 1) * pageSize;
-  return customersBySpending.value.slice(start, start + pageSize);
+  const s = (spendingPage.value - 1) * pageSize;
+  return customersBySpending.value.slice(s, s + pageSize);
 });
+const totalSpendingPages = computed(() => Math.ceil(customersBySpending.value.length / pageSize));
 
-// ===========================
-// HELPER FUNCTIONS
-// ===========================
+// ── Helpers ────────────────────────────────────────────────────────
 function extractList(payload) {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
@@ -518,7 +363,7 @@ function extractList(payload) {
 }
 
 function normalize(list) {
-  return (list || []).map((c) => ({
+  return (list || []).map(c => ({
     id: c?.id ?? c?.customerId,
     fullName: c?.fullName ?? c?.name ?? "",
     email: c?.email ?? "",
@@ -530,411 +375,477 @@ function normalize(list) {
 }
 
 function formatCurrency(value) {
-  if (!value) return "0 VNĐ";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(value);
+  if (!value) return "0 ₫";
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
 }
 
-function getTierTagType(tier) {
-  const types = {
-    BRONZE: "info",
-    SILVER: "",
-    GOLD: "warning",
-    PLATINUM: "danger",
-    DIAMOND: "success",
-  };
-  return types[tier] || "info";
+function avatarColor(name) {
+  const p = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#ef4444','#06b6d4','#f97316'];
+  const h = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return p[h % p.length];
+}
+function initials(name) {
+  if (!name) return '?';
+  const p = name.trim().split(' ');
+  return p.length === 1 ? p[0].slice(0, 2).toUpperCase() : (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+function getRankKey(i) { return ['gold','silver','bronze'][i] || 'other'; }
+function formatRangeLabel(r) {
+  return { under1M: 'Under 1M', '1M-5M': '1M – 5M', '5M-10M': '5M – 10M', '10M-50M': '10M – 50M', over50M: 'Over 50M' }[r] || r;
+}
+function getPercentage(count, total) { return total ? Math.round(count / total * 100) : 0; }
+function getRangeColor(r) {
+  return { under1M: '#9ca3af', '1M-5M': '#3b82f6', '5M-10M': '#10b981', '10M-50M': '#f59e0b', over50M: '#ef4444' }[r] || '#3b82f6';
 }
 
-function getInitials(name) {
-  if (!name) return "?";
-  const parts = name.trim().split(" ");
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function getAvatarColor(name) {
-  const colors = [
-    "#409EFF",
-    "#67C23A",
-    "#E6A23C",
-    "#F56C6C",
-    "#909399",
-    "#00d2d3",
-    "#e91e63",
-    "#9c27b0",
-    "#673ab7",
-    "#3f51b5",
-  ];
-  const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[hash % colors.length];
-}
-
-function getRankClass(index) {
-  if (index === 0) return "rank-gold";
-  if (index === 1) return "rank-silver";
-  if (index === 2) return "rank-bronze";
-  return "";
-}
-
-function formatRangeLabel(range) {
-  const labels = {
-    under1M: "Under 1M VNĐ",
-    "1M-5M": "1M - 5M VNĐ",
-    "5M-10M": "5M - 10M VNĐ",
-    "10M-50M": "10M - 50M VNĐ",
-    over50M: "Over 50M VNĐ",
-  };
-  return labels[range] || range;
-}
-
-function getPercentage(count, total) {
-  if (!total) return 0;
-  return Math.round((count / total) * 100);
-}
-
-function getProgressColor(range) {
-  const colors = {
-    under1M: "#909399",
-    "1M-5M": "#409EFF",
-    "5M-10M": "#67C23A",
-    "10M-50M": "#E6A23C",
-    over50M: "#F56C6C",
-  };
-  return colors[range] || "#409EFF";
-}
-
-// ===========================
-// API FUNCTIONS
-// ===========================
+// ── API ────────────────────────────────────────────────────────────
 async function loadTopSpenders() {
   loadingTopSpenders.value = true;
   try {
-    let res;
-    if (topSpendersTier.value) {
-      res = await customersApi.listTopSpendersByVipTier(
-        topSpendersTier.value,
-        topSpendersLimit.value
-      );
-    } else {
-      res = await customersApi.listTopSpenders(topSpendersLimit.value);
-    }
+    const res = topSpendersTier.value
+      ? await customersApi.listTopSpendersByVipTier(topSpendersTier.value, topSpendersLimit.value)
+      : await customersApi.listTopSpenders(topSpendersLimit.value);
     topSpenders.value = normalize(extractList(res?.data));
-  } catch (error) {
-    console.error("Load top spenders error:", error);
-    toast("Failed to load top spenders.", "error");
-  } finally {
-    loadingTopSpenders.value = false;
-  }
+  } catch { toast("Failed to load top spenders.", "error"); }
+  finally { loadingTopSpenders.value = false; }
 }
 
 async function loadBySpendingRange() {
-  if (spendingMin.value === null && spendingMax.value === null) {
-    toast("Please enter at least one spending value", "warning");
-    return;
-  }
-
-  if (
-    spendingMin.value !== null &&
-    spendingMax.value !== null &&
-    spendingMin.value > spendingMax.value
-  ) {
-    toast("Min spending cannot be greater than max spending", "error");
-    return;
-  }
-
+  if (spendingMin.value === null && spendingMax.value === null) { toast("Enter at least one value", "warning"); return; }
+  if (spendingMin.value != null && spendingMax.value != null && spendingMin.value > spendingMax.value) { toast("Min cannot exceed Max", "error"); return; }
   loadingSpendingRange.value = true;
   try {
     const min = spendingMin.value || 0;
     const max = spendingMax.value || 999999999;
-
     const res = await customersApi.listBySpendingRange(min, max);
     customersBySpending.value = normalize(extractList(res?.data));
-
     appliedSpendingRange.min = min;
     appliedSpendingRange.max = max;
     spendingPage.value = 1;
-
-    toast(
-      `Found ${customersBySpending.value.length} customers in range`,
-      "success"
-    );
-  } catch (error) {
-    console.error("Load by spending range error:", error);
-    toast("Failed to load customers by spending range.", "error");
-  } finally {
-    loadingSpendingRange.value = false;
-  }
+    toast(`Found ${customersBySpending.value.length} customers`, "success");
+  } catch { toast("Failed to load customers.", "error"); }
+  finally { loadingSpendingRange.value = false; }
 }
 
 async function loadStatistics() {
   loading.value = true;
-  try {
-    const res = await customersApi.getSpendingStatistics();
-    stats.value = res?.data || {};
-  } catch (error) {
-    console.error("Load statistics error:", error);
-    toast("Failed to load statistics.", "error");
-  } finally {
-    loading.value = false;
-  }
+  try { const res = await customersApi.getSpendingStatistics(); stats.value = res?.data || {}; }
+  catch { toast("Failed to load statistics.", "error"); }
+  finally { loading.value = false; }
 }
 
 function clearSpendingRange() {
-  spendingMin.value = null;
-  spendingMax.value = null;
-  appliedSpendingRange.min = null;
-  appliedSpendingRange.max = null;
+  spendingMin.value = null; spendingMax.value = null;
+  appliedSpendingRange.min = null; appliedSpendingRange.max = null;
   customersBySpending.value = [];
 }
-
-function setQuickRange(min, max) {
-  spendingMin.value = min;
-  spendingMax.value = max;
-  loadBySpendingRange();
+function setQuickRange(min, max) { spendingMin.value = min; spendingMax.value = max; loadBySpendingRange(); }
+async function loadAll() { await Promise.all([loadTopSpenders(), loadStatistics()]); }
+function switchTab(id) {
+  activeTab.value = id;
+  if (id === 'topSpenders' && !topSpenders.value.length) loadTopSpenders();
+  if (id === 'statistics' && !Object.keys(stats.value.byTier || {}).length) loadStatistics();
 }
 
-async function loadAll() {
-  await Promise.all([loadTopSpenders(), loadStatistics()]);
-}
-
-function handleTabChange(tab) {
-  if (tab === "topSpenders" && topSpenders.value.length === 0) {
-    loadTopSpenders();
-  } else if (tab === "statistics" && Object.keys(stats.value.byTier || {}).length === 0) {
-    loadStatistics();
-  }
-}
-
-// ===========================
-// LIFECYCLE
-// ===========================
-onMounted(() => {
-  loadAll();
-});
+onMounted(loadAll);
 </script>
 
 <style scoped>
-.kicker {
-  font-size: 12px;
-  opacity: 0.75;
-  font-weight: 900;
+/* ── Base ──────────────────────────────────────────────────────── */
+.sa-root {
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  padding: 32px 36px 80px;
+  background: #f5f5f5;
+  min-height: 100vh;
+  color: #111827;
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Header ────────────────────────────────────────────────────── */
+.sa-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.sa-kicker {
+  font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #409eff;
+  letter-spacing: 1.2px;
+  color: #3b82f6;
+  margin-bottom: 5px;
 }
-
-.title {
-  font-weight: 900;
-  font-size: 28px;
-  margin-bottom: 4px;
-  color: #303133;
+.sa-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 4px;
+  letter-spacing: -.4px;
 }
+.sa-sub { font-size: 13px; color: #9ca3af; margin: 0; }
 
-.muted {
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 14px;
+.sa-btn-reload {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: white;
+  font-size: 13px; font-weight: 600; color: #374151;
+  cursor: pointer; transition: all .15s; font-family: inherit;
 }
+.sa-btn-reload:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+.sa-btn-reload:disabled { opacity: .5; cursor: not-allowed; }
+@keyframes spin-r { to { transform: rotate(360deg); } }
+.spin { animation: spin-r .7s linear infinite; }
 
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  display: block;
-}
-
-/* Stat Cards */
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-}
-
-.stat-card-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.stat-card-success {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-}
-
-.stat-card-warning {
-  background: linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%);
-  color: #303133;
-}
-
-.stat-card-danger {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  color: #303133;
-}
-
-.stat-icon {
-  flex-shrink: 0;
-  opacity: 0.8;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 13px;
-  opacity: 0.9;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.stat-value-small {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-/* Rank Badges */
-.rank-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-weight: 900;
-  font-size: 16px;
-}
-
-.rank-gold {
-  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-  color: #8b6914;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
-}
-
-.rank-silver {
-  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
-  color: #5a5a5a;
-  box-shadow: 0 4px 12px rgba(192, 192, 192, 0.4);
-}
-
-.rank-bronze {
-  background: linear-gradient(135deg, #cd7f32 0%, #e6a23c 100%);
-  color: #5c3d1f;
-  box-shadow: 0 4px 12px rgba(205, 127, 50, 0.4);
-}
-
-/* Spending Amount */
-.spending-amount {
-  font-size: 16px;
-  font-weight: 700;
-  color: #67c23a;
-}
-
-/* Spending Ranges */
-.spending-ranges {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.spending-range-item {
+/* ── KPI ───────────────────────────────────────────────────────── */
+.sa-kpi-row {
   display: grid;
-  grid-template-columns: 150px 1fr 150px;
-  gap: 16px;
-  align-items: center;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
 }
-
-.range-label {
-  font-weight: 600;
-  color: #606266;
-}
-
-.range-progress {
-  flex: 1;
-}
-
-.range-count {
-  text-align: right;
-}
-
-/* Tier Stat Cards */
-.tier-stat-card {
-  height: 100%;
-}
-
-.tier-stats {
+.sa-kpi {
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 14px;
+  padding: 18px 18px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transition: all .15s;
+}
+.sa-kpi:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); transform: translateY(-2px); }
+.sa-kpi-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sa-kpi-label { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.sa-kpi-value { font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -.3px; }
+.sa-kpi-value.sm { font-size: 15px; }
+
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.sa-tabs {
+  display: flex;
+  gap: 4px;
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+.sa-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none; background: transparent;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: #6b7280; cursor: pointer; transition: all .15s;
+}
+.sa-tab:hover { color: #111827; background: #f9fafb; }
+.sa-tab.active { background: #111827; color: white; }
+
+/* ── Panel ─────────────────────────────────────────────────────── */
+.sa-panel {
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-.tier-stat-item {
-  text-align: center;
+/* ── Filter Bar ────────────────────────────────────────────────── */
+.sa-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+}
+.sa-filter-bar.wrap { flex-wrap: wrap; }
+.sa-filter-group { display: flex; flex-direction: column; gap: 5px; }
+.sa-filter-actions { display: flex; gap: 8px; align-items: flex-end; }
+.sa-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; }
+
+.sa-select {
+  padding: 8px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: inherit; font-size: 13px; color: #374151;
+  background: white; outline: none; cursor: pointer; min-width: 140px;
+}
+.sa-select:focus { border-color: #3b82f6; }
+
+.sa-input {
+  padding: 8px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: inherit; font-size: 13px; color: #374151;
+  background: white; outline: none; width: 180px;
+}
+.sa-input:focus { border-color: #3b82f6; }
+
+.sa-number-input {
+  display: flex; align-items: center;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+.sa-number-input button {
+  padding: 7px 12px;
+  border: none; background: transparent;
+  font-size: 16px; cursor: pointer; color: #6b7280; transition: background .1s;
+}
+.sa-number-input button:hover { background: #f3f4f6; }
+.sa-number-input span { padding: 0 12px; font-size: 13px; font-weight: 700; color: #111827; min-width: 40px; text-align: center; }
+
+.sa-btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  background: #111827; border: 1.5px solid #111827;
+  border-radius: 8px; color: white;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.sa-btn-primary:hover:not(:disabled) { background: #1f2937; border-color: #1f2937; }
+.sa-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+.sa-btn-ghost {
+  padding: 9px 18px;
+  background: white; border: 1.5px solid #e5e7eb;
+  border-radius: 8px; color: #6b7280;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.sa-btn-ghost:hover { border-color: #d1d5db; color: #374151; }
+
+.spinner-sm {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin-r .6s linear infinite;
 }
 
-.stat-label-small {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+/* Quick ranges */
+.sa-quick-ranges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+}
+.sa-quick-btn {
+  padding: 5px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 20px;
+  background: white; color: #374151;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.sa-quick-btn:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+
+/* Range alert */
+.sa-range-alert {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px;
+  background: #eff6ff; border-bottom: 1px solid #bfdbfe;
+  font-size: 13px; color: #1d4ed8;
+}
+.range-count-badge {
+  margin-left: 4px; padding: 2px 10px;
+  background: #dbeafe; border-radius: 20px;
+  font-size: 11px; font-weight: 700; color: #1d4ed8;
 }
 
-.stat-value-medium {
-  font-size: 20px;
-  font-weight: 700;
-  color: #303133;
+/* ── Table ─────────────────────────────────────────────────────── */
+.sa-table-wrap { overflow-x: auto; }
+.sa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.sa-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 10px; font-weight: 700;
+  color: #9ca3af; text-transform: uppercase; letter-spacing: .08em;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
+.sa-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+.sa-table tr:last-child td { border-bottom: none; }
+.sa-table tbody tr:hover td { background: #fafafa; }
+
+/* Rank badge */
+.rank-badge {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px;
+  margin: 0 auto;
+}
+.rank-gold   { background: #fef9c3; color: #b45309; }
+.rank-silver { background: #f1f5f9; color: #475569; }
+.rank-bronze { background: #fef3c7; color: #92400e; }
+.rank-other  { background: #f3f4f6; color: #6b7280; font-size: 12px; }
+
+/* Customer cell */
+.cust-cell { display: flex; align-items: center; gap: 10px; }
+.cust-av {
+  width: 36px; height: 36px;
+  border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: white;
+}
+.cust-av.sm { width: 30px; height: 30px; border-radius: 8px; font-size: 10px; }
+.cust-name  { font-size: 13px; font-weight: 700; color: #111827; }
+.cust-email { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+
+/* Chips */
+.tier-chip {
+  display: inline-block; padding: 3px 9px;
+  border-radius: 6px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.tier-bronze   { background: #fef3c7; color: #92400e; }
+.tier-silver   { background: #f1f5f9; color: #475569; }
+.tier-gold     { background: #fef9c3; color: #b45309; }
+.tier-platinum { background: #ede9fe; color: #6d28d9; }
+.tier-diamond  { background: #dbeafe; color: #1d4ed8; }
+
+.type-chip {
+  display: inline-block; padding: 3px 9px;
+  border-radius: 6px; font-size: 11px; font-weight: 600;
+}
+.type-vip { background: #fef3c7; color: #b45309; }
+.type-reg { background: #f3f4f6; color: #6b7280; }
+
+.points-badge {
+  display: inline-block; padding: 3px 10px;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 20px; font-size: 12px; font-weight: 700; color: #b45309;
 }
 
-/* Top Spenders Table */
-.top-spenders-table :deep(.el-table__row:hover) {
-  background-color: #f5f7fa;
+.spend-amount { font-size: 14px; font-weight: 800; color: #059669; }
+.muted-text { color: #9ca3af; font-size: 12px; }
+.muted-dash { color: #d1d5db; }
+
+/* Skeleton */
+.sa-table-skeleton { padding: 8px 0; }
+.sk-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px; border-bottom: 1px solid #f3f4f6;
+}
+.sk-user { display: flex; align-items: center; gap: 10px; flex: 1; }
+.sk-lines { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.sk {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background-size: 200%; animation: shimmer 1.4s ease infinite;
+}
+.sk-rank  { width: 34px; height: 34px; border-radius: 10px; }
+.sk-av    { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
+.sk-l     { height: 12px; }
+.sk-pill  { width: 64px; height: 24px; border-radius: 6px; }
+.sk-money { width: 100px; height: 18px; }
+.sk-id    { width: 40px; height: 16px; }
+.w70 { width: 70%; } .w50 { width: 50%; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Empty */
+.sa-empty {
+  padding: 60px 20px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: #9ca3af; font-size: 13px;
 }
 
-/* Responsive */
+/* ── Pagination ────────────────────────────────────────────────── */
+.sa-pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.page-btn {
+  min-width: 32px; height: 32px;
+  border: 1.5px solid #e5e7eb; border-radius: 8px;
+  background: white; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: #374151; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  padding: 0 8px; transition: all .15s;
+}
+.page-btn:hover:not(:disabled) { border-color: #3b82f6; color: #3b82f6; }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+.page-btn.active { background: #111827; border-color: #111827; color: white; }
+.page-info { font-size: 12px; color: #9ca3af; margin-left: 6px; }
+
+/* ── Statistics Tab ────────────────────────────────────────────── */
+.sa-card {
+  background: white; border: 1.5px solid #f0f0f0; border-radius: 14px; overflow: hidden;
+}
+.mb-14 { margin-bottom: 14px; }
+.sa-card-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.sa-card-title { font-size: 13px; font-weight: 700; color: #111827; }
+.sa-card-sub   { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+.sa-ranges { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; }
+.sa-range-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 50px 100px;
+  align-items: center;
+  gap: 14px;
+}
+.sa-range-label { font-size: 13px; font-weight: 600; color: #374151; }
+.sa-range-bar-wrap { background: #f3f4f6; border-radius: 20px; height: 8px; overflow: hidden; }
+.sa-range-bar { height: 100%; border-radius: 20px; transition: width .6s ease; min-width: 2px; }
+.sa-range-pct { font-size: 12px; font-weight: 700; color: #374151; text-align: right; }
+.sa-range-count { font-size: 12px; color: #9ca3af; text-align: right; }
+
+.sa-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 4px;
+}
+.sa-tier-card {
+  background: white; border: 1.5px solid #f0f0f0; border-radius: 14px; padding: 16px;
+  transition: all .15s;
+}
+.sa-tier-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.06); transform: translateY(-2px); }
+.sa-tier-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sa-tier-count { font-size: 12px; color: #9ca3af; font-weight: 500; }
+.sa-tier-divider { height: 1px; background: #f3f4f6; margin: 10px 0; }
+.sa-tier-row { display: flex; align-items: center; justify-content: space-between; }
+.sa-tier-lbl { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.sa-tier-val { font-size: 15px; font-weight: 800; color: #111827; }
+.sa-tier-val.blue { color: #2563eb; }
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .sa-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .sa-tier-grid { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 768px) {
-  .spending-range-item {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .range-count {
-    text-align: left;
-  }
-
-  .stat-value {
-    font-size: 20px;
-  }
-
-  .title {
-    font-size: 22px;
-  }
-}
-
-:deep(.el-tabs__item) {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-:deep(.el-table) {
-  font-size: 14px;
-}
-
-:deep(.el-table th) {
-  background-color: #f5f7fa;
-  font-weight: 600;
+  .sa-root { padding: 16px; }
+  .sa-kpi-row { grid-template-columns: 1fr 1fr; }
+  .sa-tier-grid { grid-template-columns: 1fr; }
+  .sa-range-row { grid-template-columns: 1fr 1fr; }
+  .sa-tabs { flex-wrap: wrap; }
 }
 </style>
