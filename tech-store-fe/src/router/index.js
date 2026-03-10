@@ -12,6 +12,7 @@ import CartPage from "../pages/customer/CartPage.vue";
 import CustomerOrders from "../pages/customer/CustomerOrders.vue";
 import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
 import Spinwheel from "../pages/customer/Spinwheel.vue";
+import ProductDetail from "../pages/customer/ProductDetail.vue";
 
 // ===== System (Admin) =====
 import SystemLogin from "../pages/system/SystemLogin.vue";
@@ -125,6 +126,13 @@ const routes = [
     component: CustomerOrders,
     meta: { portal: "customer", requiresAuth: true },
   },
+  {
+    path: "/product/:id",
+    name: "product-detail",
+    component: ProductDetail,
+    meta: { portal: "customer" },
+  },
+  
 
   // ===== 403 FORBIDDEN =====
   {
