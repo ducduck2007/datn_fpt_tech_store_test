@@ -160,11 +160,12 @@ public class OrderService {
             throw new RuntimeException("Mã giảm giá '" + code + "' đã đạt giới hạn sử dụng");
         }
 
-        BigDecimal promoDiscount = promotionService.applyDiscount(
+        BigDecimal afterDiscount = promotionService.applyDiscount(
                 subtotal,
                 promotion.getDiscountType(),
                 promotion.getDiscountValue()
         );
+        BigDecimal promoDiscount = subtotal.subtract(afterDiscount);
         if (promoDiscount.compareTo(subtotal) > 0) {
             promoDiscount = subtotal;
         }
