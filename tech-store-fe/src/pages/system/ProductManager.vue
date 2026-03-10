@@ -282,13 +282,27 @@
 
     <!-- DIALOG SERIAL NUMBERS (GIAO DIỆN ĐÃ SỬA LỖI ẨN NÚT) -->
     <el-dialog v-model="serialDlg.open" :title="'Quản lý số Seri: ' + serialDlg.variantName" width="650px" append-to-body>
-      <div class="mb-3">
-         <label class="fw-bold small mb-1">Thêm số Seri (Nhập nhiều số cách nhau bằng dấu phẩy hoặc xuống dòng)</label>
-         <el-input type="textarea" :rows="4" v-model="serialDlg.inputText" placeholder="Ví dụ:&#10;SN-ASUS-001&#10;SN-ASUS-002"></el-input>
-         <div class="mt-2 text-end">
-           <el-button type="primary" :loading="serialDlg.adding" @click="submitSerials">Nhập kho (Thêm Seri)</el-button>
-         </div>
-      </div>
+      <div class="mb-3 d-flex align-items-center gap-3">
+  <div>
+    <label class="fw-bold small mb-1 d-block">Số lượng cần nhập kho</label>
+    <el-input-number
+      v-model="serialDlg.genQuantity"
+      :min="1"
+      :max="500"
+      style="width: 160px"
+    />
+  </div>
+  <div style="padding-top: 22px">
+    <el-button
+      type="primary"
+      :loading="serialDlg.adding"
+      icon="MagicStick"
+      @click="generateSerials(serialDlg.genQuantity)"
+    >
+      Gen Serial tự động
+    </el-button>
+  </div>
+</div>
       <el-divider />
       <div class="fw-bold small mb-2 text-muted">Danh sách máy trong kho:</div>
       
@@ -468,7 +482,16 @@ async function loadTags() {
     tags.value = res.data?.data || res.data || [];
   } catch (e) { console.error("Lỗi lấy tag:", e); }
 }
-
+const serialDlg = reactive({
+  open: false,
+  variantId: null,
+  variantName: "",
+  list: [],
+  inputText: "",
+  genQuantity: 1,  // ← thêm
+  loading: false,
+  adding: false
+});
 async function load() {
   loading.value = true;
   try {
@@ -569,15 +592,6 @@ async function deleteVariant(id) {
 // ==========================================
 // LOGIC QUẢN LÝ SỐ SERI MỚI (YÊU CẦU THÊM)
 // ==========================================
-const serialDlg = reactive({
-  open: false,
-  variantId: null,
-  variantName: "",
-  list: [],
-  inputText: "",
-  loading: false,
-  adding: false
-});
 
 async function openSerialDialog(row) {
   serialDlg.variantId = row.id;
@@ -638,8 +652,22 @@ async function deleteSerial(serialId) {
     toast("Xóa thất bại", "error");
   }
 }
+async function generateSerials(quantity = 1) {
+  try {
+    const res = await axios.post(
+      `http://localhost:8080/api/products/variants/${serialDlg.variantId}/serials/generate`,
+      null,
+      { params: { quantity } }
+    );
+    toast(`Đã gen ${res.data?.serials?.length || quantity} serial thành công`, "success");
+    await loadSerials();
+    await loadVariants();
+    await load();
+  } catch (e) {
+    toast("Gen serial thất bại", "error");
+  }
+}
 // ==========================================
-
 
 // --- Product Actions ---
 async function onRestore(id) { 

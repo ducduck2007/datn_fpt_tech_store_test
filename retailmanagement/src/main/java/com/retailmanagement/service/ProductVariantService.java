@@ -22,6 +22,7 @@ public class ProductVariantService {
     private final ProductVariantRepository productVariantRepository;
     private final ProductRepository productRepository;
     private final ProductSerialRepository productSerialRepository;
+    private final ProductSerialService productSerialService;
 
     public List<ProductVariantResponse> getVariantsByProductId(Integer productId) {
         return productVariantRepository.findByProduct_Id(productId)
@@ -45,10 +46,17 @@ public class ProductVariantService {
         variant.setProduct(product);
         variant.setCurrencyCode("VND");
         variant.setCreatedAt(Instant.now());
-
         mapRequestToEntity(request, variant);
 
         ProductVariant savedVariant = productVariantRepository.save(variant);
+
+        // ← Gen serial ngay khi tạo nếu có stock
+        int initStock = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
+        if (initStock > 0) {
+            productSerialService.generateAndSave(savedVariant.getId(), initStock);
+            System.out.println("✅ Gen " + initStock + " serial cho variant mới: " + savedVariant.getId());
+        }
+
         return mapToResponse(savedVariant);
     }
 
@@ -57,10 +65,22 @@ public class ProductVariantService {
         ProductVariant variant = productVariantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể"));
 
+        // ← Lấy stock hiện tại trước khi update
+        int currentStock = productSerialRepository.countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+        int newStock = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
+        int diff = newStock - currentStock;
+
         mapRequestToEntity(request, variant);
         variant.setUpdatedAt(Instant.now());
 
         ProductVariant updatedVariant = productVariantRepository.save(variant);
+
+        // ← Nếu tăng số lượng → gen thêm serial
+        if (diff > 0) {
+            productSerialService.generateAndSave(variant.getId(), diff);
+            System.out.println("✅ Gen thêm " + diff + " serial cho variant: " + variant.getId());
+        }
+
         return mapToResponse(updatedVariant);
     }
 

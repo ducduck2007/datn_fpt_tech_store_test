@@ -3,6 +3,7 @@ package com.retailmanagement.controller;
 import com.retailmanagement.dto.request.ProductSerialRequest;
 import com.retailmanagement.entity.ProductSerial;
 import com.retailmanagement.repository.ProductSerialRepository;
+import com.retailmanagement.service.ProductSerialService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products/variants")
@@ -18,6 +20,7 @@ import java.util.List;
 public class ProductSerialController {
 
     private final ProductSerialRepository serialRepository;
+    private final ProductSerialService productSerialService;
 
     // 1. Lấy danh sách tất cả Seri của 1 Biến thể
     @GetMapping("/{variantId}/serials")
@@ -57,5 +60,21 @@ public class ProductSerialController {
     public ResponseEntity<String> deleteSerial(@PathVariable Long serialId) {
         serialRepository.deleteById(serialId);
         return ResponseEntity.ok("Đã xóa số Seri thành công.");
+    }
+    @PostMapping("/{variantId}/serials/generate")
+    public ResponseEntity<?> generateSerials(
+            @PathVariable Integer variantId,
+            @RequestParam(defaultValue = "1") int quantity) {
+
+        if (quantity < 1 || quantity > 500) {
+            return ResponseEntity.badRequest().body("Số lượng phải từ 1 đến 500");
+        }
+
+        List<ProductSerial> generated = productSerialService.generateAndSave(variantId, quantity);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Đã gen thành công " + generated.size() + " serial",
+                "serials", generated.stream().map(ProductSerial::getSerialNumber).toList()
+        ));
     }
 }
