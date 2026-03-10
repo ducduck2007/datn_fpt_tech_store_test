@@ -57,6 +57,16 @@
               </button>
 
               <button
+                v-if="detail?.status === 'SHIPPING'"
+                class="glass-btn primary"
+                :class="{ loading: deliveredLoading }"
+                @click="confirmDelivered"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Đã nhận hàng
+              </button>
+
+              <button
                 v-if="detail?.status === 'DELIVERED' && !isReturned(detail?.status)"
                 class="glass-btn warning"
                 @click="showReturnDialog = true"
@@ -642,6 +652,23 @@ async function submitReturn() {
     toast("Lỗi khi gửi yêu cầu", "error");
   }
 }
+
+const deliveredLoading = ref(false);
+
+const confirmDelivered = async () => {
+  if (!confirm("Bạn đã nhận được hàng?\n\nSau khi xác nhận:\n- Đơn hàng sẽ hoàn tất\n- Người bán sẽ nhận được thanh toán\n- Bạn vẫn có thể gửi yêu cầu trả hàng nếu cần")) return;
+
+  deliveredLoading.value = true;
+  try {
+    await ordersApi.markAsDelivered(orderId.value);
+    toast("Đã xác nhận nhận hàng", "success");
+    await reload();
+  } catch (err) {
+    toast("Không thể cập nhật trạng thái đơn hàng", "error");
+  } finally {
+    deliveredLoading.value = false;
+  }
+};
 
 function isReturned(status) {
   return ["PARTIALLY_RETURNED", "RETURNED"].includes(status);
