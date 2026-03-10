@@ -197,7 +197,11 @@ public class OrderService {
         order.setUser(user);
         order.setChannel(request.getChannel());
         order.setPaymentMethod(request.getPaymentMethod());
-        order.setStatus(OrderStatuses.PENDING);
+        if (request.getPaymentMethod().equals("CASH")) {
+            order.setStatus(OrderStatuses.PROCESSING);
+        } else {
+            order.setStatus(OrderStatuses.PENDING);
+        }
         order.setPaymentStatus("UNPAID");
         order.setNotes(request.getNotes());
         order.setSubtotal(BigDecimal.ZERO);

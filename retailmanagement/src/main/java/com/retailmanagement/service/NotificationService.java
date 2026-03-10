@@ -12,6 +12,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.resend.Resend;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.Attachment;
+import org.springframework.beans.factory.annotation.Value;
+
 
 import java.math.BigDecimal;
 import java.time.*;
@@ -26,7 +31,9 @@ public class NotificationService {
     private final SpinWheelService spinWheelService;
     private final PromotionRepository promotionRepository;
     private final PromotionRedemptionRepository promotionRedemptionRepository;
-    private final JavaMailSender mailSender;
+
+    @Value("${resend.api.key}")
+    private String apiKey;
 
     private static final String BIRTHDAY_VOUCHER_CODE = "BIRTHDAY250K";
     private static final BigDecimal BIRTHDAY_DISCOUNT_AMOUNT = new BigDecimal("250000");
@@ -38,14 +45,12 @@ public class NotificationService {
             CustomRes customerRepository,
             @Lazy SpinWheelService spinWheelService,
             PromotionRepository promotionRepository,
-            PromotionRedemptionRepository promotionRedemptionRepository,
-            JavaMailSender mailSender) {
+            PromotionRedemptionRepository promotionRedemptionRepository) {
         this.notificationRepository = notificationRepository;
         this.customerRepository = customerRepository;
         this.spinWheelService = spinWheelService;
         this.promotionRepository = promotionRepository;
         this.promotionRedemptionRepository = promotionRedemptionRepository;
-        this.mailSender = mailSender;
     }
 
     // =========================================================
@@ -491,6 +496,10 @@ public class NotificationService {
     // EMAIL
     // =========================================================
 
+    // =========================================================
+// EMAIL
+// =========================================================
+
     public void sendOrderDeliveredEmail(
             String email,
             Order order,
@@ -499,12 +508,12 @@ public class NotificationService {
         String subject = "Đơn hàng đã giao thành công";
 
         String content = """
-                Xin chào %s,
+            Xin chào %s,
 
-                Đơn hàng %s đã được giao thành công.
+            Đơn hàng %s đã được giao thành công.
 
-                Cảm ơn bạn đã mua hàng!
-                """.formatted(
+            Cảm ơn bạn đã mua hàng!
+            """.formatted(
                 order.getCustomer().getName(),
                 order.getOrderNumber());
 
@@ -523,21 +532,24 @@ public class NotificationService {
             byte[] file,
             String filename) {
 
-        MimeMessage message = mailSender.createMimeMessage();
-
         try {
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true);
 
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(content);
+            Resend resend = new Resend(apiKey);
 
-            helper.addAttachment(
-                    filename,
-                    new ByteArrayResource(file));
+            Attachment attachment = Attachment.builder()
+                    .fileName(filename)
+                    .content(Base64.getEncoder().encodeToString(file))
+                    .build();
 
-            mailSender.send(message);
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("BonBon Coffee <onboarding@resend.dev>")
+                    .to(to)
+                    .subject(subject)
+                    .text(content)
+                    .attachments(new Attachment[]{attachment})
+                    .build();
+
+            resend.emails().send(params);
 
         } catch (Exception e) {
             throw new RuntimeException("Send mail failed", e);

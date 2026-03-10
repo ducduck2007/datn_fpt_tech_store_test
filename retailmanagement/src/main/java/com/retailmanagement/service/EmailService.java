@@ -1,28 +1,35 @@
 package com.retailmanagement.service;
 
+import com.resend.Resend;
+import com.resend.services.emails.model.CreateEmailOptions;
 import com.retailmanagement.entity.Order;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
+@EnableAsync
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${resend.api.key}")
+    private String apiKey;
 
+    @Async
     public void sendOrderCreatedEmail(Order order) {
 
-        if (order.getCustomer() == null ||
-                order.getCustomer().getEmail() == null) return;
+        try {
 
-        SimpleMailMessage message = new SimpleMailMessage();
+            if (order.getCustomer() == null ||
+                    order.getCustomer().getEmail() == null) return;
 
-        message.setTo(order.getCustomer().getEmail());
-        message.setSubject("Xác nhận đơn hàng " + order.getOrderNumber());
+            Resend resend = new Resend(apiKey);
 
-        message.setText("""
+            String content = """
                 Xin chào %s,
 
                 Đơn hàng %s đã được tạo thành công.
@@ -31,11 +38,22 @@ public class EmailService {
 
                 Cảm ơn bạn đã mua hàng!
                 """.formatted(
-                order.getCustomer().getName(),
-                order.getOrderNumber(),
-                order.getTotalAmount()
-        ));
+                    order.getCustomer().getName(),
+                    order.getOrderNumber(),
+                    order.getTotalAmount()
+            );
 
-        mailSender.send(message);
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Xác nhận đơn hàng " + order.getOrderNumber())
+                    .text(content)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

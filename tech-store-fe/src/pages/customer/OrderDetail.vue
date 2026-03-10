@@ -47,8 +47,7 @@
             <el-button
               v-if="
                 detail?.status === 'PENDING' ||
-                detail?.status === 'PAID' ||
-                detail?.status === 'SHIPPING'
+                detail?.status === 'PAID' 
               "
               type="danger"
               @click="showCancelDialog = true"
@@ -155,7 +154,7 @@
                 active: ['SHIPPING', 'DELIVERED'].includes(detail.status),
               }"
             ></div>
-            <div class="timeline-label">Đang giao</div>
+            <div class="timeline-label">Đang chờ nhận hàng</div>
           </div>
 
           <!-- ⑤ Đã giao ──────────────────────────── -->

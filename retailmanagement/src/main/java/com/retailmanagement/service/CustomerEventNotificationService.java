@@ -5,9 +5,10 @@ import com.retailmanagement.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import com.resend.Resend;
+import com.resend.services.emails.model.CreateEmailOptions;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,7 +38,9 @@ import java.time.format.DateTimeFormatter;
 public class CustomerEventNotificationService {
 
     private final NotificationService notificationService;
-    private final JavaMailSender mailSender;
+
+    @Value("${resend.api.key}")
+    private String apiKey;
 
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -587,16 +590,27 @@ public class CustomerEventNotificationService {
     }
 
     private void sendSimpleEmail(String to, String subject, String body) {
+
         try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-            mail.setTo(to);
-            mail.setSubject(subject);
-            mail.setText(body);
-            mailSender.send(mail);
+
+            Resend resend = new Resend(apiKey);
+
+            CreateEmailOptions params =
+                    CreateEmailOptions.builder()
+                            .from("BonBon Coffee <onboarding@resend.dev>")
+                            .to(to)
+                            .subject(subject)
+                            .text(body)
+                            .build();
+
+            resend.emails().send(params);
+
             log.info("📧 Email sent to {}: {}", to, subject);
+
         } catch (Exception e) {
-            // Không throw — lỗi email không nên block luồng chính
+
             log.warn("⚠️ Failed to send email to {}: {}", to, e.getMessage());
+
         }
     }
 }
