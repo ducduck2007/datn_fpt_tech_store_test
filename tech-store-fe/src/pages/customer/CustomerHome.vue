@@ -5,6 +5,7 @@ REDESIGNED: Premium warm editorial e-commerce aesthetic
 UPDATED: 
   - Thêm sự kiện click vào thẻ sản phẩm để sang trang Chi Tiết
   - Thêm .stop vào các nút bấm để tránh bị trùng lặp sự kiện click
+  - [MỚI] Thêm chức năng Sắp xếp theo (Sort By) cho khách hàng
 ============================================================
 -->
 <template>
@@ -263,6 +264,23 @@ UPDATED:
             </div>
 
             <div class="ch-toolbar__right">
+              
+              <!-- [MỚI] THÊM DROPDOWN SẮP XẾP -->
+              <el-select
+                v-model="sortBy"
+                @change="onSelectSort"
+                style="width: 200px; margin-right: 12px;"
+                placeholder="Sắp xếp theo"
+              >
+                <el-option label="Newest (Mới nhất)" value="newest_arrival" />
+                <el-option label="Oldest (Cũ nhất)" value="oldest" />
+                <el-option label="Best Selling (Bán chạy)" value="best_selling" />
+                <el-option label="Price: Low → High" value="price_asc" />
+                <el-option label="Price: High → Low" value="price_desc" />
+                <el-option label="Name: A → Z" value="name_asc" />
+                <el-option label="Name: Z → A" value="name_desc" />
+              </el-select>
+
               <button
                 class="icon-btn"
                 :class="{ spinning: loading }"
@@ -417,6 +435,9 @@ const categories = ref([]);
 const products = ref([]);
 const activeKey = ref("all");
 const categoryId = ref(null);
+
+// [MỚI] Thêm biến lưu giá trị sắp xếp (mặc định là Mới nhất)
+const sortBy = ref("newest_arrival");
 
 const page = ref(0);
 const totalElements = ref(0);
@@ -573,6 +594,7 @@ async function reloadProducts() {
       categoryIds: categoryId.value ? String(categoryId.value) : undefined,
       keyword: searchTerm.value || undefined,
       isFaulty: false,
+      sortBy: sortBy.value, // [MỚI] Gửi tham số sắp xếp lên Server
     };
     const res = await productsApi.list(params);
     const data = res.data?.data || res.data;
@@ -596,6 +618,13 @@ function onSelectCategory(key) {
   activeKey.value = key;
   categoryId.value = key === "all" ? null : Number(key);
   page.value = 0;
+  reloadProducts();
+}
+
+// [MỚI] Hàm xử lý khi khách hàng chọn đổi kiểu sắp xếp
+function onSelectSort(val) {
+  sortBy.value = val;
+  page.value = 0; // Reset về trang 1
   reloadProducts();
 }
 
