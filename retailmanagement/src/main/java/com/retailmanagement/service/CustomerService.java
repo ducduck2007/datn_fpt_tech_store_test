@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -39,6 +40,7 @@ public class CustomerService {
     private final LoyaltyLedgerRepository loyaltyLedgerRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final PasswordEncoder passwordEncoder;
     @Lazy
     private final CustomerEventNotificationService eventNotificationService; // ✅ THÊM
 
@@ -98,13 +100,10 @@ public class CustomerService {
         };
     }
 
-    @Audit(
-            module = AuditModule.CUSTOMER,
-            action = AuditAction.CREATE,
-            targetType = TargetType.CUSTOMER
-    )
+    @Audit(module = AuditModule.CUSTOMER, action = AuditAction.CREATE, targetType = TargetType.CUSTOMER)
     @Transactional
     public CustomerResponse create(CustomerRequest customerRequest) {
+        // Validate trùng email/phone
         if (customRes.findByEmail(customerRequest.getEmail()).isPresent()) {
             throw new RuntimeException("Email đã tồn tại trong hệ thống");
         }
@@ -112,12 +111,27 @@ public class CustomerService {
             throw new RuntimeException("Số điện thoại đã tồn tại trong hệ thống");
         }
 
+        // ✅ TỰ ĐỘNG TẠO USER với username = email, password = SĐT
+        User user = null;
+        if (userRepository.findByUsername(customerRequest.getEmail()).isEmpty()) {
+            user = User.builder()
+                    .username(customerRequest.getEmail())
+                    .passwordHash(passwordEncoder.encode(customerRequest.getPhone())) // ✅ đúng tên field
+                    .email(customerRequest.getEmail())
+                    .role("CUSTOMER")  // ✅ khớp với @PrePersist default
+                    .isActive(true)
+                    .build();
+            user = userRepository.save(user);
+        } else {
+            user = userRepository.findByUsername(customerRequest.getEmail()).get();
+        }
+
         CustomerType type = (customerRequest.getCustomerType() != null)
                 ? customerRequest.getCustomerType()
                 : CustomerType.REGULAR;
 
         Customer customer = Customer.builder()
-                .userId(customerRequest.getUserId())
+                .userId(user.getId())                        // ✅ Link tới User vừa tạo
                 .name(customerRequest.getFullName())
                 .email(customerRequest.getEmail())
                 .phone(customerRequest.getPhone())
@@ -133,12 +147,10 @@ public class CustomerService {
                 .build();
 
         Customer saved = customRes.save(customer);
-
-        // ✅ THÊM: thông báo chào mừng khách hàng mới
         eventNotificationService.onCustomerRegistered(saved);
-
         return mapToResponse(saved);
     }
+
 
     private CustomerResponse mapToResponse(Customer customer) {
         VipTier currentTier = customer.getVipTier();
