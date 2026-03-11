@@ -34,7 +34,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class OrderService {
-
+    private final ProductSerialRepository productSerialRepository;
     @lombok.Data
     private static class DiscountCalculation {
         private BigDecimal vipDiscountRate      = BigDecimal.ZERO;
@@ -560,15 +560,26 @@ public class OrderService {
                     item.getVariant().getId()
             ).orElseThrow();
 
-            int newReserved =
-                    Math.max(0, variant.getReservedQty() - item.getQuantity());
-
-            int newStock =
-                    Math.max(0, variant.getStockQuantity() - item.getQuantity());
-
+            int newReserved = Math.max(0, variant.getReservedQty() - item.getQuantity());
             variant.setReservedQty(newReserved);
-            variant.setStockQuantity(newStock);
+            variantRepository.save(variant);
 
+            // ← THÊM: Đánh dấu serial là SOLD
+            List<ProductSerial> inStockSerials = productSerialRepository
+                    .findByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+
+            int soldCount = 0;
+            for (ProductSerial serial : inStockSerials) {
+                if (soldCount >= item.getQuantity()) break;
+                serial.setStatus("SOLD");
+                productSerialRepository.save(serial);
+                soldCount++;
+            }
+
+            // Stock tự tính lại từ serial, không cần set tay
+            int actualStock = productSerialRepository
+                    .countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+            variant.setStockQuantity(actualStock);
             variantRepository.save(variant);
 
             StockTransaction tx = new StockTransaction();
@@ -579,7 +590,6 @@ public class OrderService {
             tx.setReferenceId(order.getId());
             tx.setCreatedAt(Instant.now());
             tx.setCreatedBy(order.getUser());
-
             stockTransactionRepository.save(tx);
         }
 

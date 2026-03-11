@@ -18,4 +18,5 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
     // Xóa toàn bộ Seri thuộc về 1 biến thể (khi xóa biến thể)
     void deleteByVariantId(Integer variantId);
     boolean existsBySerialNumber(String serialNumber);
+    List<ProductSerial> findByVariantIdAndStatus(Integer variantId, String status);
 }
