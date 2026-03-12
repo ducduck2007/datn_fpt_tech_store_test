@@ -24,19 +24,14 @@
           <el-menu-item index="/system/Toployalcustomers"
             >Toployal customers</el-menu-item
           >
-          <el-menu-item index="/system/inactive-customers"
-            >Inactive-Customers</el-menu-item
-          >
+          
           <el-menu-item index="/system/Zeroordercustomers"
             >Zero Order-Customers</el-menu-item
           >
           <el-menu-item index="/system/Loyaltysummaryadmin"
             >Loyalty Summary - Admin
           </el-menu-item>
-          <el-menu-item index="/system/customer-spending"
-            >Customers - Spending</el-menu-item
-          >
-          <el-menu-item index="/system/birthday">Birthday Manager</el-menu-item>
+        
           <el-menu-item index="/system/categories">Categories</el-menu-item>
           <el-menu-item index="/system/products">Products</el-menu-item>
         </el-sub-menu>

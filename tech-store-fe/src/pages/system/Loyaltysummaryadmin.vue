@@ -29,7 +29,7 @@
 
       <div class="ls-sidebar-footer">
         <span class="ls-status-dot" :class="loading ? 'syncing' : 'live'"></span>
-        <span>{{ loading ? 'Syncing…' : 'Live' }}</span>
+        <span>{{ loading ? 'Đang đồng bộ…' : 'Trực tiếp' }}</span>
       </div>
     </aside>
 
@@ -39,7 +39,7 @@
       <!-- Topbar -->
       <header class="ls-topbar">
         <div class="ls-topbar-left">
-          <div class="ls-breadcrumb">Analytics <span>›</span> Loyalty <span>›</span> {{ mode === 'monthly' ? 'Monthly' : 'Weekly' }}</div>
+          <div class="ls-breadcrumb">Phân tích <span>›</span> Loyalty <span>›</span> {{ mode === 'monthly' ? 'Hàng tháng' : 'Hàng tuần' }}</div>
           <h1 class="ls-page-title">{{ currentTab.label }}</h1>
         </div>
         <div class="ls-topbar-right">
@@ -58,7 +58,7 @@
               <path d="M23 4v6h-6M1 20v-6h6"/>
               <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
             </svg>
-            {{ loading ? 'Loading…' : 'Refresh' }}
+            {{ loading ? 'Đang tải…' : 'Làm mới' }}
           </button>
         </div>
       </header>
@@ -109,13 +109,13 @@
                 <div class="ls-card ls-chart-main">
                   <div class="ls-card-header">
                     <div>
-                      <div class="ls-card-title">Earn vs Deduct</div>
+                      <div class="ls-card-title">Tích lũy vs Khấu trừ</div>
                       <div class="ls-card-sub">Điểm tích lũy &amp; khấu trừ theo kỳ</div>
                     </div>
                     <div class="ls-legend">
-                      <span class="ls-legend-dot" style="background:#3b82f6"></span><span>Earn</span>
-                      <span class="ls-legend-dot" style="background:#ef4444"></span><span>Deduct</span>
-                      <span class="ls-legend-dot" style="background:#f59e0b;border-radius:50%"></span><span>Net</span>
+                      <span class="ls-legend-dot" style="background:#3b82f6"></span><span>Tích lũy</span>
+                      <span class="ls-legend-dot" style="background:#ef4444"></span><span>Khấu trừ</span>
+                      <span class="ls-legend-dot" style="background:#f59e0b;border-radius:50%"></span><span>Thuần</span>
                     </div>
                   </div>
                   <div class="ls-canvas-wrap" style="height:240px">
@@ -126,7 +126,7 @@
                 <div class="ls-card ls-chart-side">
                   <div class="ls-card-header">
                     <div>
-                      <div class="ls-card-title">Tier Distribution</div>
+                      <div class="ls-card-title">Phân phối Hạng</div>
                       <div class="ls-card-sub">Điểm cộng theo hạng VIP</div>
                     </div>
                   </div>
@@ -146,7 +146,7 @@
               <div class="ls-card" style="margin-top:14px">
                 <div class="ls-card-header">
                   <div>
-                    <div class="ls-card-title">Net Points Trend</div>
+                    <div class="ls-card-title">Xu hướng Điểm Thuần</div>
                     <div class="ls-card-sub">Điểm thuần qua từng kỳ</div>
                   </div>
                 </div>
@@ -165,7 +165,7 @@
                     <span class="ls-badge">{{ data.length }} kỳ</span>
                   </div>
                   <div class="ls-period-head">
-                    <span>Kỳ</span><span>Earn</span><span>Deduct</span><span>Net</span><span>GD</span>
+                    <span>Kỳ</span><span>Tích lũy</span><span>Khấu trừ</span><span>Thuần</span><span>Giao dịch</span>
                   </div>
                   <div v-for="item in data" :key="item.period"
                     class="ls-period-row"
@@ -195,28 +195,28 @@
                     </div>
                     <div class="ls-mini-stats">
                       <div class="ls-mini-stat">
-                        <div class="ls-mini-label">Earn</div>
+                        <div class="ls-mini-label">Tích lũy</div>
                         <div class="ls-mini-val earn">+{{ fmt(selected.totalPointsEarned) }}</div>
                       </div>
                       <div class="ls-mini-stat">
-                        <div class="ls-mini-label">Deduct</div>
+                        <div class="ls-mini-label">Khấu trừ</div>
                         <div class="ls-mini-val deduct">-{{ fmt(selected.totalPointsDeducted) }}</div>
                       </div>
                       <div class="ls-mini-stat">
-                        <div class="ls-mini-label">Net</div>
+                        <div class="ls-mini-label">Thuần</div>
                         <div class="ls-mini-val" :class="selected.netPoints >= 0 ? 'net-pos' : 'net-neg'">
                           {{ selected.netPoints >= 0 ? '+' : '' }}{{ fmt(selected.netPoints) }}
                         </div>
                       </div>
                       <div class="ls-mini-stat">
-                        <div class="ls-mini-label">GD</div>
+                        <div class="ls-mini-label">Giao dịch</div>
                         <div class="ls-mini-val muted">{{ selected.totalTransactions }}</div>
                       </div>
                     </div>
                     <div class="ls-breakdown-scroll">
                       <table v-if="selected.customerBreakdown?.length" class="ls-btable">
                         <thead>
-                          <tr><th>Khách hàng</th><th>Hạng</th><th>Earn</th><th>Deduct</th><th>Net</th><th>GD</th></tr>
+                          <tr><th>Khách hàng</th><th>Hạng</th><th>Tích lũy</th><th>Khấu trừ</th><th>Thuần</th><th>Giao dịch</th></tr>
                         </thead>
                         <tbody>
                           <tr v-for="(r, i) in selected.customerBreakdown" :key="i">
@@ -258,7 +258,7 @@
                 <div class="ls-card" style="flex:1.3">
                   <div class="ls-card-header">
                     <div>
-                      <div class="ls-card-title">Top Earners</div>
+                      <div class="ls-card-title">Top Tích điểm</div>
                       <div class="ls-card-sub">Khách hàng tích điểm nhiều nhất</div>
                     </div>
                   </div>
@@ -269,8 +269,8 @@
                 <div class="ls-card" style="flex:1">
                   <div class="ls-card-header">
                     <div>
-                      <div class="ls-card-title">Earn Rate %</div>
-                      <div class="ls-card-sub">Tỷ lệ Earn / (Earn + Deduct)</div>
+                      <div class="ls-card-title">Tỷ lệ Tích lũy %</div>
+                      <div class="ls-card-sub">Tỷ lệ Tích lũy / (Tích lũy + Khấu trừ)</div>
                     </div>
                   </div>
                   <div class="ls-canvas-wrap" style="height:280px">
@@ -279,18 +279,271 @@
                 </div>
               </div>
             </div>
+            <!-- SPENDING ANALYSIS -->
+            <div v-else-if="activeTab === 'spending'" key="spending">
+              <div class="sa-root">
+                
+                <!-- ── Header ─────────────────────────────────────────────── -->
+                <div class="sa-header">
+                  <div class="sa-header-left">
+                    <div class="sa-kicker">Phân tích</div>
+                    <h1 class="sa-title">Phân tích Chi tiêu Khách hàng</h1>
+                    <p class="sa-sub">Phân tích xu hướng chi tiêu và khách hàng hàng đầu</p>
+                  </div>
+                  <button class="sa-btn-reload" @click="loadAllSpending" :disabled="loadingSpending">
+                    <svg :class="{ spin: loadingSpending }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M23 4v6h-6M1 20v-6h6"/>
+                      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    Tải lại
+                  </button>
+                </div>
 
+                <!-- ── KPI Cards ───────────────────────────────────────────── -->
+                <div class="sa-kpi-row">
+                  <div class="sa-kpi" style="--c:#3b82f6;--bg:#eff6ff">
+                    <div class="sa-kpi-icon" style="background:#eff6ff;color:#3b82f6">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div class="sa-kpi-body">
+                      <div class="sa-kpi-label">Tổng Chi tiêu</div>
+                      <div class="sa-kpi-value">{{ formatCurrency(spendingStats.totalSpent) }}</div>
+                    </div>
+                  </div>
+                  <div class="sa-kpi" style="--c:#10b981;--bg:#ecfdf5">
+                    <div class="sa-kpi-icon" style="background:#ecfdf5;color:#10b981">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    </div>
+                    <div class="sa-kpi-body">
+                      <div class="sa-kpi-label">Tổng Khách hàng</div>
+                      <div class="sa-kpi-value">{{ (spendingStats.totalCustomers || 0).toLocaleString() }}</div>
+                    </div>
+                  </div>
+                  <div class="sa-kpi" style="--c:#f59e0b;--bg:#fffbeb">
+                    <div class="sa-kpi-icon" style="background:#fffbeb;color:#f59e0b">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                    </div>
+                    <div class="sa-kpi-body">
+                      <div class="sa-kpi-label">Chi tiêu TB</div>
+                      <div class="sa-kpi-value">{{ formatCurrency(spendingStats.averageSpent) }}</div>
+                    </div>
+                  </div>
+                  <div class="sa-kpi" style="--c:#8b5cf6;--bg:#f5f3ff">
+                    <div class="sa-kpi-icon" style="background:#f5f3ff;color:#8b5cf6">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6m12 0h1.5a2.5 2.5 0 010 5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+                    </div>
+                    <div class="sa-kpi-body">
+                      <div class="sa-kpi-label">Chi tiêu Nhiều nhất</div>
+                      <div class="sa-kpi-value sm">{{ topSpenders[0]?.fullName || 'N/A' }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ── Tabs ────────────────────────────────────────────────── -->
+                <div class="sa-tabs">
+                  <button v-for="tab in spendingTabList" :key="tab.id"
+                    class="sa-tab" :class="{ active: spendingActiveTab === tab.id }"
+                    @click="switchSpendingTab(tab.id)">
+                    <span v-html="tab.icon"></span>
+                    {{ tab.label }}
+                  </button>
+                </div>
+
+                <!-- ── Tab: Top Spenders ───────────────────────────────────── -->
+                <div v-if="spendingActiveTab === 'topSpenders'" class="sa-panel">
+                  <div class="sa-filter-bar">
+                    <div class="sa-filter-group">
+                      <label class="sa-label">Giới hạn</label>
+                      <div class="sa-number-input">
+                        <button @click="topSpendersLimit = Math.max(5, topSpendersLimit - 5)">−</button>
+                        <span>{{ topSpendersLimit }}</span>
+                        <button @click="topSpendersLimit = Math.min(100, topSpendersLimit + 5)">+</button>
+                      </div>
+                    </div>
+                    <div class="sa-filter-group">
+                      <label class="sa-label">Hạng VIP</label>
+                      <select v-model="topSpendersTier" class="sa-select">
+                        <option value="">Tất cả hạng</option>
+                        <option v-for="t in tiers" :key="t" :value="t">{{ t }}</option>
+                      </select>
+                    </div>
+                    <button class="sa-btn-primary" @click="loadTopSpenders" :disabled="loadingTopSpenders">
+                      <span v-if="loadingTopSpenders" class="spinner-sm"></span>
+                      <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                      Tải
+                    </button>
+                  </div>
+
+                  <div class="sa-table-wrap">
+                    <div v-if="loadingTopSpenders" class="sa-table-skeleton">
+                      <div v-for="i in 5" :key="i" class="sk-row">
+                        <div class="sk sk-rank"></div>
+                        <div class="sk-user"><div class="sk sk-av"></div><div class="sk-lines"><div class="sk sk-l w70"></div><div class="sk sk-l w50"></div></div></div>
+                        <div class="sk sk-pill"></div>
+                        <div class="sk sk-money"></div>
+                        <div class="sk sk-pill"></div>
+                      </div>
+                    </div>
+                    <table v-else-if="topSpenders.length" class="sa-table">
+                      <thead>
+                        <tr>
+                          <th style="width:70px;text-align:center">Hạng</th>
+                          <th>Khách hàng</th>
+                          <th style="width:110px;text-align:center">Hạng VIP</th>
+                          <th style="width:180px;text-align:right">Tổng Chi tiêu</th>
+                          <th style="width:130px;text-align:center">Điểm</th>
+                          <th style="width:110px;text-align:center">Loại</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(row, idx) in topSpenders" :key="row.id">
+                          <td style="text-align:center">
+                            <div class="rank-badge" :class="['rank-' + getRankKey(idx)]">
+                              <svg v-if="idx < 3" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9H4.5a2.5 2.5 0 010-5H6m12 0h1.5a2.5 2.5 0 010 5H18M4 22h16M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+                              <span v-else>{{ idx + 1 }}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="cust-cell">
+                              <div class="cust-av" :style="`background:${avatarColor(row.fullName)}`">{{ initials(row.fullName) }}</div>
+                              <div>
+                                <div class="cust-name">{{ row.fullName }}</div>
+                                <div class="cust-email">{{ row.email }}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style="text-align:center">
+                            <span v-if="row.raw.vipTier" class="tier-chip" :class="'tier-' + row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
+                            <span v-else class="muted-dash">—</span>
+                          </td>
+                          <td style="text-align:right">
+                            <span class="spend-amount">{{ formatCurrency(row.raw.totalSpent) }}</span>
+                          </td>
+                          <td style="text-align:center">
+                            <span class="points-badge">⭐ {{ row.loyaltyPoints }}</span>
+                          </td>
+                          <td style="text-align:center">
+                            <span class="type-chip" :class="row.customerType === 'VIP' ? 'type-vip' : 'type-reg'">{{ row.customerType }}</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div v-else class="sa-empty">
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                      <p>Chưa có dữ liệu</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ── Tab: Spending Range ─────────────────────────────────── -->
+                <div v-else-if="spendingActiveTab === 'spendingRange'" class="sa-panel">
+                  <div class="sa-filter-bar wrap">
+                    <div class="sa-filter-group">
+                      <label class="sa-label">Chi tiêu Tối thiểu (₫)</label>
+                      <input type="number" v-model.number="spendingMin" class="sa-input" placeholder="0" min="0" step="1000000"/>
+                    </div>
+                    <div class="sa-filter-group">
+                      <label class="sa-label">Chi tiêu Tối đa (₫)</label>
+                      <input type="number" v-model.number="spendingMax" class="sa-input" placeholder="999,999,999" min="0" step="1000000"/>
+                    </div>
+                    <div class="sa-filter-actions">
+                      <button class="sa-btn-primary" @click="loadBySpendingRange" :disabled="loadingSpendingRange">
+                        <span v-if="loadingSpendingRange" class="spinner-sm"></span>
+                        <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 9 11 13 15 22 22 3"/></svg>
+                        Áp dụng
+                      </button>
+                      <button class="sa-btn-ghost" @click="clearSpendingRange">Xóa</button>
+                    </div>
+                  </div>
+
+                  <!-- Quick Ranges -->
+                  <div class="sa-quick-ranges">
+                    <span class="sa-label">Nhanh:</span>
+                    <button v-for="q in quickRanges" :key="q.label" class="sa-quick-btn" @click="setQuickRange(q.min, q.max)">
+                      {{ q.label }}
+                    </button>
+                  </div>
+
+                  <!-- Active Range Alert -->
+                  <div class="sa-range-alert" v-if="appliedSpendingRange.min !== null || appliedSpendingRange.max !== null">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div class="sa-table-wrap">
+                      <div v-if="loadingSpendingRange" class="sa-table-skeleton">
+                        <div v-for="i in 5" :key="i" class="sk-row">
+                          <div class="sk sk-id"></div>
+                          <div class="sk-user"><div class="sk sk-av"></div><div class="sk-lines"><div class="sk sk-l w70"></div><div class="sk sk-l w50"></div></div></div>
+                          <div class="sk sk-pill"></div>
+                          <div class="sk sk-money"></div>
+                        </div>
+                      </div>
+                      <div v-else-if="pagedSpending.length">
+                        <table class="sa-table">
+                          <thead>
+                            <tr>
+                              <th style="width:60px">ID</th>
+                              <th>Khách hàng</th>
+                              <th style="width:110px;text-align:center">Hạng VIP</th>
+                              <th style="width:180px;text-align:right">Tổng Chi tiêu</th>
+                              <th style="width:130px;text-align:center">Điểm</th>
+                              <th style="width:110px;text-align:center">Loại</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="(row, idx) in pagedSpending" :key="row.id">
+                              <td style="text-align:center">
+                                <div class="rank-badge" :class="['rank-' + getRankKey(idx)]">
+                                  <svg v-if="idx < 3" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9H4.5a2.5 2.5 0 010-5H6m12 0h1.5a2.5 2.5 0 010 5H18M4 22h16M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+                                  <span v-else>{{ idx + 1 }}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div class="cust-cell">
+                                  <div class="cust-av" :style="`background:${avatarColor(row.fullName)}`">{{ initials(row.fullName) }}</div>
+                                  <div>
+                                    <div class="cust-name">{{ row.fullName }}</div>
+                                    <div class="cust-email">{{ row.email }}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td style="text-align:center">
+                                <span v-if="row.raw.vipTier" class="tier-chip" :class="'tier-' + row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
+                                <span v-else class="muted-dash">—</span>
+                              </td>
+                              <td style="text-align:right">
+                                <span class="spend-amount">{{ formatCurrency(row.raw.totalSpent) }}</span>
+                              </td>
+                              <td style="text-align:center">
+                                <span class="points-badge">⭐ {{ row.loyaltyPoints }}</span>
+                              </td>
+                              <td style="text-align:center">
+                                <span class="type-chip" :class="row.customerType === 'VIP' ? 'type-vip' : 'type-reg'">{{ row.customerType }}</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div v-else class="sa-empty">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        <p>Chưa có dữ liệu</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </Transition>
         </div>
       </template>
 
       <!-- Empty -->
-      <div v-else-if="!loading" class="ls-empty">
+      <div v-else class="ls-empty">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5">
           <rect x="3" y="3" width="18" height="18" rx="3"/>
           <path d="M9 9h6M9 12h6M9 15h4"/>
         </svg>
         <p>Không có dữ liệu trong khoảng thời gian này.</p>
+
       </div>
 
     </main>
@@ -298,8 +551,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount, reactive } from 'vue'
 import { customersApi } from '../../api/customers.api'
+import { toast } from '../../ui/toast'
 
 const getChart = () => (typeof Chart !== 'undefined' ? Chart : null)
 
@@ -317,16 +571,145 @@ const ICON_EARN    = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none
 const ICON_DEDUCT  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`
 const ICON_NET     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`
 const ICON_TX      = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>`
+const ICON_SPENDING = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6m12 0h1.5a2.5 2.5 0 010 5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg>`
 
 const tabs = [
-  { id: 'overview', label: 'Overview',  icon: ICON_OVERVIEW },
-  { id: 'table',    label: 'Breakdown', icon: ICON_TABLE    },
-  { id: 'ranking',  label: 'Ranking',   icon: ICON_TREND    },
+  { id: 'overview', label: 'Tổng quan',  icon: ICON_OVERVIEW },
+  { id: 'table',    label: 'Chi tiết', icon: ICON_TABLE    },
+  { id: 'ranking',  label: 'Xếp hạng',   icon: ICON_TREND    },
+  { id: 'spending', label: 'Phân tích Chi tiêu', icon: ICON_SPENDING },
 ]
 const modes = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'weekly',  label: 'Weekly'  },
+  { value: 'monthly', label: 'Hàng tháng' },
+  { value: 'weekly',  label: 'Hàng tuần'  },
 ]
+
+// ── Spending Analysis State ───────────────────────────────────────
+const loadingSpending         = ref(false);
+const loadingTopSpenders      = ref(false);
+const loadingSpendingRange    = ref(false);
+const spendingActiveTab       = ref("topSpenders");
+
+const topSpenders            = ref([]);
+const topSpendersLimit       = ref(10);
+const topSpendersTier        = ref("");
+
+const customersBySpending    = ref([]);
+const spendingMin            = ref(null);
+const spendingMax            = ref(null);
+const appliedSpendingRange   = reactive({ min: null, max: null });
+const spendingPage           = ref(1);
+const pageSize               = 10;
+
+const spendingStats          = ref({ totalSpent: 0, totalCustomers: 0, averageSpent: 0, byTier: {}, spendingRanges: {} });
+
+const spendingTabList = [
+  { id: 'topSpenders',   label: 'Top Chi tiêu',    icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6m12 0h1.5a2.5 2.5 0 010 5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg>` },
+  { id: 'spendingRange', label: 'Theo Khoảng Chi tiêu', icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 9 11 13 15 22 22 3"/></svg>` },
+  { id: 'statistics',    label: 'Thống kê',       icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>` },
+];
+
+const quickRanges = [
+  { label: 'Dưới 1M',   min: 0,        max: 1000000   },
+  { label: '1M – 5M',    min: 1000000,  max: 5000000   },
+  { label: '5M – 10M',   min: 5000000,  max: 10000000  },
+  { label: '10M – 50M',  min: 10000000, max: 50000000  },
+  { label: 'Trên 50M',   min: 50000000, max: 999999999 },
+];
+
+// ── Spending Analysis Computed ───────────────────────────────────
+const pagedSpending = computed(() => {
+  const s = (spendingPage.value - 1) * pageSize;
+  return customersBySpending.value.slice(s, s + pageSize);
+});
+const totalSpendingPages = computed(() => Math.ceil(customersBySpending.value.length / pageSize));
+
+// ── Spending Analysis Functions ───────────────────────────────────
+function extractList(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  const root = payload?.data ?? payload;
+  if (Array.isArray(root)) return root;
+  for (const k of ["content", "items", "results", "rows", "list"]) {
+    if (Array.isArray(root?.[k])) return root[k];
+    if (Array.isArray(root?.data?.[k])) return root.data[k];
+  }
+  return [];
+}
+
+function normalize(list) {
+  return (list || []).map(c => ({
+    id: c?.id ?? c?.customerId,
+    fullName: c?.fullName ?? c?.name ?? "",
+    email: c?.email ?? "",
+    phone: c?.phone ?? "",
+    customerType: (c?.customerType ?? "REGULAR").toString().toUpperCase(),
+    loyaltyPoints: c?.loyaltyPoints ?? 0,
+    raw: c,
+  }));
+}
+
+function formatCurrency(value) {
+  if (!value) return "0 ₫";
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
+}
+
+function getRankKey(i) { return ['gold','silver','bronze'][i] || 'other'; }
+function formatRangeLabel(r) {
+  return { under1M: 'Dưới 1M', '1M-5M': '1M – 5M', '5M-10M': '5M – 10M', '10M-50M': '10M – 50M', over50M: 'Trên 50M' }[r] || r;
+}
+function getPercentage(count, total) { return total ? Math.round(count / total * 100) : 0; }
+function getRangeColor(r) {
+  return { under1M: '#9ca3af', '1M-5M': '#3b82f6', '5M-10M': '#10b981', '10M-50M': '#f59e0b', over50M: '#ef4444' }[r] || '#3b82f6';
+}
+
+async function loadTopSpenders() {
+  loadingTopSpenders.value = true;
+  try {
+    const res = topSpendersTier.value
+      ? await customersApi.listTopSpendersByVipTier(topSpendersTier.value, topSpendersLimit.value)
+      : await customersApi.listTopSpenders(topSpendersLimit.value);
+    topSpenders.value = normalize(extractList(res?.data));
+  } catch { toast("Không thể tải danh sách chi tiêu hàng đầu.", "error"); }
+  finally { loadingTopSpenders.value = false; }
+}
+
+async function loadBySpendingRange() {
+  if (spendingMin.value === null && spendingMax.value === null) { toast("Nhập ít nhất một giá trị", "warning"); return; }
+  if (spendingMin.value != null && spendingMax.value != null && spendingMin.value > spendingMax.value) { toast("Giá trị tối thiểu không thể vượt quá tối đa", "error"); return; }
+  loadingSpendingRange.value = true;
+  try {
+    const min = spendingMin.value || 0;
+    const max = spendingMax.value || 999999999;
+    const res = await customersApi.listBySpendingRange(min, max);
+    customersBySpending.value = normalize(extractList(res?.data));
+    appliedSpendingRange.min = min;
+    appliedSpendingRange.max = max;
+    spendingPage.value = 1;
+    toast(`Tìm thấy ${customersBySpending.value.length} khách hàng`, "success");
+  } catch { toast("Không thể tải khách hàng.", "error"); }
+  finally { loadingSpendingRange.value = false; }
+}
+
+async function loadStatistics() {
+  loadingSpending.value = true;
+  try { const res = await customersApi.getSpendingStatistics(); spendingStats.value = res?.data || {}; }
+  catch { toast("Không thể tải thống kê.", "error"); }
+  finally { loadingSpending.value = false; }
+}
+
+function clearSpendingRange() {
+  spendingMin.value = null; spendingMax.value = null;
+  appliedSpendingRange.min = null; appliedSpendingRange.max = null;
+  customersBySpending.value = [];
+}
+function setQuickRange(min, max) { spendingMin.value = min; spendingMax.value = max; loadBySpendingRange(); }
+async function loadAllSpending() { await Promise.all([loadTopSpenders(), loadStatistics()]); }
+function switchSpendingTab(id) {
+  spendingActiveTab.value = id;
+  if (id === 'topSpenders' && !topSpenders.value.length) loadTopSpenders();
+  if (id === 'statistics' && !Object.keys(spendingStats.value.byTier || {}).length) loadStatistics();
+}
 
 // ── State ──────────────────────────────────────────────────────────
 const mode           = ref('monthly')
@@ -418,10 +801,10 @@ const kpis = computed(() => {
   const dD = calcDelta('totalPointsDeducted')
   const dT = calcDelta('totalTransactions')
   return [
-    { key: 'totalPointsEarned',   label: 'Total Earned',   color: '#3b82f6', icon: ICON_EARN,   value: '+' + fmt(totalEarned.value),   delta: dE ? (dE.pos ? '↑' : '↓') + Math.abs(dE.val) + '%' : '—', deltaClass: dE?.pos ? 'up' : 'dn' },
-    { key: 'totalPointsDeducted', label: 'Total Deducted', color: '#ef4444', icon: ICON_DEDUCT, value: '-' + fmt(totalDeducted.value), delta: dD ? (dD.pos ? '↑' : '↓') + Math.abs(dD.val) + '%' : '—', deltaClass: !dD?.pos ? 'up' : 'dn' },
-    { key: 'netPoints',           label: 'Net Points',     color: '#f59e0b', icon: ICON_NET,    value: (netTotal.value >= 0 ? '+' : '') + fmt(netTotal.value), delta: '—', deltaClass: '' },
-    { key: 'totalTransactions',   label: 'Transactions',   color: '#8b5cf6', icon: ICON_TX,     value: fmt(totalTx.value), delta: dT ? (dT.pos ? '↑' : '↓') + Math.abs(dT.val) + '%' : '—', deltaClass: dT?.pos ? 'up' : 'dn' },
+    { key: 'totalPointsEarned',   label: 'Tổng Tích lũy',   color: '#3b82f6', icon: ICON_EARN,   value: '+' + fmt(totalEarned.value),   delta: dE ? (dE.pos ? '↑' : '↓') + Math.abs(dE.val) + '%' : '—', deltaClass: dE?.pos ? 'up' : 'dn' },
+    { key: 'totalPointsDeducted', label: 'Tổng Khấu trừ', color: '#ef4444', icon: ICON_DEDUCT, value: '-' + fmt(totalDeducted.value), delta: dD ? (!dD.pos ? '↑' : '↓') + Math.abs(dD.val) + '%' : '—', deltaClass: !dD?.pos ? 'up' : 'dn' },
+    { key: 'netPoints',           label: 'Điểm Thuần',     color: '#f59e0b', icon: ICON_NET,    value: (netTotal.value >= 0 ? '+' : '') + fmt(netTotal.value), delta: '—', deltaClass: '' },
+    { key: 'totalTransactions',   label: 'Giao dịch',   color: '#8b5cf6', icon: ICON_TX,     value: fmt(totalTx.value), delta: dT ? (dT.pos ? '↑' : '↓') + Math.abs(dT.val) + '%' : '—', deltaClass: dT?.pos ? 'up' : 'dn' },
   ]
 })
 
@@ -510,9 +893,9 @@ function buildCharts() {
       data: {
         labels,
         datasets: [
-          { label: 'Earn',   data: earned,   backgroundColor: 'rgba(59,130,246,0.75)', borderRadius: 4, borderSkipped: false, order: 2 },
-          { label: 'Deduct', data: deducted, backgroundColor: 'rgba(239,68,68,0.65)',  borderRadius: 4, borderSkipped: false, order: 2 },
-          { label: 'Net', data: net, type: 'line', borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.05)', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#f59e0b', tension: 0.4, fill: false, order: 1 },
+          { label: 'Tích lũy',   data: earned,   backgroundColor: 'rgba(59,130,246,0.75)', borderRadius: 4, borderSkipped: false, order: 2 },
+          { label: 'Khấu trừ', data: deducted, backgroundColor: 'rgba(239,68,68,0.65)',  borderRadius: 4, borderSkipped: false, order: 2 },
+          { label: 'Thuần', data: net, type: 'line', borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.05)', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#f59e0b', tension: 0.4, fill: false, order: 1 },
         ],
       },
       options: {
@@ -547,7 +930,7 @@ function buildCharts() {
       data: {
         labels,
         datasets: [{
-          label: 'Net', data: net,
+          label: 'Thuần', data: net,
           borderColor: '#3b82f6',
           backgroundColor: ctx => {
             const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 120)
@@ -562,7 +945,7 @@ function buildCharts() {
       options: {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: false }, tooltip: { ...TT, callbacks: { label: ctx => ` Net: ${fmt(ctx.raw)}` } } },
+        plugins: { legend: { display: false }, tooltip: { ...TT, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}` } } },
         scales: {
           x: { display: false },
           y: { grid: { color: GRID }, ticks: { color: TICK, font: { family: FONT, size: 10 }, callback: v => fmt(v) }, border: { display: false } },
@@ -578,8 +961,8 @@ function buildCharts() {
       data: {
         labels: topEarners.value.map(e => e.name.length > 16 ? e.name.slice(0, 16) + '…' : e.name),
         datasets: [
-          { label: 'Earn',   data: topEarners.value.map(e => e.earn),   backgroundColor: 'rgba(59,130,246,0.75)',  borderRadius: 4, borderSkipped: false },
-          { label: 'Deduct', data: topEarners.value.map(e => e.deduct), backgroundColor: 'rgba(239,68,68,0.60)',  borderRadius: 4, borderSkipped: false },
+          { label: 'Tích lũy',   data: topEarners.value.map(e => e.earn),   backgroundColor: 'rgba(59,130,246,0.75)',  borderRadius: 4, borderSkipped: false },
+          { label: 'Khấu trừ', data: topEarners.value.map(e => e.deduct), backgroundColor: 'rgba(239,68,68,0.60)',  borderRadius: 4, borderSkipped: false },
         ],
       },
       options: {
@@ -605,7 +988,7 @@ function buildCharts() {
       data: {
         labels,
         datasets: [{
-          label: 'Earn Rate %', data: rate,
+          label: 'Tỷ lệ Tích lũy %', data: rate,
           borderColor: '#8b5cf6',
           backgroundColor: ctx => {
             const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 280)
@@ -619,7 +1002,7 @@ function buildCharts() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { ...TT, callbacks: { label: ctx => ` Earn Rate: ${ctx.raw}%` } } },
+        plugins: { legend: { display: false }, tooltip: { ...TT, callbacks: { label: ctx => ` Tỷ lệ: ${ctx.raw}%` } } },
         scales: {
           x: xScale,
           y: { min: 0, max: 100, grid: { color: GRID }, ticks: { color: TICK, font: { family: FONT, size: 11 }, callback: v => v + '%' }, border: { display: false } },
@@ -635,12 +1018,13 @@ onBeforeUnmount(destroyAll)
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 /* ── Base ──────────────────────────────────────────────────────── */
 .ls-root {
   display: flex;
   min-height: 100vh;
   background: #f5f5f5;
-  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   color: #111827;
   box-sizing: border-box;
 }
@@ -1101,5 +1485,402 @@ onBeforeUnmount(destroyAll)
   .ls-kpi-row { grid-template-columns: 1fr 1fr; }
   .ls-table-layout.show-detail { grid-template-columns: 1fr; }
   .ls-topbar { padding: 16px; }
+}
+
+/* ── Spending Analysis Styles ─────────────────────────────────── */
+.sa-root {
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 32px 36px 80px;
+  background: #f5f5f5;
+  min-height: 100vh;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+.sa-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.sa-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #3b82f6;
+  margin-bottom: 5px;
+}
+.sa-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 4px;
+  letter-spacing: -.4px;
+}
+.sa-sub { font-size: 13px; color: #9ca3af; margin: 0; }
+
+.sa-btn-reload {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: white;
+  font-size: 13px; font-weight: 600; color: #374151;
+  cursor: pointer; transition: all .15s; font-family: inherit;
+}
+.sa-btn-reload:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+.sa-btn-reload:disabled { opacity: .5; cursor: not-allowed; }
+@keyframes spin-r { to { transform: rotate(360deg); } }
+.spin { animation: spin-r .7s linear infinite; }
+
+/* ── KPI ───────────────────────────────────────────────────────── */
+.sa-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.sa-kpi {
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 14px;
+  padding: 18px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all .15s;
+}
+.sa-kpi:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); transform: translateY(-2px); }
+.sa-kpi-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sa-kpi-label { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.sa-kpi-value { font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -.3px; }
+.sa-kpi-value.sm { font-size: 15px; }
+
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.sa-tabs {
+  display: flex;
+  gap: 4px;
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+.sa-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none; background: transparent;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: #6b7280; cursor: pointer; transition: all .15s;
+}
+.sa-tab:hover { color: #111827; background: #f9fafb; }
+.sa-tab.active { background: #111827; color: white; }
+
+/* ── Panel ─────────────────────────────────────────────────────── */
+.sa-panel {
+  background: white;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ── Filter Bar ────────────────────────────────────────────────── */
+.sa-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+}
+.sa-filter-bar.wrap { flex-wrap: wrap; }
+.sa-filter-group { display: flex; flex-direction: column; gap: 5px; }
+.sa-filter-actions { display: flex; gap: 8px; align-items: flex-end; }
+.sa-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; }
+
+.sa-select {
+  padding: 8px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: inherit; font-size: 13px; color: #374151;
+  background: white; outline: none; cursor: pointer; min-width: 140px;
+}
+.sa-select:focus { border-color: #3b82f6; }
+
+.sa-input {
+  padding: 8px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: inherit; font-size: 13px; color: #374151;
+  background: white; outline: none; width: 180px;
+}
+.sa-input:focus { border-color: #3b82f6; }
+
+.sa-number-input {
+  display: flex; align-items: center;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+.sa-number-input button {
+  padding: 7px 12px;
+  border: none; background: transparent;
+  font-size: 16px; cursor: pointer; color: #6b7280; transition: background .1s;
+}
+.sa-number-input button:hover { background: #f3f4f6; }
+.sa-number-input span { padding: 0 12px; font-size: 13px; font-weight: 700; color: #111827; min-width: 40px; text-align: center; }
+
+.sa-btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  background: #111827; border: 1.5px solid #111827;
+  border-radius: 8px; color: white;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.sa-btn-primary:hover:not(:disabled) { background: #1f2937; border-color: #1f2937; }
+.sa-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+.sa-btn-ghost {
+  padding: 9px 18px;
+  background: white; border: 1.5px solid #e5e7eb;
+  border-radius: 8px; color: #6b7280;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.sa-btn-ghost:hover { border-color: #d1d5db; color: #374151; }
+
+.spinner-sm {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin-r .6s linear infinite;
+}
+
+/* Quick ranges */
+.sa-quick-ranges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+}
+.sa-quick-btn {
+  padding: 5px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 20px;
+  background: white; color: #374151;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.sa-quick-btn:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+
+/* Range alert */
+.sa-range-alert {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px;
+  background: #eff6ff; border-bottom: 1px solid #bfdbfe;
+  font-size: 13px; color: #1d4ed8;
+}
+.range-count-badge {
+  margin-left: 4px; padding: 2px 10px;
+  background: #dbeafe; border-radius: 20px;
+  font-size: 11px; font-weight: 700; color: #1d4ed8;
+}
+
+/* ── Table ─────────────────────────────────────────────────────── */
+.sa-table-wrap { overflow-x: auto; }
+.sa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.sa-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 10px; font-weight: 700;
+  color: #9ca3af; text-transform: uppercase; letter-spacing: .08em;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
+.sa-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+.sa-table tr:last-child td { border-bottom: none; }
+.sa-table tbody tr:hover td { background: #fafafa; }
+
+/* Rank badge */
+.rank-badge {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px;
+  margin: 0 auto;
+}
+.rank-gold   { background: #fef9c3; color: #b45309; }
+.rank-silver { background: #f1f5f9; color: #475569; }
+.rank-bronze { background: #fef3c7; color: #92400e; }
+.rank-other  { background: #f3f4f6; color: #6b7280; font-size: 12px; }
+
+/* Customer cell */
+.cust-cell { display: flex; align-items: center; gap: 10px; }
+.cust-av {
+  width: 36px; height: 36px;
+  border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: white;
+}
+.cust-av.sm { width: 30px; height: 30px; border-radius: 8px; font-size: 10px; }
+.cust-name  { font-size: 13px; font-weight: 700; color: #111827; }
+.cust-email { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+
+/* Chips */
+.tier-chip {
+  display: inline-block; padding: 3px 9px;
+  border-radius: 6px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.tier-bronze   { background: #fef3c7; color: #92400e; }
+.tier-silver   { background: #f1f5f9; color: #475569; }
+.tier-gold     { background: #fef9c3; color: #b45309; }
+.tier-platinum { background: #ede9fe; color: #6d28d9; }
+.tier-diamond  { background: #dbeafe; color: #1d4ed8; }
+
+.type-chip {
+  display: inline-block; padding: 3px 9px;
+  border-radius: 6px; font-size: 11px; font-weight: 600;
+}
+.type-vip { background: #fef3c7; color: #b45309; }
+.type-reg { background: #f3f4f6; color: #6b7280; }
+
+.points-badge {
+  display: inline-block; padding: 3px 10px;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 20px; font-size: 12px; font-weight: 700; color: #b45309;
+}
+
+.spend-amount { font-size: 14px; font-weight: 800; color: #059669; }
+.muted-text { color: #9ca3af; font-size: 12px; }
+.muted-dash { color: #d1d5db; }
+
+/* Skeleton */
+.sa-table-skeleton { padding: 8px 0; }
+.sk-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px; border-bottom: 1px solid #f3f4f6;
+}
+.sk-user { display: flex; align-items: center; gap: 10px; flex: 1; }
+.sk-lines { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.sk {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background-size: 200%; animation: shimmer 1.4s ease infinite;
+}
+.sk-rank  { width: 34px; height: 34px; border-radius: 10px; }
+.sk-av    { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
+.sk-l     { height: 12px; }
+.sk-pill  { width: 64px; height: 24px; border-radius: 6px; }
+.sk-money { width: 100px; height: 18px; }
+.sk-id    { width: 40px; height: 16px; }
+.w70 { width: 70%; } .w50 { width: 50%; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Empty */
+.sa-empty {
+  padding: 60px 20px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: #9ca3af; font-size: 13px;
+}
+
+/* ── Pagination ────────────────────────────────────────────────── */
+.sa-pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.page-btn {
+  min-width: 32px; height: 32px;
+  border: 1.5px solid #e5e7eb; border-radius: 8px;
+  background: white; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: #374151; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  padding: 0 8px; transition: all .15s;
+}
+.page-btn:hover:not(:disabled) { border-color: #3b82f6; color: #3b82f6; }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+.page-btn.active { background: #111827; border-color: #111827; color: white; }
+.page-info { font-size: 12px; color: #9ca3af; margin-left: 6px; }
+
+/* ── Statistics Tab ────────────────────────────────────────────── */
+.sa-card {
+  background: white; border: 1.5px solid #f0f0f0; border-radius: 14px; overflow: hidden;
+}
+.mb-14 { margin-bottom: 14px; }
+.sa-card-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.sa-card-title { font-size: 13px; font-weight: 700; color: #111827; }
+.sa-card-sub   { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+.sa-ranges { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; }
+.sa-range-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 50px 100px;
+  align-items: center;
+  gap: 14px;
+}
+.sa-range-label { font-size: 13px; font-weight: 600; color: #374151; }
+.sa-range-bar-wrap { background: #f3f4f6; border-radius: 20px; height: 8px; overflow: hidden; }
+.sa-range-bar { height: 100%; border-radius: 20px; transition: width .6s ease; min-width: 2px; }
+.sa-range-pct { font-size: 12px; font-weight: 700; color: #374151; text-align: right; }
+.sa-range-count { font-size: 12px; color: #9ca3af; text-align: right; }
+
+.sa-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 4px;
+}
+.sa-tier-card {
+  background: white; border: 1.5px solid #f0f0f0; border-radius: 14px; padding: 16px;
+  transition: all .15s;
+}
+.sa-tier-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.06); transform: translateY(-2px); }
+.sa-tier-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sa-tier-count { font-size: 12px; color: #9ca3af; font-weight: 500; }
+.sa-tier-divider { height: 1px; background: #f3f4f6; margin: 10px 0; }
+.sa-tier-row { display: flex; align-items: center; justify-content: space-between; }
+.sa-tier-lbl { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.sa-tier-val { font-size: 15px; font-weight: 800; color: #111827; }
+.sa-tier-val.blue { color: #2563eb; }
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .sa-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .sa-tier-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .sa-root { padding: 16px; }
+  .sa-kpi-row { grid-template-columns: 1fr 1fr; }
+  .sa-tier-grid { grid-template-columns: 1fr; }
+  .sa-range-row { grid-template-columns: 1fr 1fr; }
+  .sa-tabs { flex-wrap: wrap; }
 }
 </style>

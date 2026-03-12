@@ -322,7 +322,6 @@ function confirmYearEnd() {
 const cards = [
   { title: "Users",               desc: "Quản lý tài khoản & phân quyền",     to: "/system/users",                   icon: "👤", color: "#2563eb" },
   { title: "Customers",           desc: "Khách hàng & hạng thành viên",        to: "/system/customers",               icon: "🧑‍🤝‍🧑", color: "#16a34a" },
-  { title: "Inactive Customers",  desc: "Khách hàng không hoạt động",          to: "/system/inactive-customers",      icon: "😴", color: "#9ca3af" },
   { title: "Categories",          desc: "Danh mục sản phẩm",                   to: "/system/categories",              icon: "🗂️", color: "#d97706" },
   { title: "Products",            desc: "Tạo & quản lý sản phẩm",             to: "/system/products",                icon: "📦", color: "#7c3aed" },
   { title: "Orders — New",        desc: "Đơn hàng mới cần xử lý",             to: "/system/orders/new",              icon: "🆕", color: "#0891b2" },
@@ -331,7 +330,6 @@ const cards = [
   { title: "Pricing",             desc: "Giá biến thể & lịch sử",             to: "/system/pricing",                 icon: "💰", color: "#16a34a" },
   { title: "Promotions",          desc: "Mã giảm giá & chiến dịch",           to: "/system/promotions",              icon: "🎁", color: "#db2777" },
   { title: "Payment History",     desc: "Tất cả giao dịch thanh toán",         to: "/system/payments",                icon: "🧾", color: "#2563eb" },
-  { title: "Birthday Manager",    desc: "Quản lý sinh nhật khách hàng",        to: "/system/birthday",                icon: "🎂", color: "#ec4899" },
   { title: "Customer Spending",   desc: "Chi tiêu theo khách hàng",            to: "/system/customer-spending",       icon: "📊", color: "#0891b2" },
   { title: "Settings",            desc: "Đơn vị tiền tệ mặc định",            to: "/system/settings/currency",       icon: "⚙️", color: "#6b7280" },
 ];

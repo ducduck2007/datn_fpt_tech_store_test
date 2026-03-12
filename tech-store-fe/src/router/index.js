@@ -35,9 +35,8 @@ import PricingManager from "../pages/system/PricingManager.vue";
 import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue";
-import Birthday from "../pages/system/BirthdayManager.vue";
-import Customerspendinganalytics from "../pages/system/Customerspendinganalytics.vue";
-import InactiveCustomers from "../pages/system/InactiveCustomers.vue";
+
+
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
 import Zeroordercustomers from "../pages/system/Zeroordercustomers.vue";
 import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
@@ -171,12 +170,7 @@ const routes = [
         component: UserManager,
         meta: { title: "User Management" },
       },
-      {
-        path: "customer-spending",
-        name: "system-customers-spend",
-        component: Customerspendinganalytics,
-        meta: { title: "Customers & Loyalty" },
-      },
+      
       {
         path: "customers",
         name: "system-customers",
@@ -195,12 +189,7 @@ const routes = [
         component: Zeroordercustomers,
         meta: { title: "Zero order customers" },
       },
-      {
-        path: "inactive-customers",
-        name: "system-customers-inactive",
-        component: InactiveCustomers,
-        meta: { title: "Inactive Customers" },
-      },
+     
 
       {
         path: "categories",
@@ -301,12 +290,7 @@ const routes = [
         meta: { title: "Payment History" },
       },
 
-      {
-        path: "birthday",
-        name: "Birthday Manager",
-        component: Birthday,
-        meta: { title: "Settings - Birthday Manager" },
-      },
+  
 
       {
         path: "Loyaltysummaryadmin",
