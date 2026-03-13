@@ -35,6 +35,10 @@
         <button :class="['crm-nav-tab', { active: mainTab === 'inactive' }]" @click="mainTab = 'inactive'; loadInactiveAll()">
           Không hoạt động
         </button>
+        <button :class="['crm-nav-tab', { active: mainTab === 'zeroorder' }]" 
+        @click="mainTab = 'zeroorder'; loadZeroOrderData(); loadZeroOrderStats()">
+  Chưa mua hàng
+</button>
         <div class="nav-underline" />
       </nav>
 
@@ -447,6 +451,162 @@
           <span class="pager-info">{{ (inactivePage-1)*inactivePageSize+1 }}–{{ Math.min(inactivePage*inactivePageSize, inactiveFiltered.length) }} / {{ inactiveFiltered.length }}</span>
         </div>
       </template>
+      <!-- ══ TAB 4: ZERO ORDER ══ -->
+<template v-if="mainTab === 'zeroorder'">
+
+  <!-- STATS -->
+  <div class="stats-grid" style="margin-bottom:20px">
+    <div class="stat-card">
+      <span class="stat-label">Đăng ký ≥ 3 ngày</span>
+      <span class="stat-value">{{ zeroOrderStats.registeredOver3Days ?? '—' }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Đăng ký ≥ 7 ngày</span>
+      <span class="stat-value accent-gold">{{ zeroOrderStats.registeredOver7Days ?? '—' }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Đăng ký ≥ 30 ngày</span>
+      <span class="stat-value" style="color:#f87171">{{ zeroOrderStats.registeredOver30Days ?? '—' }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Đang chọn</span>
+      <span class="stat-value accent-teal">{{ zoSelected.length }}</span>
+    </div>
+  </div>
+
+  <!-- FILTER + ACTIONS -->
+  <div class="filter-panel" style="margin-bottom:16px">
+    <div class="filter-panel-head">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="filter-panel-title">Đăng ký tối thiểu</span>
+        <div style="display:flex;gap:6px">
+          <button
+            v-for="opt in zoDayOptions" :key="opt.value"
+            :class="['pager-btn', { 'pager-active': zoSelectedDays === opt.value }]"
+            @click="zoSelectDays(opt.value)"
+          >{{ opt.label }}</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-outline" @click="zoSelectAll">
+          {{ zoIsAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}
+        </button>
+        <button
+          class="btn-solid"
+          :disabled="zoSelected.length === 0 || zoSending"
+          @click="openZoSendDialog"
+        >
+          📨 Gửi thông báo
+          <span v-if="zoSelected.length > 0" style="background:#fff;color:#0a0c10;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:4px">{{ zoSelected.length }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-grid" style="margin-top:14px">
+      <div class="field-group" style="grid-column:1/3">
+        <label class="field-label">Tìm kiếm</label>
+        <input v-model="zoSearch" class="field-input" placeholder="Tên / Email / SĐT…" @input="zoPage=1" />
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-panel">
+    <div class="table-loading" v-if="loading">
+      <div class="loader-dots"><span/><span/><span/></div>
+      <p>Đang tải…</p>
+    </div>
+
+    <div class="table-scroll" v-else>
+      <table class="crm-table">
+        <thead>
+          <tr>
+            <th style="width:44px;text-align:center">
+              <input type="checkbox" :checked="zoIsAllSelected" @change="zoSelectAll" style="cursor:pointer;accent-color:#7dd3fc" />
+            </th>
+            <th>Khách hàng</th>
+            <th>Loại</th>
+            <th>Đăng ký lúc</th>
+            <th>Ngày chờ</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="zoFiltered.length === 0">
+            <td colspan="7" class="empty-row">
+              <p class="empty-msg">🎉 Tất cả khách đều đã mua hàng trong khoảng này!</p>
+            </td>
+          </tr>
+          <tr
+            v-for="c in zoPaged" :key="c.id"
+            class="crm-row"
+            :class="{ 'zo-selected-row': zoSelected.includes(c.id) }"
+          >
+            <td style="text-align:center">
+              <input type="checkbox" :value="c.id" v-model="zoSelected" style="cursor:pointer;accent-color:#7dd3fc" />
+            </td>
+            <td>
+              <div class="customer-cell">
+                <div class="avatar" :style="{ background: getAvatarColor(c.name) }">{{ getInitials(c.name) }}</div>
+                <div class="cust-info">
+                  <span class="cust-name">{{ c.name }}</span>
+                  <span class="contact-email">{{ c.email }}</span>
+                  <span class="contact-phone" v-if="c.phone">{{ c.phone }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span :class="['badge-type', c.customerType === 'VIP' ? 'badge-vip' : 'badge-reg']">
+                {{ c.customerType || 'REGULAR' }}
+              </span>
+            </td>
+            <td>
+              <div class="zo-date">{{ formatDate(c.createdAt) }}</div>
+              <div style="font-size:11px;color:#374151">{{ relativeDate(c.createdAt) }}</div>
+            </td>
+            <td>
+              <span :class="['badge-type', zoDaysSince(c.createdAt) >= 30 ? 'badge-vip' : zoDaysSince(c.createdAt) >= 7 ? 'badge-reg' : 'badge-reg']"
+                    :style="zoDaysSince(c.createdAt) >= 30 ? 'background:#1a0a0a;color:#f87171;border-color:#2d1010' : zoDaysSince(c.createdAt) >= 7 ? 'color:#fbbf24;background:#1c1500;border-color:#2d1f00' : ''">
+                {{ zoDaysSince(c.createdAt) }} ngày
+              </span>
+            </td>
+            <td>
+              <span class="note-text">{{ zoStatusLabel(c) }}</span>
+            </td>
+            <td>
+              <div class="action-row">
+                <button
+                  class="act-btn"
+                  :disabled="zoSendingIds.has(c.id)"
+                  @click="zoSendSingle(c)"
+                >
+                  <span v-if="zoSendingIds.has(c.id)" class="spin-icon">↻</span>
+                  {{ zoSendingIds.has(c.id) ? '…' : '📨 Gửi' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="table-footer">
+      <span class="pager-info">
+        {{ zoFiltered.length > 0 ? `${Math.min((zoPage-1)*pageSize+1, zoFiltered.length)}–${Math.min(zoPage*pageSize, zoFiltered.length)} của ${zoFiltered.length}` : '0 khách' }}
+      </span>
+      <div class="pager" v-if="zoPageCount > 1">
+        <button class="pager-btn" :disabled="zoPage===1" @click="zoPage--">‹</button>
+        <button v-for="p in zoPageCount" :key="p"
+          :class="['pager-btn', { 'pager-active': p===zoPage }]"
+          @click="zoPage=p"
+          v-show="Math.abs(p-zoPage)<=2 || p===1 || p===zoPageCount">{{ p }}</button>
+        <button class="pager-btn" :disabled="zoPage===zoPageCount" @click="zoPage++">›</button>
+      </div>
+    </div>
+  </div>
+</template>
 
     </div><!-- /crm-inner -->
 
@@ -783,6 +943,87 @@
         </div>
       </div>
     </Teleport>
+    <!-- ZERO ORDER SEND DIALOG -->
+<Teleport to="body">
+  <div class="overlay" v-if="zoDlg.open" @click.self="zoDlg.open=false">
+    <div class="modal modal-lg">
+      <div class="modal-hd">
+        <div>
+          <h2 class="modal-ttl">📨 Gửi thông báo chào mừng</h2>
+          <p class="modal-sub">{{ zoSelected.length }} khách được chọn sẽ nhận thông báo</p>
+        </div>
+        <button class="modal-x" @click="zoDlg.open=false">×</button>
+      </div>
+
+      <div class="modal-bd">
+        <!-- Template selector -->
+        <div class="field-group" style="margin-bottom:16px">
+          <label class="field-label">Mẫu thông báo</label>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">
+            <div
+              v-for="tpl in zoTemplates" :key="tpl.id"
+              @click="zoSelectTemplate(tpl)"
+              :style="{
+                border: zoDlg.form.templateId === tpl.id ? '1px solid #7dd3fc' : '1px solid #1a1f2b',
+                background: zoDlg.form.templateId === tpl.id ? '#040e1c' : '#ffffff',
+                borderRadius: '2px', padding: '12px 14px', cursor: 'pointer', transition: 'all .15s'
+              }"
+            >
+              <div style="font-size:20px;margin-bottom:4px">{{ tpl.icon }}</div>
+              <div style="font-size:12px;font-weight:700;color:#94a3b8">{{ tpl.name }}</div>
+              <div style="font-size:11px;color:#374151;margin-top:2px">{{ tpl.desc }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Title -->
+        <div class="field-group" style="margin-bottom:14px">
+          <label class="field-label">Tiêu đề thông báo</label>
+          <input v-model="zoDlg.form.title" class="field-input" placeholder="Nhập tiêu đề…" />
+        </div>
+
+        <!-- Message -->
+        <div class="field-group" style="margin-bottom:14px">
+          <label class="field-label">Nội dung</label>
+          <textarea v-model="zoDlg.form.message" class="field-textarea" rows="5" placeholder="Nhập nội dung…" />
+          <span style="font-size:11px;color:#374151;margin-top:4px">Dùng <code style="background:#0d0f14;padding:1px 5px;border-radius:2px;color:#7dd3fc">{name}</code> để chèn tên khách</span>
+        </div>
+
+        <!-- Preview -->
+        <div style="background:#0d0f14;border:1px dashed #1a3a5c;border-radius:2px;padding:14px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#374151;margin-bottom:10px">👁 Xem trước</div>
+          <div style="background:#ffffff;border:1px solid #1a1f2b;border-radius:2px;padding:12px;display:flex;gap:12px;align-items:flex-start">
+            <span style="font-size:22px;flex-shrink:0">{{ zoDlg.currentTpl?.icon || '📢' }}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px">{{ zoDlg.form.title || '(Chưa có tiêu đề)' }}</div>
+              <div style="font-size:12px;color:#374151;white-space:pre-line;line-height:1.5">
+                {{ (zoDlg.form.message || '(Chưa có nội dung)').replace(/\{name\}/g, 'Nguyễn Văn A') }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div v-if="zoSending" style="height:3px;background:#1a1f2b;overflow:hidden">
+        <div style="height:100%;background:#7dd3fc;transition:width .4s ease"
+             :style="{ width: `${Math.round((zoSentCount / zoSelected.length) * 100)}%` }" />
+      </div>
+
+      <div class="modal-ft">
+        <button class="btn-outline" @click="zoDlg.open=false" :disabled="zoSending">Hủy</button>
+        <button
+          class="btn-solid"
+          :disabled="!zoDlg.form.title || !zoDlg.form.message || zoSending"
+          @click="zoSendBulk"
+        >
+          <span v-if="zoSending" class="spin-icon">↻</span>
+          {{ zoSending ? `Đang gửi (${zoSentCount}/${zoSelected.length})…` : `Gửi cho ${zoSelected.length} khách` }}
+        </button>
+      </div>
+    </div>
+  </div>
+</Teleport>
 
   </div>
 </template>
@@ -800,6 +1041,7 @@ function reloadCurrentTab() {
   if (mainTab.value === 'customers') load();
   else if (mainTab.value === 'birthdays') loadBirthdayData();
   else if (mainTab.value === 'inactive') loadInactiveAll();
+  else if (mainTab.value === 'zeroorder') loadZeroOrderData();
 }
 
 const loading = ref(false);
@@ -937,6 +1179,176 @@ function formatCurrencyShort(v) {
   if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M';
   if (v >= 1_000) return (v / 1_000).toFixed(0) + 'K';
   return v + '₫';
+}
+// ══════════════════════════════════════════════
+// ZERO ORDER
+// ══════════════════════════════════════════════
+const zoCustomers   = ref([]);
+const zoStats       = ref({});   // alias dùng trong template là zeroOrderStats
+const zeroOrderStats = zoStats;  // alias
+const zoSelected    = ref([]);
+const zoSendingIds  = ref(new Set());
+const zoSending     = ref(false);
+const zoSentCount   = ref(0);
+const zoSearch      = ref("");
+const zoSelectedDays = ref(3);
+const zoPage        = ref(1);
+
+const zoDayOptions = [
+  { value: 1,  label: "≥ 1 ngày" },
+  { value: 3,  label: "≥ 3 ngày" },
+  { value: 7,  label: "≥ 7 ngày" },
+  { value: 14, label: "≥ 14 ngày" },
+  { value: 30, label: "≥ 30 ngày" },
+];
+
+const zoTemplates = [
+  {
+    id: "welcome", icon: "🎉", name: "Chào mừng", desc: "Mời mua lần đầu với ưu đãi",
+    title: "🎉 Chào mừng bạn đến với cửa hàng!",
+    message: `Xin chào {name}! 👋\n\nCảm ơn bạn đã đăng ký tài khoản.\n\n🛍️ Đặt đơn hàng đầu tiên ngay để nhận ưu đãi đặc biệt dành cho khách mới!`,
+  },
+  {
+    id: "offer", icon: "💰", name: "Ưu đãi hấp dẫn", desc: "Voucher giảm giá kèm deadline",
+    title: "💰 Ưu đãi đặc biệt chỉ dành riêng cho bạn!",
+    message: `Xin chào {name}!\n\nBạn chưa thực hiện đơn hàng nào.\n\n🎁 Chúng tôi tặng bạn ưu đãi GIẢM GIÁ ĐẶC BIỆT cho lần mua đầu tiên!\n\n⏰ Ưu đãi có hạn — Đặt hàng ngay!`,
+  },
+  {
+    id: "nudge", icon: "🤝", name: "Hỗ trợ tư vấn", desc: "Mời chat với tư vấn viên",
+    title: "🤝 Chúng tôi sẵn sàng hỗ trợ bạn!",
+    message: `Xin chào {name}!\n\nBạn đang phân vân chọn sản phẩm?\n\n💬 Đội ngũ tư vấn luôn sẵn sàng giúp bạn.\n✅ Tư vấn miễn phí · Bảo hành chính hãng · Giao hàng nhanh`,
+  },
+  {
+    id: "custom", icon: "✏️", name: "Tùy chỉnh", desc: "Soạn nội dung riêng",
+    title: "", message: "",
+  },
+];
+
+const zoDlg = reactive({
+  open: false,
+  form: { templateId: "welcome", title: "", message: "" },
+  get currentTpl() { return zoTemplates.find(t => t.id === this.form.templateId); },
+});
+
+// Computed
+const zoFiltered = computed(() => {
+  const kw = zoSearch.value.trim().toLowerCase();
+  if (!kw) return zoCustomers.value;
+  return zoCustomers.value.filter(c =>
+    `${c.name} ${c.email} ${c.phone ?? ""}`.toLowerCase().includes(kw)
+  );
+});
+const zoPageCount  = computed(() => Math.max(1, Math.ceil(zoFiltered.value.length / pageSize)));
+const zoPaged      = computed(() => zoFiltered.value.slice((zoPage.value - 1) * pageSize, zoPage.value * pageSize));
+const zoIsAllSelected = computed(() =>
+  zoFiltered.value.length > 0 && zoFiltered.value.every(c => zoSelected.value.includes(c.id))
+);
+
+// Helpers
+function zoDaysSince(dateStr) {
+  if (!dateStr) return 0;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+function formatDate(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("vi-VN");
+}
+function zoStatusLabel(c) {
+  const d = zoDaysSince(c.createdAt);
+  if (d >= 30) return "Nguy cơ cao 🚨";
+  if (d >= 7)  return "Cần tư vấn 📞";
+  return "Mới đăng ký 🌱";
+}
+
+// Actions
+function zoSelectDays(d) {
+  zoSelectedDays.value = d;
+  zoPage.value = 1;
+  zoSelected.value = [];
+  loadZeroOrderData();
+}
+function zoSelectAll() {
+  if (zoIsAllSelected.value) { zoSelected.value = []; }
+  else { zoSelected.value = zoFiltered.value.map(c => c.id); }
+}
+function zoSelectTemplate(tpl) {
+  zoDlg.form.templateId = tpl.id;
+  if (tpl.id !== "custom") {
+    zoDlg.form.title   = tpl.title;
+    zoDlg.form.message = tpl.message;
+  }
+}
+function openZoSendDialog() {
+  zoSelectTemplate(zoTemplates[0]);
+  zoDlg.open = true;
+}
+
+async function loadZeroOrderData() {
+  loading.value = true;
+  zoSelected.value = [];
+  try {
+    const res = await customersApi.listZeroOrder(zoSelectedDays.value);
+    zoCustomers.value = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+  } catch { toast("Không thể tải danh sách chưa mua", "error"); zoCustomers.value = []; }
+  finally { loading.value = false; }
+}
+async function loadZeroOrderStats() {
+  try {
+    const res = await customersApi.getZeroOrderStats();
+    zoStats.value = res.data ?? {};
+  } catch { /* silent */ }
+}
+
+async function zoSendSingle(customer) {
+  const s = new Set(zoSendingIds.value);
+  s.add(customer.id);
+  zoSendingIds.value = s;
+  try {
+    await http.post("/api/auth/notifications/send", {
+      customerIds: [customer.id],
+      title:   `🎉 Xin chào ${customer.name}!`,
+      message: zoTemplates[0].message.replace(/\{name\}/g, customer.name),
+      type:    "WELCOME",
+    });
+    toast(`Đã gửi tới ${customer.name}`, "success");
+  } catch (e) {
+    toast(e?.response?.data?.message || "Gửi thất bại", "error");
+  } finally {
+    const s2 = new Set(zoSendingIds.value);
+    s2.delete(customer.id);
+    zoSendingIds.value = s2;
+  }
+}
+
+async function zoSendBulk() {
+  if (!zoDlg.form.title || !zoDlg.form.message) return;
+  zoSending.value  = true;
+  zoSentCount.value = 0;
+  const ids = [...zoSelected.value];
+  let success = 0, fail = 0;
+
+  for (let i = 0; i < ids.length; i += 10) {
+    const chunk = ids.slice(i, i + 10);
+    const chunkCustomers = zoCustomers.value.filter(c => chunk.includes(c.id));
+    await Promise.all(chunkCustomers.map(async c => {
+      try {
+        await http.post("/api/auth/notifications/send", {
+          customerIds: [c.id],
+          title:   zoDlg.form.title,
+          message: zoDlg.form.message.replace(/\{name\}/g, c.name),
+          type:    "WELCOME",
+        });
+        success++;
+      } catch { fail++; }
+      finally { zoSentCount.value++; }
+    }));
+  }
+
+  zoSending.value  = false;
+  zoDlg.open       = false;
+  zoSelected.value = [];
+  toast(fail === 0 ? `✅ Đã gửi thành công ${success} thông báo!` : `⚠️ Thành công: ${success} | Thất bại: ${fail}`, fail === 0 ? "success" : "error");
+  await loadZeroOrderData();
 }
 function formatMoneyShort(val) {
   if (!val) return "0"; const n = parseFloat(val);
@@ -1983,4 +2395,7 @@ onMounted(load);
   .period-row { grid-template-columns: 1fr; }
   .seg-tabs { flex-wrap: wrap; }
 }
+/* Zero Order selected row */
+.zo-selected-row { background: #040e1c !important; }
+.zo-selected-row:hover { background: #06142a !important; }
 </style>
