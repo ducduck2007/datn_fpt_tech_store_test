@@ -19,10 +19,10 @@
             <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
             <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
           </svg>
-          <span>Customer Portal</span>
+          <span>Cổng khách hàng</span>
         </div>
-        <h1 class="card-title">Welcome back</h1>
-        <p class="card-subtitle">Sign in to your account to continue</p>
+        <h1 class="card-title">Chào mừng trở lại</h1>
+        <p class="card-subtitle">Đăng nhập vào tài khoản của bạn để tiếp tục</p>
       </div>
 
       <!-- Alert -->
@@ -40,7 +40,7 @@
       <!-- Form -->
       <form class="login-form" @submit.prevent="doLogin">
         <div class="field-group">
-          <label class="field-label">Email or Username</label>
+          <label class="field-label">Email hoặc tên đăng nhập</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'identifier' }">
             <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -50,7 +50,7 @@
               v-model="form.identifier"
               type="text"
               class="field-input"
-              placeholder="user@mail.com or username"
+              placeholder="email hoặc tên đăng nhập"
               autocomplete="username"
               @focus="focusedField = 'identifier'"
               @blur="focusedField = ''"
@@ -59,7 +59,7 @@
         </div>
 
         <div class="field-group">
-          <label class="field-label">Password</label>
+          <label class="field-label">Mật khẩu</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'password' }">
             <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/>
@@ -69,7 +69,7 @@
               v-model="form.password"
               :type="showPassword ? 'text' : 'password'"
               class="field-input"
-              placeholder="Your password"
+              placeholder="Mật khẩu của bạn"
               autocomplete="current-password"
               @focus="focusedField = 'password'"
               @blur="focusedField = ''"
@@ -96,7 +96,7 @@
               <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
             <span class="spinner" v-else></span>
-            {{ loading ? 'Signing in...' : 'Sign in' }}
+            {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
           </span>
           <div class="btn-shimmer"></div>
         </button>
@@ -105,11 +105,11 @@
       <!-- Footer links -->
       <div class="card-footer">
         <div class="footer-row">
-          <span class="footer-text">Don't have an account?</span>
-          <button class="link-btn primary" @click="router.push('/register')">Create account</button>
+          <span class="footer-text">Bạn chưa có tài khoản?</span>
+          <button class="link-btn primary" @click="router.push('/register')">Tạo tài khoản</button>
         </div>
         <div class="divider-line">
-          <span>or</span>
+          <span>hoặc</span>
         </div>
         <button class="link-btn system" @click="router.push('/system/login')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -151,7 +151,7 @@ function triggerShake() {
 }
 
 function errToText(e) {
-  const msg = e?.response?.data?.message || e?.message || "Login failed";
+  const msg = e?.response?.data?.message || e?.message || "Đăng nhập thất bại";
   return typeof msg === "string" ? msg : JSON.stringify(msg);
 }
 
@@ -174,14 +174,14 @@ async function doLogin() {
 
     const role = String(user?.role || "").toUpperCase();
     if (role !== "CUSTOMER") {
-      toast("This account is not CUSTOMER. Redirecting to System login.", "warning");
+      toast("Tài khoản này không phải khách hàng. Chuyển sang đăng nhập hệ thống.", "warning");
       return router.replace("/system/login");
     }
 
     auth.setLastAuthResponse(data);
     auth.setSession({ token, user });
 
-    toast("Login successful.", "success");
+    toast("Đăng nhập thành công.", "success");
     router.replace("/");
   } catch (e) {
     alert.value = errToText(e);
