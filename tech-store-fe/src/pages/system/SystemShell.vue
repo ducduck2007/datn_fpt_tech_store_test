@@ -25,9 +25,7 @@
             >Toployal customers</el-menu-item
           >
           
-          <el-menu-item index="/system/Zeroordercustomers"
-            >Zero Order-Customers</el-menu-item
-          >
+          
           <el-menu-item index="/system/Loyaltysummaryadmin"
             >Loyalty Summary - Admin
           </el-menu-item>

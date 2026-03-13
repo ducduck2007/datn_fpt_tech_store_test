@@ -38,7 +38,6 @@ import PaymentManagement from "../pages/system/PaymentManagement.vue";
 
 
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
-import Zeroordercustomers from "../pages/system/Zeroordercustomers.vue";
 import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
 import ReportDashboard from "../pages/system/ReportDashboard.vue";
 
@@ -182,12 +181,6 @@ const routes = [
         name: "Toployal customers",
         component: Toployalcustomers,
         meta: { title: "Top loyal customers" },
-      },
-      {
-        path: "Zeroordercustomers",
-        name: "Customers with zero order",
-        component: Zeroordercustomers,
-        meta: { title: "Zero order customers" },
       },
      
 

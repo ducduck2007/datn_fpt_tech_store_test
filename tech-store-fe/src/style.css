@@ -1,8 +1,9 @@
 /* src/style.css - Bootstrap-friendly theme (no Element Plus vars) */
 
 :root {
-  --ts-font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial,
-    sans-serif;
+  /* use Times New Roman as primary font */
+  --ts-font: 'Times New Roman', 'Be Vietnam Pro', Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial,
+    serif;
 
   --ts-primary: #2563eb;
   --ts-cyan: #06b6d4;
