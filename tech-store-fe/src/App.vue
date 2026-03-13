@@ -216,7 +216,7 @@
                     v-if="isSystemUser"
                     @click="router.push('/system/dashboard')"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <!-- <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                       <rect
                         x="3"
                         y="3"
@@ -253,7 +253,7 @@
                         stroke="currentColor"
                         stroke-width="1.5"
                       />
-                    </svg>
+                    </svg> -->
                     System Dashboard
                   </el-dropdown-item>
                   <el-dropdown-item
@@ -325,7 +325,7 @@
                   </el-dropdown-item>
                   <div class="dropdown-divider"></div>
                   <el-dropdown-item @click="logout" class="dropdown-logout">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <!-- <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                       <path
                         d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
                         stroke="currentColor"
@@ -348,7 +348,7 @@
                         stroke-width="1.5"
                         stroke-linecap="round"
                       />
-                    </svg>
+                    </svg> -->
                     Đăng xuất
                   </el-dropdown-item>
                 </el-dropdown-menu>
