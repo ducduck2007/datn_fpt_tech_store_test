@@ -18,10 +18,10 @@
             <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <span>Security</span>
+          <span>Bảo mật</span>
         </div>
-        <h1 class="card-title">Change password</h1>
-        <p class="card-subtitle">Keep your account safe with a strong password</p>
+        <h1 class="card-title">Đổi mật khẩu</h1>
+        <p class="card-subtitle">Giữ tài khoản an toàn với mật khẩu mạnh</p>
       </div>
 
       <!-- ══ FORCE BANNER — chỉ hiện khi admin tạo account ══ -->
@@ -44,7 +44,7 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>Password changed successfully! Redirecting...</span>
+          <span>Đổi mật khẩu thành công! Đang chuyển hướng...</span>
         </div>
       </transition>
 
@@ -65,7 +65,7 @@
 
         <!-- Current Password -->
         <div class="field-group">
-          <label class="field-label">Current password</label>
+          <label class="field-label">Mật khẩu hiện tại</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'current', error: fieldErrors.current }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -75,7 +75,7 @@
               v-model="form.currentPassword"
               :type="show.current ? 'text' : 'password'"
               class="field-input"
-              placeholder="Enter current password"
+              placeholder="Nhập mật khẩu hiện tại"
               autocomplete="current-password"
               @focus="focusedField = 'current'"
               @blur="focusedField = ''; validateField('current')"
@@ -98,20 +98,20 @@
             </svg>
           </div>
           <transition name="hint-slide">
-            <p v-if="fieldErrors.current" class="field-hint-error">Current password is required</p>
+            <p v-if="fieldErrors.current" class="field-hint-error">Mật khẩu hiện tại là bắt buộc</p>
           </transition>
         </div>
 
         <!-- Divider -->
         <div class="optional-divider">
           <span class="optional-line"></span>
-          <span class="optional-label">New password</span>
+          <span class="optional-label">Mật khẩu mới</span>
           <span class="optional-line"></span>
         </div>
 
         <!-- New Password -->
         <div class="field-group">
-          <label class="field-label">New password</label>
+          <label class="field-label">Mật khẩu mới</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'newPass' }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -120,7 +120,7 @@
               v-model="form.newPassword"
               :type="show.newPass ? 'text' : 'password'"
               class="field-input"
-              placeholder="Create new password"
+              placeholder="Tạo mật khẩu mới"
               autocomplete="new-password"
               @focus="focusedField = 'newPass'"
               @blur="focusedField = ''"
@@ -148,7 +148,7 @@
 
         <!-- Confirm New Password -->
         <div class="field-group">
-          <label class="field-label">Confirm new password</label>
+          <label class="field-label">Xác nhận mật khẩu mới</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'confirm', error: passwordMismatch }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -158,7 +158,7 @@
               v-model="form.confirmPassword"
               :type="show.confirm ? 'text' : 'password'"
               class="field-input"
-              placeholder="Repeat new password"
+              placeholder="Nhập lại mật khẩu mới"
               autocomplete="new-password"
               @focus="focusedField = 'confirm'"
               @blur="focusedField = ''"
@@ -184,7 +184,7 @@
             </svg>
           </div>
           <transition name="hint-slide">
-            <p v-if="passwordMismatch" class="field-hint-error">Passwords do not match</p>
+            <p v-if="passwordMismatch" class="field-hint-error">Mật khẩu không khớp</p>
           </transition>
         </div>
 
@@ -194,33 +194,33 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            At least 6 characters
+            Ít nhất 6 ký tự
           </div>
           <div class="req-item" :class="{ met: /[A-Z]/.test(form.newPassword) }">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Uppercase letter
+            Chữ hoa
           </div>
           <div class="req-item" :class="{ met: /[0-9]/.test(form.newPassword) }">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Number
+            Số
           </div>
           <div class="req-item" :class="{ met: /[^A-Za-z0-9]/.test(form.newPassword) }">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Special character
+            Ký tự đặc biệt
           </div>
         </div>
 
         <!-- Actions -->
         <div class="action-row">
-          <!-- Ẩn nút Cancel khi force mode -->
+          <!-- Ẩn nút Hủy khi chế độ bắt buộc -->
           <button v-if="!isForced" type="button" class="cancel-btn" @click="resetForm">
-            Cancel
+            Hủy
           </button>
           <button type="submit" class="submit-btn" :class="{ loading }" :disabled="loading || !canSubmit">
             <span class="btn-content">
@@ -228,7 +228,7 @@
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span v-else class="spinner"></span>
-              {{ loading ? 'Updating...' : 'Update password' }}
+              {{ loading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}
             </span>
             <div class="btn-shimmer"></div>
           </button>
@@ -299,9 +299,9 @@ const strengthLevel = computed(() => {
   return "strong";
 });
 const strengthText  = computed(() => {
-  if (strengthScore.value <= 1) return "Weak";
-  if (strengthScore.value <= 3) return "Fair";
-  return "Strong";
+  if (strengthScore.value <= 1) return "Yếu";
+  if (strengthScore.value <= 3) return "Trung bình";
+  return "Mạnh";
 });
 
 const canSubmit = computed(() =>
@@ -325,7 +325,7 @@ function resetForm() {
 }
 
 function errToText(e) {
-  const msg = e?.response?.data?.message || e?.message || "Failed to change password";
+  const msg = e?.response?.data?.message || e?.message || "Đổi mật khẩu thất bại";
   return typeof msg === "string" ? msg : JSON.stringify(msg);
 }
 
@@ -334,22 +334,22 @@ async function doChange() {
   success.value = false;
 
   if (!form.currentPassword.trim()) {
-    alert.value = "Please enter your current password.";
+    alert.value = "Vui lòng nhập mật khẩu hiện tại.";
     triggerShake();
     return;
   }
   if (form.newPassword.length < 6) {
-    alert.value = "New password must be at least 6 characters.";
+    alert.value = "Mật khẩu mới phải có ít nhất 6 ký tự.";
     triggerShake();
     return;
   }
   if (form.newPassword !== form.confirmPassword) {
-    alert.value = "Passwords do not match.";
+    alert.value = "Mật khẩu không khớp.";
     triggerShake();
     return;
   }
   if (form.newPassword === form.currentPassword) {
-    alert.value = "New password must be different from current password.";
+    alert.value = "Mật khẩu mới phải khác mật khẩu hiện tại.";
     triggerShake();
     return;
   }
@@ -365,7 +365,7 @@ async function doChange() {
     localStorage.removeItem("mustChangePassword");
 
     success.value = true;
-    toast("Password updated successfully!", "success");
+    toast("Cập nhật mật khẩu thành công!", "success");
     resetForm();
 
     // Redirect về trang chủ sau 1.5s

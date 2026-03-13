@@ -19,10 +19,10 @@
             <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
             <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
           </svg>
-          <span>Customer Portal</span>
+          <span>Cổng khách hàng</span>
         </div>
-        <h1 class="card-title">Create account</h1>
-        <p class="card-subtitle">Join us — it only takes a minute</p>
+        <h1 class="card-title">Tạo tài khoản</h1>
+        <p class="card-subtitle">Tham gia cùng chúng tôi — chỉ mất một phút</p>
       </div>
 
       <!-- Alert -->
@@ -42,7 +42,7 @@
         <!-- Row: Username + Email -->
         <div class="field-row">
           <div class="field-group">
-            <label class="field-label">Username</label>
+            <label class="field-label">Tên đăng nhập</label>
             <div class="field-wrapper" :class="{ focused: focusedField === 'username', error: fieldErrors.username }">
               <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -52,7 +52,7 @@
                 v-model="form.username"
                 type="text"
                 class="field-input"
-                placeholder="username"
+                placeholder="tên đăng nhập"
                 autocomplete="username"
                 @focus="focusedField = 'username'"
                 @blur="focusedField = ''; validateField('username')"
@@ -79,7 +79,7 @@
                 v-model="form.email"
                 type="email"
                 class="field-input"
-                placeholder="user@mail.com"
+                placeholder="email@domain.com"
                 autocomplete="email"
                 @focus="focusedField = 'email'"
                 @blur="focusedField = ''; validateField('email')"
@@ -98,7 +98,7 @@
 
         <!-- Phone -->
         <div class="field-group">
-          <label class="field-label">Phone number</label>
+          <label class="field-label">Số điện thoại</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'phone', error: fieldErrors.phone }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -122,13 +122,13 @@
             </svg>
           </div>
           <transition name="hint-slide">
-            <p v-if="fieldErrors.phone" class="field-hint-error">Please enter a valid phone number</p>
+            <p v-if="fieldErrors.phone" class="field-hint-error">Vui lòng nhập số điện thoại hợp lệ</p>
           </transition>
         </div>
 
         <!-- Password -->
         <div class="field-group">
-          <label class="field-label">Password</label>
+          <label class="field-label">Mật khẩu</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'password' }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -138,7 +138,7 @@
               v-model="form.password"
               :type="showPassword ? 'text' : 'password'"
               class="field-input"
-              placeholder="Create a password"
+              placeholder="Tạo mật khẩu"
               autocomplete="new-password"
               @focus="focusedField = 'password'"
               @blur="focusedField = ''"
@@ -166,7 +166,7 @@
 
         <!-- Confirm Password -->
         <div class="field-group">
-          <label class="field-label">Confirm password</label>
+          <label class="field-label">Xác nhận mật khẩu</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'password2', error: passwordMismatch }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -176,7 +176,7 @@
               v-model="form.password2"
               :type="showPassword2 ? 'text' : 'password'"
               class="field-input"
-              placeholder="Repeat your password"
+              placeholder="Nhập lại mật khẩu"
               autocomplete="new-password"
               @focus="focusedField = 'password2'"
               @blur="focusedField = ''"
@@ -202,14 +202,14 @@
             </svg>
           </div>
           <transition name="hint-slide">
-            <p v-if="passwordMismatch" class="field-hint-error">Passwords do not match</p>
+            <p v-if="passwordMismatch" class="field-hint-error">Mật khẩu không khớp</p>
           </transition>
         </div>
 
         <!-- ───── Optional fields divider ───── -->
         <div class="optional-divider">
           <span class="optional-line"></span>
-          <span class="optional-label">Optional info</span>
+          <span class="optional-label">Thông tin tùy chọn</span>
           <span class="optional-line"></span>
         </div>
 
@@ -217,8 +217,8 @@
         <div class="field-row">
           <div class="field-group">
             <label class="field-label">
-              Date of birth
-              <span class="optional-badge">optional</span>
+              Ngày sinh
+              <span class="optional-badge">tùy chọn</span>
             </label>
             <div class="field-wrapper" :class="{ focused: focusedField === 'dateOfBirth' }">
               <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -240,8 +240,8 @@
 
           <div class="field-group">
             <label class="field-label">
-              Address
-              <span class="optional-badge">optional</span>
+              Địa chỉ
+              <span class="optional-badge">tùy chọn</span>
             </label>
             <div class="field-wrapper" :class="{ focused: focusedField === 'address' }">
               <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -252,7 +252,7 @@
                 v-model="form.address"
                 type="text"
                 class="field-input"
-                placeholder="Your address"
+                placeholder="Địa chỉ của bạn"
                 autocomplete="street-address"
                 @focus="focusedField = 'address'"
                 @blur="focusedField = ''"
@@ -270,7 +270,7 @@
               <line x1="22" y1="11" x2="16" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
             <span v-else class="spinner"></span>
-            {{ loading ? 'Creating account...' : 'Create account' }}
+            {{ loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}
           </span>
           <div class="btn-shimmer"></div>
         </button>
@@ -278,8 +278,8 @@
 
       <!-- Footer -->
       <div class="card-footer">
-        <span class="footer-text">Already have an account?</span>
-        <button class="link-btn" @click="router.push('/login')">Sign in</button>
+        <span class="footer-text">Đã có tài khoản?</span>
+        <button class="link-btn" @click="router.push('/login')">Đăng nhập</button>
       </div>
     </div>
   </div>
@@ -353,9 +353,9 @@ const strengthLevel = computed(() => {
   return "strong";
 });
 const strengthText = computed(() => {
-  if (strengthScore.value <= 1) return "Weak";
-  if (strengthScore.value <= 3) return "Fair";
-  return "Strong";
+  if (strengthScore.value <= 1) return "Yếu";
+  if (strengthScore.value <= 3) return "Trung bình";
+  return "Mạnh";
 });
 
 function triggerShake() {
@@ -364,24 +364,24 @@ function triggerShake() {
 }
 
 function errToText(e) {
-  const msg = e?.response?.data?.message || e?.message || "Register failed";
+  const msg = e?.response?.data?.message || e?.message || "Đăng ký thất bại";
   return typeof msg === "string" ? msg : JSON.stringify(msg);
 }
 
 async function doRegister() {
   alert.value = "";
   if (!form.username || !form.email || !form.phone || !form.password) {
-    alert.value = "Please fill all required fields.";
+    alert.value = "Vui lòng điền tất cả các trường bắt buộc.";
     triggerShake();
     return;
   }
   if (fieldErrors.phone) {
-    alert.value = "Please enter a valid phone number.";
+    alert.value = "Vui lòng nhập số điện thoại hợp lệ.";
     triggerShake();
     return;
   }
   if (form.password !== form.password2) {
-    alert.value = "Passwords do not match.";
+    alert.value = "Mật khẩu không khớp.";
     triggerShake();
     return;
   }
@@ -398,7 +398,7 @@ async function doRegister() {
       ...(form.address.trim() && { address: form.address.trim() }),
     };
     await authApi.register(payload);
-    toast("Account created! Please sign in.", "success");
+    toast("Tạo tài khoản thành công! Vui lòng đăng nhập.", "success");
     router.replace("/login");
   } catch (e) {
     alert.value = errToText(e);
