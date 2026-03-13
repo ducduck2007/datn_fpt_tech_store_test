@@ -3,13 +3,13 @@
     <el-card shadow="never">
       <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
         <div>
-          <div class="kicker">Admin</div>
-          <div class="title">Categories Management</div>
-          <div class="muted">Manage product categories hierarchy</div>
+          <div class="kicker">Quản trị</div>
+          <div class="title">Quản lý danh mục</div>
+          <div class="muted">Quản lý cấu trúc danh mục sản phẩm</div>
         </div>
         <div class="d-flex gap-2">
-          <el-button @click="load" :loading="loading">Reload</el-button>
-          <el-button type="primary" @click="openCreate">Add Category</el-button>
+          <el-button @click="load" :loading="loading">Tải lại</el-button>
+          <el-button type="primary" @click="openCreate">Thêm danh mục</el-button>
         </div>
       </div>
 
@@ -36,35 +36,35 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="name" label="Name" min-width="180">
+        <el-table-column prop="name" label="Tên" min-width="180">
           <template #default="{ row }">
             <div class="fw-bold">{{ row.name }}</div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="description" label="Description" min-width="200" />
+        <el-table-column prop="description" label="Mô tả" min-width="200" />
 
-        <el-table-column label="Parent Category" min-width="150">
+        <el-table-column label="Danh mục cha" min-width="150">
           <template #default="{ row }">
             <el-tag v-if="row.parentName" effect="plain">{{ row.parentName }}</el-tag>
-            <span v-else class="text-muted small">- Root -</span>
+            <span v-else class="text-muted small">- Gốc -</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="Status" width="100" align="center">
+        <el-table-column label="Trạng thái" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
-              {{ row.isActive ? "Active" : "Hidden" }}
+              {{ row.isActive ? "Hoạt động" : "Ẩn" }}
             </el-tag>
           </template>
         </el-table-column>
 
         <el-table-column label="Actions" width="150" align="center">
           <template #default="{ row }">
-            <el-button size="small" @click="openEdit(row)">Edit</el-button>
-            <el-popconfirm title="Hide this category?" @confirm="remove(row)">
+            <el-button size="small" @click="openEdit(row)">Sửa</el-button>
+            <el-popconfirm title="Ẩn danh mục này?" @confirm="remove(row)">
               <template #reference>
-                <el-button size="small" type="danger" plain>Delete</el-button>
+                <el-button size="small" type="danger" plain>Xóa</el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -87,18 +87,18 @@
     <!-- Dialog Thêm / Sửa -->
     <el-dialog
       v-model="dlg.open"
-      :title="dlg.mode === 'create' ? 'Create Category' : 'Update Category'"
+      :title="dlg.mode === 'create' ? 'Tạo danh mục' : 'Cập nhật danh mục'"
       width="600px"
     >
       <el-alert v-if="dlg.alert" :title="dlg.alert" type="error" show-icon class="mb-3" />
 
       <el-form :model="dlg.form" label-position="top">
-        <el-form-item label="Category Name" required>
-          <el-input v-model="dlg.form.name" placeholder="Enter category name" />
+        <el-form-item label="Tên danh mục" required>
+          <el-input v-model="dlg.form.name" placeholder="Nhập tên danh mục" />
         </el-form-item>
 
-        <el-form-item label="Parent Category">
-          <el-select v-model="dlg.form.parentId" placeholder="Select parent (optional)" clearable style="width: 100%">
+        <el-form-item label="Danh mục cha">
+          <el-select v-model="dlg.form.parentId" placeholder="Chọn danh mục cha (tùy chọn)" clearable style="width: 100%">
             <el-option
               v-for="c in parentOptions"
               :key="c.id"
@@ -110,22 +110,22 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Description">
+        <el-form-item label="Mô tả">
           <el-input v-model="dlg.form.description" type="textarea" :rows="2" />
         </el-form-item>
 
-        <el-form-item label="Category Image">
+        <el-form-item label="Ảnh danh mục">
           <input type="file" accept="image/*" class="form-control" @change="onPickFile" />
           <div v-if="dlg.mode === 'edit' && !dlg.form.imageFile" class="mt-1 small text-muted">
-            Leave empty to keep current image.
+            Để trống để giữ ảnh hiện tại.
           </div>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="dlg.open = false">Cancel</el-button>
+        <el-button @click="dlg.open = false">Hủy</el-button>
         <el-button type="primary" :loading="dlg.loading" @click="save">
-          {{ dlg.mode === 'create' ? 'Create' : 'Update' }}
+          {{ dlg.mode === 'create' ? 'Tạo' : 'Cập nhật' }}
         </el-button>
       </template>
     </el-dialog>
