@@ -101,7 +101,7 @@
           </div>
 
           <!-- Tab Content -->
-          <Transition name="tab-fade" mode="out-in">
+        
 
             <!-- OVERVIEW -->
             <div v-if="activeTab === 'overview'" key="overview">
@@ -532,7 +532,7 @@
 
               </div>
             </div>
-          </Transition>
+       
         </div>
       </template>
 
@@ -554,8 +554,10 @@
 import { ref, computed, watch, nextTick, onBeforeUnmount, reactive } from 'vue'
 import { customersApi } from '../../api/customers.api'
 import { toast } from '../../ui/toast'
+import Chart from 'chart.js/auto'
 
-const getChart = () => (typeof Chart !== 'undefined' ? Chart : null)
+
+const getChart = () => Chart
 
 // ── Constants ──────────────────────────────────────────────────────
 const TIER_COLORS = ['#3b82f6','#f59e0b','#ef4444','#8b5cf6','#10b981','#f97316']
@@ -834,8 +836,9 @@ async function load() {
       ? await customersApi.getLoyaltyWeeklySummaryAdmin(range.value)
       : await customersApi.getLoyaltyMonthlySummaryAdmin(range.value)
     data.value = (res.data ?? []).reverse()
-    await nextTick()
-    buildCharts()
+console.log('keys:', Object.keys(data.value[0] || {}))
+console.log('breakdown:', data.value[0]?.customerBreakdown)
+setTimeout(() => buildCharts(), 50)
   } catch {
     error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
   } finally {
@@ -1011,8 +1014,11 @@ function buildCharts() {
     })
   }
 }
-
-watch(activeTab, async () => { await nextTick(); if (data.value.length) buildCharts() })
+watch(activeTab, (newTab) => {
+  if (!data.value.length) return
+  const delay = newTab === 'ranking' ? 150 : 50
+  setTimeout(() => buildCharts(), delay)
+})
 watch([mode, range], load, { immediate: true })
 onBeforeUnmount(destroyAll)
 </script>
