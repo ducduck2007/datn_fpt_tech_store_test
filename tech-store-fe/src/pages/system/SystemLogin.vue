@@ -21,10 +21,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
           </svg>
-          <span>System Portal</span>
+          <span>Cổng hệ thống</span>
         </div>
-        <h1 class="card-title">System <em>Access</em></h1>
-        <p class="card-subtitle">Staff &amp; administrator authentication</p>
+        <h1 class="card-title">Truy cập <em>hệ thống</em></h1>
+        <p class="card-subtitle">Xác thực nhân viên &amp; quản trị</p>
       </div>
 
       <!-- Alert -->
@@ -42,7 +42,7 @@
       <!-- Form -->
       <form class="login-form" @submit.prevent="doLogin">
         <div class="field-group">
-          <label class="field-label">Identifier</label>
+          <label class="field-label">Tên đăng nhập</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'identifier' }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
@@ -52,7 +52,7 @@
               v-model="form.identifier"
               type="text"
               class="field-input"
-              placeholder="admin / staff@mail.com"
+              placeholder="ví dụ: admin / staff@mail.com"
               autocomplete="username"
               @focus="focusedField = 'identifier'"
               @blur="focusedField = ''"
@@ -61,7 +61,7 @@
         </div>
 
         <div class="field-group">
-          <label class="field-label">Password</label>
+          <label class="field-label">Mật khẩu</label>
           <div class="field-wrapper" :class="{ focused: focusedField === 'password' }">
             <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -97,7 +97,7 @@
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
             </svg>
             <span v-else class="spinner"></span>
-            {{ loading ? 'Authenticating...' : 'Authenticate' }}
+            {{ loading ? 'Đang xác thực...' : 'Đăng nhập' }}
           </span>
           <div class="btn-shimmer"></div>
         </button>
@@ -110,15 +110,15 @@
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
             <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <span>SYSTEM → Dashboard &nbsp;·&nbsp; INVENTORY → Orders</span>
+          <span>HỆ THỐNG → Bảng điều khiển &nbsp;·&nbsp; KHO → Đơn hàng</span>
         </div>
-        <div class="divider-line"><span>or</span></div>
+        <div class="divider-line"><span>hoặc</span></div>
         <button class="link-btn customer" @click="router.push('/login')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/>
           </svg>
-          Go to Customer login
+          Đến trang đăng nhập khách hàng
         </button>
       </div>
     </div>
@@ -152,7 +152,7 @@ function triggerShake() {
 }
 
 function errToText(e) {
-  const msg = e?.response?.data?.message || e?.message || "Login failed";
+  const msg = e?.response?.data?.message || e?.message || "Đăng nhập thất bại";
   return typeof msg === "string" ? msg : JSON.stringify(msg);
 }
 
@@ -175,14 +175,14 @@ async function doLogin() {
 
     const role = String(user?.role || "").toUpperCase();
     if (role === "CUSTOMER") {
-      toast("This is a CUSTOMER account. Redirecting to Customer portal.", "warning");
+      toast("Đây là tài khoản KHÁCH HÀNG. Chuyển hướng tới cổng khách hàng.", "warning");
       return router.replace("/login");
     }
 
     auth.setLastAuthResponse(data);
     auth.setSession({ token, user });
 
-    toast("System login successful.", "success");
+    toast("Đăng nhập hệ thống thành công.", "success");
 
     if (role === "INVENTORY") {
       router.replace("/inventory/orders");
