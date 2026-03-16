@@ -208,6 +208,10 @@ public interface LoyaltyLedgerRepository extends JpaRepository<LoyaltyLedger, Lo
             @Param("to") Instant to
     );
 
-
+    boolean existsByReferenceTypeAndReferenceIdAndTransactionType(
+            String referenceType,
+            Long referenceId,
+            String transactionType
+    );
 
 }

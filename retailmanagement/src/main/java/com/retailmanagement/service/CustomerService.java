@@ -23,7 +23,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -35,6 +39,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CustomerService {
+    private static final Logger log = LoggerFactory.getLogger(CustomerService.class);
 
     private final CustomRes customRes;
     private final LoyaltyLedgerRepository loyaltyLedgerRepository;
@@ -218,13 +223,22 @@ public class CustomerService {
         Customer customer = customRes.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
 
+        boolean alreadyEarned = loyaltyLedgerRepository
+                .existsByReferenceTypeAndReferenceIdAndTransactionType("PURCHASE", orderId, "EARN");
+        if (alreadyEarned) {
+            log.warn("addLoyaltyPoints skipped — orderId {} đã được cộng điểm", orderId);
+            return;
+        }
+
         int pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         VipTier tierBefore = customer.getVipTier();
 
         // ✅ WEEKEND BONUS x1.5
-        int basePoints = orderTotal.divide(BigDecimal.valueOf(10000)).intValue();
+        int basePoints = orderTotal
+                .divide(BigDecimal.valueOf(10000), 0, RoundingMode.DOWN)
+                .intValue();
         boolean weekendBonus = isWeekend();
-        int pointsEarned = weekendBonus ? (int)(basePoints * 1.5) : basePoints;
+        int pointsEarned = weekendBonus ? (int) Math.round(basePoints * 1.5) : basePoints;
 
         if (pointsEarned <= 0) return;
 
@@ -268,6 +282,12 @@ public class CustomerService {
         if (tierBefore != newTier) {
             boolean isUpgrade = newTier != null && (tierBefore == null ||
                     newTier.ordinal() > tierBefore.ordinal());
+
+            if (!isUpgrade) {
+                log.warn("Unexpected tier downgrade during EARN for customerId={}", customerId);
+                return; // hoặc throw, tùy business rule
+            }
+
             String transactionType = isUpgrade ? "TIER_UPGRADE" : "TIER_DOWNGRADE";
 
             String note = String.format("🎉 Thăng hạng từ %s → %s (Điểm: %d)",

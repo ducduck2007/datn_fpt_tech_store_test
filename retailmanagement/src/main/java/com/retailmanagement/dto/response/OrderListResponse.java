@@ -16,6 +16,9 @@ public class OrderListResponse {
 
     private Integer customerId;      // ✅ thêm
     private String customerName;
+    private String customerAddress;
+    private String customerPhone;
+    private String customerEmail;
 
     private String staffName;
 
@@ -26,6 +29,8 @@ public class OrderListResponse {
     private String status;
     private String paymentStatus;
     private Instant createdAt;
+
+    private BigDecimal discountTotal;
 
     public OrderListResponse() {
 

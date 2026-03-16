@@ -52,7 +52,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                 FROM Order o
                 JOIN o.customer c
                 JOIN OrderItem oi ON oi.order = o
-                WHERE o.status = 'PAID'
+                WHERE o.status = 'DELIVERED'
                 GROUP BY c.id, c.name
                 ORDER BY SUM(oi.lineTotal) DESC
             """)
@@ -97,6 +97,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             SELECT u.username, COUNT(o.id)
             FROM Order o
             JOIN o.user u
+            WHERE u.role = 'SALES'
             GROUP BY u.username
             ORDER BY COUNT(o.id) DESC
             """)

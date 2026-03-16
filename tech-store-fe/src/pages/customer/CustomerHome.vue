@@ -258,27 +258,56 @@ UPDATED:
               <div class="ch-toolbar__meta">
                 Trang {{ page + 1 }}
                 <span v-if="searchTerm">
-                  · "<em>{{ searchTerm }}</em>"
+                  · "<em>{{ searchTerm }}</em
+                  >"
                 </span>
               </div>
             </div>
 
             <div class="ch-toolbar__right">
-              
               <!-- [MỚI] THÊM DROPDOWN SẮP XẾP -->
               <el-select
                 v-model="sortBy"
                 @change="onSelectSort"
-                style="width: 200px; margin-right: 12px;"
-                placeholder="Sắp xếp theo"
+                class="sort-select"
+                placeholder="Mặc định"
+                popper-class="sort-dropdown-popper"
               >
-                <el-option label="Newest (Mới nhất)" value="newest_arrival" />
-                <el-option label="Oldest (Cũ nhất)" value="oldest" />
-                <el-option label="Best Selling (Bán chạy)" value="best_selling" />
-                <el-option label="Price: Low → High" value="price_asc" />
-                <el-option label="Price: High → Low" value="price_desc" />
-                <el-option label="Name: A → Z" value="name_asc" />
-                <el-option label="Name: Z → A" value="name_desc" />
+                <el-option label="Mới nhất" value="newest_arrival">
+                  <span class="option-inner"
+                    ><span class="option-icon">✦</span> Mới nhất</span
+                  >
+                </el-option>
+                <el-option label="Cũ nhất" value="oldest">
+                  <span class="option-inner"
+                    ><span class="option-icon">↺</span> Cũ nhất</span
+                  >
+                </el-option>
+                <el-option label="Bán chạy nhất" value="best_selling">
+                  <span class="option-inner"
+                    ><span class="option-icon">🔥</span> Bán chạy nhất</span
+                  >
+                </el-option>
+                <el-option label="Giá tăng dần" value="price_asc">
+                  <span class="option-inner"
+                    ><span class="option-icon">↑</span> Giá tăng dần</span
+                  >
+                </el-option>
+                <el-option label="Giá giảm dần" value="price_desc">
+                  <span class="option-inner"
+                    ><span class="option-icon">↓</span> Giá giảm dần</span
+                  >
+                </el-option>
+                <el-option label="Tên: A → Z" value="name_asc">
+                  <span class="option-inner"
+                    ><span class="option-icon">Az</span> Tên: A → Z</span
+                  >
+                </el-option>
+                <el-option label="Tên: Z → A" value="name_desc">
+                  <span class="option-inner"
+                    ><span class="option-icon">Za</span> Tên: Z → A</span
+                  >
+                </el-option>
               </el-select>
 
               <button
@@ -647,10 +676,16 @@ async function goOrder(p) {
 async function loadNotifications() {
   if (!isCustomer.value) return;
   try {
-    const unreadRes = await http.get("/api/auth/notifications/my?unreadOnly=true");
+    const unreadRes = await http.get(
+      "/api/auth/notifications/my?unreadOnly=true",
+    );
     const unreadNotifs = unreadRes.data || [];
-    welcomeNotifications.value = unreadNotifs.filter((n) => n.type === "WELCOME");
-    birthdayNotifications.value = unreadNotifs.filter((n) => n.type === "BIRTHDAY");
+    welcomeNotifications.value = unreadNotifs.filter(
+      (n) => n.type === "WELCOME",
+    );
+    birthdayNotifications.value = unreadNotifs.filter(
+      (n) => n.type === "BIRTHDAY",
+    );
     reminderNotifications.value = unreadNotifs.filter((n) =>
       ["PURCHASE_REMINDER", "WINBACK"].includes(n.type),
     );
@@ -1925,5 +1960,163 @@ onMounted(async () => {
 .ch-banners:empty {
   display: none;
   margin: 0;
+}
+
+/* ── Wrapper pill ────────────────────────────────── */
+.sort-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sort-wrapper:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* ── Label trái ──────────────────────────────────── */
+.sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  user-select: none;
+  padding: 0 12px 0 14px;
+  border-right: 1.5px solid #e2e8f0;
+  height: 38px;
+  background: #f8fafc;
+}
+
+.sort-label svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* ── El-Select ───────────────────────────────────── */
+.sort-select {
+  width: 156px !important;
+}
+
+.sort-select :deep(.el-input__wrapper) {
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 10px 0 12px;
+  height: 38px;
+}
+
+.sort-select :deep(.el-input__wrapper:hover),
+.sort-select :deep(.el-input__wrapper.is-focus) {
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.sort-select :deep(.el-input) {
+  --el-input-border-radius: 0px;
+}
+
+.sort-select :deep(.el-input__inner) {
+  font-family: "Inter", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  height: 38px;
+}
+
+.sort-select :deep(.el-input__suffix-inner) {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.sort-select :deep(.el-select__caret) {
+  transition: transform 0.2s ease;
+  color: #94a3b8 !important;
+}
+
+/* ── Dropdown Popper ─────────────────────────────── */
+:global(.sort-dropdown-popper.el-select__popper) {
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  padding: 6px !important;
+  overflow: hidden;
+}
+
+:global(.sort-dropdown-popper .el-select-dropdown__list) {
+  padding: 0 !important;
+}
+
+:global(.sort-dropdown-popper .el-select-dropdown__item) {
+  font-family: "Inter", sans-serif !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #374151;
+  border-radius: 8px;
+  padding: 0 8px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  margin: 1px 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+:global(.sort-dropdown-popper .el-select-dropdown__item:hover) {
+  background: #f0f7ff !important;
+  color: #2563eb !important;
+}
+
+:global(.sort-dropdown-popper .el-select-dropdown__item.selected) {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  font-weight: 700 !important;
+}
+
+/* ── Option inner ────────────────────────────────── */
+:global(.sort-dropdown-popper .option-inner) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+:global(.sort-dropdown-popper .option-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+:global(.sort-dropdown-popper .el-select-dropdown__item.selected .option-icon),
+:global(.sort-dropdown-popper .el-select-dropdown__item:hover .option-icon) {
+  background: #dbeafe;
+  color: #2563eb;
 }
 </style>

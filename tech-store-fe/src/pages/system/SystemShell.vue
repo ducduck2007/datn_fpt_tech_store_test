@@ -24,27 +24,17 @@
           <el-menu-item index="/system/Toployalcustomers"
             >Toployal customers</el-menu-item
           >
-          
-          
+
           <el-menu-item index="/system/Loyaltysummaryadmin"
             >Loyalty Summary - Admin
           </el-menu-item>
-        
+
           <el-menu-item index="/system/categories">Categories</el-menu-item>
           <el-menu-item index="/system/products">Products</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="orders">
           <template #title>Orders</template>
-          <el-menu-item index="/system/orders/new">New</el-menu-item>
-          <el-menu-item index="/system/orders/processing"
-            >Processing</el-menu-item
-          >
-          <el-menu-item index="/system/orders/paid"> Paid </el-menu-item>
-          <el-menu-item index="/system/orders/delivered">
-            Delivered
-          </el-menu-item>
-          <el-menu-item index="/system/orders/shipping">Shipping</el-menu-item>
           <el-menu-item index="/system/orders/filter">
             Order Filter
           </el-menu-item>

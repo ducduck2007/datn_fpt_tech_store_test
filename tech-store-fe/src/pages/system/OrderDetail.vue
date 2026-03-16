@@ -1,19 +1,27 @@
 <template>
-  <div class="container-xl">
-    <el-card shadow="never">
+  <div class="order-page container-xl">
+    <el-card shadow="never" class="order-card">
       <!-- Header -->
       <div
-        class="d-flex align-items-end justify-content-between gap-2 flex-wrap"
+        class="order-header d-flex align-items-end justify-content-between gap-2 flex-wrap"
       >
         <div>
-          <div class="kicker">Order</div>
-          <div class="title">{{ detail?.orderNumber || `#${orderId}` }}</div>
-          <div class="muted">
-            <el-tag :type="statusType" size="large">{{
-              detail?.status
-            }}</el-tag>
-            <el-tag class="ms-2" :type="paymentStatusType" size="large">
-              Payment: {{ detail?.paymentStatus }}
+          <div class="order-kicker">
+            <span class="kicker-dot"></span>
+            Đơn hàng
+          </div>
+          <div class="order-id">{{ detail?.orderNumber || `#${orderId}` }}</div>
+          <div class="badges-row mt-2">
+            <el-tag :type="statusType" size="large" class="status-badge">
+              <span class="badge-dot"></span>
+              {{ detail?.status }}
+            </el-tag>
+            <el-tag
+              class="ms-2 payment-badge"
+              :type="paymentStatusType"
+              size="large"
+            >
+              💳 {{ detail?.paymentStatus }}
             </el-tag>
             <el-tag
               v-if="isReturned(detail?.status)"
@@ -21,486 +29,318 @@
               size="large"
               class="ms-2"
             >
-              Returned
+              ↩ Hoàn trả
             </el-tag>
           </div>
         </div>
-        <div class="d-flex gap-2">
-          <el-button @click="$router.push('/orders/new')"
-            >Create another</el-button
-          >
-          <el-button @click="reload" :loading="loading">Reload</el-button>
-
-          <!-- Nút thanh toán - chỉ hiện khi order chưa thanh toán -->
-          <el-button
-            v-if="
-              detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID'
-            "
-            type="primary"
-            @click="showPaymentDialog = true"
-          >
-            <el-icon class="me-1"><CreditCard /></el-icon>
-            Thanh toán
-          </el-button>
-
-          <!-- Nút hủy đơn -->
-          <el-button
-            v-if="['PENDING', 'PAID', 'SHIPPING'].includes(detail?.status)"
-            type="danger"
-            @click="showCancelDialog = true"
-          >
-            <el-icon class="me-1"><Close /></el-icon>
-            Hủy đơn
-          </el-button>
-
-          <!-- Nút yêu cầu trả hàng -->
-          <el-button
-            v-if="detail?.status === 'DELIVERED' && !isReturned(detail?.status)"
-            type="warning"
-            @click="showReturnDialog = true"
-          >
-            <el-icon class="me-1"><RefreshLeft /></el-icon>
-            Yêu cầu trả hàng
-          </el-button>
-
-          <el-button
-            v-if="detail?.status === 'SHIPPING'"
-            type="success"
-            :loading="deliverLoading"
-            @click="confirmDelivered"
-          >
-            <el-icon class="me-1"><Check /></el-icon>
-            Đã giao hàng
-          </el-button>
-        </div>
+        <el-button @click="reload" :loading="loading" class="reload-btn">
+          <span v-if="!loading">↻ Reload</span>
+        </el-button>
       </div>
 
-      <el-divider />
+      <div class="section-divider"></div>
 
-      <!-- Order Info -->
+      <!-- Skeleton -->
       <el-skeleton v-if="loading" :rows="6" animated />
-      <div v-else-if="detail" class="row g-3">
-        <!-- Customer & Payment Info -->
+
+      <div v-else-if="detail" class="row g-4">
+        <!-- Customer Info -->
         <div class="col-12 col-md-6">
-          <div class="info-box">
-            <h5>Thông tin khách hàng</h5>
-            <p><strong>Tên:</strong> {{ detail.customerName }}</p>
-            <p><strong>ID:</strong> {{ detail.customerId }}</p>
+          <div class="info-card">
+            <div class="info-card-header">
+              <span class="info-card-icon">👤</span>
+              <h5>Thông tin khách hàng</h5>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Tên</span>
+              <span class="info-value">{{ detail.customerName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">ID</span>
+              <span class="info-value mono">{{ detail.customerId }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ detail.customerEmail }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Phone</span>
+              <span class="info-value">{{ detail.customerPhone }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Address</span>
+              <span class="info-value">{{ detail.customerAddress }}</span>
+            </div>
           </div>
         </div>
 
+        <!-- Payment & Delivery Info -->
         <div class="col-12 col-md-6">
-          <div class="info-box">
-            <h5>Thanh toán & Giao hàng</h5>
-            <p><strong>Phương thức:</strong> {{ detail.paymentMethod }}</p>
-            <p><strong>Kênh:</strong> {{ detail.channel }}</p>
-            <p><strong>Ghi chú:</strong> {{ detail.notes || "—" }}</p>
+          <div class="info-card">
+            <div class="info-card-header">
+              <span class="info-card-icon">🚚</span>
+              <h5>Thanh toán &amp; Giao hàng</h5>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Phương thức</span>
+              <span class="info-value">{{ detail.paymentMethod }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Kênh</span>
+              <span class="info-value">{{ detail.channel }}</span>
+            </div>
+            <div class="info-row align-items-start">
+              <span class="info-label">Ghi chú</span>
+              <div v-if="detail.notes" class="notes-list">
+                <div
+                  v-for="(note, i) in categorizedNotes"
+                  :key="i"
+                  class="note-chip"
+                  :class="note.type"
+                >
+                  <span class="note-chip-icon">{{ note.icon }}</span>
+                  <span class="note-chip-text">{{ note.text }}</span>
+                </div>
+              </div>
+              <span v-else class="info-value muted">—</span>
+            </div>
           </div>
         </div>
 
-        <!-- ✅ DISCOUNT BREAKDOWN CARD -->
+        <!-- Discount Breakdown -->
         <div v-if="hasDiscount" class="col-12">
-          <el-card class="discount-breakdown-card">
-            <div class="d-flex align-items-center gap-2 mb-3">
-              <el-icon :size="24" color="#f59e0b"><Present /></el-icon>
-              <h5 class="mb-0 fw-bold">Ưu đãi áp dụng</h5>
+          <div class="discount-card">
+            <div class="discount-card-header">
+              <div class="discount-header-left">
+                <div class="discount-header-icon">🎁</div>
+                <div>
+                  <div class="discount-card-title">Ưu đãi áp dụng</div>
+                  <div class="discount-card-sub">
+                    Tổng tiết kiệm:
+                    <strong>{{ formatMoney(detail.discountTotal) }}</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="discount-total-badge">
+                -{{ formatMoney(detail.discountTotal) }}
+              </div>
             </div>
 
-            <div class="row g-3">
-              <!-- VIP Discount -->
+            <div class="discount-items-grid">
+              <!-- VIP % Discount -->
               <div
-                v-if="detail.vipDiscount && detail.vipDiscount > 0"
-                class="col-12 col-md-6"
+                v-if="
+                  detail.vipDiscountRate &&
+                  detail.vipDiscountRate > 0 &&
+                  vipPercentAmount > 0
+                "
+                class="discount-pill vip"
               >
-                <div class="discount-item vip-discount">
-                  <div class="discount-icon">
-                    <el-icon :size="32"><Star /></el-icon>
+                <div class="pill-icon">⭐</div>
+                <div class="pill-body">
+                  <div class="pill-label">VIP {{ vipTierName }}</div>
+                  <div class="pill-rate">{{ detail.vipDiscountRate }}%</div>
+                  <div class="pill-amount">
+                    -{{ formatMoney(vipPercentAmount) }}
                   </div>
-                  <div class="discount-details">
-                    <div class="discount-label">
-                      Giảm giá VIP {{ vipTierName }}
-                    </div>
-                    <div class="discount-rate">
-                      {{ detail.vipDiscountRate }}%
-                    </div>
-                    <div class="discount-amount">
-                      -{{ formatMoney(detail.vipDiscount) }}
-                    </div>
-                    <div class="discount-note">Áp dụng cho mọi đơn hàng</div>
+                  <div class="pill-note">Giảm theo % hạng VIP</div>
+                </div>
+              </div>
+
+              <!-- VIP Bonus -->
+              <div v-if="parsedVipBonus" class="discount-pill vip-bonus">
+                <div class="pill-icon">🏆</div>
+                <div class="pill-body">
+                  <div class="pill-label">
+                    VIP {{ parsedVipBonus.tier }}
+                    <span class="pill-tag">Đơn lớn</span>
+                  </div>
+                  <div class="pill-amount">
+                    -{{ formatMoney(parsedVipBonus.amount) }}
+                  </div>
+                  <div class="pill-note">
+                    Đơn từ {{ formatMoney(parsedVipBonus.threshold) }}
                   </div>
                 </div>
               </div>
 
-              <!-- Spin Wheel Discount -->
+              <!-- Spin Wheel -->
               <div
                 v-if="detail.spinDiscount && detail.spinDiscount > 0"
-                class="col-12 col-md-6"
+                class="discount-pill spin"
               >
-                <div class="discount-item spin-discount">
-                  <div class="discount-icon spin-icon">
-                    <el-icon :size="32"><TrophyBase /></el-icon>
+                <div class="pill-icon">🎡</div>
+                <div class="pill-body">
+                  <div class="pill-label">
+                    Vòng quay
+                    <span class="pill-tag spin-tag">1 lần dùng</span>
                   </div>
-                  <div class="discount-details">
-                    <div class="discount-label">
-                      Vòng quay may mắn
-                      <el-tag size="small" type="warning" class="ms-1"
-                        >1 lần dùng</el-tag
-                      >
-                    </div>
-                    <div class="discount-rate">
-                      {{ detail.spinDiscountRate }}%
-                    </div>
-                    <div class="discount-amount">
-                      -{{ formatMoney(detail.spinDiscount) }}
-                    </div>
-                    <div class="discount-note">
-                      {{
-                        detail.hasSpinBonus
-                          ? "✅ Đã áp dụng"
-                          : "Sẽ được khấu trừ khi thanh toán"
-                      }}
-                    </div>
+                  <div class="pill-rate">{{ detail.spinDiscountRate }}%</div>
+                  <div class="pill-amount">
+                    -{{ formatMoney(detail.spinDiscount) }}
+                  </div>
+                  <div class="pill-note">
+                    {{
+                      detail.hasSpinBonus ? "✅ Đã áp dụng" : "Khấu trừ khi TT"
+                    }}
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Total Discount Summary -->
-            <el-divider />
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="fw-bold">Tổng ưu đãi:</span>
-              <span class="text-success fs-5 fw-bold">
-                -{{ formatMoney(detail.discountTotal) }}
-              </span>
+              <!-- Coupon -->
+              <div v-if="effectiveCoupon" class="discount-pill coupon">
+                <div class="pill-icon">🎟️</div>
+                <div class="pill-body">
+                  <div class="pill-label">
+                    Mã giảm giá
+                    <span class="pill-tag coupon-tag">{{
+                      effectiveCoupon.code || "Đã áp dụng"
+                    }}</span>
+                  </div>
+                  <div v-if="effectiveCoupon.rate" class="pill-rate">
+                    {{ effectiveCoupon.rate }}%
+                  </div>
+                  <div class="pill-amount">
+                    -{{ formatMoney(effectiveCoupon.amount) }}
+                  </div>
+                  <div class="pill-note">Ưu đãi từ mã khuyến mãi</div>
+                </div>
+              </div>
             </div>
-          </el-card>
+          </div>
         </div>
 
-        <!-- Items Table -->
+        <!-- Products Table -->
         <div class="col-12">
-          <h5 class="mb-2">Chi tiết sản phẩm</h5>
-          <el-table :data="detail.items" border>
-            <el-table-column label="Sản phẩm" min-width="200">
-              <template #default="{ row }">
-                <div class="fw-bold">{{ row.productName }}</div>
-                <div class="muted small">{{ row.variantName }}</div>
-                <div class="muted small">SKU: {{ row.sku }}</div>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Số lượng" width="100" align="center">
-              <template #default="{ row }">
-                {{ row.quantity }}
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Đơn giá" width="150" align="right">
-              <template #default="{ row }">
-                {{ formatMoney(row.price) }}
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Tổng" width="150" align="right">
-              <template #default="{ row }">
-                <strong>{{ formatMoney(row.lineTotal) }}</strong>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="table-section">
+            <div class="table-header-row">
+              <span class="table-section-title">📦 Chi tiết sản phẩm</span>
+              <span class="table-count"
+                >{{ detail.items?.length || 0 }} sản phẩm</span
+              >
+            </div>
+            <el-table :data="detail.items" class="products-table">
+              <el-table-column label="Sản phẩm" min-width="220">
+                <template #default="{ row }">
+                  <div class="product-cell">
+                    <div class="product-name">{{ row.productName }}</div>
+                    <div class="product-variant">{{ row.variantName }}</div>
+                    <div class="product-sku">SKU: {{ row.sku }}</div>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="Số lượng" width="100" align="center">
+                <template #default="{ row }">
+                  <span class="qty-badge">{{ row.quantity }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="Đơn giá" width="160" align="right">
+                <template #default="{ row }">
+                  <span class="price-cell">{{ formatMoney(row.price) }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </div>
 
         <!-- Totals -->
         <div class="col-12">
-          <div class="totals-box">
-            <div class="d-flex justify-content-between">
-              <span>Tạm tính:</span>
-              <strong>{{ formatMoney(detail.subtotal) }}</strong>
+          <div class="totals-card">
+            <div class="totals-title">Tổng thanh toán</div>
+            <div class="totals-rows">
+              <div class="totals-row">
+                <span>Tạm tính</span>
+                <span>{{ formatMoney(detail.subtotal) }}</span>
+              </div>
+
+              <div
+                v-if="
+                  detail.vipDiscountRate &&
+                  detail.vipDiscountRate > 0 &&
+                  vipPercentAmount > 0
+                "
+                class="totals-row discount-row"
+              >
+                <span
+                  >⭐ Giảm VIP {{ vipTierName }} ({{
+                    detail.vipDiscountRate
+                  }}%)</span
+                >
+                <span class="discount-value"
+                  >-{{ formatMoney(vipPercentAmount) }}</span
+                >
+              </div>
+
+              <div
+                v-if="parsedVipBonus"
+                class="totals-row discount-row vip-bonus-row"
+              >
+                <span
+                  >🏆 Ưu đãi VIP {{ parsedVipBonus.tier }}
+                  <span class="small muted"
+                    >(từ {{ formatMoney(parsedVipBonus.threshold) }})</span
+                  ></span
+                >
+                <span class="discount-value"
+                  >-{{ formatMoney(parsedVipBonus.amount) }}</span
+                >
+              </div>
+
+              <div
+                v-if="detail.spinDiscount && detail.spinDiscount > 0"
+                class="totals-row discount-row spin-row"
+              >
+                <span>🎡 Vòng quay ({{ detail.spinDiscountRate }}%)</span>
+                <span class="discount-value"
+                  >-{{ formatMoney(detail.spinDiscount) }}</span
+                >
+              </div>
+
+              <div
+                v-if="effectiveCoupon"
+                class="totals-row discount-row coupon-row"
+              >
+                <span
+                  >🎟️ Mã <strong>{{ effectiveCoupon.code }}</strong></span
+                >
+                <span class="discount-value"
+                  >-{{ formatMoney(effectiveCoupon.amount) }}</span
+                >
+              </div>
+
+              <div class="totals-row">
+                <span>Phí giao hàng</span>
+                <span>{{ formatMoney(detail.shippingFee) }}</span>
+              </div>
             </div>
 
-            <!-- VIP Discount Line -->
-            <div
-              v-if="detail.vipDiscount && detail.vipDiscount > 0"
-              class="d-flex justify-content-between text-success"
-            >
-              <span>
-                <el-icon class="me-1"><Star /></el-icon>
-                Giảm giá VIP ({{ detail.vipDiscountRate }}%):
-              </span>
-              <strong>- {{ formatMoney(detail.vipDiscount) }}</strong>
-            </div>
-
-            <!-- Spin Discount Line -->
-            <div
-              v-if="detail.spinDiscount && detail.spinDiscount > 0"
-              class="d-flex justify-content-between text-warning"
-            >
-              <span>
-                <el-icon class="me-1"><TrophyBase /></el-icon>
-                Vòng quay ({{ detail.spinDiscountRate }}%):
-              </span>
-              <strong>- {{ formatMoney(detail.spinDiscount) }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between">
-              <span>Phí ship:</span>
-              <strong>{{ formatMoney(detail.shippingFee) }}</strong>
-            </div>
-
-            <el-divider />
-
-            <div class="d-flex justify-content-between fs-5">
-              <span><strong>Tổng cộng:</strong></span>
-              <strong class="text-primary">{{
+            <div class="totals-final">
+              <span>Tổng cộng</span>
+              <span class="final-amount">{{
                 formatMoney(detail.totalAmount)
-              }}</strong>
-            </div>
-
-            <div v-if="hasDiscount" class="discount-savings mt-2">
-              <el-alert type="success" :closable="false">
-                <template #title>
-                  <span class="fw-bold">
-                    🎉 Bạn đã tiết kiệm {{ formatMoney(detail.discountTotal) }}!
-                  </span>
-                </template>
-              </el-alert>
+              }}</span>
             </div>
           </div>
         </div>
       </div>
     </el-card>
-
-    <!-- Payment Dialog -->
-    <el-dialog
-      v-model="showPaymentDialog"
-      title="💳 Thanh toán đơn hàng"
-      width="500px"
-    >
-      <el-alert
-        title="Thông tin thanh toán"
-        type="info"
-        :closable="false"
-        class="mb-3"
-      >
-        <p>Sau khi thanh toán thành công:</p>
-        <ul class="mb-0">
-          <li>✅ Đơn hàng sẽ chuyển sang trạng thái <strong>PAID</strong></li>
-          <li>✅ Xuất kho tự động</li>
-          <li>
-            ✅ <strong class="text-success">Cộng điểm loyalty</strong> cho bạn
-          </li>
-          <li v-if="detail?.spinDiscount && detail.spinDiscount > 0">
-            ⚠️ Ưu đãi vòng quay sẽ được <strong>sử dụng 1 lần</strong>
-          </li>
-        </ul>
-      </el-alert>
-
-      <el-form :model="paymentForm" label-position="top">
-        <el-form-item label="Số tiền thanh toán">
-          <el-input
-            :value="formatMoney(detail?.totalAmount)"
-            disabled
-            size="large"
-          />
-        </el-form-item>
-
-        <el-form-item label="Phương thức thanh toán" required>
-          <el-select
-            v-model="paymentForm.method"
-            placeholder="Chọn phương thức"
-            class="w-100"
-            size="large"
-          >
-            <el-option label="💵 Tiền mặt" value="CASH" />
-            <el-option label="🏦 Chuyển khoản" value="BANK_TRANSFER" />
-            <el-option label="💳 Thẻ tín dụng" value="CREDIT_CARD" />
-            <el-option label="📱 Ví điện tử" value="E_WALLET" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Mã giao dịch (tùy chọn)">
-          <el-input
-            v-model="paymentForm.transactionRef"
-            placeholder="Ví dụ: TXN-123456"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="showPaymentDialog = false" size="large"
-          >Hủy</el-button
-        >
-        <el-button
-          type="primary"
-          @click="confirmPayment"
-          :loading="paymentLoading"
-          :disabled="!paymentForm.method"
-          size="large"
-        >
-          Xác nhận thanh toán
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- Cancel Dialog -->
-    <el-dialog v-model="showCancelDialog" title="❌ Hủy đơn hàng" width="550px">
-      <el-alert
-        :title="getCancelWarningTitle()"
-        :type="detail?.paymentStatus === 'PAID' ? 'error' : 'warning'"
-        show-icon
-        :closable="false"
-        class="mb-3"
-      >
-        <div v-html="getCancelWarningMessage()"></div>
-      </el-alert>
-
-      <el-form>
-        <el-form-item label="Lý do hủy">
-          <el-input
-            v-model="cancelReason"
-            type="textarea"
-            :rows="4"
-            placeholder="Vui lòng nhập lý do hủy đơn (không bắt buộc)"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="showCancelDialog = false">Đóng</el-button>
-        <el-button
-          type="danger"
-          @click="confirmCancel"
-          :loading="cancelLoading"
-        >
-          Xác nhận hủy
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- Return Dialog -->
-    <el-dialog
-      v-model="showReturnDialog"
-      title="🔄 Yêu cầu trả hàng"
-      width="600px"
-    >
-      <el-form :model="returnForm" label-position="top">
-        <el-form-item label="Chọn sản phẩm">
-          <el-select
-            v-model="returnForm.orderItemId"
-            placeholder="Chọn sản phẩm muốn trả"
-            class="w-100"
-          >
-            <el-option
-              v-for="item in detail?.items"
-              :key="item.productId"
-              :label="`${item.productName} - ${item.variantName}`"
-              :value="item.productId"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Số lượng">
-          <el-input-number
-            v-model="returnForm.quantity"
-            :min="1"
-            :max="getMaxReturnQuantity()"
-            class="w-100"
-          />
-        </el-form-item>
-
-        <el-form-item label="Lý do trả hàng">
-          <el-input
-            v-model="returnForm.reason"
-            type="textarea"
-            :rows="3"
-            placeholder="Nhập lý do trả hàng..."
-          />
-        </el-form-item>
-
-        <el-form-item label="Số tiền hoàn">
-          <el-input v-model="returnForm.refundAmount" disabled>
-            <template #prefix>₫</template>
-          </el-input>
-        </el-form-item>
-
-        <el-alert title="⚠️ Lưu ý" type="info" show-icon :closable="false">
-          Điểm loyalty đã được cộng sẽ bị trừ lại khi trả hàng được duyệt.
-        </el-alert>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="showReturnDialog = false">Đóng</el-button>
-        <el-button type="primary" @click="submitReturn">Gửi yêu cầu</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
-import { returnsApi } from "../../api/returns.api";
-import { paymentsApi } from "../../api/payments";
 import { customersApi } from "../../api/customers.api";
 import { toast } from "../../ui/toast";
-import {
-  Close,
-  CreditCard,
-  RefreshLeft,
-  Present,
-  Star,
-  TrophyBase,
-  Check,
-} from "@element-plus/icons-vue";
 
 const route = useRoute();
-const router = useRouter();
 
-// State
 const loading = ref(false);
-const cancelLoading = ref(false);
-const paymentLoading = ref(false);
 const detail = ref(null);
 const vipTierName = ref("");
 const orderId = computed(() => route.params.orderId);
-const deliverLoading = ref(false);
 
-// Dialog controls
-const showCancelDialog = ref(false);
-const cancelReason = ref("");
-const showReturnDialog = ref(false);
-const showPaymentDialog = ref(false);
-
-async function confirmDelivered() {
-  deliverLoading.value = true;
-  try {
-    await ordersApi.markAsDelivered(orderId.value);
-
-    toast("✅ Đơn hàng đã được đánh dấu giao thành công", "success");
-
-    await reload();
-  } catch (e) {
-    toast(
-      e?.response?.data?.message || "Lỗi khi cập nhật trạng thái giao hàng",
-      "error",
-    );
-  } finally {
-    deliverLoading.value = false;
-  }
-}
-
-const returnForm = reactive({
-  orderItemId: null,
-  quantity: 1,
-  reason: "",
-  refundAmount: 0,
-});
-
-const paymentForm = reactive({
-  method: "CASH",
-  transactionRef: "",
-});
-
-// Computed
 const statusType = computed(() => {
   const s = detail.value?.status;
   if (s === "DELIVERED") return "success";
@@ -517,40 +357,104 @@ const paymentStatusType = computed(() => {
   return "info";
 });
 
+const vipPercentAmount = computed(() => {
+  const total = detail.value?.vipDiscount || 0;
+  const bonus = parsedVipBonus.value?.amount || 0;
+  return Math.max(0, total - bonus);
+});
+
 const hasDiscount = computed(() => {
   return (
-    (detail.value?.vipDiscount && detail.value.vipDiscount > 0) ||
-    (detail.value?.spinDiscount && detail.value.spinDiscount > 0)
+    vipPercentAmount.value > 0 ||
+    !!parsedVipBonus.value ||
+    (detail.value?.spinDiscount && detail.value.spinDiscount > 0) ||
+    !!effectiveCoupon.value
   );
 });
 
-// Watchers
-watch(
-  () => returnForm.orderItemId,
-  (newItemId) => {
-    if (!newItemId || !detail.value?.items) return;
-    const item = detail.value.items.find((i) => i.productId === newItemId);
-    if (item) {
-      returnForm.quantity = 1;
-      returnForm.refundAmount = item.price;
-    }
-  },
-);
+const parsedNotes = computed(() => {
+  if (!detail.value?.notes) return [];
+  return detail.value.notes
+    .split("|")
+    .map((n) => n.trim())
+    .filter(Boolean);
+});
 
-watch(
-  () => returnForm.quantity,
-  (newQty) => {
-    if (!returnForm.orderItemId || !detail.value?.items) return;
-    const item = detail.value.items.find(
-      (i) => i.productId === returnForm.orderItemId,
+const categorizedNotes = computed(() => {
+  return parsedNotes.value.map((note) => {
+    const lower = note.toLowerCase();
+    if (/^vip\s+/i.test(note)) {
+      return { text: note, type: "note-vip", icon: "⭐" };
+    }
+    if (/^[Mm]ã[:\s]/.test(note)) {
+      return { text: note, type: "note-coupon", icon: "🎟️" };
+    }
+    if (lower.includes("ship") || lower.includes("giao")) {
+      return { text: note, type: "note-ship", icon: "🚚" };
+    }
+    return { text: note, type: "note-default", icon: "📌" };
+  });
+});
+
+function noteTagType(note) {
+  const lower = note.toLowerCase();
+  if (lower.includes("vip")) return "purple";
+  if (lower.includes("mã") || lower.includes("code")) return "success";
+  if (lower.includes("ship") || lower.includes("giao")) return "warning";
+  return "info";
+}
+
+const parsedVipBonus = computed(() => {
+  if (!detail.value?.notes) return null;
+  const segments = detail.value.notes.split("|").map((s) => s.trim());
+  for (const seg of segments) {
+    const match = seg.match(
+      /^VIP\s+([A-Za-zÀ-ỹ]+)[:\s]+([-\d,\.]+)\s*\(đơn từ\s*([\d,\.]+)\)/i,
     );
-    if (item) {
-      returnForm.refundAmount = item.price * newQty;
+    if (match) {
+      const tier = match[1].trim();
+      const amount = Math.abs(parseInt(match[2].replace(/[,\.]/g, ""), 10));
+      const threshold = parseInt(match[3].replace(/[,\.]/g, ""), 10);
+      if (!isNaN(amount) && amount > 0) return { tier, amount, threshold };
     }
-  },
-);
+  }
+  return null;
+});
 
-// Methods
+const parsedCoupon = computed(() => {
+  if (!detail.value?.notes) return null;
+  if (detail.value.couponDiscount && detail.value.couponDiscount > 0)
+    return null;
+  const segments = detail.value.notes.split("|").map((s) => s.trim());
+  for (const seg of segments) {
+    const match = seg.match(/^[Mm]ã[:\s]+([A-Za-z0-9_\-]+)[:\s]+([-\d,\.]+)/);
+    if (match) {
+      const code = match[1].trim();
+      const rawNum = match[2].replace(/[,\.]/g, "").replace(/[^\d\-]/g, "");
+      const amount = Math.abs(parseInt(rawNum, 10));
+      if (!isNaN(amount) && amount > 0) return { code, amount };
+    }
+  }
+  return null;
+});
+
+const effectiveCoupon = computed(() => {
+  if (detail.value?.couponDiscount && detail.value.couponDiscount > 0) {
+    return {
+      code: detail.value.couponCode || "",
+      amount: detail.value.couponDiscount,
+      rate: detail.value.couponDiscountRate || null,
+    };
+  }
+  if (parsedCoupon.value)
+    return {
+      code: parsedCoupon.value.code,
+      amount: parsedCoupon.value.amount,
+      rate: null,
+    };
+  return null;
+});
+
 function formatMoney(val) {
   if (!val) return "0 ₫";
   return new Intl.NumberFormat("vi-VN", {
@@ -564,8 +468,6 @@ async function reload() {
   try {
     const res = await ordersApi.getById(orderId.value);
     detail.value = res?.data?.data || res?.data;
-
-    // Load customer info to get VIP tier name
     if (detail.value?.customerId) {
       try {
         const customerRes = await customersApi.getById(detail.value.customerId);
@@ -582,85 +484,6 @@ async function reload() {
   }
 }
 
-function getCancelWarningTitle() {
-  if (detail.value?.paymentStatus === "PAID") {
-    return "⚠️ Cảnh báo: Hủy đơn đã thanh toán";
-  }
-  return "Xác nhận hủy đơn";
-}
-
-function getCancelWarningMessage() {
-  if (detail.value?.paymentStatus === "PAID") {
-    const totalAmount = detail.value.totalAmount || 0;
-    const penaltyAmount = totalAmount * 0.1;
-    const penaltyPoints = Math.floor(penaltyAmount / 10000);
-    return `
-      <p><strong>Đơn hàng đã thanh toán. Nếu hủy sẽ bị phạt:</strong></p>
-      <ul>
-        <li>❌ Trừ điểm loyalty: <strong class="text-danger">${Math.floor(totalAmount / 10000)} điểm</strong></li>
-        <li>⚠️ Phạt 10% giá trị: <strong class="text-danger">${penaltyPoints} điểm</strong></li>
-      </ul>
-    `;
-  }
-  return "<p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>";
-}
-
-function getMaxReturnQuantity() {
-  if (!returnForm.orderItemId || !detail.value?.items) return 1;
-  const item = detail.value.items.find(
-    (i) => i.productId === returnForm.orderItemId,
-  );
-  return item?.quantity || 1;
-}
-
-async function confirmPayment() {
-  if (!paymentForm.method) return;
-  paymentLoading.value = true;
-  try {
-    const payload = {
-      orderId: Number(orderId.value),
-      method: paymentForm.method,
-      transactionRef: paymentForm.transactionRef || `TXN-${Date.now()}`,
-    };
-    await paymentsApi.create(payload);
-    toast("✅ Thanh toán thành công!", "success");
-    showPaymentDialog.value = false;
-    await reload();
-  } catch (e) {
-    toast(e?.response?.data?.message || "Lỗi thanh toán", "error");
-  } finally {
-    paymentLoading.value = false;
-  }
-}
-
-async function confirmCancel() {
-  cancelLoading.value = true;
-  try {
-    await ordersApi.cancel(orderId.value, cancelReason.value);
-    toast("✅ Đã hủy đơn hàng thành công.", "success");
-    showCancelDialog.value = false;
-    await reload();
-  } catch (e) {
-    toast("Lỗi khi hủy đơn", "error");
-  } finally {
-    cancelLoading.value = false;
-  }
-}
-
-async function submitReturn() {
-  if (!returnForm.orderItemId || !returnForm.reason) return;
-  try {
-    await returnsApi.create({
-      orderId: Number(orderId.value),
-      ...returnForm,
-    });
-    toast("✅ Đã gửi yêu cầu trả hàng", "success");
-    showReturnDialog.value = false;
-  } catch (e) {
-    toast("Lỗi khi gửi yêu cầu", "error");
-  }
-}
-
 function isReturned(status) {
   return ["PARTIALLY_RETURNED", "RETURNED"].includes(status);
 }
@@ -669,105 +492,567 @@ onMounted(() => reload());
 </script>
 
 <style scoped>
-.discount-breakdown-card {
-  background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
-  border: 2px solid #f59e0b;
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap");
+
+/* ─── Design Tokens ─────────────────────────────────────────── */
+:root {
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
 }
 
-.discount-item {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  border-radius: 8px;
-  background: white;
-  border: 1px solid #e5e7eb;
+/* ─── Page Shell ────────────────────────────────────────────── */
+.order-page {
+  padding: 28px 16px;
+  min-height: 100vh;
+  font-family:
+    "Be Vietnam Pro",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.discount-item.vip-discount {
-  border-left: 4px solid #9333ea;
+/* Áp font cho toàn bộ card và con cháu */
+.order-page :deep(*) {
+  font-family:
+    "Be Vietnam Pro",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
-.discount-item.spin-discount {
-  border-left: 4px solid #f59e0b;
+.order-card {
+  border-radius: 16px !important;
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 4px 24px rgba(37, 99, 235, 0.07) !important;
+  overflow: hidden;
 }
 
-.discount-icon {
+/* ─── Header ────────────────────────────────────────────────── */
+.order-header {
+  padding: 8px 4px 4px;
+}
+
+.order-kicker {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
+  gap: 6px;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #2563eb;
+  margin-bottom: 4px;
+}
+
+.kicker-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
-  color: white;
+  background: #3b82f6;
+  animation: pulse-dot 2s infinite;
 }
 
-.discount-icon.spin-icon {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.75);
+  }
 }
 
-.discount-details {
+.order-id {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e3a8a;
+  letter-spacing: -0.5px;
+}
+
+.badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.reload-btn {
+  background: #2563eb !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  padding: 10px 22px !important;
+  letter-spacing: 0.02em;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+.reload-btn:hover {
+  background: #1d4ed8 !important;
+  transform: translateY(-1px);
+}
+
+/* ─── Section Divider ───────────────────────────────────────── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, #dbeafe 0%, #bfdbfe 50%, #dbeafe 100%);
+  margin: 20px 0;
+  border-radius: 1px;
+}
+
+/* ─── Info Cards ────────────────────────────────────────────── */
+.info-card {
+  background: #f8faff;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 18px 20px;
+  height: 100%;
+}
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.info-card-icon {
+  font-size: 20px;
+}
+
+.info-card-header h5 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid #eff6ff;
+  font-size: 14px;
+}
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  min-width: 110px;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.info-value {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+.info-value.mono {
+  font-family: monospace;
+  font-size: 12px;
+  background: #dbeafe;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
 }
 
-.discount-label {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 4px;
+.note-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  width: fit-content;
+  max-width: 100%;
 }
 
-.discount-rate {
+.note-chip-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.note-chip.note-default {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.note-chip.note-vip {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+.note-chip.note-coupon {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.note-chip.note-ship {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+/* ─── Discount Card ─────────────────────────────────────────── */
+.discount-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 60%);
+  border: 2px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.discount-card::before {
+  content: "";
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.06);
+  pointer-events: none;
+}
+
+.discount-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.discount-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.discount-header-icon {
   font-size: 28px;
-  font-weight: 900;
-  color: #1f2937;
   line-height: 1;
-  margin-bottom: 4px;
 }
 
-.discount-amount {
-  font-size: 20px;
-  font-weight: bold;
-  color: #059669;
-  margin-bottom: 4px;
+.discount-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1e40af;
 }
 
-.discount-note {
+.discount-card-sub {
   font-size: 12px;
-  color: #9ca3af;
+  color: #64748b;
+  margin-top: 2px;
 }
 
-.discount-savings {
-  margin-top: 16px;
+.discount-total-badge {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 6px 18px;
+  border-radius: 50px;
+  letter-spacing: -0.3px;
 }
 
-.info-box {
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
+/* ─── Discount Pills ────────────────────────────────────────── */
+.discount-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
 
-.totals-box {
-  padding: 20px;
-  background: #f9fafb;
-  border-radius: 8px;
+.discount-pill {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.discount-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.12);
 }
 
-.muted {
-  color: #6b7280;
+.discount-pill.vip {
+  border-left: 4px solid #7c3aed;
+}
+.discount-pill.vip-bonus {
+  border-left: 4px solid #2563eb;
+}
+.discount-pill.spin {
+  border-left: 4px solid #f59e0b;
+}
+.discount-pill.coupon {
+  border-left: 4px solid #10b981;
 }
 
-.kicker {
-  text-transform: uppercase;
+.pill-icon {
+  font-size: 26px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pill-body {
+  flex: 1;
+}
+
+.pill-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #64748b;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
-.title {
-  font-size: 24px;
+.pill-tag {
+  font-size: 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 1px 6px;
+  border-radius: 4px;
   font-weight: 700;
-  color: #1f2937;
-  margin: 4px 0;
+  letter-spacing: 0.02em;
+}
+.pill-tag.spin-tag {
+  background: #fef3c7;
+  color: #b45309;
+}
+.pill-tag.coupon-tag {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pill-rate {
+  font-size: 24px;
+  font-weight: 900;
+  color: #1e3a8a;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.pill-amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: #16a34a;
+  margin-bottom: 2px;
+}
+
+.pill-note {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ─── Products Table ────────────────────────────────────────── */
+.table-section {
+  background: #f8faff;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+}
+
+.table-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-count {
+  font-size: 12px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.products-table {
+  background: transparent !important;
+}
+
+:deep(.products-table th.el-table__cell) {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:deep(.products-table td.el-table__cell) {
+  border-color: #dbeafe !important;
+  background: white;
+}
+
+:deep(.products-table tr:hover > td.el-table__cell) {
+  background: #eff6ff !important;
+}
+
+.product-name {
+  font-weight: 700;
+  color: #1e3a8a;
+  font-size: 14px;
+}
+.product-variant {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.product-sku {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+  margin-top: 2px;
+}
+
+.qty-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 800;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.price-cell {
+  font-weight: 700;
+  color: #1e40af;
+  font-size: 14px;
+}
+
+/* ─── Totals ────────────────────────────────────────────────── */
+.totals-card {
+  background: white;
+  border: 2px solid #dbeafe;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.totals-title {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 12px 22px;
+}
+
+.totals-rows {
+  padding: 12px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #475569;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.totals-row:last-child {
+  border-bottom: none;
+}
+
+.discount-row {
+  color: #16a34a;
+}
+.vip-bonus-row {
+  color: #2563eb;
+}
+.spin-row {
+  color: #b45309;
+}
+.coupon-row {
+  color: #059669;
+}
+
+.discount-value {
+  font-weight: 700;
+}
+
+.totals-final {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 22px;
+  background: #eff6ff;
+  border-top: 2px solid #bfdbfe;
+}
+
+.totals-final span:first-child {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.final-amount {
+  font-size: 24px;
+  font-weight: 900;
+  color: #1d4ed8;
+  letter-spacing: -0.5px;
+}
+
+/* ─── Misc ──────────────────────────────────────────────────── */
+.muted {
+  color: #94a3b8;
+}
+.small {
+  font-size: 12px;
 }
 </style>

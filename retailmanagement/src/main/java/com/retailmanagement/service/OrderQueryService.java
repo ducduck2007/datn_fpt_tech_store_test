@@ -82,6 +82,9 @@ public class OrderQueryService {
 
         dto.setCustomerId(order.getCustomer().getId());
         dto.setCustomerName(order.getCustomer().getName()); // nếu có
+        dto.setCustomerEmail(order.getCustomer().getEmail()); // nếu có
+        dto.setCustomerPhone(order.getCustomer().getPhone());
+        dto.setCustomerAddress(order.getCustomer().getAddress());
 
         dto.setChannel(order.getChannel());               // ✅ THÊM
         dto.setPaymentMethod(order.getPaymentMethod());   // ✅ THÊM
@@ -90,6 +93,8 @@ public class OrderQueryService {
         dto.setStatus(order.getStatus());
         dto.setPaymentStatus(order.getPaymentStatus());   // nếu cần
         dto.setCreatedAt(order.getCreatedAt());
+
+        dto.setDiscountTotal(order.getDiscountTotal()); // nếu có
 
         return dto;
     }
@@ -124,28 +129,28 @@ public class OrderQueryService {
             Integer customerId,
             Instant from,
             Instant to,
-            String channel
+            String channel,
+            String status
     ) {
-
         List<Order> orders = orderRepository.findAll();
 
         return orders.stream()
-
                 .filter(o -> customerId == null ||
                         o.getCustomer().getId().equals(customerId))
-
                 .filter(o -> from == null ||
                         !o.getCreatedAt().isBefore(from))
-
                 .filter(o -> to == null ||
                         !o.getCreatedAt().isAfter(to))
-
                 .filter(o -> channel == null ||
                         channel.isBlank() ||
                         channel.equalsIgnoreCase(o.getChannel()))
 
-                .map(this::toOrderListResponse)
+                // ← THÊM DÒNG NÀY
+                .filter(o -> status == null ||
+                        status.isBlank() ||
+                        status.equalsIgnoreCase(o.getStatus()))
 
+                .map(this::toOrderListResponse)
                 .toList();
     }
 

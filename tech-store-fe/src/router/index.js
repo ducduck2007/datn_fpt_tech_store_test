@@ -22,11 +22,6 @@ import UserManager from "../pages/system/UserManager.vue";
 import CustomerManager from "../pages/system/CustomerManager.vue";
 import CategoryManager from "../pages/system/CategoryManager.vue";
 import ProductManager from "../pages/system/ProductManager.vue";
-import OrderListNew from "../pages/system/OrderListNew.vue";
-import OrderListProcessing from "../pages/system/OrderListProcessing.vue";
-import OrderListPaid from "../pages/system/OrderListPaid.vue";
-import OrderListDelivered from "../pages/system/OrderListDelivered.vue";
-import OrderListShipping from "../pages/system/OrderListShipping.vue";
 import ReturnListPending from "../pages/system/ReturnListPending.vue";
 import ReturnListAll from "../pages/system/ReturnListAll.vue";
 import OrderFilter from "../pages/system/OrderFilter.vue";
@@ -35,7 +30,6 @@ import PricingManager from "../pages/system/PricingManager.vue";
 import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue";
-
 
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
 import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
@@ -70,12 +64,12 @@ const routes = [
     component: CustomerLogin,
     meta: { portal: "customer", hideHeader: true },
   },
-{
-  path: "/change-password",
-  name: "change-password",
-  component: Changepassword,
-  meta: { portal: "customer", requiresAuth: true, hideHeader: true },
-},
+  {
+    path: "/change-password",
+    name: "change-password",
+    component: Changepassword,
+    meta: { portal: "customer", requiresAuth: true, hideHeader: true },
+  },
   {
     path: "/register",
     name: "register",
@@ -130,7 +124,6 @@ const routes = [
     component: ProductDetail,
     meta: { portal: "customer" },
   },
-  
 
   // ===== 403 FORBIDDEN =====
   {
@@ -169,7 +162,7 @@ const routes = [
         component: UserManager,
         meta: { title: "User Management" },
       },
-      
+
       {
         path: "customers",
         name: "system-customers",
@@ -182,7 +175,6 @@ const routes = [
         component: Toployalcustomers,
         meta: { title: "Top loyal customers" },
       },
-     
 
       {
         path: "categories",
@@ -198,36 +190,6 @@ const routes = [
       },
 
       // ===== Orders =====
-      {
-        path: "orders/new",
-        name: "system-orders-new",
-        component: OrderListNew,
-        meta: { title: "Orders (New)" },
-      },
-      {
-        path: "orders/processing",
-        name: "system-orders-processing",
-        component: OrderListProcessing,
-        meta: { title: "Orders (Processing)" },
-      },
-      {
-        path: "orders/paid",
-        name: "system-orders-paid",
-        component: OrderListPaid,
-        meta: { title: "Orders (Paid)" },
-      },
-      {
-        path: "orders/delivered",
-        name: "system-orders-delivered",
-        component: OrderListDelivered,
-        meta: { title: "Orders (Delivered)" },
-      },
-      {
-        path: "orders/shipping",
-        name: "system-orders-shipping",
-        component: OrderListShipping,
-        meta: { title: "Orders (Shipping)" },
-      },
       {
         path: "orders/:orderId",
         name: "system-order-detail",
@@ -282,8 +244,6 @@ const routes = [
         component: PaymentManagement,
         meta: { title: "Payment History" },
       },
-
-  
 
       {
         path: "Loyaltysummaryadmin",
@@ -382,7 +342,8 @@ router.beforeEach((to) => {
 
   if (isAuthed) {
     if (role === "CUSTOMER" && portal !== "customer") return "/";
-    if (role === "INVENTORY" && portal !== "inventory") return "/inventory/orders/paid";
+    if (role === "INVENTORY" && portal !== "inventory")
+      return "/inventory/orders/paid";
     if ((role === "ADMIN" || role === "SALES") && portal !== "system")
       return "/system/dashboard";
   }

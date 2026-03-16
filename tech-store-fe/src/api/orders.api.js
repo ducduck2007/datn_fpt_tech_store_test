@@ -70,9 +70,9 @@ export const ordersApi = {
     return http.get("/api/orders/by-date", { params: { from, to } });
   },
 
-  filter(customerId, from, to, channel) {
+  filter(customerId, from, to, channel, status) {
     return http.get("/api/orders/filter", {
-      params: { customerId, from, to, channel },
+      params: { customerId, from, to, channel, status },
     });
   },
 

@@ -68,7 +68,6 @@ public class PaymentService {
         processStockExport(order, userId);
 
         if (customer != null) {
-            customerService.addLoyaltyPoints(customer.getId(), finalAmount);
             customer.setLastOrderAt(
                     Instant.now().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
             );

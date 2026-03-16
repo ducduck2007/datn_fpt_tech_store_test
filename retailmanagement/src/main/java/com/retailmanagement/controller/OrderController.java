@@ -175,10 +175,11 @@ public class OrderController {
             @RequestParam(required = false) Integer customerId,
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
-            @RequestParam(required = false) String channel
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) String status
     ) {
         return ResponseEntity.ok(
-                orderQueryService.filterOrders(customerId, from, to, channel)
+                orderQueryService.filterOrders(customerId, from, to, channel, status)
         );
     }
 

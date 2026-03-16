@@ -22,6 +22,9 @@ public class OrderDetailResponse {
 
     private Integer customerId;
     private String customerName;
+    private String customerAddress;
+    private String customerPhone;
+    private String customerEmail;
 
     private Integer staffId;
     private String staffUsername;
@@ -56,6 +59,9 @@ public class OrderDetailResponse {
             String paymentStatus,
             Integer customerId,
             String customerName,
+            String customerEmail,
+            String customerPhone,
+            String customerAddress,
             Integer staffId,
             String staffUsername,
             String notes,
@@ -75,6 +81,9 @@ public class OrderDetailResponse {
         this.paymentStatus = paymentStatus;
         this.customerId    = customerId;
         this.customerName  = customerName;
+        this.customerAddress = customerAddress;
+        this.customerPhone   = customerPhone;
+        this.customerEmail   = customerEmail;
         this.staffId       = staffId;
         this.staffUsername = staffUsername;
         this.notes         = notes;
@@ -98,6 +107,9 @@ public class OrderDetailResponse {
             String paymentStatus,
             Integer customerId,
             String customerName,
+            String customerAddress,
+            String customerPhone,
+            String customerEmail,
             Integer staffId,
             String staffUsername,
             String notes,
@@ -112,7 +124,7 @@ public class OrderDetailResponse {
             String appliedPromotionJson
     ) {
         this(orderId, orderNumber, channel, paymentMethod, status, paymentStatus,
-                customerId, customerName, staffId, staffUsername, notes,
+                customerId, customerName, customerAddress, customerPhone, customerEmail, staffId, staffUsername, notes,
                 subtotal, discountTotal, taxTotal, shippingFee, totalAmount, createdAt, items);
         this.promoCode = promoCode;
         this.comboInfo = parseComboInfo(appliedPromotionJson);
