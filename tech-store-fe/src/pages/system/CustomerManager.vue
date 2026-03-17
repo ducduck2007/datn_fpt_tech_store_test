@@ -739,43 +739,85 @@
         </div>
       </div>
     </Teleport>
+<!-- VIP NOTE DIALOG -->
+<Teleport to="body">
+  <div class="overlay" v-if="vipNoteDialog.open" @click.self="vipNoteDialog.open=false">
+    <div class="modal modal-sm vip-modal-redesign">
 
-    <!-- VIP NOTE DIALOG -->
-    <Teleport to="body">
-      <div class="overlay" v-if="vipNoteDialog.open" @click.self="vipNoteDialog.open=false">
-        <div class="modal modal-sm">
-          <div class="modal-hd vip-modal-hd">
-            <div>
-              <h2 class="modal-ttl">Ghi chú VIP</h2>
-              <p class="modal-sub" v-if="vipNoteDialog.customerName">{{ vipNoteDialog.vipTier }} · {{ vipNoteDialog.customerName }}</p>
-            </div>
-            <button class="modal-x" @click="vipNoteDialog.open=false">×</button>
+      <!-- Header gold -->
+      <div class="vip-modal-header">
+        <div class="vip-header-deco vip-deco-1" />
+        <div class="vip-header-deco vip-deco-2" />
+        <div class="vip-header-content">
+          <div class="vip-header-top">
+            <span class="vip-eyebrow">VIP Internal Note</span>
+            <span class="vip-admin-badge">Admin only</span>
           </div>
-          <div class="modal-bd">
-            <div class="vip-notice">
-              <strong>Chỉ nội bộ</strong> — Khách hàng không thể xem. Chỉ Admin và Staff có thể xem.
-            </div>
-            <div class="suggestion-section" v-if="!vipNoteDialog.note">
-              <p class="suggestion-label">Gợi ý nhanh</p>
-              <div class="chips">
-                <button v-for="s in vipSuggestions" :key="s" class="chip" @click="vipNoteDialog.note=s">{{ s }}</button>
-              </div>
-            </div>
-            <textarea v-model="vipNoteDialog.note" class="field-textarea" rows="5" placeholder="Ghi chú nội bộ về khách hàng VIP này…" maxlength="500" ref="vipNoteTextarea" />
-            <div class="vipn-foot">
-              <span class="char-count">{{ (vipNoteDialog.note||'').length }}/500</span>
-              <button v-if="vipNoteDialog.note" class="btn-link" style="color:#f87171" @click="vipNoteDialog.note=''">Xóa</button>
-            </div>
+          <div class="vip-modal-title">Ghi chú VIP</div>
+          <div class="vip-modal-customer" v-if="vipNoteDialog.customerName">
+            <span class="vip-diamond-icon">♦</span>
+            {{ vipNoteDialog.vipTier }} · {{ vipNoteDialog.customerName }}
           </div>
-          <div class="modal-ft">
-            <button class="btn-outline" @click="vipNoteDialog.open=false">Hủy</button>
-            <button class="btn-gold" :disabled="vipNoteDialog.loading" @click="saveVipNote">
-              <span v-if="vipNoteDialog.loading" class="spin-icon">↻</span> Lưu ghi chú VIP
-            </button>
+        </div>
+        <button class="vip-close-btn" @click="vipNoteDialog.open=false">×</button>
+      </div>
+
+      <!-- Notice bar -->
+      <div class="vip-notice-bar">
+        <span class="vip-lock-icon">🔒</span>
+        <span>Chỉ nội bộ — Khách hàng <strong>không thể xem</strong>. Chỉ Admin và Staff có thể xem.</span>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-bd">
+        <!-- Suggestions -->
+        <div class="vip-suggestion-section" v-if="!vipNoteDialog.note">
+          <p class="vip-suggestion-label">Gợi ý nhanh</p>
+          <div class="vip-chips">
+            <button
+              v-for="s in vipSuggestions" :key="s"
+              class="vip-chip"
+              @click="vipNoteDialog.note = s"
+            >{{ s }}</button>
+          </div>
+        </div>
+
+        <!-- Textarea -->
+        <div class="vip-textarea-wrap">
+          <textarea
+            v-model="vipNoteDialog.note"
+            class="vip-textarea"
+            rows="5"
+            placeholder="Ghi chú nội bộ về khách hàng VIP này…"
+            maxlength="500"
+            ref="vipNoteTextarea"
+          />
+          <div class="vip-textarea-foot">
+            <button
+              v-if="vipNoteDialog.note"
+              class="vip-clear-btn"
+              @click="vipNoteDialog.note = ''"
+            >Xóa nội dung</button>
+            <span class="vip-char-count" :class="{ 'vip-count-warn': (vipNoteDialog.note||'').length > 350, 'vip-count-danger': (vipNoteDialog.note||'').length > 450 }">
+              {{ (vipNoteDialog.note||'').length }}/500
+            </span>
           </div>
         </div>
       </div>
-    </Teleport>
+
+      <!-- Footer -->
+      <div class="modal-ft">
+        <button class="btn-outline" @click="vipNoteDialog.open=false">Hủy</button>
+        <button class="vip-save-btn" :disabled="vipNoteDialog.loading" @click="saveVipNote">
+          <span v-if="vipNoteDialog.loading" class="spin-icon">↻</span>
+          <span v-else class="vip-save-icon">✦</span>
+          Lưu ghi chú VIP
+        </button>
+      </div>
+
+    </div>
+  </div>
+</Teleport>
 
     <!-- LOYALTY SUMMARY -->
     <Teleport to="body">
@@ -2398,4 +2440,209 @@ onMounted(load);
 /* Zero Order selected row */
 .zo-selected-row { background: #040e1c !important; }
 .zo-selected-row:hover { background: #06142a !important; }
+/* ═══════════════════════════
+   VIP NOTE MODAL — REDESIGN
+═══════════════════════════ */
+.vip-modal-redesign {
+  border: 1px solid #2a1a00;
+  overflow: hidden;
+}
+
+/* Header */
+.vip-modal-header {
+  position: relative;
+  background: linear-gradient(135deg, #1a0e00 0%, #2d1a00 50%, #1a0e00 100%);
+  padding: 22px 24px 18px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vip-header-deco {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(205,127,50,0.12);
+  background: rgba(205,127,50,0.05);
+  pointer-events: none;
+}
+.vip-deco-1 { width: 120px; height: 120px; top: -20px; right: -20px; }
+.vip-deco-2 { width: 60px; height: 60px; top: 10px; right: 30px; background: rgba(205,127,50,0.03); }
+
+.vip-header-content { flex: 1; position: relative; z-index: 1; }
+.vip-header-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.vip-eyebrow {
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: #92400e;
+  font-weight: 500;
+}
+.vip-admin-badge {
+  background: rgba(205,127,50,0.15);
+  border: 1px solid rgba(205,127,50,0.3);
+  color: #d97706;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+}
+.vip-modal-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 22px;
+  color: #f5d08a;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  font-weight: normal;
+}
+.vip-modal-customer {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #92400e;
+  letter-spacing: 0.5px;
+}
+.vip-diamond-icon {
+  font-size: 11px;
+  color: rgba(205,127,50,0.5);
+}
+.vip-close-btn {
+  position: relative;
+  z-index: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(205,127,50,0.2);
+  color: #92400e;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.vip-close-btn:hover { background: rgba(205,127,50,0.15); color: #d97706; }
+
+/* Notice bar */
+.vip-notice-bar {
+  background: #fef9ee;
+  border-bottom: 1px solid #fde68a;
+  padding: 9px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #92400e;
+}
+.vip-lock-icon { font-size: 13px; flex-shrink: 0; }
+
+/* Suggestions */
+.vip-suggestion-section { margin-bottom: 16px; }
+.vip-suggestion-label {
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #2d3748;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.vip-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.vip-chip {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+}
+.vip-chip:hover {
+  border-color: #d97706;
+  color: #92400e;
+  background: #fef9ee;
+}
+
+/* Textarea */
+.vip-textarea-wrap { position: relative; }
+.vip-textarea {
+  width: 100%;
+  background: #fffdf7;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+  resize: vertical;
+  min-height: 120px;
+  box-sizing: border-box;
+  outline: none;
+  line-height: 1.6;
+  transition: border-color 0.15s;
+}
+.vip-textarea:focus { border-color: #d97706; background: #fffcf0; }
+.vip-textarea::placeholder { color: #9ca3af; }
+.vip-textarea-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  padding: 0 2px;
+  min-height: 20px;
+}
+.vip-clear-btn {
+  background: none;
+  border: none;
+  color: #f87171;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  text-decoration: underline;
+  padding: 0;
+}
+.vip-clear-btn:hover { color: #dc2626; }
+.vip-char-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: #9ca3af;
+  font-family: 'Inter', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.vip-count-warn { color: #f59e0b; }
+.vip-count-danger { color: #f87171; }
+
+/* Save button */
+.vip-save-btn {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+  border: none;
+  padding: 9px 22px;
+  border-radius: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+.vip-save-btn:hover { background: linear-gradient(135deg, #b45309, #92400e); }
+.vip-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.vip-save-icon { font-size: 11px; }
 </style>

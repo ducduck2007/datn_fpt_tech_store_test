@@ -39,8 +39,9 @@
       <!-- Right: discount + toggle -->
       <div class="bar-right">
         <div class="bar-discount">
-          <span class="discount-val">{{ (progress.currentDiscountRate * 100).toFixed(0) }}%</span>
-          <span class="discount-lbl">giảm giá</span>
+          <!-- ✅ FIX: dùng TIER_BENEFITS thay vì currentDiscountRate * 100 -->
+          <span class="discount-val">{{ getTierBenefitShort(progress.currentTier) }}</span>
+          <span class="discount-lbl">ưu đãi</span>
         </div>
         <div class="expand-btn" :class="{ rotated: expanded }">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -124,7 +125,10 @@
             </div>
             <div class="ben-text">
               <span class="ben-label">Giảm giá mỗi đơn</span>
-              <span class="ben-val">{{ (progress.currentDiscountRate * 100).toFixed(0) }}%</span>
+              <!-- ✅ FIX: hiển thị đúng quyền lợi theo hạng -->
+              <span class="ben-val" :style="{ color: getTierColor(progress.currentTier) }">
+                {{ getTierBenefitFull(progress.currentTier) }}
+              </span>
             </div>
           </div>
 
@@ -138,7 +142,7 @@
             <div class="ben-text">
               <span class="ben-label">Sau khi lên hạng</span>
               <span class="ben-val" :style="{ color: getTierColor(progress.nextTier) }">
-                {{ (progress.nextTierDiscountRate * 100).toFixed(0) }}% ↗
+                {{ getTierBenefitShort(progress.nextTier) }} ↗
               </span>
             </div>
           </div>
@@ -178,6 +182,25 @@ const tierColors = {
   PLATINUM: '#64748b',
   DIAMOND:  '#38bdf8',
 };
+
+// ✅ Map đúng theo VipTier enum (Java):
+// Bronze/Silver/Gold  → discountAmount cố định
+// Platinum/Diamond    → discountRate %
+const TIER_BENEFITS = {
+  BRONZE:   { short: '50k',  full: 'Giảm 50.000₫' },
+  SILVER:   { short: '100k', full: 'Giảm 100.000₫' },
+  GOLD:     { short: '150k', full: 'Giảm 150.000₫' },
+  PLATINUM: { short: '3%',   full: 'Giảm 3%' },
+  DIAMOND:  { short: '5%',   full: 'Giảm 5%' },
+};
+
+function getTierBenefitShort(tier) {
+  return TIER_BENEFITS[tier]?.short ?? '—';
+}
+
+function getTierBenefitFull(tier) {
+  return TIER_BENEFITS[tier]?.full ?? 'Chưa có ưu đãi';
+}
 
 function getTierColor(tier) {
   return tierColors[tier] || '#6b7280';
@@ -246,22 +269,12 @@ defineExpose({ refresh: loadTierProgress });
 .tier-bar:hover { background: rgba(255,255,255,1); }
 .bar-expanded { border-radius: 14px 14px 0 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
 
-.bar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
+.bar-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 .tier-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 11px;
-  border-radius: 100px;
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 11px; border-radius: 100px;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
 }
 
 .pill-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
@@ -273,19 +286,11 @@ defineExpose({ refresh: loadTierProgress });
 .bar-center { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
 
 .inline-track {
-  flex: 1;
-  height: 5px;
-  background: rgba(0,0,0,0.07);
-  border-radius: 100px;
-  overflow: hidden;
-  min-width: 40px;
+  flex: 1; height: 5px; background: rgba(0,0,0,0.07);
+  border-radius: 100px; overflow: hidden; min-width: 40px;
 }
 
-.inline-fill {
-  height: 100%;
-  border-radius: 100px;
-  transition: width 0.7s cubic-bezier(0.34,1.2,0.64,1);
-}
+.inline-fill { height: 100%; border-radius: 100px; transition: width 0.7s cubic-bezier(0.34,1.2,0.64,1); }
 
 .bar-next { font-size: 12px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
 .bar-max  { font-size: 12.5px; font-weight: 600; color: #f59e0b; }
@@ -297,8 +302,7 @@ defineExpose({ refresh: loadTierProgress });
 .discount-lbl { font-size: 10px; color: rgba(20,25,60,0.35); letter-spacing: 0.03em; text-transform: uppercase; }
 
 .expand-btn {
-  width: 24px; height: 24px;
-  border-radius: 6px;
+  width: 24px; height: 24px; border-radius: 6px;
   background: rgba(0,0,0,0.04);
   display: flex; align-items: center; justify-content: center;
   color: rgba(20,25,60,0.35);
@@ -312,9 +316,7 @@ defineExpose({ refresh: loadTierProgress });
 .tier-detail {
   background: rgba(248,249,253,0.95);
   padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: flex; flex-direction: column; gap: 12px;
   border-radius: 0 0 14px 14px;
 }
 
@@ -323,14 +325,13 @@ defineExpose({ refresh: loadTierProgress });
 .expand-enter-from, .expand-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
 .expand-enter-to, .expand-leave-from { opacity: 1; max-height: 600px; }
 
-/* Alerts */
 .alert {
   display: flex; align-items: flex-start; flex-wrap: wrap;
   gap: 7px; padding: 9px 13px; border-radius: 10px;
   font-size: 12.5px; line-height: 1.55;
 }
 .alert-vip  { background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.18); color: #5b21b6; }
-.alert-fire { background: rgba(245,158,11,0.06);  border: 1px solid rgba(245,158,11,0.2);  color: #92400e; }
+.alert-fire { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); color: #92400e; }
 
 .alert-pills { display: flex; gap: 5px; flex-wrap: wrap; width: 100%; }
 .alert-pills span {
@@ -338,13 +339,11 @@ defineExpose({ refresh: loadTierProgress });
   padding: 1px 9px; border-radius: 100px; font-size: 11px; font-weight: 500;
 }
 
-/* Progress detail */
 .detail-progress { display: flex; flex-direction: column; gap: 5px; }
 .detail-prog-meta { display: flex; justify-content: space-between; font-size: 11.5px; color: rgba(20,25,60,0.4); }
 .detail-track { height: 7px; background: rgba(0,0,0,0.07); border-radius: 100px; overflow: hidden; }
 .detail-fill  { height: 100%; border-radius: 100px; transition: width 0.7s cubic-bezier(0.34,1.2,0.64,1); }
 
-/* Benefits */
 .benefits-grid { display: flex; gap: 8px; flex-wrap: wrap; }
 .benefit-item {
   display: flex; align-items: center; gap: 9px;
@@ -356,14 +355,12 @@ defineExpose({ refresh: loadTierProgress });
 .ben-label { font-size: 10px; color: rgba(20,25,60,0.35); text-transform: uppercase; letter-spacing: 0.04em; }
 .ben-val   { font-size: 13px; font-weight: 600; color: #1a1d2e; }
 
-/* Motivation */
 .motivation {
   display: flex; align-items: flex-start; gap: 7px;
   background: rgba(79,110,247,0.05); border: 1px solid rgba(79,110,247,0.11);
   border-radius: 9px; padding: 9px 12px; font-size: 12.5px; color: #2d3a8c; line-height: 1.5;
 }
 
-/* Next benefits */
 .next-benefits {
   display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px;
   padding: 9px 12px; background: rgba(0,0,0,0.025);
@@ -372,7 +369,6 @@ defineExpose({ refresh: loadTierProgress });
 .next-ben-label { font-weight: 600; color: rgba(20,25,60,0.65); }
 .next-ben-text  { color: rgba(20,25,60,0.45); }
 
-/* Responsive */
 @media (max-width: 540px) {
   .bar-center { display: none; }
   .benefits-grid { flex-direction: column; }

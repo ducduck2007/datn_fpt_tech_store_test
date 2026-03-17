@@ -1,4 +1,11 @@
 <!-- FILE: src/pages/customer/CustomerLogin.vue -->
+<!--
+  FONT FIX: Thêm vào <head> của index.html:
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+-->
 <template>
   <div class="login-root">
     <!-- Background -->
@@ -193,7 +200,21 @@ async function doLogin() {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+/*
+ * ⚠️  @import Google Fonts đã bị XÓA khỏi đây.
+ *
+ * ✅ Thêm vào public/index.html (trong <head>):
+ *
+ *   <link rel="preconnect" href="https://fonts.googleapis.com">
+ *   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ *   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+ */
+
+/* ─── CSS Font Variables ───────────────────────────────── */
+:root {
+  --font-display: 'Instrument Serif', 'Georgia', 'Times New Roman', serif;
+  --font-body:    'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+}
 
 /* ─── Root ─────────────────────────────────────────────── */
 .login-root {
@@ -202,7 +223,7 @@ async function doLogin() {
   align-items: center;
   justify-content: center;
   background: #f0f2fa;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   position: relative;
   overflow: hidden;
   padding: 24px;
@@ -285,14 +306,8 @@ async function doLogin() {
 }
 
 @keyframes cardEnter {
-  from {
-    opacity: 0;
-    transform: translateY(32px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(32px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .card-shake {
@@ -327,10 +342,11 @@ async function doLogin() {
   padding: 5px 12px;
   border-radius: 100px;
   margin-bottom: 20px;
+  font-family: var(--font-body);
 }
 
 .card-title {
-  font-family: 'Instrument Serif', serif;
+  font-family: var(--font-display);
   font-size: 32px;
   font-weight: 400;
   color: #1a1d2e;
@@ -345,6 +361,7 @@ async function doLogin() {
   margin: 0;
   font-weight: 300;
   letter-spacing: 0.01em;
+  font-family: var(--font-body);
 }
 
 /* ─── Error Alert ───────────────────────────────────────── */
@@ -359,6 +376,7 @@ async function doLogin() {
   padding: 11px 14px;
   border-radius: 12px;
   margin-bottom: 20px;
+  font-family: var(--font-body);
 }
 
 .alert-slide-enter-active { transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1); }
@@ -385,6 +403,7 @@ async function doLogin() {
   color: rgba(20, 25, 60, 0.5);
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  font-family: var(--font-body);
 }
 
 .field-wrapper {
@@ -421,7 +440,7 @@ async function doLogin() {
   border: none;
   outline: none;
   color: #1a1d2e;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -457,7 +476,7 @@ async function doLogin() {
   border-radius: 12px;
   background: linear-gradient(135deg, #4f6ef7 0%, #6c4fee 100%);
   color: #fff;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -533,13 +552,14 @@ async function doLogin() {
 .footer-text {
   font-size: 13px;
   color: rgba(20, 25, 60, 0.4);
+  font-family: var(--font-body);
 }
 
 .link-btn {
   background: none;
   border: none;
   cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
   padding: 0;
@@ -576,6 +596,7 @@ async function doLogin() {
   color: rgba(20, 25, 60, 0.22);
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-family: var(--font-body);
 }
 
 .divider-line::before,
