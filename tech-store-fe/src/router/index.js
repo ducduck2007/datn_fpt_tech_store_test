@@ -30,6 +30,7 @@ import PricingManager from "../pages/system/PricingManager.vue";
 import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue";
+import SerialManager from "../pages/system/SerialManager.vue";
 
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
 import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
@@ -187,6 +188,12 @@ const routes = [
         name: "system-products",
         component: ProductManager,
         meta: { title: "Products" },
+      },
+      {
+        path: 'serials',
+        name: 'SerialManager',
+        component: SerialManager, 
+        meta: { title: 'Quản lý số Seri' }
       },
 
       // ===== Orders =====
