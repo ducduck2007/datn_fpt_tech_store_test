@@ -32,6 +32,7 @@
         
           <el-menu-item index="/system/categories">Categories</el-menu-item>
           <el-menu-item index="/system/products">Products</el-menu-item>
+          <el-menu-item index="/system/serials">Serials</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="orders">
