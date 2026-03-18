@@ -1,7 +1,7 @@
 <template>
   <el-container class="sys-layout">
     <!-- ═══════════════════════════════════
-         SIDEBAR
+         SIDEBAR (fixed)
     ═══════════════════════════════════ -->
     <el-aside width="256px" class="sidebar">
       <!-- Brand -->
@@ -30,7 +30,8 @@
       <!-- Divider -->
       <div class="sidebar-divider"></div>
 
-      <!-- Menu -->
+      <!-- Menu (scrollable riêng) -->
+      <div class="sidebar-scroll">
       <el-menu
         :default-active="activePath"
         class="sidebar-menu"
@@ -204,9 +205,17 @@
           <el-menu-item index="/system/settings/currency">Currency</el-menu-item>
         </el-sub-menu>
       </el-menu>
+      </div><!-- /sidebar-scroll -->
 
       <!-- Sidebar footer -->
       <div class="sidebar-footer">
+        <button class="btn-customer-view" @click="go('/')">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M1 12c0-3.03 2.46-5.5 5.5-5.5S12 8.97 12 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          Customer View
+        </button>
         <button class="logout-btn" @click="logout">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M5 2H2.5A1.5 1.5 0 0 0 1 3.5v7A1.5 1.5 0 0 0 2.5 12H5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
@@ -218,38 +227,11 @@
     </el-aside>
 
     <!-- ═══════════════════════════════════
-         MAIN CONTENT
+         MAIN CONTENT (no topbar)
     ═══════════════════════════════════ -->
-    <el-container class="main-container">
-      <!-- Topbar -->
-      <el-header class="topbar" height="64px">
-        <div class="topbar-inner">
-          <div class="topbar-left">
-            <div class="topbar-breadcrumb">
-              <span class="breadcrumb-root">TechStore</span>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="breadcrumb-sep">
-                <path d="M5 3l4 4-4 4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span class="breadcrumb-current">{{ pageTitle }}</span>
-            </div>
-          </div>
-
-          <div class="topbar-right">
-            <el-button class="btn-customer" @click="go('/')">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="margin-right:5px">
-                <circle cx="6.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.3"/>
-                <path d="M1 12c0-3.03 2.46-5.5 5.5-5.5S12 8.97 12 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-              </svg>
-              Customer View
-            </el-button>
-          </div>
-        </div>
-      </el-header>
-
-      <el-main class="content-main">
-        <router-view />
-      </el-main>
-    </el-container>
+    <el-main class="content-main">
+      <router-view />
+    </el-main>
   </el-container>
 </template>
 
@@ -269,7 +251,6 @@ const router = useRouter();
 const auth   = useAuthStore();
 
 const activePath = computed(() => route.path);
-const pageTitle  = computed(() => route.meta?.title || "System");
 
 const initials = (name) =>
   name ? name.split(" ").slice(-2).map(n => n[0]).join("").toUpperCase() : "SY";
@@ -295,25 +276,35 @@ async function logout() {
   height: 100vh;
   background: #f1f5f9;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  display: flex;
+  overflow: hidden; /* Ngăn layout tổng bị scroll */
 }
 
 /* ═══════════════════════════════════
-   SIDEBAR
+   SIDEBAR — fixed, không scroll ngoài
 ═══════════════════════════════════ */
 .sidebar {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 256px !important;
   background: #0f172a;
   display: flex;
   flex-direction: column;
-  padding: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden; /* Sidebar không scroll — chỉ .sidebar-scroll cuộn */
   border-right: 1px solid rgba(255,255,255,0.05);
-  position: relative;
-  /* Ẩn scrollbar nhưng vẫn scroll được */
-  scrollbar-width: none;
+  z-index: 100;
 }
 
-.sidebar::-webkit-scrollbar { display: none; }
+/* Vùng menu cuộn độc lập, footer không bị đẩy xuống */
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.sidebar-scroll::-webkit-scrollbar { display: none; }
 
 .sidebar::before {
   content: '';
@@ -336,95 +327,50 @@ async function logout() {
   z-index: 1;
   flex-shrink: 0;
 }
-
 .sidebar-brand:hover .brand-name { color: #93c5fd; }
-
 .brand-logo { flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(59,130,246,0.4)); }
-
 .brand-text { display: flex; flex-direction: column; gap: 1px; }
-
 .brand-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #f8fafc;
-  letter-spacing: -0.3px;
-  transition: color 0.15s;
+  font-size: 16px; font-weight: 700; color: #f8fafc;
+  letter-spacing: -0.3px; transition: color 0.15s;
 }
-
 .brand-sub { font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.5px; }
 
 /* USER PILL */
 .role-badge {
-  display: flex;
-  align-items: center;
-  gap: 9px;
+  display: flex; align-items: center; gap: 9px;
   margin: 0 14px 12px;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
-  padding: 9px 11px;
-  flex-shrink: 0;
+  border-radius: 8px; padding: 9px 11px; flex-shrink: 0;
 }
-
 .role-avatar {
-  width: 30px; height: 30px;
-  border-radius: 7px;
+  width: 30px; height: 30px; border-radius: 7px;
   background: linear-gradient(135deg, #3b82f6, #6366f1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: white; flex-shrink: 0;
 }
-
-.role-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
+.role-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .role-name {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #e2e8f0;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12.5px; font-weight: 600; color: #e2e8f0;
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
 .role-tag {
-  font-size: 9.5px;
-  font-weight: 700;
-  color: #22d3ee;
-  letter-spacing: 0.8px;
-  background: rgba(34,211,238,0.1);
-  border: 1px solid rgba(34,211,238,0.2);
-  padding: 1px 6px;
-  border-radius: 4px;
-  display: inline-block;
-  width: fit-content;
+  font-size: 9.5px; font-weight: 700; color: #22d3ee; letter-spacing: 0.8px;
+  background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.2);
+  padding: 1px 6px; border-radius: 4px; display: inline-block; width: fit-content;
 }
 
 /* DIVIDER */
 .sidebar-divider {
-  height: 1px;
-  background: rgba(255,255,255,0.06);
-  margin: 0 14px 8px;
-  flex-shrink: 0;
+  height: 1px; background: rgba(255,255,255,0.06);
+  margin: 0 14px 8px; flex-shrink: 0;
 }
 
 /* NAV SECTION LABELS */
 .nav-section-label {
-  font-size: 9.5px;
-  font-weight: 700;
-  color: #334155;
-  letter-spacing: 1.2px;
-  padding: 10px 20px 5px;
-  flex-shrink: 0;
+  font-size: 9.5px; font-weight: 700; color: #334155;
+  letter-spacing: 1.2px; padding: 10px 20px 5px; flex-shrink: 0;
 }
 
 /* ─── MENU ─── */
@@ -435,106 +381,58 @@ async function logout() {
   flex: 1;
 }
 
-/* Top-level menu items */
 .sidebar-menu :deep(.el-menu-item) {
-  border-radius: 7px;
-  margin-bottom: 1px;
-  height: auto !important;
-  padding: 0 !important;
+  border-radius: 7px; margin-bottom: 1px;
+  height: auto !important; padding: 0 !important;
   line-height: normal !important;
-  background: transparent !important;
-  color: #94a3b8 !important;
+  background: transparent !important; color: #94a3b8 !important;
 }
-
 .sidebar-menu :deep(.el-menu-item:hover) {
   background: rgba(255,255,255,0.06) !important;
 }
-
 .sidebar-menu :deep(.el-menu-item.is-active) {
   background: rgba(59,130,246,0.16) !important;
   border: 1px solid rgba(59,130,246,0.28) !important;
 }
+.sidebar-menu :deep(.el-menu-item.is-active .menu-item-inner) { color: #93c5fd; }
+.sidebar-menu :deep(.el-menu-item.is-active .menu-icon) { color: #3b82f6; }
 
-.sidebar-menu :deep(.el-menu-item.is-active .menu-item-inner) {
-  color: #93c5fd;
-}
-
-.sidebar-menu :deep(.el-menu-item.is-active .menu-icon) {
-  color: #3b82f6;
-}
-
-/* Sub-menu title */
 .sidebar-menu :deep(.el-sub-menu__title) {
-  border-radius: 7px !important;
-  height: auto !important;
-  line-height: normal !important;
-  padding: 0 !important;
-  background: transparent !important;
-  color: #94a3b8 !important;
-  margin-bottom: 1px;
+  border-radius: 7px !important; height: auto !important;
+  line-height: normal !important; padding: 0 !important;
+  background: transparent !important; color: #94a3b8 !important; margin-bottom: 1px;
 }
-
 .sidebar-menu :deep(.el-sub-menu__title:hover) {
-  background: rgba(255,255,255,0.06) !important;
-  color: #e2e8f0 !important;
+  background: rgba(255,255,255,0.06) !important; color: #e2e8f0 !important;
 }
-
-/* Sub-menu arrow */
-.sidebar-menu :deep(.el-sub-menu__icon-arrow) {
-  color: #475569 !important;
-  right: 12px;
-}
-
-/* Sub-menu popup */
+.sidebar-menu :deep(.el-sub-menu__icon-arrow) { color: #475569 !important; right: 12px; }
 .sidebar-menu :deep(.el-sub-menu .el-menu) {
-  background: transparent !important;
-  padding: 2px 0 4px 8px;
+  background: transparent !important; padding: 2px 0 4px 8px;
 }
-
-/* Sub-menu child items */
 .sidebar-menu :deep(.el-sub-menu .el-menu-item) {
-  font-size: 13.5px !important;
-  color: #94a3b8 !important;
-  padding: 9px 10px 9px 36px !important;
-  height: auto !important;
-  min-height: 38px !important;
-  line-height: 1.4 !important;
-  border-radius: 6px !important;
-  margin-bottom: 2px;
+  font-size: 13.5px !important; color: #94a3b8 !important;
+  padding: 9px 10px 9px 36px !important; height: auto !important;
+  min-height: 38px !important; line-height: 1.4 !important;
+  border-radius: 6px !important; margin-bottom: 2px;
 }
-
 .sidebar-menu :deep(.el-sub-menu .el-menu-item:hover) {
-  background: rgba(255,255,255,0.06) !important;
-  color: #e2e8f0 !important;
+  background: rgba(255,255,255,0.06) !important; color: #e2e8f0 !important;
 }
-
 .sidebar-menu :deep(.el-sub-menu .el-menu-item.is-active) {
   background: rgba(59,130,246,0.14) !important;
-  border: 1px solid rgba(59,130,246,0.24) !important;
-  color: #93c5fd !important;
+  border: 1px solid rgba(59,130,246,0.24) !important; color: #93c5fd !important;
 }
 
-/* menu-item-inner layout */
 .menu-item-inner {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 10px;
-  color: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  width: 100%;
-  transition: color 0.15s;
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 10px; color: inherit;
+  font-size: 13px; font-weight: 500;
+  width: 100%; transition: color 0.15s;
 }
-
 .menu-icon {
   width: 20px; height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #475569;
-  transition: color 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: #475569; transition: color 0.15s;
 }
 
 /* SIDEBAR FOOTER */
@@ -542,26 +440,45 @@ async function logout() {
   padding: 10px 14px 14px;
   border-top: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
+/* Customer View button */
+.btn-customer-view {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 14px;
+  background: rgba(59,130,246,0.08);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 8px;
+  color: #93c5fd;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.btn-customer-view:hover {
+  background: rgba(59,130,246,0.15);
+  border-color: rgba(59,130,246,0.4);
+  color: #bfdbfe;
+}
+
+/* Logout button */
 .logout-btn {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
   padding: 9px 14px;
   background: rgba(239,68,68,0.08);
   border: 1px solid rgba(239,68,68,0.2);
   border-radius: 8px;
   color: #f87171;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13px; font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   font-family: inherit;
 }
-
 .logout-btn:hover {
   background: rgba(239,68,68,0.15);
   border-color: rgba(239,68,68,0.35);
@@ -569,78 +486,17 @@ async function logout() {
 }
 
 /* ═══════════════════════════════════
-   MAIN
+   CONTENT — offset sidebar, ẩn scrollbar
 ═══════════════════════════════════ */
-.main-container {
-  flex: 1;
-  min-width: 0;
-  background: #f1f5f9;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* TOPBAR */
-.topbar {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.topbar-inner {
-  height: 100%;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.topbar-breadcrumb { display: flex; align-items: center; gap: 6px; }
-
-.breadcrumb-root { font-size: 13px; color: #9ca3af; font-weight: 500; }
-.breadcrumb-sep  { color: #d1d5db; }
-.breadcrumb-current { font-size: 13px; color: #374151; font-weight: 600; }
-
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-
-.btn-customer {
-  border-color: #e5e7eb !important;
-  color: #374151 !important;
-  font-size: 12.5px !important;
-  font-weight: 500 !important;
-  border-radius: 8px !important;
-  background: #f9fafb !important;
-}
-
-.btn-customer:hover {
-  border-color: #3b82f6 !important;
-  color: #2563eb !important;
-  background: #eff6ff !important;
-}
-
-.notif-btn {
-  border-color: #e5e7eb !important;
-  background: #f9fafb !important;
-}
-
-.topbar-avatar {
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: white;
-  cursor: pointer;
-}
-
-/* CONTENT */
 .content-main {
+  margin-left: 256px;      /* Đẩy nội dung sang phải tránh bị sidebar che */
   padding: 24px;
+  height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  /* Ẩn scrollbar nhưng vẫn scroll được */
+  scrollbar-width: none;
 }
+.content-main::-webkit-scrollbar { display: none; }
 </style>
