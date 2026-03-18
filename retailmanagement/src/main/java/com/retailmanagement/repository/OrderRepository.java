@@ -74,35 +74,47 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByCustomerIdAndStatus(Integer customerId, String status);
 
-    @Query("""
-            SELECT o.channel, SUM(o.totalAmount)
-            FROM Order o
-            WHERE o.status = 'DELIVERED'
-            GROUP BY o.channel
-            """)
+    @Query(value = """
+            SELECT channel, SUM(total_amount) AS revenue
+            FROM orders
+            WHERE status = 'DELIVERED'
+            GROUP BY channel
+            """, nativeQuery = true)
     List<Object[]> revenueByChannel();
 
-
-    @Query("""
-            SELECT CAST(o.createdAt AS date), SUM(o.totalAmount)
-            FROM Order o
-            WHERE o.status = 'DELIVERED'
-            GROUP BY CAST(o.createdAt AS date)
-            ORDER BY CAST(o.createdAt AS date)
-            """)
+    @Query(value = """
+            SELECT CAST(created_at AS date) AS date,
+                   SUM(total_amount)        AS revenue
+            FROM orders
+            WHERE status = 'DELIVERED'
+            GROUP BY CAST(created_at AS date)
+            ORDER BY CAST(created_at AS date)
+            """, nativeQuery = true)
     List<Object[]> revenueByDate();
 
-
-    @Query("""
-            SELECT u.username, COUNT(o.id)
-            FROM Order o
-            JOIN o.user u
+    @Query(value = """
+            SELECT u.username, COUNT(o.id) AS orders
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
             WHERE u.role = 'SALES'
             GROUP BY u.username
             ORDER BY COUNT(o.id) DESC
-            """)
+            """, nativeQuery = true)
     List<Object[]> ordersByStaff();
 
     List<Order> findByAppliedPromotionCodeOrderByCreatedAtDesc(String appliedPromotionCode);
-}
 
+    /**
+     * Tổng hợp doanh thu theo trạng thái đơn hàng.
+     * Trả về: [status, orderCount, totalRevenue]
+     */
+    @Query(value = """
+    SELECT status,
+           COUNT(id)          AS orderCount,
+           SUM(total_amount)  AS totalRevenue
+    FROM orders
+    GROUP BY status
+    ORDER BY COUNT(id) DESC
+    """, nativeQuery = true)
+    List<Object[]> revenueByStatus();
+}

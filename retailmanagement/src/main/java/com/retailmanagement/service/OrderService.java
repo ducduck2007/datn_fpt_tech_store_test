@@ -211,11 +211,16 @@ public class OrderService {
         order.setShippingFee(BigDecimal.ZERO);
         order.setTotalAmount(BigDecimal.ZERO);
         order.setOrderNumber(generateOrderNumber());
+        order.setShippingAddress(customer.getAddress());
         order.setCreatedAt(Instant.now());
         order.setUpdatedAt(Instant.now());
 
         order = orderRepository.save(order);
 
+        BigDecimal shippingFee = request.getShippingFee() != null
+                ? request.getShippingFee()
+                : BigDecimal.ZERO;
+        order.setShippingFee(shippingFee);
 
         BigDecimal subtotal = BigDecimal.ZERO;
         for (CreateOrderItemRequest itemReq : request.getItems()) {
@@ -237,13 +242,21 @@ public class OrderService {
             order.setAppliedPromotionCode(discountCalc.getPromoCode());
         }
 
+        // Phần discount phân bổ xuống OrderItem = tổng discount - shippingFee
+        // để sum(lineDiscount) + shippingFee = discountTotal (khớp với order)
+        BigDecimal effectiveDiscount = discountCalc.getTotalDiscount()
+                .subtract(shippingFee)
+                .max(BigDecimal.ZERO);
+
         BigDecimal totalDiscountRate = BigDecimal.ZERO;
         if (subtotal.compareTo(BigDecimal.ZERO) > 0) {
-            totalDiscountRate = discountCalc.getTotalDiscount()
+            totalDiscountRate = effectiveDiscount
                     .divide(subtotal, 4, RoundingMode.HALF_UP);
         }
 
         List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
+        BigDecimal totalLineDiscount = BigDecimal.ZERO; // ← theo dõi tổng đã phân bổ
+        int itemIndex = 0;
 
         for (CreateOrderItemRequest itemReq : request.getItems()) {
             ProductVariant variant = variantRepository.findById(itemReq.getVariantId())
@@ -256,9 +269,19 @@ public class OrderService {
 
             BigDecimal lineSubtotal = variant.getPrice()
                     .multiply(BigDecimal.valueOf(itemReq.getQuantity()));
-            BigDecimal lineDiscount = lineSubtotal
-                    .multiply(totalDiscountRate)
-                    .setScale(0, RoundingMode.HALF_UP);
+
+            BigDecimal lineDiscount;
+            itemIndex++;
+            if (itemIndex == request.getItems().size()) {
+                // Item cuối: lấy phần còn lại để tránh lệch do làm tròn
+                lineDiscount = effectiveDiscount.subtract(totalLineDiscount);
+            } else {
+                lineDiscount = lineSubtotal
+                        .multiply(totalDiscountRate)
+                        .setScale(0, RoundingMode.HALF_UP);
+                totalLineDiscount = totalLineDiscount.add(lineDiscount);
+            }
+
             BigDecimal lineTotal = lineSubtotal.subtract(lineDiscount);
 
             OrderItem item = new OrderItem();
@@ -510,6 +533,9 @@ public class OrderService {
                 order.getShippingFee(),
                 order.getTotalAmount(),
                 order.getCreatedAt(),
+                order.getDeliveredAt(),
+                order.getCancelledAt(),
+                order.getPaidAt(),
                 items,
                 order.getAppliedPromotionCode(),
                 order.getAppliedPromotionJson()

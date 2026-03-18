@@ -56,4 +56,24 @@ public class ReportController {
     public ResponseEntity<?> promotionConflicts() {
         return ResponseEntity.ok(promotionService.detectConflicts());
     }
+
+    /**
+     * Tổng hợp doanh thu theo trạng thái đơn hàng.
+     * GET /api/reports/revenue-by-status
+     * Response: [{ status, orderCount, totalRevenue }]
+     */
+    @GetMapping("/revenue-by-status")
+    public ResponseEntity<?> revenueByStatus() {
+        return ResponseEntity.ok(reportService.revenueByStatus());
+    }
+
+    /**
+     * Thống kê trả hàng theo sản phẩm (loại trừ REJECTED).
+     * GET /api/reports/returns-by-product
+     * Response: [{ productName, sku, variantName, returnCount, totalQty, totalRefund }]
+     */
+    @GetMapping("/returns-by-product")
+    public ResponseEntity<?> returnsByProduct() {
+        return ResponseEntity.ok(reportService.returnStatsByProduct());
+    }
 }

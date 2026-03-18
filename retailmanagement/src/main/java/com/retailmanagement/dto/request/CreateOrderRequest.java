@@ -2,6 +2,7 @@ package com.retailmanagement.dto.request;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -12,6 +13,7 @@ public class CreateOrderRequest {
     private String channel;        // ONLINE / OFFLINE
     private String notes;
     private String promotionCode;  // ✅ THÊM MỚI: mã giảm giá (nullable, VD: "BIRTHDAY250K")
+    private BigDecimal shippingFee;     // ✅ THÊM MỚI: phí vận chuyển (nullable, VD: 15000)
 
     private List<CreateOrderItemRequest> items;
 }
