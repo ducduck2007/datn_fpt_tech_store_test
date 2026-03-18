@@ -30,7 +30,7 @@ public class ReportController {
     }
 
     /**
-     * ✅ THÊM MỚI (7.1): Báo cáo khuyến mãi đang áp dụng
+     * Báo cáo khuyến mãi đang áp dụng
      * GET /api/reports/promotions/active
      */
     @GetMapping("/promotions/active")
@@ -39,7 +39,7 @@ public class ReportController {
     }
 
     /**
-     * ✅ THÊM MỚI (7.2 + 7.3): Báo cáo giá & KM theo tuần/tháng
+     * Báo cáo giá & KM theo tuần/tháng
      * GET /api/reports/promotions/summary?period=week|month
      */
     @GetMapping("/promotions/summary")
@@ -49,7 +49,7 @@ public class ReportController {
     }
 
     /**
-     * ✅ THÊM MỚI (7.5): Cảnh báo xung đột khuyến mãi
+     * Cảnh báo xung đột khuyến mãi
      * GET /api/reports/promotions/conflicts
      */
     @GetMapping("/promotions/conflicts")
@@ -75,5 +75,35 @@ public class ReportController {
     @GetMapping("/returns-by-product")
     public ResponseEntity<?> returnsByProduct() {
         return ResponseEntity.ok(reportService.returnStatsByProduct());
+    }
+
+    /**
+     * ✅ THÊM MỚI: Doanh thu theo tuần (DELIVERED).
+     * GET /api/reports/revenue-by-week
+     * Response: [{ weekStart, revenue }]
+     */
+    @GetMapping("/revenue-by-week")
+    public ResponseEntity<?> revenueByWeek() {
+        return ResponseEntity.ok(reportService.revenueByWeek());
+    }
+
+    /**
+     * ✅ THÊM MỚI: Doanh thu theo tháng (DELIVERED).
+     * GET /api/reports/revenue-by-month
+     * Response: [{ monthStart, revenue }]
+     */
+    @GetMapping("/revenue-by-month")
+    public ResponseEntity<?> revenueByMonth() {
+        return ResponseEntity.ok(reportService.revenueByMonth());
+    }
+
+    /**
+     * ✅ THÊM MỚI: Top sản phẩm bán chạy theo số lượng (DELIVERED).
+     * GET /api/reports/top-selling-products
+     * Response: [{ productName, sku, variantName, totalQty, totalRevenue }]
+     */
+    @GetMapping("/top-selling-products")
+    public ResponseEntity<?> topSellingProducts() {
+        return ResponseEntity.ok(reportService.topSellingProducts());
     }
 }

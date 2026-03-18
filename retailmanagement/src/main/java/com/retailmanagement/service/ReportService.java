@@ -77,4 +77,43 @@ public class ReportService {
                 ))
                 .toList();
     }
+
+    /** Doanh thu theo tuần. Mỗi phần tử: { weekStart, revenue } */
+    public List<Map<String, Object>> revenueByWeek() {
+        return orderRepository.revenueByWeek()
+                .stream()
+                .map(r -> Map.of(
+                        "weekStart", r[0],
+                        "revenue",   r[1] != null ? r[1] : 0
+                ))
+                .toList();
+    }
+
+    /** Doanh thu theo tháng. Mỗi phần tử: { monthStart, revenue } */
+    public List<Map<String, Object>> revenueByMonth() {
+        return orderRepository.revenueByMonth()
+                .stream()
+                .map(r -> Map.of(
+                        "monthStart", r[0],
+                        "revenue",    r[1] != null ? r[1] : 0
+                ))
+                .toList();
+    }
+
+    /**
+     * Top sản phẩm bán chạy.
+     * Mỗi phần tử: { productName, sku, variantName, totalQty, totalRevenue }
+     */
+    public List<Map<String, Object>> topSellingProducts() {
+        return orderRepository.topSellingProducts()
+                .stream()
+                .map(r -> Map.of(
+                        "productName",  r[0],
+                        "sku",          r[1] != null ? r[1] : "",
+                        "variantName",  r[2] != null ? r[2] : "",
+                        "totalQty",     r[3],
+                        "totalRevenue", r[4] != null ? r[4] : 0
+                ))
+                .toList();
+    }
 }

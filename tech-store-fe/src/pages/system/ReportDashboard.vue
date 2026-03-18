@@ -273,6 +273,197 @@
       </el-table>
     </section>
 
+    <!-- ── Row 2b: Doanh thu theo Tuần / Tháng ───── -->
+    <section class="rp-card rp-card--full">
+      <div class="rp-card__header">
+        <div class="rp-card__title-group">
+          <span class="rp-icon rp-icon--blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+              <polyline points="17 6 23 6 23 12"/>
+            </svg>
+          </span>
+          <div>
+            <h3 class="rp-card__title">Tổng hợp doanh thu</h3>
+            <p class="rp-card__desc">Revenue Summary · Tuần / Tháng</p>
+          </div>
+        </div>
+        <!-- Period toggle -->
+        <div class="period-toggle">
+          <button
+            v-for="p in periods"
+            :key="p.key"
+            class="period-btn"
+            :class="{ 'period-btn--active': activePeriod === p.key }"
+            @click="activePeriod = p.key"
+          >{{ p.label }}</button>
+        </div>
+      </div>
+
+      <!-- Summary KPI strip -->
+      <div class="period-kpi-row" v-if="activePeriodData.length">
+        <div class="period-kpi">
+          <span class="period-kpi__label">Tổng doanh thu</span>
+          <span class="period-kpi__val">{{ formatMoney(periodTotalRevenue) }}&thinsp;₫</span>
+        </div>
+        <div class="period-kpi">
+          <span class="period-kpi__label">Số kỳ</span>
+          <span class="period-kpi__val">{{ activePeriodData.length }}</span>
+        </div>
+        <div class="period-kpi">
+          <span class="period-kpi__label">TB / kỳ</span>
+          <span class="period-kpi__val">
+            {{ formatMoney(Math.round(periodTotalRevenue / activePeriodData.length)) }}&thinsp;₫
+          </span>
+        </div>
+        <div class="period-kpi">
+          <span class="period-kpi__label">Cao nhất</span>
+          <span class="period-kpi__val period-kpi__val--green">
+            {{ formatMoney(Math.max(...activePeriodData.map(r => Number(r.revenue)))) }}&thinsp;₫
+          </span>
+        </div>
+      </div>
+
+      <!-- Vertical bar chart -->
+      <div class="period-chart" v-if="activePeriodData.length">
+        <div
+          class="period-bar-col"
+          v-for="(row, idx) in activePeriodData"
+          :key="idx"
+          :title="`${formatPeriodLabel(row)} — ${formatMoney(row.revenue)} ₫`"
+        >
+          <span class="period-bar-val">{{ formatMoneyShort(row.revenue) }}</span>
+          <div class="period-bar-track">
+            <div
+              class="period-bar-fill"
+              :style="{
+                height: (Number(row.revenue) / Math.max(...activePeriodData.map(r => Number(r.revenue)))) * 100 + '%'
+              }"
+            ></div>
+          </div>
+          <span class="period-bar-label">{{ formatPeriodLabel(row) }}</span>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <el-table :data="activePeriodData" class="rp-table" :max-height="360">
+        <el-table-column type="index" label="#" width="52"/>
+        <el-table-column label="Kỳ" min-width="200">
+          <template #default="{ row }">
+            <span class="mono-val mono-val--sm">{{ formatPeriodLabel(row) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Doanh thu" align="right">
+          <template #default="{ row }">
+            <span class="mono-val">{{ formatMoney(row.revenue) }}&thinsp;₫</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="vs Trung bình" align="right" width="150">
+          <template #default="{ row }">
+            <span
+              class="vs-avg"
+              :class="Number(row.revenue) >= periodAvgRevenue ? 'vs-avg--up' : 'vs-avg--down'"
+            >
+              {{ Number(row.revenue) >= periodAvgRevenue ? '▲' : '▼' }}
+              {{ Math.abs(((Number(row.revenue) - periodAvgRevenue) / periodAvgRevenue) * 100).toFixed(0) }}%
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="% Tổng" align="right" width="110">
+          <template #default="{ row }">
+            <span class="pct-val">
+              {{ ((Number(row.revenue) / periodTotalRevenue) * 100).toFixed(1) }}%
+            </span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="!activePeriodData.length" class="empty-state">Chưa có dữ liệu</div>
+    </section>
+
+    <!-- ── Top sản phẩm bán chạy ─────────────────── -->
+    <section class="rp-card rp-card--full">
+      <div class="rp-card__header">
+        <div class="rp-card__title-group">
+          <span class="rp-icon rp-icon--orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </span>
+          <div>
+            <h3 class="rp-card__title">Top sản phẩm bán chạy</h3>
+            <p class="rp-card__desc">Best-selling Products · DELIVERED</p>
+          </div>
+        </div>
+        <span class="rp-badge-count">Top {{ topProducts.length }}</span>
+      </div>
+
+      <!-- Horizontal bar visualization -->
+      <div class="top-product-list" v-if="topProducts.length">
+        <div class="top-product-row" v-for="(p, idx) in topProducts" :key="idx">
+          <div class="top-product-row__rank" :class="`rank-${Math.min(idx + 1, 3)}`">
+            {{ idx + 1 }}
+          </div>
+          <div class="top-product-row__info">
+            <div class="top-product-row__names">
+              <span class="top-product-row__name">{{ p.productName }}</span>
+              <span class="top-product-row__variant" v-if="p.variantName">{{ p.variantName }}</span>
+              <span class="top-product-row__sku" v-if="p.sku">{{ p.sku }}</span>
+            </div>
+            <div class="top-product-bar-track">
+              <div
+                class="top-product-bar-fill"
+                :class="idx < 3 ? `top-bar--rank${idx + 1}` : 'top-bar--default'"
+                :style="{ width: (Number(p.totalQty) / Number(topProducts[0].totalQty)) * 100 + '%' }"
+              ></div>
+            </div>
+          </div>
+          <div class="top-product-row__stats">
+            <span class="top-product-qty">{{ p.totalQty }}&thinsp;SP</span>
+            <span class="top-product-rev">{{ formatMoney(p.totalRevenue) }}&thinsp;₫</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed table -->
+      <el-table :data="topProducts" class="rp-table" :max-height="420" v-if="topProducts.length">
+        <el-table-column type="index" label="#" width="52"/>
+        <el-table-column label="Sản phẩm" min-width="220">
+          <template #default="{ row }">
+            <div class="return-cell">
+              <span class="return-cell__name">{{ row.productName }}</span>
+              <span class="return-cell__variant" v-if="row.variantName">{{ row.variantName }}</span>
+              <span class="return-cell__sku" v-if="row.sku">{{ row.sku }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="SL bán" align="right" width="100">
+          <template #default="{ row }">
+            <span class="qty-badge">{{ row.totalQty }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Doanh thu" align="right" min-width="160">
+          <template #default="{ row }">
+            <span class="mono-val">{{ formatMoney(row.totalRevenue) }}&thinsp;₫</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="% SL" align="right" width="100">
+          <template #default="{ row }">
+            <span class="pct-val">
+              {{ totalTopQty ? ((Number(row.totalQty) / totalTopQty) * 100).toFixed(1) : 0 }}%
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="% Doanh thu" align="right" width="120">
+          <template #default="{ row }">
+            <span class="pct-val">
+              {{ totalTopRevenue ? ((Number(row.totalRevenue) / totalTopRevenue) * 100).toFixed(1) : 0 }}%
+            </span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-else class="empty-state">Chưa có dữ liệu sản phẩm</div>
+    </section>
+
     <!-- ── Row 3: Status + Returns ───────────────── -->
     <div class="rp-grid rp-grid--2col">
 
@@ -396,16 +587,29 @@
 import { ref, computed, onMounted } from "vue";
 import reportsApi from "../../api/report.api";
 
-const channelData = ref([]);
+// ── State ──────────────────────────────────────────────────────────────────
+const channelData  = ref([]);
 const dateData     = ref([]);
 const staffData    = ref([]);
 const statusData   = ref([]);
 const returnsData  = ref([]);
+const weekData     = ref([]);
+const monthData    = ref([]);
+const topProducts  = ref([]);
 
+// ── Filter (date table) ────────────────────────────────────────────────────
 const filterFrom  = ref(null);
 const filterTo    = ref(null);
 const activeQuick = ref(null);
 
+// ── Period toggle (week / month) ───────────────────────────────────────────
+const activePeriod = ref("week");
+const periods = [
+  { key: "week",  label: "Theo tuần"  },
+  { key: "month", label: "Theo tháng" },
+];
+
+// ── Static ─────────────────────────────────────────────────────────────────
 const todayFormatted = new Date().toLocaleDateString("vi-VN", {
   weekday: "long", year: "numeric", month: "long", day: "numeric",
 });
@@ -448,6 +652,51 @@ const quickRanges = [
   },
 ];
 
+// ── Computed ───────────────────────────────────────────────────────────────
+const totalRevenue = computed(() =>
+  channelData.value.reduce((s, r) => s + Number(r.revenue || 0), 0),
+);
+const totalOrders = computed(() =>
+  staffData.value.reduce((s, r) => s + Number(r.orders || 0), 0),
+);
+const avgRevenue = computed(() =>
+  dateData.value.length
+    ? dateData.value.reduce((s, r) => s + Number(r.revenue), 0) / dateData.value.length
+    : 0,
+);
+const filteredDateData = computed(() => {
+  let data = dateData.value;
+  if (filterFrom.value) data = data.filter(r => (r.date?.substring(0, 10) ?? "") >= filterFrom.value);
+  if (filterTo.value)   data = data.filter(r => (r.date?.substring(0, 10) ?? "") <= filterTo.value);
+  return data;
+});
+const filteredTotal = computed(() =>
+  filteredDateData.value.reduce((s, r) => s + Number(r.revenue || 0), 0),
+);
+const totalStatusRevenue = computed(() =>
+  statusData.value.reduce((s, r) => s + Number(r.totalRevenue || 0), 0),
+);
+
+// Period computed
+const activePeriodData = computed(() =>
+  activePeriod.value === "week" ? weekData.value : monthData.value,
+);
+const periodTotalRevenue = computed(() =>
+  activePeriodData.value.reduce((s, r) => s + Number(r.revenue || 0), 0),
+);
+const periodAvgRevenue = computed(() =>
+  activePeriodData.value.length ? periodTotalRevenue.value / activePeriodData.value.length : 0,
+);
+
+// Top products computed
+const totalTopQty = computed(() =>
+  topProducts.value.reduce((s, p) => s + Number(p.totalQty || 0), 0),
+);
+const totalTopRevenue = computed(() =>
+  topProducts.value.reduce((s, p) => s + Number(p.totalRevenue || 0), 0),
+);
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 function toYMD(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -463,37 +712,23 @@ function clearFilter() {
   activeQuick.value = null;
 }
 
-const totalRevenue = computed(() =>
-  channelData.value.reduce((s, r) => s + (r.revenue || 0), 0),
-);
-const totalOrders = computed(() =>
-  staffData.value.reduce((s, r) => s + (r.orders || 0), 0),
-);
-const avgRevenue = computed(() =>
-  dateData.value.length
-    ? dateData.value.reduce((s, r) => s + r.revenue, 0) / dateData.value.length
-    : 0,
-);
-const filteredDateData = computed(() => {
-  let data = dateData.value;
-  if (filterFrom.value) data = data.filter(r => (r.date?.substring(0, 10) ?? "") >= filterFrom.value);
-  if (filterTo.value)   data = data.filter(r => (r.date?.substring(0, 10) ?? "") <= filterTo.value);
-  return data;
-});
-const filteredTotal = computed(() =>
-  filteredDateData.value.reduce((s, r) => s + (r.revenue || 0), 0),
-);
-const totalStatusRevenue = computed(() =>
-  statusData.value.reduce((s, r) => s + Number(r.totalRevenue || 0), 0),
-);
-
 const STATUS_LABEL_MAP = {
   PENDING: "Chờ xử lý", CONFIRMED: "Đã xác nhận", PROCESSING: "Đang xử lý",
   PAID: "Đã thanh toán", SHIPPING: "Đang giao", DELIVERED: "Đã giao",
   CANCELLED: "Đã hủy", RETURNED: "Đã trả hàng", PARTIALLY_RETURNED: "Trả một phần",
 };
 function statusLabel(s) { return STATUS_LABEL_MAP[s] || s; }
-function formatMoney(v) { return new Intl.NumberFormat("vi-VN").format(v); }
+
+function formatMoney(v) {
+  return new Intl.NumberFormat("vi-VN").format(Number(v) || 0);
+}
+function formatMoneyShort(v) {
+  const n = Number(v) || 0;
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + "B";
+  if (n >= 1_000_000)     return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000)         return (n / 1_000).toFixed(0) + "K";
+  return String(n);
+}
 function formatDate(d) {
   if (!d) return d;
   const date = new Date(d);
@@ -504,20 +739,44 @@ function getInitials(name) {
   if (!name) return "?";
   return name.split(/[@.\s]/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join("");
 }
+function getWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+function formatPeriodLabel(row) {
+  const raw = row.weekStart ?? row.monthStart;
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (isNaN(d)) return String(raw).substring(0, 10);
+  if (activePeriod.value === "month") {
+    return d.toLocaleDateString("vi-VN", { year: "numeric", month: "long" });
+  }
+  const weekNum = getWeekNumber(d);
+  return `Tuần ${weekNum} · ${d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}`;
+}
 
+// ── Lifecycle ──────────────────────────────────────────────────────────────
 onMounted(async () => {
-  const [ch, dt, st, sv, rt] = await Promise.all([
+  const [ch, dt, st, sv, rt, wk, mo, tp] = await Promise.all([
     reportsApi.revenueByChannel(),
     reportsApi.revenueByDate(),
     reportsApi.ordersByStaff(),
     reportsApi.revenueByStatus(),
     reportsApi.returnsByProduct(),
+    reportsApi.revenueByWeek(),
+    reportsApi.revenueByMonth(),
+    reportsApi.topSellingProducts(),
   ]);
-  channelData.value = ch.data;
-  dateData.value    = dt.data;
-  staffData.value   = st.data;
-  statusData.value  = sv.data;
-  returnsData.value = rt.data;
+  channelData.value  = ch.data;
+  dateData.value     = dt.data;
+  staffData.value    = st.data;
+  statusData.value   = sv.data;
+  returnsData.value  = rt.data;
+  weekData.value     = wk.data;
+  monthData.value    = mo.data;
+  topProducts.value  = tp.data;
 });
 </script>
 
@@ -580,26 +839,6 @@ onMounted(async () => {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
 }
-
-.rp-header__eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--orange);
-  margin-bottom: 6px;
-}
-.eyebrow-dot {
-  width: 6px; height: 6px;
-  background: var(--orange);
-  border-radius: 50%;
-  animation: blink 2.4s ease-in-out infinite;
-}
-@keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
-
 .rp-header__title {
   font-size: 26px;
   font-weight: 800;
@@ -614,7 +853,6 @@ onMounted(async () => {
   margin: 0;
   font-weight: 500;
 }
-
 .rp-date-pill {
   display: flex;
   align-items: center;
@@ -644,7 +882,6 @@ onMounted(async () => {
   gap: 14px;
   margin-bottom: 24px;
 }
-
 .kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -680,7 +917,6 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 .kpi-card__icon svg { width: 19px; height: 19px; }
-
 .kpi-card--primary .kpi-card__icon { background: var(--orange-lt); color: var(--orange); }
 .kpi-card--online  .kpi-card__icon { background: var(--blue-lt);   color: var(--blue); }
 .kpi-card--offline .kpi-card__icon { background: var(--purple-lt); color: var(--purple); }
@@ -731,9 +967,7 @@ onMounted(async () => {
   gap: 18px;
   margin-bottom: 18px;
 }
-.rp-grid--2col {
-  grid-template-columns: 1fr 1fr;
-}
+.rp-grid--2col { grid-template-columns: 1fr 1fr; }
 
 /* ══════════════════════════════════════════════════
    CARD SHELL
@@ -774,7 +1008,6 @@ onMounted(async () => {
   letter-spacing: .06em;
   font-weight: 600;
 }
-
 .rp-icon {
   width: 36px; height: 36px;
   border-radius: 9px;
@@ -818,9 +1051,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
 }
-.ch-dot {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-}
+.ch-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .ch-dot--online  { background: var(--blue); }
 .ch-dot--offline { background: var(--purple); }
 
@@ -845,7 +1076,7 @@ onMounted(async () => {
   min-width: 42px; text-align: right;
 }
 
-/* Progress bars (shared) */
+/* Progress bars */
 .progress-track {
   height: 7px;
   background: var(--bg);
@@ -918,7 +1149,6 @@ onMounted(async () => {
   transition: background .15s;
 }
 .staff-item:hover { background: var(--bg); }
-
 .staff-item__rank {
   width: 22px; height: 22px;
   border-radius: 50%;
@@ -950,8 +1180,6 @@ onMounted(async () => {
   font-size: 13px; font-weight: 600; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.staff-item__bar-wrap { width: 100%; }
-
 .staff-bar-track {
   width: 100%; height: 4px;
   background: var(--bg);
@@ -984,9 +1212,7 @@ onMounted(async () => {
   background: #f8f9fc;
   border-bottom: 1px solid var(--border);
 }
-.filter-bar__pickers {
-  display: flex; align-items: flex-end; gap: 10px;
-}
+.filter-bar__pickers { display: flex; align-items: flex-end; gap: 10px; }
 .filter-field { display: flex; flex-direction: column; gap: 5px; }
 .filter-field__label {
   font-size: 10px; font-weight: 700;
@@ -994,15 +1220,9 @@ onMounted(async () => {
   color: var(--muted);
 }
 .filter-picker { width: 155px !important; }
+.filter-bar__arrow { font-size: 15px; color: var(--muted-lt); padding-bottom: 4px; }
 
-.filter-bar__arrow {
-  font-size: 15px; color: var(--muted-lt);
-  padding-bottom: 4px;
-}
-.filter-bar__quick {
-  display: flex; align-items: center; gap: 6px;
-  flex-wrap: wrap;
-}
+.filter-bar__quick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .quick-btn {
   height: 30px; padding: 0 11px;
   border-radius: 6px;
@@ -1015,15 +1235,9 @@ onMounted(async () => {
   transition: all .15s;
   white-space: nowrap;
 }
-.quick-btn:hover {
-  border-color: var(--blue); color: var(--blue);
-  background: var(--blue-lt);
-}
-.quick-btn--active {
-  border-color: var(--blue);
-  background: var(--blue);
-  color: #fff;
-}
+.quick-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+.quick-btn--active { border-color: var(--blue); background: var(--blue); color: #fff; }
+
 .clear-btn {
   display: flex; align-items: center; gap: 5px;
   height: 30px; padding: 0 11px;
@@ -1048,13 +1262,231 @@ onMounted(async () => {
   border-radius: 7px;
   padding: 5px 12px;
 }
-.filter-total__label {
-  font-size: 11px; font-weight: 600; color: #9a3412;
-}
+.filter-total__label { font-size: 11px; font-weight: 600; color: #9a3412; }
 .filter-total__value {
   font-family: "JetBrains Mono", monospace;
   font-size: 14px; font-weight: 700;
   color: var(--orange);
+}
+
+/* ══════════════════════════════════════════════════
+   PERIOD TOGGLE + KPI ROW
+══════════════════════════════════════════════════ */
+.period-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+}
+.period-btn {
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.period-btn:hover { color: var(--blue); }
+.period-btn--active {
+  background: var(--surface);
+  color: var(--blue);
+  box-shadow: var(--sh-xs);
+  border: 1px solid var(--border);
+}
+
+.period-kpi-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border-lt);
+}
+.period-kpi {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 22px;
+  border-right: 1px solid var(--border-lt);
+}
+.period-kpi:last-child { border-right: none; }
+.period-kpi__label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted);
+}
+.period-kpi__val {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 16px; font-weight: 700;
+  color: var(--text);
+}
+.period-kpi__val--green { color: var(--green); }
+
+/* ══════════════════════════════════════════════════
+   PERIOD BAR CHART (vertical)
+══════════════════════════════════════════════════ */
+.period-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 20px 22px 16px;
+  overflow-x: auto;
+  min-height: 160px;
+  border-bottom: 1px solid var(--border-lt);
+}
+.period-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 48px;
+  max-width: 90px;
+  cursor: default;
+}
+.period-bar-val {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px; font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.period-bar-track {
+  width: 100%;
+  height: 100px;
+  background: var(--bg);
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.period-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, var(--blue), #38bdf8);
+  border-radius: 4px 4px 0 0;
+  transition: height 1s cubic-bezier(.4,0,.2,1);
+  min-height: 3px;
+}
+.period-bar-col:hover .period-bar-fill {
+  background: linear-gradient(180deg, var(--orange), #fb923c);
+}
+.period-bar-label {
+  font-size: 9px; font-weight: 600;
+  color: var(--muted-lt);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ══════════════════════════════════════════════════
+   TOP PRODUCTS
+══════════════════════════════════════════════════ */
+.top-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--border-lt);
+}
+.top-product-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 9px;
+  transition: background .15s;
+}
+.top-product-row:hover { background: var(--bg); }
+
+.top-product-row__rank {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  font-size: 11px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.top-product-row__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.top-product-row__names {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.top-product-row__name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 280px;
+}
+.top-product-row__variant { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.top-product-row__sku {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px; color: #94a3b8; letter-spacing: .04em;
+}
+
+.top-product-bar-track {
+  width: 100%; height: 5px;
+  background: var(--bg);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.top-product-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 1.2s cubic-bezier(.4,0,.2,1);
+}
+.top-bar--rank1   { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.top-bar--rank2   { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+.top-bar--rank3   { background: linear-gradient(90deg, #ea580c, #fb923c); }
+.top-bar--default { background: linear-gradient(90deg, var(--blue), #38bdf8); }
+
+.top-product-row__stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.top-product-qty {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px; font-weight: 700; color: var(--text);
+  white-space: nowrap;
+}
+.top-product-rev {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px; font-weight: 500; color: var(--muted);
+  white-space: nowrap;
+}
+
+.qty-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--blue-lt);
+  color: var(--blue);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px; font-weight: 700;
 }
 
 /* ══════════════════════════════════════════════════
@@ -1068,19 +1500,13 @@ onMounted(async () => {
   border-bottom: 1px solid var(--border-lt);
 }
 .status-bar-row { display: flex; flex-direction: column; gap: 6px; }
-.status-bar-row__meta {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-}
-.status-bar-row__orders {
-  font-size: 11.5px; font-weight: 500; color: var(--muted);
-  margin-left: auto;
-}
+.status-bar-row__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.status-bar-row__orders { font-size: 11.5px; font-weight: 500; color: var(--muted); margin-left: auto; }
 .status-bar-row__revenue {
   font-family: "JetBrains Mono", monospace;
   font-size: 12.5px; font-weight: 600; color: var(--text);
 }
 
-/* Status chips */
 .status-chip {
   display: inline-block;
   padding: 2px 9px;
@@ -1100,7 +1526,6 @@ onMounted(async () => {
 .status-chip--returned           { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
 .status-chip--partially_returned { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
 
-/* Status fill colors */
 .status-fill { transition: width 1s cubic-bezier(.4,0,.2,1); }
 .status-fill--delivered          { background: linear-gradient(90deg, #10b981, #34d399); }
 .status-fill--paid               { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
@@ -1162,5 +1587,7 @@ onMounted(async () => {
   .rp-header__right { display: none; }
   .filter-bar { flex-direction: column; align-items: stretch; }
   .filter-total { margin-left: 0; }
+  .period-kpi-row { flex-wrap: wrap; }
+  .period-kpi { min-width: 50%; border-bottom: 1px solid var(--border-lt); }
 }
 </style>

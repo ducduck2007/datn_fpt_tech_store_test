@@ -26,4 +26,22 @@ export default {
     return http.get("/api/reports/returns-by-product");
   },
 
+  // ✅ THÊM MỚI: Doanh thu theo tuần
+  // Response: [{ weekStart, revenue }]
+  revenueByWeek() {
+    return http.get("/api/reports/revenue-by-week");
+  },
+
+  // ✅ THÊM MỚI: Doanh thu theo tháng
+  // Response: [{ monthStart, revenue }]
+  revenueByMonth() {
+    return http.get("/api/reports/revenue-by-month");
+  },
+
+  // ✅ THÊM MỚI: Top sản phẩm bán chạy (theo số lượng, DELIVERED)
+  // Response: [{ productName, sku, variantName, totalQty, totalRevenue }]
+  topSellingProducts() {
+    return http.get("/api/reports/top-selling-products");
+  },
+
 };

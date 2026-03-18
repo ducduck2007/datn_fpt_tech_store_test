@@ -31,6 +31,7 @@ import PromotionManager from "../pages/system/PromotionManager.vue";
 import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue";
 import SerialManager from "../pages/system/SerialManager.vue";
+import OrderDashboard from "../pages/system/OrderDashboard.vue";
 
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
 import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
@@ -197,6 +198,13 @@ const routes = [
       },
 
       // ===== Orders =====
+      {
+        path: "order-dashboard",
+        name: "order-dashboard",
+        component: OrderDashboard,
+        meta: { title: "Order Dashboard" },
+      },
+
       {
         path: "orders/:orderId",
         name: "system-order-detail",

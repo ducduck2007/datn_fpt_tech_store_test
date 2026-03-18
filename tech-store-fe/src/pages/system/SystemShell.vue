@@ -92,6 +92,7 @@
               Orders
             </div>
           </template>
+          <el-menu-item index="/system/order-dashboard">Order Dashboard</el-menu-item>
           <el-menu-item index="/system/orders/filter">Order Filter</el-menu-item>
         </el-sub-menu>
 
