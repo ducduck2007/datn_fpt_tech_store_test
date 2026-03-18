@@ -312,6 +312,7 @@ public class OrderService {
             stockTransactionRepository.save(st);
 
             responseItems.add(new CreateOrderResponse.Item(
+                    item.getId(),
                     item.getProduct().getId(),
                     item.getVariant().getId(),
                     item.getProductName(),
@@ -501,6 +502,7 @@ public class OrderService {
 
         List<CreateOrderResponse.Item> items = order.getOrderItems().stream()
                 .map(i -> new CreateOrderResponse.Item(
+                        i.getId(),
                         i.getProduct().getId(),
                         i.getVariant().getId(),
                         i.getProductName(),

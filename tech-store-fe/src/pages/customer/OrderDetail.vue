@@ -28,8 +28,6 @@
                   Returned
                 </span>
               </div>
-
-
             </div>
 
             <div class="order-actions">
@@ -191,7 +189,6 @@
                     <span class="info-label">Kênh</span>
                     <span class="info-value">{{ detail.channel }}</span>
                   </div>
-                  <!-- Hình thức giao hàng (đọc từ notes) -->
                   <div class="info-row">
                     <span class="info-label">Giao hàng</span>
                     <span class="info-value">
@@ -265,7 +262,7 @@
                     </div>
                     <div class="item-stat">
                       <span class="stat-label">Đơn giá</span>
-                      <span class="stat-value">{{ formatMoney(row.price) }}</span>
+                      <span class="stat-value">{{ formatMoney(row.lineTotal) }}</span>
                     </div>
                   </div>
                 </div>
@@ -294,12 +291,10 @@
               <span>-{{ formatMoney(detail.discountTotal - (detail.vipDiscount || 0)) }}</span>
             </div>
 
-            <!-- Phí ship: chỉ hiện khi giao tại nhà -->
             <div v-if="isHomeDelivery" class="totals-row shipping-row">
               <span>🚚 Phí ship</span>
               <span>{{ formatMoney(detail.shippingFee > 0 ? detail.shippingFee : 15000) }}</span>
             </div>
-            <!-- Khi nhận tại cửa hàng: hiện badge miễn phí -->
             <div v-else class="totals-row free-row">
               <span>🏬 Nhận tại cửa hàng</span>
               <span class="free-badge">Miễn phí</span>
@@ -324,7 +319,6 @@
             Thời gian đơn hàng
           </div>
 
-          <!-- Tạo đơn -->
           <div class="ts-card-row">
             <div class="ts-card-icon ts-card-icon--create">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -338,7 +332,6 @@
             </div>
           </div>
 
-          <!-- Thanh toán — hiện khi có paidAt -->
           <template v-if="detail.paidAt">
             <div class="ts-card-connector"></div>
             <div class="ts-card-row ts-card-row--active">
@@ -355,7 +348,6 @@
             </div>
           </template>
 
-          <!-- Đã giao — hiện khi không bị hủy -->
           <template v-if="!detail.cancelledAt">
             <div class="ts-card-connector"></div>
             <div class="ts-card-row" :class="{ 'ts-card-row--active': detail.deliveredAt }">
@@ -385,7 +377,6 @@
             </div>
           </template>
 
-          <!-- Đã hủy — chỉ hiện khi có cancelledAt -->
           <template v-if="detail.cancelledAt">
             <div class="ts-card-connector ts-card-connector--cancelled"></div>
             <div class="ts-card-row ts-card-row--cancelled">
@@ -568,9 +559,10 @@
           <div class="modal-body">
             <div class="form-field">
               <label>Chọn sản phẩm</label>
+              <!-- ✅ FIX 1: dùng item.id thay vì item.productId -->
               <select v-model="returnForm.orderItemId" class="glass-select">
                 <option value="" disabled>Chọn sản phẩm muốn trả</option>
-                <option v-for="item in detail?.items" :key="item.productId" :value="item.productId">
+                <option v-for="item in detail?.items" :key="item.id" :value="item.id">
                   {{ item.productName }} - {{ item.variantName }}
                 </option>
               </select>
@@ -700,14 +692,11 @@ const cardForm = reactive({
 });
 const qrCodeUrl = ref("");
 
-// ── Detect delivery method từ notes ──────────────────────────────
-// buildNotes() bên create ghi: "Giao tại nhà" hoặc "Nhận tại cửa hàng"
 const isHomeDelivery = computed(() => {
   if (!detail.value?.notes) return false;
   return detail.value.notes.toLowerCase().includes("giao tại nhà");
 });
 
-// ── Timeline steps ────────────────────────────────────────────────
 const timelineSteps = computed(() => {
   if (!detail.value) return [];
   const s = detail.value.status;
@@ -732,7 +721,6 @@ const timelineSteps = computed(() => {
   }));
 });
 
-// ── Timeline progress percentage ─────────────────────────────────
 const timelineProgressPercent = computed(() => {
   if (!detail.value || !timelineSteps.value.length) return 0;
   const total = timelineSteps.value.length;
@@ -741,7 +729,6 @@ const timelineProgressPercent = computed(() => {
   return Math.round((currentIdx / (total - 1)) * 100);
 });
 
-// ── Return window: 24h từ delivered_at ───────────────────────────
 const isReturnWindowOpen = computed(() => {
   if (detail.value?.status !== "DELIVERED") return false;
   const deliveredAt = detail.value?.deliveredAt;
@@ -750,7 +737,6 @@ const isReturnWindowOpen = computed(() => {
   return elapsed < 24 * 60 * 60 * 1000;
 });
 
-// ── Đếm ngược thời gian còn lại trong cửa sổ 24h ────────────────
 const returnTimeLeft = computed(() => {
   const deliveredAt = detail.value?.deliveredAt;
   if (!deliveredAt) return "";
@@ -761,7 +747,6 @@ const returnTimeLeft = computed(() => {
   return h > 0 ? `${h}h ${m}p` : `${m} phút`;
 });
 
-// ── Parse notes (pipe-separated) ─────────────────────────────────
 function parseNotes(notes) {
   if (!notes) return [];
   return notes
@@ -786,7 +771,6 @@ function getNoteTypeLabel(type) {
   return map[type] || "Ghi chú";
 }
 
-// ── Format datetime "HH:mm · DD/MM/YYYY" ─────────────────────────
 function formatDateTime(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
@@ -813,16 +797,24 @@ const estimatedSpinDiscount = computed(() => {
   return Math.round((detail.value.subtotal * spinStatus.bonusRate) / 100);
 });
 
+// ✅ FIX 1 + FIX 2: tìm theo item.id, tính refundAmount từ lineTotal
 watch(() => returnForm.orderItemId, (newItemId) => {
   if (!newItemId || !detail.value?.items) return;
-  const item = detail.value.items.find((i) => i.productId === newItemId);
-  if (item) { returnForm.quantity = 1; returnForm.refundAmount = item.price; }
+  const item = detail.value.items.find((i) => i.id === newItemId);
+  console.log('ITEM FOUND:', item);
+  if (item) {
+    returnForm.quantity = 1;
+    returnForm.refundAmount = Math.round(item.lineTotal / item.quantity);
+  }
 });
 
 watch(() => returnForm.quantity, (newQty) => {
   if (!returnForm.orderItemId || !detail.value?.items) return;
-  const item = detail.value.items.find((i) => i.productId === returnForm.orderItemId);
-  if (item) returnForm.refundAmount = item.price * newQty;
+  const item = detail.value.items.find((i) => i.id === returnForm.orderItemId);
+  console.log('ITEM FOUND:', item);
+  if (item) {
+    returnForm.refundAmount = Math.round((item.lineTotal / item.quantity) * newQty);
+  }
 });
 
 function formatMoney(val) {
@@ -884,9 +876,10 @@ function getCancelWarningMessage() {
   return `<p>Đơn chưa thanh toán sẽ được hủy miễn phí.</p>`;
 }
 
+// ✅ FIX 1: tìm theo item.id
 function getMaxReturnQuantity() {
   if (!returnForm.orderItemId || !detail.value?.items) return 1;
-  return detail.value.items.find((i) => i.productId === returnForm.orderItemId)?.quantity || 1;
+  return detail.value.items.find((i) => i.id === returnForm.orderItemId)?.quantity || 1;
 }
 
 async function confirmPayment() {
@@ -1030,124 +1023,37 @@ onMounted(() => reload());
 .glass-btn.btn-disabled, .glass-btn:disabled { opacity: 0.42; cursor: not-allowed; pointer-events: none; filter: grayscale(0.45); box-shadow: none; }
 
 /* ── TIMESTAMPS CARD ── */
-.timestamps-card {
-  padding: 20px 22px;
-  margin-top: 14px;
-}
-
-.timestamps-card-header {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.09em; color: #94a3b8;
-  margin-bottom: 18px;
-}
+.timestamps-card { padding: 20px 22px; margin-top: 14px; }
+.timestamps-card-header { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 18px; }
 .timestamps-card-header svg { color: #cbd5e1; flex-shrink: 0; }
-
-.ts-card-row {
-  display: flex; align-items: flex-start; gap: 12px;
-}
+.ts-card-row { display: flex; align-items: flex-start; gap: 12px; }
 .ts-card-row--active .ts-card-info .ts-card-value { color: #065f46; }
-
-.ts-card-connector {
-  width: 2px; height: 18px;
-  background: linear-gradient(to bottom, rgba(99,102,241,0.2), rgba(203,213,225,0.3));
-  border-radius: 1px;
-  margin: 5px 0 5px 14px;
-}
-
-.ts-card-icon {
-  width: 28px; height: 28px; flex-shrink: 0;
-  border-radius: 8px; display: flex; align-items: center; justify-content: center;
-}
-.ts-card-icon--create {
-  background: rgba(99,102,241,0.08);
-  border: 1px solid rgba(99,102,241,0.18);
-  color: #6366f1;
-}
-.ts-card-icon--paid {
-  background: rgba(14,165,233,0.08);
-  border: 1px solid rgba(14,165,233,0.2);
-  color: #0ea5e9;
-}
-.ts-card-icon--delivered {
-  background: rgba(16,185,129,0.08);
-  border: 1px solid rgba(16,185,129,0.2);
-  color: #10b981;
-}
-.ts-card-icon--pending {
-  background: rgba(203,213,225,0.2);
-  border: 1px solid rgba(203,213,225,0.4);
-  color: #cbd5e1;
-}
-.ts-card-icon--cancelled {
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.2);
-  color: #ef4444;
-}
-
-.ts-card-value--paid     { color: #0369a1; }
+.ts-card-connector { width: 2px; height: 18px; background: linear-gradient(to bottom, rgba(99,102,241,0.2), rgba(203,213,225,0.3)); border-radius: 1px; margin: 5px 0 5px 14px; }
+.ts-card-icon { width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.ts-card-icon--create { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.18); color: #6366f1; }
+.ts-card-icon--paid { background: rgba(14,165,233,0.08); border: 1px solid rgba(14,165,233,0.2); color: #0ea5e9; }
+.ts-card-icon--delivered { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: #10b981; }
+.ts-card-icon--pending { background: rgba(203,213,225,0.2); border: 1px solid rgba(203,213,225,0.4); color: #cbd5e1; }
+.ts-card-icon--cancelled { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; }
+.ts-card-value--paid { color: #0369a1; }
 .ts-card-value--cancelled { color: #b91c1c; }
-
-.ts-card-connector--cancelled {
-  background: linear-gradient(to bottom, rgba(203,213,225,0.3), rgba(239,68,68,0.25));
-}
-
+.ts-card-connector--cancelled { background: linear-gradient(to bottom, rgba(203,213,225,0.3), rgba(239,68,68,0.25)); }
 .ts-card-row--cancelled .ts-card-label { color: #ef4444; }
-
-.ts-card-info {
-  display: flex; flex-direction: column; gap: 3px;
-  padding-top: 2px; flex: 1;
-}
-.ts-card-label {
-  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: #94a3b8;
-}
-.ts-card-value {
-  font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.4;
-}
+.ts-card-info { display: flex; flex-direction: column; gap: 3px; padding-top: 2px; flex: 1; }
+.ts-card-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
+.ts-card-value { font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.4; }
 .ts-card-value--muted { color: #cbd5e1; font-weight: 400; font-style: italic; }
+.ts-card-badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; width: fit-content; }
+.ts-card-badge--warn { color: #d97706; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.22); }
+.ts-card-badge--expired { color: #ef4444; background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.18); }
 
-.ts-card-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  margin-top: 4px; padding: 3px 9px;
-  border-radius: 20px; font-size: 11px; font-weight: 600;
-  width: fit-content;
-}
-.ts-card-badge--warn {
-  color: #d97706;
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.22);
-}
-.ts-card-badge--expired {
-  color: #ef4444;
-  background: rgba(239,68,68,0.07);
-  border: 1px solid rgba(239,68,68,0.18);
-}
-
-/* ── DELIVERY TAG (inline trong info card) ── */
-.delivery-tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 6px;
-  font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em;
-}
-.delivery-home {
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.22);
-  color: #92400e;
-}
-.delivery-store {
-  background: rgba(99,102,241,0.07);
-  border: 1px solid rgba(99,102,241,0.2);
-  color: #4338ca;
-}
+/* ── DELIVERY TAG ── */
+.delivery-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; }
+.delivery-home { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.22); color: #92400e; }
+.delivery-store { background: rgba(99,102,241,0.07); border: 1px solid rgba(99,102,241,0.2); color: #4338ca; }
 
 /* ── TIMELINE V2 ── */
-.timeline-track {
-  position: relative; display: flex; align-items: flex-start; justify-content: space-between;
-  margin: 28px 0 4px; padding: 20px 28px 18px;
-  background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.85);
-  border-radius: 16px; overflow: visible;
-}
+.timeline-track { position: relative; display: flex; align-items: flex-start; justify-content: space-between; margin: 28px 0 4px; padding: 20px 28px 18px; background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.85); border-radius: 16px; overflow: visible; }
 .timeline-progress-bg { position: absolute; top: 39px; left: 52px; right: 52px; height: 3px; background: rgba(226,232,240,0.8); border-radius: 100px; z-index: 0; }
 .timeline-progress-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg,#a5b4fc,#6366f1,#4f46e5); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 8px rgba(99,102,241,0.4); }
 .tl-step { display: flex; flex-direction: column; align-items: center; gap: 9px; flex: 1; position: relative; z-index: 1; min-width: 72px; }
@@ -1234,6 +1140,7 @@ onMounted(() => reload());
 .item-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #cbd5e1; }
 .stat-value { font-size: 13.5px; font-weight: 500; color: #64748b; }
+.qty-badge { font-size: 13.5px; font-weight: 700; color: #4f46e5; }
 
 /* ── TOTALS CARD ── */
 .totals-card { padding: 24px; }
@@ -1358,6 +1265,5 @@ onMounted(() => reload());
   .tl-label { font-size: 10px; }
   .item-card { flex-direction: column; align-items: flex-start; }
   .item-card-right { width: 100%; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); flex-wrap: wrap; gap: 12px; }
-
 }
 </style>

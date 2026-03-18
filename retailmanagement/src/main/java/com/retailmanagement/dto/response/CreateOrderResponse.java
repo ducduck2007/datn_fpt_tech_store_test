@@ -54,7 +54,7 @@ public class CreateOrderResponse {
     @Data
     @AllArgsConstructor
     public static class Item {
-
+        private Long id;
         private Integer productId;
         private Integer variantId;
 
