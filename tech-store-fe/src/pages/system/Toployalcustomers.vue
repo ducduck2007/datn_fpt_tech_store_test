@@ -87,7 +87,6 @@
       <div class="mb-4" v-if="Object.keys(stats.byTier || {}).length">
         <div class="section-label mb-2">
           Phân bổ chi tiêu theo hạng VIP
-          <span class="section-source">— GET /spending-stats → byTier</span>
         </div>
         <div class="tier-breakdown-grid">
           <div
