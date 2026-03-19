@@ -120,7 +120,7 @@
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
             <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <span>HỆ THỐNG → Bảng điều khiển &nbsp;·&nbsp; KHO → Đơn hàng</span>
+          <span>HỆ THỐNG → Dashboard &nbsp;·&nbsp; SALES → Bán hàng &nbsp;·&nbsp; KHO → Đơn hàng</span>
         </div>
         <div class="divider-line"><span>hoặc</span></div>
         <button class="link-btn customer" @click="router.push('/login')">
@@ -195,7 +195,9 @@ async function doLogin() {
     toast("Đăng nhập hệ thống thành công.", "success");
 
     if (role === "INVENTORY") {
-      router.replace("/inventory/orders");
+      router.replace("/inventory/orders/paid");
+    } else if (role === "SALES") {
+      router.replace("/sales/pos");
     } else {
       router.replace("/system/dashboard");
     }

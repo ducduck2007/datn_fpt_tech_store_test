@@ -324,7 +324,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
 import { customersApi } from "../../api/customers.api";
@@ -353,11 +353,25 @@ const promoApplied = ref(false);
 const promoError   = ref("");
 const promoResult  = ref(null);
 
-const paymentOptions = [
+const ALL_PAYMENT_OPTIONS = [
   { value: "CASH",     label: "Tiền mặt",     icon: "💵" },
   { value: "TRANSFER", label: "Chuyển khoản", icon: "🏦" },
   { value: "CARD",     label: "Thẻ tín dụng", icon: "💳" },
 ];
+
+// Ẩn Tiền mặt khi chọn Giao tại nhà
+const paymentOptions = computed(() =>
+  deliveryMethod.value === "HOME"
+    ? ALL_PAYMENT_OPTIONS.filter(o => o.value !== "CASH")
+    : ALL_PAYMENT_OPTIONS
+);
+
+// Khi chuyển sang Giao tại nhà: đặt mặc định là Chuyển khoản
+watch(deliveryMethod, (val) => {
+  if (val === "HOME" && form.paymentMethod === "CASH") {
+    form.paymentMethod = "TRANSFER";
+  }
+});
 
 const subtotal = computed(() =>
   form.items.reduce((sum, i) => {

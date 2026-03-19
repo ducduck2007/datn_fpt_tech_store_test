@@ -82,7 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
 
                         .requestMatchers("/api/orders/**")
-                        .hasAnyRole("CUSTOMER", "ADMIN", "INVENTORY")
+                        .hasAnyRole("CUSTOMER", "ADMIN", "INVENTORY", "SALES")
 
                         .anyRequest().authenticated()
                 )

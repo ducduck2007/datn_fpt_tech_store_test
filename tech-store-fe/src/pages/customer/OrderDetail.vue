@@ -782,7 +782,7 @@ function formatDateTime(dateStr) {
 function generateFakeBankQR() {
   const amount = detail.value?.totalAmount || 0;
   const order = detail.value?.orderNumber || orderId.value;
-  qrCodeUrl.value = `https://img.vietqr.io/image/VCB-1234567890-compact2.png?amount=${amount}&addInfo=ORDER${order}`;
+  qrCodeUrl.value = `https://img.vietqr.io/image/MB-0344269926-compact2.png?amount=${amount}&addInfo=ORDER${order}`;
 }
 
 async function openPaymentDialog() {

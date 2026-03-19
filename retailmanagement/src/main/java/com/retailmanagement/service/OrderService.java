@@ -198,11 +198,7 @@ public class OrderService {
         order.setUser(user);
         order.setChannel(request.getChannel());
         order.setPaymentMethod(request.getPaymentMethod());
-        if (request.getPaymentMethod().equals("CASH")) {
-            order.setStatus(OrderStatuses.PROCESSING);
-        } else {
-            order.setStatus(OrderStatuses.PENDING);
-        }
+        order.setStatus(OrderStatuses.PENDING);
         order.setPaymentStatus("UNPAID");
         order.setNotes(request.getNotes());
         order.setSubtotal(BigDecimal.ZERO);
@@ -266,7 +262,15 @@ public class OrderService {
             ProductVariant variant = variantRepository.findById(itemReq.getVariantId())
                     .orElseThrow(() -> new RuntimeException("Variant not found"));
 
-            int available = variant.getStockQuantity() - variant.getReservedQty();
+            int available;
+            if ("OFFLINE".equals(request.getChannel())) {
+                // Đơn POS: đếm serial thực tế IN_STOCK, không dùng StockTransaction
+                available = productSerialRepository
+                        .countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+            } else {
+                // Đơn ONLINE: dùng stockQuantity - reservedQty như cũ
+                available = variant.getStockQuantity() - variant.getReservedQty();
+            }
             if (available < itemReq.getQuantity()) {
                 throw new RuntimeException("Not enough stock for " + variant.getVariantName());
             }
@@ -301,6 +305,14 @@ public class OrderService {
             item.setLineTotal(lineTotal);
             item.setCreatedAt(Instant.now());
             orderItemRepository.save(item);
+
+            // OFFLINE: đánh dấu serial cụ thể nhân viên chọn → SOLD ngay
+            if ("OFFLINE".equals(request.getChannel()) && itemReq.getSerialId() != null) {
+                productSerialRepository.findById(itemReq.getSerialId()).ifPresent(serial -> {
+                    serial.setStatus("SOLD");
+                    productSerialRepository.save(serial);
+                });
+            }
 
             variant.setReservedQty(variant.getReservedQty() + itemReq.getQuantity());
             variantRepository.save(variant);
@@ -608,16 +620,18 @@ public class OrderService {
             variant.setReservedQty(newReserved);
             variantRepository.save(variant);
 
-            // ← THÊM: Đánh dấu serial là SOLD
-            List<ProductSerial> inStockSerials = productSerialRepository
-                    .findByVariantIdAndStatus(variant.getId(), "IN_STOCK");
-
-            int soldCount = 0;
-            for (ProductSerial serial : inStockSerials) {
-                if (soldCount >= item.getQuantity()) break;
-                serial.setStatus("SOLD");
-                productSerialRepository.save(serial);
-                soldCount++;
+            // Đánh dấu serial SOLD — chỉ với đơn ONLINE
+            // Đơn OFFLINE đã đánh dấu ngay khi tạo order
+            if (!"OFFLINE".equals(order.getChannel())) {
+                List<ProductSerial> inStockSerials = productSerialRepository
+                        .findByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+                int soldCount = 0;
+                for (ProductSerial serial : inStockSerials) {
+                    if (soldCount >= item.getQuantity()) break;
+                    serial.setStatus("SOLD");
+                    productSerialRepository.save(serial);
+                    soldCount++;
+                }
             }
 
             // Stock tự tính lại từ serial, không cần set tay

@@ -49,6 +49,12 @@ import InventoryOrdersPaid from "../pages/inventory/InventoryOrdersPaid.vue";
 import InventoryOrdersProcessing from "../pages/inventory/InventoryOrdersProcessing.vue";
 import Changepassword from "../pages/customer/Changepassword.vue";
 
+// ===== Sales (POS) =====
+import SalesShell from "../pages/sales/SalesShell.vue";
+import SalesPOS from "../pages/sales/SalesPOS.vue";
+import SalesPickup from "../pages/sales/SalesPickup.vue";
+// import SalesOrderHistory from "../pages/sales/SalesOrderHistory.vue"; // TODO
+
 //===== 403 =====
 import Forbidden from "../pages/customer/Forbidden.vue";
 
@@ -323,6 +329,42 @@ const routes = [
   },
 
   { path: "/:pathMatch(.*)*", redirect: "/" },
+
+  // ===== SALES LOGIN =====
+  {
+    path: "/sales/login",
+    name: "sales-login",
+    component: SystemLogin,
+    meta: { portal: "sales", hideHeader: true },
+  },
+
+  // ===== SALES AREA =====
+  {
+    path: "/sales",
+    component: SalesShell,
+    meta: { portal: "sales", requiresAuth: true, roles: ["SALES"], hideHeader: true },
+    children: [
+      { path: "", redirect: "/sales/pos" },
+      {
+        path: "pos",
+        name: "sales-pos",
+        component: SalesPOS,
+        meta: { title: "Bán hàng tại quầy" },
+      },
+      {
+        path: "pickup",
+        name: "sales-pickup",
+        component: SalesPickup,
+        meta: { title: "Nhận hàng tại quầy" },
+      },
+      // {
+      //   path: "history",
+      //   name: "sales-history",
+      //   component: SalesOrderHistory,
+      //   meta: { title: "Lịch sử đơn hàng" },
+      // },
+    ],
+  },
 ];
 
 const router = createRouter({
@@ -335,41 +377,62 @@ router.beforeEach((to) => {
   const role = (getRole() || "").toUpperCase();
   const isAuthed = !!token;
 
-  const portal = to.meta?.portal || "customer";
+  // Vue Router 4: child routes không tự inherit meta từ parent
+  // → dùng to.matched để lấy portal từ route gần nhất có set portal
+  const portal =
+    [...to.matched].reverse().find((r) => r.meta?.portal)?.meta?.portal ||
+    "customer";
   const isInventoryRoute = portal === "inventory";
+  const isSalesRoute = portal === "sales";
   const isInventory = role === "INVENTORY";
+  const isSales = role === "SALES";
   const isSystemRoute = portal === "system";
   const isCustomer = role === "CUSTOMER";
 
   if (to.meta?.requiresAuth && !isAuthed) {
-    return isSystemRoute ? "/system/login" : "/login";
+    if (isSystemRoute) return "/system/login";
+    if (isSalesRoute) return "/sales/login";
+    return "/login";
   }
 
   if (isAuthed) {
+    // Redirect khỏi trang login nếu đã đăng nhập
     if (!isSystemRoute && (to.path === "/login" || to.path === "/register")) {
-      return isCustomer ? "/" : "/system/dashboard";
+      if (isCustomer) return "/";
+      if (isSales) return "/sales/pos";
+      return "/system/dashboard";
     }
 
     if (isSystemRoute && to.path === "/system/login") {
       return !isCustomer ? "/system/dashboard" : "/";
     }
+
+    if (to.path === "/sales/login") {
+      if (isSales) return "/sales/pos";
+      return "/";
+    }
   }
 
   if (isAuthed) {
     if (role === "CUSTOMER" && portal !== "customer") return "/";
-    if (role === "INVENTORY" && portal !== "inventory")
-      return "/inventory/orders/paid";
-    if ((role === "ADMIN" || role === "SALES") && portal !== "system")
-      return "/system/dashboard";
+    if (role === "INVENTORY" && portal !== "inventory") return "/inventory/orders/paid";
+    if (role === "SALES" && portal !== "sales") return "/sales/pos";
+    if (role === "ADMIN" && portal !== "system") return "/system/dashboard";
   }
 
   if (isAuthed) {
     if (isInventoryRoute && !isInventory) {
-      return isCustomer ? "/" : "/system/dashboard";
+      return isCustomer ? "/" : isSales ? "/sales/pos" : "/system/dashboard";
     }
-
     if (!isInventoryRoute && isInventory) {
       return "/inventory/orders/paid";
+    }
+
+    if (isSalesRoute && !isSales) {
+      return isCustomer ? "/" : "/system/dashboard";
+    }
+    if (!isSalesRoute && isSales) {
+      return "/sales/pos";
     }
   }
 

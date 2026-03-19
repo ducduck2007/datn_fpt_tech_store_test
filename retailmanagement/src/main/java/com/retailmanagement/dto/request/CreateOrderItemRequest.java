@@ -7,4 +7,5 @@ public class CreateOrderItemRequest {
 
     private Integer variantId;
     private Integer quantity;
+    private Long serialId;
 }
