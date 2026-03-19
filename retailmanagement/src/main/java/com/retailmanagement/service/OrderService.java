@@ -160,6 +160,26 @@ public class OrderService {
             throw new RuntimeException("Mã giảm giá '" + code + "' đã đạt giới hạn sử dụng");
         }
 
+        // ── NEW: Check per-customer usage (each customer can only use a promo once) ──
+        if (customer != null && promotionService.hasCustomerUsedPromotion(promotion.getId(), customer.getId())) {
+            throw new RuntimeException("Bạn đã sử dụng mã giảm giá '" + code + "' rồi, mỗi mã chỉ được dùng 1 lần");
+        }
+
+        // ── NEW: Check customer type/tier eligibility ──
+        PromotionService.Applicability app = promotionService.parseApplicability(promotion.getApplicabilityJson());
+        if (app.customer_types != null && !app.customer_types.isEmpty() && customer != null) {
+            String customerTypeStr = customer.getCustomerType() != null ? customer.getCustomerType().name() : "REGULAR";
+            if (!app.customer_types.contains(customerTypeStr)) {
+                throw new RuntimeException("Mã '" + code + "' không áp dụng cho loại tài khoản của bạn");
+            }
+        }
+        if (app.vip_tiers != null && !app.vip_tiers.isEmpty() && customer != null) {
+            String tierStr = customer.getVipTier() != null ? customer.getVipTier().name() : null;
+            if (tierStr == null || !app.vip_tiers.contains(tierStr)) {
+                throw new RuntimeException("Mã '" + code + "' chỉ áp dụng cho hạng VIP: " + String.join(", ", app.vip_tiers));
+            }
+        }
+
         BigDecimal afterDiscount = promotionService.applyDiscount(
                 subtotal,
                 promotion.getDiscountType(),
@@ -220,7 +240,6 @@ public class OrderService {
         BigDecimal shippingFee = request.getShippingFee() != null
                 ? request.getShippingFee()
                 : BigDecimal.ZERO;
-        // Khách VIP được giảm 50% phí ship (không phân biệt rank)
         if (customer.getVipTier() != null && shippingFee.compareTo(BigDecimal.ZERO) > 0) {
             shippingFee = shippingFee.divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP);
         }
@@ -246,8 +265,6 @@ public class OrderService {
             order.setAppliedPromotionCode(discountCalc.getPromoCode());
         }
 
-        // Phần discount phân bổ xuống OrderItem = tổng discount - shippingFee
-        // để sum(lineDiscount) + shippingFee = discountTotal (khớp với order)
         BigDecimal effectiveDiscount = discountCalc.getTotalDiscount()
                 .subtract(shippingFee)
                 .max(BigDecimal.ZERO);
@@ -259,7 +276,7 @@ public class OrderService {
         }
 
         List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
-        BigDecimal totalLineDiscount = BigDecimal.ZERO; // ← theo dõi tổng đã phân bổ
+        BigDecimal totalLineDiscount = BigDecimal.ZERO;
         int itemIndex = 0;
 
         for (CreateOrderItemRequest itemReq : request.getItems()) {
@@ -277,7 +294,6 @@ public class OrderService {
             BigDecimal lineDiscount;
             itemIndex++;
             if (itemIndex == request.getItems().size()) {
-                // Item cuối: lấy phần còn lại để tránh lệch do làm tròn
                 lineDiscount = effectiveDiscount.subtract(totalLineDiscount);
             } else {
                 lineDiscount = lineSubtotal
@@ -358,7 +374,6 @@ public class OrderService {
                     .append(": không áp dụng (đơn < ").append(formatMoney(tier.getMinOrderToApply())).append(")");
         }
 
-        // Ghi chú giảm 50% ship cho VIP
         if (tier != null && request.getShippingFee() != null
                 && request.getShippingFee().compareTo(BigDecimal.ZERO) > 0) {
             if (notes.length() > 0) notes.append(" | ");
@@ -389,6 +404,13 @@ public class OrderService {
 
         if (discountCalc.getPromotionId() != null) {
             promotionService.recordRedemption(discountCalc.getPromotionId(), 1L);
+
+            // ── NEW: Record per-customer usage so this customer can't use this promo again ──
+            promotionService.recordCustomerUsage(
+                    discountCalc.getPromotionId(),
+                    customer.getId(),
+                    order.getId()
+            );
         }
 
         CreateOrderResponse response = new CreateOrderResponse();
@@ -424,6 +446,7 @@ public class OrderService {
         if (amount == null) return "0";
         return String.format(java.util.Locale.US, "%,d", amount.longValue());
     }
+
     @SensitiveOperation(
             action = ActionType.UPDATE_OPERATION,
             entity = "ORDER",
@@ -500,12 +523,11 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // Nếu là CUSTOMER thì kiểm tra ownership
         boolean isCustomer = user.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
         if (isCustomer) {
-            Long customerIdOfOrder = order.getCustomer().getId().longValue(); // hoặc getCustomerId()
+            Long customerIdOfOrder = order.getCustomer().getId().longValue();
             if (!customerIdOfOrder.equals(Long.valueOf(user.getCustomerId()))) {
                 throw new org.springframework.security.access.AccessDeniedException(
                         "You do not have permission to view this order"
@@ -559,17 +581,13 @@ public class OrderService {
 
     @Transactional
     public void markAsProcessing(Long orderId) {
-
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         if (!OrderStatuses.PAID.equals(order.getStatus())) {
             throw new IllegalStateException("Only PAID orders can be processed");
         }
-
         order.setStatus(OrderStatuses.PROCESSING);
         order.setUpdatedAt(Instant.now());
-
         orderRepository.save(order);
     }
 
@@ -587,7 +605,6 @@ public class OrderService {
 
     @Transactional
     public void markAsDelivered(Long orderId) {
-
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
@@ -599,7 +616,6 @@ public class OrderService {
             throw new IllegalStateException("Only SHIPPING orders can be delivered");
 
         for (OrderItem item : order.getOrderItems()) {
-
             ProductVariant variant = variantRepository.findById(
                     item.getVariant().getId()
             ).orElseThrow();
@@ -608,7 +624,6 @@ public class OrderService {
             variant.setReservedQty(newReserved);
             variantRepository.save(variant);
 
-            // ← THÊM: Đánh dấu serial là SOLD
             List<ProductSerial> inStockSerials = productSerialRepository
                     .findByVariantIdAndStatus(variant.getId(), "IN_STOCK");
 
@@ -620,7 +635,6 @@ public class OrderService {
                 soldCount++;
             }
 
-            // Stock tự tính lại từ serial, không cần set tay
             int actualStock = productSerialRepository
                     .countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
             variant.setStockQuantity(actualStock);
@@ -640,12 +654,10 @@ public class OrderService {
         order.setStatus(OrderStatuses.DELIVERED);
         order.setDeliveredAt(Instant.now());
         order.setUpdatedAt(Instant.now());
-
         orderRepository.save(order);
 
         if (order.getCustomer() != null &&
                 "PAID".equals(order.getPaymentStatus())) {
-
             customerService.addLoyaltyPoints(
                     order.getCustomer().getId(),
                     order.getTotalAmount()

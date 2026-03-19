@@ -9,6 +9,7 @@ import com.retailmanagement.repository.OrderRepository;
 import com.retailmanagement.repository.PromotionRepository;
 import com.retailmanagement.repository.CustomRes;
 import com.retailmanagement.repository.UserRepository;
+import com.retailmanagement.security.service.CustomUserDetails;
 import com.retailmanagement.service.PromotionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -53,8 +54,6 @@ public class PromotionController {
 
     /**
      * List promotions
-     * 
-     * @param activeOnly - if true, only return currently active promotions
      */
     @GetMapping
     public ApiResponse<List<Promotion>> list(@RequestParam(required = false) Boolean activeOnly) {
@@ -79,30 +78,23 @@ public class PromotionController {
         return ApiResponse.success("Promotion deactivated successfully");
     }
 
-    // Dashboard: tổng hợp khuyến mãi theo tuần/tháng
     @GetMapping("/report")
     public ApiResponse<Map<String, Object>> getReport(
-            @RequestParam(required = false) String period) { // "week" | "month"
+            @RequestParam(required = false) String period) {
         return ApiResponse.success(promotionService.getReport(period));
     }
 
-    // Cảnh báo xung đột khuyến mãi
     @GetMapping("/conflicts")
     public ApiResponse<List<Map<String, Object>>> getConflicts() {
         return ApiResponse.success(promotionService.detectConflicts());
     }
 
-    // Cảnh báo khuyến mãi sắp hết hạn (trong N ngày)
     @GetMapping("/expiring")
     public ApiResponse<List<Promotion>> getExpiring(
             @RequestParam(defaultValue = "3") int withinDays) {
         return ApiResponse.success(promotionService.getExpiringPromotions(withinDays));
     }
 
-    /**
-     * Record redemption (increment usage counter)
-     * Used when a promotion is applied to an order
-     */
     @PostMapping("/{id}/redeem")
     public ApiResponse<String> recordRedemption(@PathVariable Integer id) {
         promotionService.recordRedemption(id, 1);
@@ -129,6 +121,15 @@ public class PromotionController {
                         .ok(Map.of("valid", false, "message", "Mã '" + upper + "' đã hết hạn hoặc chưa có hiệu lực"));
             }
 
+            // Check per-customer usage
+            Customer currentCustomer = getCurrentCustomer();
+            if (currentCustomer != null
+                    && promotionService.hasCustomerUsedPromotion(promo.getId(), currentCustomer.getId())) {
+                return ResponseEntity.ok(Map.of(
+                        "valid", false,
+                        "message", "Bạn đã sử dụng mã '" + upper + "' rồi"));
+            }
+
             if (promo.getMinOrderAmount() != null
                     && orderTotal.compareTo(promo.getMinOrderAmount()) < 0) {
                 return ResponseEntity.ok(Map.of(
@@ -149,6 +150,7 @@ public class PromotionController {
                     "valid", true,
                     "message", "Mã hợp lệ",
                     "code", upper,
+                    "promotionName", promo.getName(),
                     "discountType", promo.getDiscountType(),
                     "discountValue", promo.getDiscountValue(),
                     "discountAmount", discountAmount,
@@ -160,11 +162,49 @@ public class PromotionController {
         }
     }
 
+    /**
+     * Get available promotions for the currently logged-in customer.
+     * Returns only promotions that are active, within date range,
+     * not yet used by this customer, and matching customer type/tier.
+     */
+    @GetMapping("/available")
+    public ApiResponse<List<Map<String, Object>>> getAvailableForCustomer() {
+        Customer customer = getCurrentCustomer();
+        if (customer == null) {
+            throw new RuntimeException("Bạn cần đăng nhập để xem mã khuyến mãi");
+        }
+        return ApiResponse.success(promotionService.getAvailablePromotionsForCustomer(customer));
+    }
+
+    /**
+     * FIX: Tìm customer qua userId thay vì email.
+     *
+     * Nguyên nhân lỗi cũ:
+     *   auth.getName() trả về username ("phan.van.tu"), KHÔNG phải email ("pvtu@gmail.com")
+     *   → findByEmail("phan.van.tu") → không tìm thấy → return null
+     *
+     * Cách fix:
+     *   Lấy userId từ CustomUserDetails (đã có sẵn) → findByUserId(userId)
+     */
     private Customer getCurrentCustomer() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated())
-            return null;
-        return customerRepository.findByEmail(auth.getName()).orElse(null);
+        if (auth == null || !auth.isAuthenticated()) return null;
+
+        Object principal = auth.getPrincipal();
+
+        // ✅ Cách chính: lấy userId từ CustomUserDetails → tìm customer qua user_id
+        if (principal instanceof CustomUserDetails userDetails) {
+            Integer userId = userDetails.getUserId();
+            if (userId != null) {
+                return customerRepository.findByUserId(userId).orElse(null);
+            }
+        }
+
+        // Fallback: thử tìm bằng username → userId → customer
+        String name = auth.getName();
+        return userRepository.findByUsername(name)
+                .flatMap(user -> customerRepository.findByUserId(user.getId()))
+                .orElse(null);
     }
 
     @GetMapping("/{id}/redemption-details")

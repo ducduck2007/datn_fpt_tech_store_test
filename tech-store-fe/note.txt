@@ -1,103 +1,4 @@
-* frontend
-src
- ┣ api
- ┃ ┣ audit.api.js
- ┃ ┣ auth.api.js
- ┃ ┣ cart.api.js
- ┃ ┣ categories.api.js
- ┃ ┣ customers.api.js
- ┃ ┣ http.js
- ┃ ┣ notification.api.js
- ┃ ┣ orders.api.js
- ┃ ┣ payments.js
- ┃ ┣ prices.api.js
- ┃ ┣ products.api.js
- ┃ ┣ promotions.api.js
- ┃ ┣ report.api.js
- ┃ ┣ returns.api.js
- ┃ ┣ securityLog.api.js
- ┃ ┣ settings.api.js
- ┃ ┣ spinWheel.api.js
- ┃ ┣ users.api.js
- ┃ ┗ vip-checkin.api.js
- ┣ assets
- ┃ ┣ styles
- ┃ ┃ ┣ pricing-manager.css
- ┃ ┃ ┣ promotion-manager.css
- ┃ ┃ ┗ system-layout.css
- ┃ ┗ vue.svg
- ┣ components
- ┃ ┣ AuthLayout.vue
- ┃ ┣ NotificationBell.vue
- ┃ ┣ QuickNav.vue
- ┃ ┗ TierProgressBar.vue
- ┣ pages
- ┃ ┣ audit
- ┃ ┃ ┣ AuditLog.vue
- ┃ ┃ ┣ AuditReportDashboard.vue
- ┃ ┃ ┗ SecurityLog.vue
- ┃ ┣ customer
- ┃ ┃ ┣ CartPage.vue
- ┃ ┃ ┣ Changepassword.vue
- ┃ ┃ ┣ CustomerDashboard.vue
- ┃ ┃ ┣ CustomerHome.vue
- ┃ ┃ ┣ CustomerLogin.vue
- ┃ ┃ ┣ CustomerOrders.vue
- ┃ ┃ ┣ CustomerProfile.vue
- ┃ ┃ ┣ CustomerRegister.vue
- ┃ ┃ ┣ Forbidden.vue
- ┃ ┃ ┣ OrderCreate.vue
- ┃ ┃ ┣ OrderDetail.vue
- ┃ ┃ ┣ PaymentSuccess.vue
- ┃ ┃ ┣ ProductDetail.vue
- ┃ ┃ ┗ Spinwheel.vue
- ┃ ┣ inventory
- ┃ ┃ ┣ InventoryOrderDetail.vue
- ┃ ┃ ┣ InventoryOrdersPaid.vue
- ┃ ┃ ┣ InventoryOrdersProcessing.vue
- ┃ ┃ ┗ InventoryShell.vue
- ┃ ┗ system
- ┃ ┃ ┣ BirthdayManager.vue
- ┃ ┃ ┣ CategoryManager.vue
- ┃ ┃ ┣ CustomerManager.vue
- ┃ ┃ ┣ Customerspendinganalytics.vue
- ┃ ┃ ┣ InactiveCustomers.vue
- ┃ ┃ ┣ Loyaltysummaryadmin.vue
- ┃ ┃ ┣ OrderDetail.vue
- ┃ ┃ ┣ OrderFilter.vue
- ┃ ┃ ┣ OrderListByFilter.vue
- ┃ ┃ ┣ OrderListDelivered.vue
- ┃ ┃ ┣ OrderListNew.vue
- ┃ ┃ ┣ OrderListPaid.vue
- ┃ ┃ ┣ OrderListProcessing.vue
- ┃ ┃ ┣ OrderListShipping.vue
- ┃ ┃ ┣ PaymentManagement.vue
- ┃ ┃ ┣ PricingManager.vue
- ┃ ┃ ┣ ProductManager.vue
- ┃ ┃ ┣ PromotionManager.vue
- ┃ ┃ ┣ ReportDashboard.vue
- ┃ ┃ ┣ ReturnListAll.vue
- ┃ ┃ ┣ ReturnListPending.vue
- ┃ ┃ ┣ SettingsCurrency.vue
- ┃ ┃ ┣ SystemDashboard.vue
- ┃ ┃ ┣ SystemLogin.vue
- ┃ ┃ ┣ SystemShell.vue
- ┃ ┃ ┣ Toployalcustomers.vue
- ┃ ┃ ┣ UserManager.vue
- ┃ ┃ ┣ Zeroordercustomers.vue
- ┃ ┃ ┗ _OrderListBase.vue
- ┣ router
- ┃ ┗ index.js
- ┣ stores
- ┃ ┣ auth.js
- ┃ ┗ cart.js
- ┣ ui
- ┃ ┣ confirm.js
- ┃ ┗ toast.js
- ┣ App.vue
- ┣ main.js
- ┗ style.css
-* backend
++ backend
 retailmanagement
  ┣ audit
  ┃ ┣ Audit.java
@@ -202,6 +103,7 @@ retailmanagement
  ┃ ┃ ┣ PromotionHistoryResponse.java
  ┃ ┃ ┣ ReturnResponse.java
  ┃ ┃ ┣ RevenueByCustomerResponse.java
+ ┃ ┃ ┣ SerialResponse.java
  ┃ ┃ ┣ TierProgressResponse.java
  ┃ ┃ ┣ UserActionReportResponse.java
  ┃ ┃ ┣ UserLoginResponse.java
@@ -225,6 +127,7 @@ retailmanagement
  ┃ ┣ Product.java
  ┃ ┣ ProductCategory.java
  ┃ ┣ ProductCategoryId.java
+ ┃ ┣ ProductHistoryLog.java
  ┃ ┣ ProductSerial.java
  ┃ ┣ ProductTag.java
  ┃ ┣ ProductTagId.java
@@ -255,6 +158,7 @@ retailmanagement
  ┃ ┣ PaymentRepository.java
  ┃ ┣ PriceHistoryRepository.java
  ┃ ┣ ProductCategoryRepository.java
+ ┃ ┣ ProductHistoryLogRepository.java
  ┃ ┣ ProductRepository.java
  ┃ ┣ ProductSerialRepository.java
  ┃ ┣ ProductTagRepository.java
@@ -325,3 +229,98 @@ retailmanagement
  ┃ ┣ IpUtil.java
  ┃ ┗ SecurityUtil.java
  ┗ RetailmanagementApplication.java
++ frontend
+src
+ ┣ api
+ ┃ ┣ audit.api.js
+ ┃ ┣ auth.api.js
+ ┃ ┣ cart.api.js
+ ┃ ┣ categories.api.js
+ ┃ ┣ customers.api.js
+ ┃ ┣ http.js
+ ┃ ┣ notification.api.js
+ ┃ ┣ orders.api.js
+ ┃ ┣ payments.js
+ ┃ ┣ prices.api.js
+ ┃ ┣ products.api.js
+ ┃ ┣ promotions.api.js
+ ┃ ┣ report.api.js
+ ┃ ┣ returns.api.js
+ ┃ ┣ securityLog.api.js
+ ┃ ┣ serials.api.js
+ ┃ ┣ settings.api.js
+ ┃ ┣ spinWheel.api.js
+ ┃ ┣ users.api.js
+ ┃ ┗ vip-checkin.api.js
+ ┣ assets
+ ┃ ┣ styles
+ ┃ ┃ ┣ order-create.css
+ ┃ ┃ ┣ pricing-manager.css
+ ┃ ┃ ┣ promotion-manager.css
+ ┃ ┃ ┗ system-layout.css
+ ┃ ┗ vue.svg
+ ┣ components
+ ┃ ┣ AuthLayout.vue
+ ┃ ┣ NotificationBell.vue
+ ┃ ┣ QuickNav.vue
+ ┃ ┗ TierProgressBar.vue
+ ┣ pages
+ ┃ ┣ audit
+ ┃ ┃ ┣ AuditLog.vue
+ ┃ ┃ ┣ AuditReportDashboard.vue
+ ┃ ┃ ┗ SecurityLog.vue
+ ┃ ┣ customer
+ ┃ ┃ ┣ CartPage.vue
+ ┃ ┃ ┣ Changepassword.vue
+ ┃ ┃ ┣ CustomerDashboard.vue
+ ┃ ┃ ┣ CustomerHome.vue
+ ┃ ┃ ┣ CustomerLogin.vue
+ ┃ ┃ ┣ CustomerOrders.vue
+ ┃ ┃ ┣ CustomerProfile.vue
+ ┃ ┃ ┣ CustomerRegister.vue
+ ┃ ┃ ┣ Forbidden.vue
+ ┃ ┃ ┣ OrderCreate.vue
+ ┃ ┃ ┣ OrderDetail.vue
+ ┃ ┃ ┣ PaymentSuccess.vue
+ ┃ ┃ ┣ ProductDetail.vue
+ ┃ ┃ ┗ Spinwheel.vue
+ ┃ ┣ inventory
+ ┃ ┃ ┣ InventoryOrderDetail.vue
+ ┃ ┃ ┣ InventoryOrdersPaid.vue
+ ┃ ┃ ┣ InventoryOrdersProcessing.vue
+ ┃ ┃ ┗ InventoryShell.vue
+ ┃ ┗ system
+ ┃ ┃ ┣ CategoryManager.vue
+ ┃ ┃ ┣ CustomerManager.vue
+ ┃ ┃ ┣ Customerspendinganalytics.vue
+ ┃ ┃ ┣ Loyaltysummaryadmin.vue
+ ┃ ┃ ┣ OrderDashboard.vue
+ ┃ ┃ ┣ OrderDetail.vue
+ ┃ ┃ ┣ OrderFilter.vue
+ ┃ ┃ ┣ OrderListByFilter.vue
+ ┃ ┃ ┣ PaymentManagement.vue
+ ┃ ┃ ┣ PricingManager.vue
+ ┃ ┃ ┣ ProductManager.vue
+ ┃ ┃ ┣ PromotionManager.vue
+ ┃ ┃ ┣ ReportDashboard.vue
+ ┃ ┃ ┣ ReturnListAll.vue
+ ┃ ┃ ┣ ReturnListPending.vue
+ ┃ ┃ ┣ SerialManager.vue
+ ┃ ┃ ┣ SettingsCurrency.vue
+ ┃ ┃ ┣ SystemDashboard.vue
+ ┃ ┃ ┣ SystemLogin.vue
+ ┃ ┃ ┣ SystemShell.vue
+ ┃ ┃ ┣ Toployalcustomers.vue
+ ┃ ┃ ┣ UserManager.vue
+ ┃ ┃ ┗ _OrderListBase.vue
+ ┣ router
+ ┃ ┗ index.js
+ ┣ stores
+ ┃ ┣ auth.js
+ ┃ ┗ cart.js
+ ┣ ui
+ ┃ ┣ confirm.js
+ ┃ ┗ toast.js
+ ┣ App.vue
+ ┣ main.js
+ ┗ style.css

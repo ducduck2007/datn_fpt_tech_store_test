@@ -44,4 +44,13 @@ export const promotionsApi = {
   getRedemptionDetails(id) {
     return http.get(`/api/promotions/${id}/redemption-details`);
   },
+
+  /**
+   * NEW: Get available promotions for current logged-in customer.
+   * Returns only promotions that are active, within date range,
+   * not yet used by this customer, and matching customer type/tier.
+   */
+  getAvailable() {
+    return http.get("/api/promotions/available");
+  },
 };

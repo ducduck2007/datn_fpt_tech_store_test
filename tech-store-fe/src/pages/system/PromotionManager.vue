@@ -1,3 +1,4 @@
+<!-- \tech-store-fe\src\pages\system\PromotionManager.vue -->
 <template>
   <div class="prm">
     <!-- Header -->
