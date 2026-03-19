@@ -84,7 +84,7 @@
                 <div class="delivery-opt-title">Giao tại nhà</div>
                 <div class="delivery-opt-desc">Giao hàng nhanh 2–4 giờ trong nội thành</div>
               </div>
-              <div class="delivery-opt-price">+40.000 ₫</div>
+              <div class="delivery-opt-price">+70.000 ₫</div>
             </label>
           </div>
         </div>
@@ -261,7 +261,7 @@
             </transition>
             <div class="summary-row" :class="deliveryMethod === 'HOME' ? 'summary-row--ship' : 'summary-row--free'">
               <span>{{ deliveryMethod === 'HOME' ? '🚚 Phí vận chuyển' : '🏬 Nhận tại cửa hàng' }}</span>
-              <span v-if="deliveryMethod === 'HOME'" class="ship-fee">+{{ formatMoney(40000) }}</span>
+              <span v-if="deliveryMethod === 'HOME'" class="ship-fee">+{{ formatMoney(70000) }}</span>
               <span v-else class="free-chip">Miễn phí</span>
             </div>
           </div>
@@ -372,7 +372,7 @@ const promoDiscount = computed(() =>
     : 0
 );
 
-const shippingFee = computed(() => deliveryMethod.value === "HOME" ? 40000 : 0);
+const shippingFee = computed(() => deliveryMethod.value === "HOME" ? 70000 : 0);
 
 const totalAfterDiscount = computed(() =>
   Math.max(0, subtotal.value - promoDiscount.value + shippingFee.value)

@@ -220,6 +220,10 @@ public class OrderService {
         BigDecimal shippingFee = request.getShippingFee() != null
                 ? request.getShippingFee()
                 : BigDecimal.ZERO;
+        // Khách VIP được giảm 50% phí ship (không phân biệt rank)
+        if (customer.getVipTier() != null && shippingFee.compareTo(BigDecimal.ZERO) > 0) {
+            shippingFee = shippingFee.divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP);
+        }
         order.setShippingFee(shippingFee);
 
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -352,6 +356,15 @@ public class OrderService {
         } else if (tier != null) {
             notes.append("VIP ").append(tier.getDisplayName())
                     .append(": không áp dụng (đơn < ").append(formatMoney(tier.getMinOrderToApply())).append(")");
+        }
+
+        // Ghi chú giảm 50% ship cho VIP
+        if (tier != null && request.getShippingFee() != null
+                && request.getShippingFee().compareTo(BigDecimal.ZERO) > 0) {
+            if (notes.length() > 0) notes.append(" | ");
+            notes.append("Ship VIP: -50% (-")
+                    .append(formatMoney(request.getShippingFee().subtract(order.getShippingFee())))
+                    .append(")");
         }
 
         if (discountCalc.isHasSpinBonus()) {
