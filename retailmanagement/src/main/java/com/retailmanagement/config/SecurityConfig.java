@@ -83,7 +83,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/orders/**")
                         .hasAnyRole("CUSTOMER", "ADMIN", "INVENTORY", "SALES")
-
+                        .requestMatchers("/api/chat/customer").permitAll()
+                        .requestMatchers("/api/chat/staff/**").hasAnyRole("ADMIN", "STAFF")
                         .anyRequest().authenticated()
                 )
 

@@ -182,4 +182,5 @@ getLoyaltyMonthlySummaryAdmin(months = 12) {
   triggerMonthlyReset() {
     return http.post("/api/auth/customers/loyalty/reset/monthly");
   },
+  
 };
