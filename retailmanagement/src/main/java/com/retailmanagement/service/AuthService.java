@@ -7,8 +7,10 @@ import com.retailmanagement.dto.response.AuthResponse;
 import com.retailmanagement.dto.response.UserResponse;
 import com.retailmanagement.entity.Customer;
 import com.retailmanagement.entity.CustomerType;
+import com.retailmanagement.entity.Role;
 import com.retailmanagement.entity.User;
 import com.retailmanagement.repository.CustomRes;
+import com.retailmanagement.repository.RoleRepository;
 import com.retailmanagement.repository.UserRepository;
 import com.retailmanagement.security.service.JwtService;
 import com.retailmanagement.util.SecurityUtil;
@@ -32,6 +34,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final CustomRes customerRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final ModelMapper modelMapper;
@@ -50,12 +53,15 @@ public class AuthService {
             throw new RuntimeException("Email đã tồn tại");
         }
 
+        Role role = roleRepository.findByName("CUSTOMER")
+                .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+
         // 1️⃣ Create USER
         User user = User.builder()
                 .username(req.getUsername())
                 .email(req.getEmail())
                 .passwordHash(passwordEncoder.encode(req.getPassword()))
-                .role("CUSTOMER")
+                .role(role)
                 .isActive(true)
                 .build();
 

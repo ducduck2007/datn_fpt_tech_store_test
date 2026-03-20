@@ -6,15 +6,8 @@ import com.retailmanagement.audit.AuditModule;
 import com.retailmanagement.audit.TargetType;
 import com.retailmanagement.dto.request.CustomerRequest;
 import com.retailmanagement.dto.response.CustomerResponse;
-import com.retailmanagement.entity.Customer;
-import com.retailmanagement.entity.CustomerType;
-import com.retailmanagement.entity.LoyaltyLedger;
-import com.retailmanagement.entity.User;
-import com.retailmanagement.entity.VipTier;
-import com.retailmanagement.repository.CustomRes;
-import com.retailmanagement.repository.LoyaltyLedgerRepository;
-import com.retailmanagement.repository.OrderRepository;
-import com.retailmanagement.repository.UserRepository;
+import com.retailmanagement.entity.*;
+import com.retailmanagement.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
@@ -46,6 +39,7 @@ public class CustomerService {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
     @Lazy
     private final CustomerEventNotificationService eventNotificationService; // ✅ THÊM
 
@@ -118,12 +112,14 @@ public class CustomerService {
 
         // ✅ TỰ ĐỘNG TẠO USER với username = email, password = SĐT
         User user = null;
+        Role role = roleRepository.findByName("CUSTOMER")
+                .orElseThrow(() -> new RuntimeException("Role not found"));
         if (userRepository.findByUsername(customerRequest.getEmail()).isEmpty()) {
             user = User.builder()
                     .username(customerRequest.getEmail())
                     .passwordHash(passwordEncoder.encode(customerRequest.getPhone())) // ✅ đúng tên field
                     .email(customerRequest.getEmail())
-                    .role("CUSTOMER")  // ✅ khớp với @PrePersist default
+                    .role(role)  // ✅ khớp với @PrePersist default
                     .isActive(true)
                     .build();
             user = userRepository.save(user);

@@ -30,8 +30,9 @@ public class User {
     /**
      * Role hợp lệ: ADMIN, SALES, INVENTORY, CUSTOMER
      */
-    @Column(nullable = false, length = 30)
-    private String role;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
@@ -48,9 +49,6 @@ public class User {
         if (createdAt == null) createdAt = now;
         if (updatedAt == null) updatedAt = now;
         if (isActive == null) isActive = true;
-
-        // mặc định theo schema
-        if (role == null || role.isBlank()) role = "CUSTOMER";
     }
 
     @PreUpdate

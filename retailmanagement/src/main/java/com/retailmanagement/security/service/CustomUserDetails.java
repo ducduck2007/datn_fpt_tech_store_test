@@ -1,14 +1,15 @@
 package com.retailmanagement.security.service;
 
 import com.retailmanagement.entity.User;
+import com.retailmanagement.security.permission.PermissionEnum;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -21,16 +22,35 @@ public class CustomUserDetails implements UserDetails {
     private final String role;
     private final boolean enabled;
     private final Collection<? extends GrantedAuthority> authorities;
+    private final Set<PermissionEnum> permissions;
 
     public CustomUserDetails(User user) {
         this.userId = user.getId();
         this.username = user.getUsername();
         this.password = user.getPasswordHash();
-        this.role = user.getRole();
+        this.role = user.getRole().getName();
         this.enabled = Boolean.TRUE.equals(user.getIsActive());
-        this.authorities = List.of(
-                new SimpleGrantedAuthority("ROLE_" + user.getRole())
-        );
+
+        this.permissions = user.getRole() != null
+                ? user.getRole().getPermissions()
+                .stream()
+                .map(p -> {
+                    try {
+                        return PermissionEnum.valueOf(
+                                (p.getModule() + "_" + p.getAction()).toUpperCase()
+                        );
+                    } catch (Exception e) {
+                        throw new IllegalStateException("Permission không hợp lệ trong DB");
+                    }
+                })
+                .collect(Collectors.toSet())
+                : Set.of();
+
+        this.authorities = buildAuthorities();
+    }
+
+    public Set<PermissionEnum> getPermissions() {
+        return permissions;
     }
 
     @Override
@@ -51,5 +71,19 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    private Collection<? extends GrantedAuthority> buildAuthorities() {
+        List<GrantedAuthority> auths = new ArrayList<>();
+
+        // ROLE
+        auths.add(new SimpleGrantedAuthority("ROLE_" + role));
+
+        // PERMISSIONS
+        permissions.forEach(p ->
+                auths.add(new SimpleGrantedAuthority(p.name()))
+        );
+
+        return auths;
     }
 }
