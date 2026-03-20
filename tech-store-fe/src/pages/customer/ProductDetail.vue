@@ -1,6 +1,5 @@
 <template>
   <div class="container-xl py-4">
-    <!-- Breadcrumb -->
     <el-breadcrumb separator="/" class="mb-4">
       <el-breadcrumb-item :to="{ path: '/' }">Trang chủ</el-breadcrumb-item>
       <el-breadcrumb-item>Chi tiết sản phẩm</el-breadcrumb-item>
@@ -9,23 +8,23 @@
       }}</el-breadcrumb-item>
     </el-breadcrumb>
 
-    <!-- Loading Skeleton -->
     <el-skeleton v-if="loading" :rows="10" animated />
 
-    <!-- Product Content -->
     <div v-else-if="product" class="row g-4">
-      <!-- Cột Trái: Thư viện ảnh -->
       <div class="col-12 col-md-5">
-        <el-card shadow="never" class="border-0 bg-light text-center p-3 mb-3">
+        <el-card shadow="never" class="border-0 bg-light text-center p-3 mb-3 position-relative">
           <el-image
             :src="mainImage"
             :preview-src-list="galleryImages"
             fit="contain"
             style="width: 100%; height: 350px; border-radius: 8px"
+            :class="{ 'opacity-50': currentStock === 0 }"
           />
+          <div v-if="currentStock === 0" class="out-of-stock-watermark">
+            <span>HẾT HÀNG</span>
+          </div>
         </el-card>
 
-        <!-- Ảnh Thumbnails -->
         <div class="d-flex gap-2 overflow-auto pb-2 custom-scrollbar">
           <div
             v-for="(img, idx) in galleryImages"
@@ -43,7 +42,6 @@
         </div>
       </div>
 
-      <!-- Cột Phải: Thông tin & Đặt hàng -->
       <div class="col-12 col-md-7">
         <div class="d-flex align-items-center gap-2 mb-2">
           <el-tag v-if="product.isNew" type="danger" effect="dark" round
@@ -69,7 +67,6 @@
 
         <el-divider border-style="dashed" />
 
-        <!-- Hiển thị Giá (Lấy theo biến thể đang chọn) -->
         <div class="mb-4">
           <div class="text-danger fw-bolder" style="font-size: 2rem">
             {{
@@ -80,7 +77,6 @@
           </div>
         </div>
 
-        <!-- Chọn Cấu hình / Biến thể -->
         <div v-if="variants.length > 0" class="mb-4">
           <h6 class="fw-bold mb-2">Chọn phiên bản / cấu hình:</h6>
           <div class="d-flex flex-wrap gap-2">
@@ -97,7 +93,6 @@
           </div>
         </div>
 
-        <!-- Trạng thái Kho & Hành động mua -->
         <div class="bg-light p-3 rounded-3 mb-4 border">
           <div class="d-flex align-items-center justify-content-between mb-3">
             <span class="fw-bold text-muted">Trạng thái kho:</span>
@@ -138,10 +133,8 @@
       </div>
     </div>
 
-    <!-- Thông tin lỗi nếu không tìm thấy SP -->
     <el-empty v-else description="Không tìm thấy thông tin sản phẩm" />
 
-    <!-- Phần Tab Mô tả & Thông số -->
     <div v-if="product" class="mt-5">
       <el-card shadow="never">
         <el-tabs v-model="activeTab" class="product-tabs">
@@ -150,7 +143,6 @@
               class="p-3"
               style="white-space: pre-wrap; line-height: 1.8; color: #475569"
             >
-              <!-- Đã thay đổi hiển thị để dùng biến mô tả sạch (đã cắt thông số) -->
               {{ displayDescription }}
             </div>
           </el-tab-pane>
@@ -332,6 +324,30 @@ onMounted(() => {
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+/* =========================================================
+   [MỚI] THÊM CSS CHO WATERMARK HẾT HÀNG
+   ========================================================= */
+.out-of-stock-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+.out-of-stock-watermark span {
+  color: white;
+  font-family: "Inter", sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
 
 /* =========================================================
    BASE RESET & FONT

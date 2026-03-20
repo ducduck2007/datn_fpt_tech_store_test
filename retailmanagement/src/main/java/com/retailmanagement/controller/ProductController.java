@@ -2,9 +2,16 @@ package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.ProductRequest;
 import com.retailmanagement.dto.response.ProductResponse;
+import com.retailmanagement.repository.OrderItemRepository;
+import com.retailmanagement.repository.ProductRepository;
+import com.retailmanagement.repository.ProductSerialRepository;
+import com.retailmanagement.repository.ProductVariantRepository;
 import com.retailmanagement.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -122,5 +129,35 @@ public class ProductController {
         );
 
         return ResponseEntity.ok(logs);
+    }
+
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+    @Autowired
+    private ProductVariantRepository variantRepository;
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private ProductSerialRepository serialRepository;
+
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<?> getProductDashboardStats() {
+        com.retailmanagement.dto.response.DashboardStatsResponse stats = new com.retailmanagement.dto.response.DashboardStatsResponse();
+
+        // 1. Lấy Top 10 sản phẩm bán chạy nhất
+        // Dùng PageRequest để giới hạn kết quả lấy ra đúng 10 sản phẩm đầu tiên
+        Pageable top10 = PageRequest.of(0, 10);
+        stats.setTopSellingProducts(orderItemRepository.getTopSellingProducts(top10));
+
+        // 2. Thống kê số liệu cơ bản
+        stats.setTotalActiveProducts(productRepository.countByIsVisibleTrue());
+        stats.setOutOfStockVariants(variantRepository.countByStockQuantityLessThanEqual(0));
+
+        // 3. Đếm số Seri (Trong kho và Bị lỗi)
+        stats.setTotalSerialsInStock(serialRepository.countByStatus("IN_STOCK"));
+        stats.setTotalSerialsFaulty(serialRepository.countByStatus("FAULTY"));
+
+        return ResponseEntity.ok(stats);
     }
 }

@@ -114,10 +114,19 @@ public class ProductSerialController {
     public ResponseEntity<?> updateSerialStatus(@PathVariable Long id, @RequestParam String status) {
         ProductSerial serial = serialRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy số Seri ID: " + id));
-
         serial.setStatus(status);
         serialRepository.save(serial);
-
-        return ResponseEntity.ok("Đã cập nhật trạng thái Seri thành " + status);
+        ProductVariant variant = variantRepository.findById(serial.getVariantId()).orElse(null);
+        if (variant != null) {
+            int currentStock = serialRepository.countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+            variant.setStockQuantity(currentStock);
+            if (currentStock <= 0) {
+                variant.setIsActive(false);
+            } else {
+                variant.setIsActive(true);
+            }
+            variantRepository.save(variant);
+        }
+        return ResponseEntity.ok("Đã cập nhật trạng thái Seri thành " + status + " và đồng bộ tồn kho tự động!");
     }
 }

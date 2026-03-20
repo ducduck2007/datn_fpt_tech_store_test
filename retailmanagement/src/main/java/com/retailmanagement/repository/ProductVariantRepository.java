@@ -14,4 +14,6 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     // Chỉ lấy các variant có giá bán thực sự thấp hơn giá nhập
     @Query("SELECT v FROM ProductVariant v WHERE v.costPrice IS NOT NULL AND v.price IS NOT NULL AND v.price < v.costPrice")
     List<ProductVariant> findVariantsBelowCost();
+    // Đếm số lượng biến thể có tồn kho = 0
+    long countByStockQuantityLessThanEqual(Integer stockQuantity);
 }

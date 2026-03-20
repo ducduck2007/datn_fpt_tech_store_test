@@ -1,16 +1,5 @@
-<!-- 
-============================================================
-FILE: src/pages/customer/CustomerHome.vue
-REDESIGNED: Premium warm editorial e-commerce aesthetic
-UPDATED: 
-  - Thêm sự kiện click vào thẻ sản phẩm để sang trang Chi Tiết
-  - Thêm .stop vào các nút bấm để tránh bị trùng lặp sự kiện click
-  - [MỚI] Thêm chức năng Sắp xếp theo (Sort By) cho khách hàng
-============================================================
--->
 <template>
   <div class="ch-root">
-    <!-- ── Page background ── -->
     <div class="ch-bg">
       <div class="ch-bg__noise"></div>
       <div class="ch-bg__orb ch-bg__orb--1"></div>
@@ -18,16 +7,12 @@ UPDATED:
     </div>
 
     <div class="ch-wrap">
-      <!-- ── Tier Progress ── -->
       <TierProgressBar
         v-if="isCustomer"
         ref="tierProgressRef"
         class="ch-tier"
       />
 
-      <!-- ══════════════════════════════════════════════
-            WELCOME BANNER
-      ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
           v-for="notif in welcomeNotifications"
@@ -70,9 +55,6 @@ UPDATED:
         </div>
       </transition-group>
 
-      <!-- ══════════════════════════════════════════════
-            BIRTHDAY BANNER
-      ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
           v-for="notif in birthdayNotifications"
@@ -118,9 +100,6 @@ UPDATED:
         </div>
       </transition-group>
 
-      <!-- ══════════════════════════════════════════════
-            REMINDER / WINBACK BANNER
-      ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
           v-for="notif in reminderNotifications"
@@ -160,9 +139,6 @@ UPDATED:
         </div>
       </transition-group>
 
-      <!-- ══════════════════════════════════════════════
-            SPIN EXPIRY BANNER
-      ══════════════════════════════════════════════ -->
       <transition-group name="banner-list" tag="div" class="ch-banners">
         <div
           v-for="bonus in spinExpiryBonuses"
@@ -204,11 +180,52 @@ UPDATED:
         </div>
       </transition-group>
 
-      <!-- ══════════════════════════════════════════════
-            MAIN LAYOUT
-      ══════════════════════════════════════════════ -->
+      <div v-if="topProducts.length > 0" class="top-selling-section mb-5">
+        <div class="top-selling-header">
+          <h3 class="top-selling-title">
+            <span class="fire-icon">🔥</span> SẢN PHẨM BÁN CHẠY NHẤT
+          </h3>
+          <p class="top-selling-subtitle">Những lựa chọn được yêu thích và săn đón nhiều nhất</p>
+        </div>
+        
+        <div class="product-grid top-selling-grid">
+          <div
+            v-for="(p, idx) in topProducts"
+            :key="'top-'+p.id"
+            class="product-card top-product-card"
+            :class="{ 'is-out-of-stock': p.isOutOfStock }"
+            :style="{ '--delay': idx * 0.04 + 's', cursor: 'pointer' }"
+            @click="$router.push('/product/' + p.id)"
+          >
+            <div class="product-card__img-wrap">
+              <img :src="p.imageUrl" :alt="p.name" class="product-card__img" loading="lazy" />
+              <div v-if="p.isOutOfStock" class="out-of-stock-badge">HẾT HÀNG</div>
+              <div v-else-if="p.isNew" class="product-card__new-badge">NEW</div>
+              <button
+                class="product-card__quick-add"
+                :disabled="!isCustomer || !p.defaultVariantId || p.isOutOfStock"
+                @click.stop="goOrder(p)"
+              >
+                <svg v-if="!p.isOutOfStock" class="me-1" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                {{ p.isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ' }}
+              </button>
+            </div>
+            <div class="product-card__body">
+              <div class="product-card__name">{{ p.name }}</div>
+              <div class="product-card__desc">{{ p.description || "—" }}</div>
+              <div class="product-card__footer">
+                <div class="product-card__price">{{ p.priceText }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="ch-layout">
-        <!-- ── Sidebar ── -->
         <aside class="ch-sidebar">
           <div class="sidebar-card">
             <div class="sidebar-card__head">
@@ -248,9 +265,7 @@ UPDATED:
           </div>
         </aside>
 
-        <!-- ── Main content ── -->
         <main class="ch-main">
-          <!-- Toolbar -->
           <div class="ch-toolbar">
             <div class="ch-toolbar__left">
               <div class="ch-toolbar__eyebrow">Sản phẩm</div>
@@ -258,14 +273,12 @@ UPDATED:
               <div class="ch-toolbar__meta">
                 Trang {{ page + 1 }}
                 <span v-if="searchTerm">
-                  · "<em>{{ searchTerm }}</em
-                  >"
+                  · "<em>{{ searchTerm }}</em>"
                 </span>
               </div>
             </div>
 
             <div class="ch-toolbar__right">
-              <!-- [MỚI] THÊM DROPDOWN SẮP XẾP -->
               <el-select
                 v-model="sortBy"
                 @change="onSelectSort"
@@ -274,39 +287,25 @@ UPDATED:
                 popper-class="sort-dropdown-popper"
               >
                 <el-option label="Mới nhất" value="newest_arrival">
-                  <span class="option-inner"
-                    ><span class="option-icon">✦</span> Mới nhất</span
-                  >
+                  <span class="option-inner"><span class="option-icon">✦</span> Mới nhất</span>
                 </el-option>
                 <el-option label="Cũ nhất" value="oldest">
-                  <span class="option-inner"
-                    ><span class="option-icon">↺</span> Cũ nhất</span
-                  >
+                  <span class="option-inner"><span class="option-icon">↺</span> Cũ nhất</span>
                 </el-option>
                 <el-option label="Bán chạy nhất" value="best_selling">
-                  <span class="option-inner"
-                    ><span class="option-icon">🔥</span> Bán chạy nhất</span
-                  >
+                  <span class="option-inner"><span class="option-icon">🔥</span> Bán chạy nhất</span>
                 </el-option>
                 <el-option label="Giá tăng dần" value="price_asc">
-                  <span class="option-inner"
-                    ><span class="option-icon">↑</span> Giá tăng dần</span
-                  >
+                  <span class="option-inner"><span class="option-icon">↑</span> Giá tăng dần</span>
                 </el-option>
                 <el-option label="Giá giảm dần" value="price_desc">
-                  <span class="option-inner"
-                    ><span class="option-icon">↓</span> Giá giảm dần</span
-                  >
+                  <span class="option-inner"><span class="option-icon">↓</span> Giá giảm dần</span>
                 </el-option>
                 <el-option label="Tên: A → Z" value="name_asc">
-                  <span class="option-inner"
-                    ><span class="option-icon">Az</span> Tên: A → Z</span
-                  >
+                  <span class="option-inner"><span class="option-icon">Az</span> Tên: A → Z</span>
                 </el-option>
                 <el-option label="Tên: Z → A" value="name_desc">
-                  <span class="option-inner"
-                    ><span class="option-icon">Za</span> Tên: Z → A</span
-                  >
+                  <span class="option-inner"><span class="option-icon">Za</span> Tên: Z → A</span>
                 </el-option>
               </el-select>
 
@@ -335,10 +334,8 @@ UPDATED:
             </div>
           </div>
 
-          <!-- Divider -->
           <div class="ch-divider"></div>
 
-          <!-- Product grid -->
           <div v-if="loading" class="product-skeleton-grid">
             <div v-for="i in 6" :key="i" class="skeleton-card">
               <div class="skeleton-img"></div>
@@ -358,11 +355,11 @@ UPDATED:
             </div>
 
             <div v-else class="product-grid">
-              <!-- LIÊN KẾT TRANG CHI TIẾT SẢN PHẨM Ở ĐÂY -->
               <div
                 v-for="(p, idx) in products"
                 :key="p.id"
                 class="product-card"
+                :class="{ 'is-out-of-stock': p.isOutOfStock }"
                 :style="{ '--delay': idx * 0.04 + 's', cursor: 'pointer' }"
                 @click="$router.push('/product/' + p.id)"
               >
@@ -373,38 +370,20 @@ UPDATED:
                     class="product-card__img"
                     loading="lazy"
                   />
-                  <div v-if="p.isNew" class="product-card__new-badge">NEW</div>
-                  <!-- NÚT THÊM VÀO GIỎ: Dùng .stop để tránh lan sự kiện click -->
+                  <div v-if="p.isOutOfStock" class="out-of-stock-badge">HẾT HÀNG</div>
+                  <div v-else-if="p.isNew" class="product-card__new-badge">NEW</div>
+                  
                   <button
                     class="product-card__quick-add"
-                    :disabled="!isCustomer || !p.defaultVariantId"
+                    :disabled="!isCustomer || !p.defaultVariantId || p.isOutOfStock"
                     @click.stop="goOrder(p)"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <line
-                        x1="3"
-                        y1="6"
-                        x2="21"
-                        y2="6"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                      />
-                      <path
-                        d="M16 10a4 4 0 0 1-8 0"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                      />
+                    <svg v-if="!p.isOutOfStock" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
-                    Thêm vào giỏ
+                    {{ p.isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ' }}
                   </button>
                 </div>
                 <div class="product-card__body">
@@ -419,7 +398,6 @@ UPDATED:
               </div>
             </div>
 
-            <!-- Pagination -->
             <div class="ch-pagination">
               <button
                 class="page-btn"
@@ -465,7 +443,6 @@ const products = ref([]);
 const activeKey = ref("all");
 const categoryId = ref(null);
 
-// [MỚI] Thêm biến lưu giá trị sắp xếp (mặc định là Mới nhất)
 const sortBy = ref("newest_arrival");
 
 const page = ref(0);
@@ -481,6 +458,9 @@ const reminderNotifications = ref([]);
 const tierProgressRef = ref(null);
 const spinExpiryBonuses = ref([]);
 const spinExpiryDismissed = ref(new Set());
+
+// [MỚI] Biến chứa danh sách sản phẩm bán chạy
+const topProducts = ref([]);
 
 function confettiStyle(i) {
   const colors = [
@@ -554,29 +534,37 @@ function getSpinProgressWidth(hoursLeft) {
 }
 
 function normalizeProducts(list) {
-  return (list || []).map((p, idx) => {
-    const id = p?.id ?? p?.productId ?? idx + 1;
-    const price = p?.finalPrice ?? p?.price ?? p?.minPrice ?? null;
-    return {
-      id,
-      name: p?.name ?? p?.title ?? `Product ${id}`,
-      description: p.description || "",
-      imageUrl: fixImageUrl(p.imageUrl || p.thumbnailUrl),
-      priceText:
-        typeof price === "number"
-          ? new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(price)
-          : price != null
-            ? String(price)
-            : "—",
-      defaultVariantId:
-        p?.defaultVariantId ?? p?.variantId ?? p?.variants?.[0]?.id ?? null,
-      isNew: p.isNew,
-      raw: p,
-    };
-  });
+  return (list || [])
+    .map((p, idx) => {
+      const id = p?.id ?? p?.productId ?? idx + 1;
+      const price = p?.finalPrice ?? p?.price ?? p?.minPrice ?? null;
+      
+      const stockCount = p.totalStock !== undefined ? p.totalStock : 1; 
+      
+      const isOutOfStock = p.inStock === false || stockCount <= 0 || p.isVisible === false;
+
+      return {
+        id,
+        name: p?.name ?? p?.title ?? `Product ${id}`,
+        description: p.description || "",
+        imageUrl: fixImageUrl(p.imageUrl || p.thumbnailUrl),
+        priceText:
+          typeof price === "number"
+            ? new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(price)
+            : price != null
+              ? String(price)
+              : "—",
+        defaultVariantId:
+          p?.defaultVariantId ?? p?.variantId ?? p?.variants?.[0]?.id ?? null,
+        isNew: p.isNew,
+        isOutOfStock: isOutOfStock,
+        raw: p,
+      };
+    })
+    .filter(p => !p.isOutOfStock); 
 }
 
 function normalizeCategories(list) {
@@ -615,6 +603,19 @@ async function reloadCategories() {
   }
 }
 
+async function loadTopProducts() {
+  try {
+    // Gọi 10 sản phẩm bán chạy nhất từ Backend
+    const res = await productsApi.list({ sortBy: 'best_selling', page: 0, size: 10 });
+    const data = res.data?.data || res.data;
+    
+    // Normalize sẽ tự động vứt bỏ các máy Hết Hàng. Sau đó ta .slice(0, 5) để lấy đúng 5 máy còn hàng hiển thị.
+    topProducts.value = normalizeProducts(data.content || []).slice(0, 5);
+  } catch (e) {
+    console.error("Lỗi tải Top Bán Chạy", e);
+  }
+}
+
 async function reloadProducts() {
   loading.value = true;
   try {
@@ -623,7 +624,7 @@ async function reloadProducts() {
       categoryIds: categoryId.value ? String(categoryId.value) : undefined,
       keyword: searchTerm.value || undefined,
       isFaulty: false,
-      sortBy: sortBy.value, // [MỚI] Gửi tham số sắp xếp lên Server
+      sortBy: sortBy.value, 
     };
     const res = await productsApi.list(params);
     const data = res.data?.data || res.data;
@@ -641,6 +642,7 @@ async function reloadAll() {
   page.value = 0;
   await reloadCategories();
   await reloadProducts();
+  await loadTopProducts(); // Load thêm Top bán chạy
 }
 
 function onSelectCategory(key) {
@@ -650,10 +652,9 @@ function onSelectCategory(key) {
   reloadProducts();
 }
 
-// [MỚI] Hàm xử lý khi khách hàng chọn đổi kiểu sắp xếp
 function onSelectSort(val) {
   sortBy.value = val;
-  page.value = 0; // Reset về trang 1
+  page.value = 0;
   reloadProducts();
 }
 
@@ -747,6 +748,118 @@ onMounted(async () => {
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+/* ══════════════════════════════════════════════
+   [MỚI] THÊM CSS CHO NHÃN HẾT HÀNG VÀ TOP BÁN CHẠY
+══════════════════════════════════════════════ */
+.top-selling-section {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  border: 1px solid #fecdd3;
+  border-radius: 24px;
+  padding: 32px 36px 40px;
+  box-shadow: 0 12px 32px rgba(225, 29, 72, 0.08);
+  position: relative;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+/* Họa tiết chấm bi mờ mờ ở background */
+.top-selling-section::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; left: 0; bottom: 0;
+  background-image: radial-gradient(#fda4af 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.top-selling-header {
+  text-align: center;
+  margin-bottom: 30px;
+  position: relative;
+  z-index: 1;
+}
+
+.top-selling-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 30px;
+  font-weight: 900;
+  color: #e11d48;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.top-selling-subtitle {
+  font-size: 15px;
+  color: #9f1239;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Hiệu ứng nhịp đập cho icon ngọn lửa */
+.fire-icon {
+  font-size: 36px;
+  display: inline-block;
+  animation: fire-pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes fire-pulse {
+  from { 
+    transform: scale(1); 
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4)); 
+  }
+  to { 
+    transform: scale(1.15); 
+    filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.8)); 
+  }
+}
+
+.top-selling-grid {
+  position: relative;
+  z-index: 1;
+}
+
+/* Nhấn mạnh Card sản phẩm trong khu vực Bán Chạy */
+.top-product-card {
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+}
+
+.top-product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 40px rgba(225, 29, 72, 0.15);
+}
+.out-of-stock-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.is-out-of-stock .product-card__img {
+  filter: grayscale(80%) opacity(0.8);
+}
+
+.is-out-of-stock .product-card__quick-add {
+  background: #cbd5e1 !important;
+  color: #64748b !important;
+  cursor: not-allowed !important;
+}
 
 /* ══════════════════════════════════════════════
    ROOT & BG

@@ -28,4 +28,6 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, Lo
             @Param("keyword") String keyword,
             @Param("status") String status,
             Pageable pageable);
+
+    long countByStatus(String status);
 }

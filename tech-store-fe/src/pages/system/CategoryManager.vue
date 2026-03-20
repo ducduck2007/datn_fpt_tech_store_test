@@ -15,11 +15,24 @@
 
       <el-divider />
 
-      <!-- Bảng Danh sách -->
-      <el-table :data="rows" border :loading="loading" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="70" />
+      <el-table 
+        :data="treeData" 
+        row-key="id" 
+        border 
+        :loading="loading" 
+        style="width: 100%"
+        :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+        default-expand-all
+      >
+        <el-table-column prop="name" label="Tên" min-width="220">
+          <template #default="{ row }">
+            <div class="fw-bold">{{ row.name }}</div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="id" label="ID" width="70" align="center" />
         
-        <el-table-column label="Image" width="100">
+        <el-table-column label="Image" width="100" align="center">
           <template #default="{ row }">
             <el-image 
               style="width: 70px; height: 50px; border-radius: 4px"
@@ -36,22 +49,16 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="name" label="Tên" min-width="180">
-          <template #default="{ row }">
-            <div class="fw-bold">{{ row.name }}</div>
-          </template>
-        </el-table-column>
-
         <el-table-column prop="description" label="Mô tả" min-width="200" />
 
-        <el-table-column label="Danh mục cha" min-width="150">
+        <el-table-column label="Danh mục cha" min-width="150" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.parentName" effect="plain">{{ row.parentName }}</el-tag>
+            <el-tag v-if="row.parentId" effect="plain">Thuộc ID: {{ row.parentId }}</el-tag>
             <span v-else class="text-muted small">- Gốc -</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="Trạng thái" width="100" align="center">
+        <el-table-column label="Trạng thái" width="120" align="center">
           <template #default="{ row }">
             <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
               {{ row.isActive ? "Hoạt động" : "Ẩn" }}
@@ -71,24 +78,13 @@
         </el-table-column>
       </el-table>
 
-      <!-- Phân trang -->
-      <div class="d-flex justify-content-center mt-3">
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :page-size="20"
-          :total="totalElements"
-          :current-page="page + 1"
-          @current-change="onPageChange"
-        />
-      </div>
     </el-card>
 
-    <!-- Dialog Thêm / Sửa -->
     <el-dialog
       v-model="dlg.open"
       :title="dlg.mode === 'create' ? 'Tạo danh mục' : 'Cập nhật danh mục'"
       width="600px"
+      destroy-on-close
     >
       <el-alert v-if="dlg.alert" :title="dlg.alert" type="error" show-icon class="mb-3" />
 
@@ -106,7 +102,6 @@
               :value="c.id"
               :disabled="c.id === dlg.id" 
             />
-            <!-- disabled: Không cho chọn chính mình làm cha -->
           </el-select>
         </el-form-item>
 
@@ -137,15 +132,11 @@ import { onMounted, reactive, ref } from "vue";
 import axios from "axios";
 import { toast } from "../../ui/toast";
 
-// Cấu hình URL cơ sở (Sửa lại port nếu cần)
 const BASE_URL = "http://localhost:8080/api/categories";
 
 const loading = ref(false);
-const rows = ref([]);
-const parentOptions = ref([]); // Danh sách để chọn danh mục cha
-
-const page = ref(0);
-const totalElements = ref(0);
+const treeData = ref([]); 
+const parentOptions = ref([]); 
 
 // --- Helper: Fix link ảnh ---
 function fixImageUrl(url) {
@@ -154,42 +145,49 @@ function fixImageUrl(url) {
   return `http://localhost:8080${url}`;
 }
 
-// --- API Calls ---
+// --- Tree Builder Logic ---
+function buildCategoryTree(flatList) {
+  const map = {};
+  const roots = [];
 
-// 1. Load danh sách (Có phân trang - dùng cho bảng)
+  flatList.forEach((item) => {
+    map[item.id] = { ...item, children: [] };
+  });
+
+  flatList.forEach((item) => {
+    const node = map[item.id];
+    if (item.parentId && map[item.parentId]) {
+      map[item.parentId].children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  Object.values(map).forEach((node) => {
+    if (node.children.length === 0) {
+      delete node.children;
+    }
+  });
+
+  return roots;
+}
+
+// --- API Calls ---
 async function load() {
   loading.value = true;
   try {
-    // Gọi API paging mới làm ở CategoryController
-    const res = await axios.get(`${BASE_URL}/paging`, {
-      params: { page: page.value, size: 20 }
-    });
+    // Lấy toàn bộ danh sách (không phân trang) để dựng cây
+    const res = await axios.get(BASE_URL, { params: { activeOnly: false } });
+    const flatList = res.data?.data || [];
     
-    // Cấu trúc trả về: { success: true, data: { content: [], totalElements: ... } }
-    const pageData = res.data?.data || {};
-    rows.value = pageData.content || [];
-    totalElements.value = pageData.totalElements || 0;
+    parentOptions.value = flatList;
+    treeData.value = buildCategoryTree(flatList);
   } catch (e) {
     console.error(e);
     toast("Failed to load categories.", "error");
   } finally {
     loading.value = false;
   }
-}
-
-// 2. Load danh sách cha (Không phân trang - dùng cho Dropdown)
-async function loadParents() {
-  try {
-    const res = await axios.get(BASE_URL, { params: { activeOnly: true } });
-    parentOptions.value = res.data?.data || [];
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-function onPageChange(val) {
-  page.value = val - 1;
-  load();
 }
 
 // --- Create / Edit Logic ---
@@ -213,7 +211,6 @@ function openCreate() {
   dlg.form = { name: "", description: "", parentId: null, imageFile: null };
   dlg.alert = "";
   dlg.open = true;
-  loadParents(); // Reload list cha mới nhất
 }
 
 function openEdit(row) {
@@ -222,12 +219,11 @@ function openEdit(row) {
   dlg.form = {
     name: row.name,
     description: row.description,
-    parentId: row.parentId, // ID cha hiện tại
-    imageFile: null, // Reset file input
+    parentId: row.parentId,
+    imageFile: null, 
   };
   dlg.alert = "";
   dlg.open = true;
-  loadParents();
 }
 
 function onPickFile(e) {
@@ -246,7 +242,6 @@ async function save() {
 
   dlg.loading = true;
   try {
-    // Dùng FormData để gửi file
     const formData = new FormData();
     formData.append("name", dlg.form.name);
     formData.append("description", dlg.form.description || "");
@@ -260,7 +255,7 @@ async function save() {
     }
 
     if (dlg.mode === "create") {
-      await axios.post(BASE_URL, formData); // Tự động nhận diện Multipart
+      await axios.post(BASE_URL, formData);
       toast("Category created successfully.", "success");
     } else {
       await axios.put(`${BASE_URL}/${dlg.id}`, formData);
@@ -268,7 +263,7 @@ async function save() {
     }
 
     dlg.open = false;
-    load(); // Refresh bảng
+    load(); 
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || "Save failed";
     dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg);
@@ -295,6 +290,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Giữ nguyên 100% style gốc của bạn */
 .kicker { font-size: 12px; opacity: 0.75; font-weight: 900; text-transform: uppercase; }
 .title { font-weight: 900; font-size: 18px; }
 .muted { color: rgba(15, 23, 42, 0.62); font-size: 13px; }

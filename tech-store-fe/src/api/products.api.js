@@ -75,5 +75,15 @@ export const productsApi = {
 
   getHistory(productId) {
     return http.get(`/api/products/${productId}/history`);
+  },
+
+  getDashboardStats() {
+    return http.get("/api/products/dashboard-stats");
+  },
+
+  exportReport() {
+    return http.get("/api/reports/export/excel", {
+      responseType: 'blob' 
+    });
   }
 };

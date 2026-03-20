@@ -32,6 +32,7 @@ import SettingsCurrency from "../pages/system/SettingsCurrency.vue";
 import PaymentManagement from "../pages/system/PaymentManagement.vue";
 import SerialManager from "../pages/system/SerialManager.vue";
 import OrderDashboard from "../pages/system/OrderDashboard.vue";
+import ProductDashboard from "../pages/system/ProductDashboard.vue";
 
 import Toployalcustomers from "../pages/system/Toployalcustomers.vue";
 import Loyaltysummaryadmin from "../pages/system/Loyaltysummaryadmin.vue";
@@ -201,6 +202,12 @@ const routes = [
         name: 'SerialManager',
         component: SerialManager, 
         meta: { title: 'Quản lý số Seri' }
+      },
+      {
+        path: 'dashboard-products',
+        name: 'ProductDashboard',
+        component: ProductDashboard,
+        meta: { title: 'Báo cáo Tổng quan' }
       },
 
       // ===== Orders =====

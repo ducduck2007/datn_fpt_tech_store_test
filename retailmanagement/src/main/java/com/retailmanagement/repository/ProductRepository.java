@@ -71,4 +71,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     // Tìm danh sách sản phẩm trong thùng rác (đã xóa mềm)
     Page<Product> findByIsVisibleFalse(Pageable pageable);
+
+    // Đếm số sản phẩm đang hiển thị (Active)
+    long countByIsVisibleTrue();
 }
