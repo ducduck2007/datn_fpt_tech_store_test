@@ -1,96 +1,117 @@
 <template>
-  <div class="crm-root">
-    <div class="crm-inner">
+  <div class="crm2-page">
+    <div class="crm2-inner">
 
-      <!-- PAGE HEADER -->
-      <header class="crm-header">
-        <div class="header-left">
-          <p class="header-eyebrow">Quản lý Quan hệ Khách hàng</p>
-          <h1 class="header-title">Quản lý <span class="title-line">Khách hàng</span></h1>
-          <p class="header-meta">{{ rows.length }} tài khoản đã đăng ký</p>
+      <!-- ── Header ── -->
+      <header class="crm2-header">
+        <div class="crm2-header__left">
+          <div class="crm2-eyebrow">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Quản lý Quan hệ Khách hàng
+          </div>
+          <h1 class="crm2-title">Quản lý <span class="crm2-title__accent">Khách hàng</span></h1>
+          <p class="crm2-subtitle">{{ rows.length }} tài khoản đã đăng ký</p>
         </div>
-        <div class="header-actions">
-          <button class="btn-outline" @click="reloadCurrentTab" :disabled="loading">
-            <span v-if="loading" class="spin-icon">↻</span>
-            <span v-else>↻</span>
-            Tải lại
+        <div class="crm2-header__actions">
+          <button class="crm2-btn crm2-btn--outline" :class="{'crm2-btn--loading': loading}" @click="reloadCurrentTab" :disabled="loading">
+            <svg v-if="!loading" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+              <path d="M8 16H3v5"/>
+            </svg>
+            <span v-if="!loading">Tải lại</span>
+            <span v-else class="crm2-spinner"></span>
           </button>
-          <button v-if="mainTab === 'customers'" class="btn-solid" @click="openCreate">
-            + Thêm khách hàng
+          <button v-if="mainTab === 'customers'" class="crm2-btn crm2-btn--primary" @click="openCreate">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Thêm khách hàng
           </button>
-          <button v-if="mainTab === 'customers'" class="btn-outline" @click="openSummaryDialog">
+          <button v-if="mainTab === 'customers'" class="crm2-btn crm2-btn--outline" @click="openSummaryDialog">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             Tổng điểm
           </button>
         </div>
       </header>
 
-      <!-- NAVIGATION TABS -->
-      <nav class="crm-nav">
-        <button :class="['crm-nav-tab', { active: mainTab === 'customers' }]" @click="mainTab = 'customers'">
+      <!-- ── Tab bar ── -->
+      <div class="crm2-tabbar">
+        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'customers'}" @click="mainTab = 'customers'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           Khách hàng &amp; Thành viên
         </button>
-        <button :class="['crm-nav-tab', { active: mainTab === 'birthdays' }]" @click="mainTab = 'birthdays'; loadBirthdayData()">
+        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'birthdays'}" @click="mainTab = 'birthdays'; loadBirthdayData()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><rect x="8" y="2" width="8" height="5" rx="1"/><path d="M12 7v5"/></svg>
           Sinh nhật
         </button>
-        <button :class="['crm-nav-tab', { active: mainTab === 'inactive' }]" @click="mainTab = 'inactive'; loadInactiveAll()">
+        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'inactive'}" @click="mainTab = 'inactive'; loadInactiveAll()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Không hoạt động
         </button>
-        <button :class="['crm-nav-tab', { active: mainTab === 'zeroorder' }]" 
-        @click="mainTab = 'zeroorder'; loadZeroOrderData(); loadZeroOrderStats()">
-  Chưa mua hàng
-</button>
-        <div class="nav-underline" />
-      </nav>
+        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'zeroorder'}" @click="mainTab = 'zeroorder'; loadZeroOrderData(); loadZeroOrderStats()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          Chưa mua hàng
+        </button>
+      </div>
 
       <!-- ══ TAB 1: CUSTOMERS ══ -->
       <template v-if="mainTab === 'customers'">
 
-        <!-- STAT CARDS -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-label">Tổng khách hàng</span>
-            <span class="stat-value">{{ rows.length }}</span>
+        <!-- Stat cards -->
+        <div class="crm2-stats4">
+          <div class="crm2-stat crm2-stat--blue">
+            <div class="crm2-stat__num">{{ rows.length }}</div>
+            <div class="crm2-stat__label">Tổng khách hàng</div>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">Thành viên VIP</span>
-            <span class="stat-value accent-gold">{{ vipCount }}</span>
+          <div class="crm2-stat crm2-stat--orange">
+            <div class="crm2-stat__num">{{ vipCount }}</div>
+            <div class="crm2-stat__label">Thành viên VIP</div>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">Tổng điểm</span>
-            <span class="stat-value accent-blue">{{ totalPoints.toLocaleString() }}</span>
+          <div class="crm2-stat crm2-stat--green">
+            <div class="crm2-stat__num">{{ totalPoints.toLocaleString() }}</div>
+            <div class="crm2-stat__label">Tổng điểm</div>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">Điểm TB</span>
-            <span class="stat-value">{{ avgPoints.toLocaleString() }}</span>
+          <div class="crm2-stat crm2-stat--dim">
+            <div class="crm2-stat__num">{{ avgPoints.toLocaleString() }}</div>
+            <div class="crm2-stat__label">Điểm TB</div>
           </div>
-          <div class="stat-card" v-if="hasActiveFilters">
-            <span class="stat-label">Đã lọc</span>
-            <span class="stat-value accent-teal">{{ filtered.length }}</span>
+          <div class="crm2-stat crm2-stat--purple" v-if="hasActiveFilters">
+            <div class="crm2-stat__num">{{ filtered.length }}</div>
+            <div class="crm2-stat__label">Đã lọc</div>
           </div>
         </div>
 
-        <!-- FILTERS -->
-        <div class="filter-panel">
-          <div class="filter-panel-head">
-            <span class="filter-panel-title">Bộ lọc</span>
-            <button class="btn-link" @click="clearAllFilters" :disabled="!hasActiveFilters">Xóa tất cả</button>
-          </div>
-          <div class="filter-grid">
-            <div class="field-group">
-              <label class="field-label">Tìm kiếm</label>
-              <input v-model="q" class="field-input" placeholder="Tên / Email / SĐT…" />
+        <!-- Filter panel -->
+        <div class="crm2-filter-panel">
+          <div class="crm2-filter-panel__head">
+            <div class="crm2-filter-panel__title">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              Bộ lọc
+              <span v-if="hasActiveFilters" class="crm2-filter-badge">{{ [typeFilter,vipTierFilter,activityFilter,isPointsFilterApplied].filter(Boolean).length }} đang áp dụng</span>
             </div>
-            <div class="field-group">
-              <label class="field-label">Loại</label>
-              <select v-model="typeFilter" class="field-select" @change="handleFilterChange">
+            <button class="crm2-filter-clear" @click="clearAllFilters" :disabled="!hasActiveFilters">Xóa tất cả</button>
+          </div>
+          <div class="crm2-filter-fields">
+            <div class="crm2-filter-field">
+              <span class="crm2-filter-field__label">Tìm kiếm</span>
+              <input v-model="q" class="crm2-input" placeholder="Tên / Email / SĐT…" />
+            </div>
+            <div class="crm2-filter-field">
+              <span class="crm2-filter-field__label">Loại</span>
+              <select v-model="typeFilter" class="crm2-input crm2-select" @change="handleFilterChange">
                 <option value="">Tất cả</option>
                 <option value="REGULAR">Thường</option>
                 <option value="VIP">VIP</option>
               </select>
             </div>
-            <div class="field-group">
-              <label class="field-label">Cấp VIP</label>
-              <select v-model="vipTierFilter" class="field-select" @change="handleFilterChange">
+            <div class="crm2-filter-field">
+              <span class="crm2-filter-field__label">Cấp VIP</span>
+              <select v-model="vipTierFilter" class="crm2-input crm2-select" @change="handleFilterChange">
                 <option value="">Tất cả cấp</option>
                 <option value="BRONZE">Đồng</option>
                 <option value="SILVER">Bạc</option>
@@ -99,139 +120,139 @@
                 <option value="DIAMOND">Kim cương</option>
               </select>
             </div>
-            <div class="field-group">
-              <label class="field-label">Hoạt động</label>
-              <select v-model="activityFilter" class="field-select" @change="handleFilterChange">
+            <div class="crm2-filter-field">
+              <span class="crm2-filter-field__label">Hoạt động</span>
+              <select v-model="activityFilter" class="crm2-input crm2-select" @change="handleFilterChange">
                 <option value="">Tất cả</option>
                 <option value="ACTIVE_30">Hoạt động (30 ngày)</option>
               </select>
             </div>
           </div>
-          <div class="filter-divider" />
-          <div class="filter-grid filter-grid-points">
-            <div class="field-group">
-              <label class="field-label">Điểm tối thiểu</label>
-              <input v-model.number="pointsMin" type="number" class="field-input" placeholder="0" min="0" />
+          <div class="crm2-filter-divider"></div>
+          <div class="crm2-filter-points">
+            <div class="crm2-filter-field">
+              <span class="crm2-filter-field__label">Điểm tối thiểu</span>
+              <input v-model.number="pointsMin" type="number" class="crm2-input" placeholder="0" min="0" />
             </div>
-            <div class="field-group">
-              <label class="field-label">Điểm tối đa</label>
-              <input v-model.number="pointsMax" type="number" class="field-input" placeholder="999999" min="0" />
+            <div class="crm2-filter-field">
+              <span class="crm2-filter-field__label">Điểm tối đa</span>
+              <input v-model.number="pointsMax" type="number" class="crm2-input" placeholder="999999" min="0" />
             </div>
-            <div class="field-group field-group-actions">
-              <button class="btn-solid" @click="applyPointsFilter" :disabled="!canApplyPointsFilter">Áp dụng</button>
-              <button class="btn-outline" @click="clearPointsFilter" :disabled="!isPointsFilterApplied">Reset</button>
+            <div class="crm2-filter-field crm2-filter-field--actions">
+              <button class="crm2-btn crm2-btn--primary" @click="applyPointsFilter" :disabled="!canApplyPointsFilter">Áp dụng</button>
+              <button class="crm2-btn crm2-btn--ghost" @click="clearPointsFilter" :disabled="!isPointsFilterApplied">Reset</button>
             </div>
           </div>
-          <div class="active-filters" v-if="hasActiveFilters">
-            <span class="af-label">Đang hoạt động:</span>
-            <span class="filter-chip" v-if="typeFilter">Loại: {{ typeFilter }}<button @click="typeFilter = ''; handleFilterChange()" class="chip-remove">×</button></span>
-            <span class="filter-chip" v-if="vipTierFilter">Cấp: {{ vipTierFilter }}<button @click="vipTierFilter = ''; handleFilterChange()" class="chip-remove">×</button></span>
-            <span class="filter-chip" v-if="activityFilter === 'ACTIVE_30'">HD 30 ngày<button @click="activityFilter = ''; handleFilterChange()" class="chip-remove">×</button></span>
-            <span class="filter-chip" v-if="isPointsFilterApplied">Điểm: {{ appliedPointsMin }}–{{ appliedPointsMax === 999999 ? '∞' : appliedPointsMax }}<button @click="clearPointsFilter" class="chip-remove">×</button></span>
+          <div class="crm2-active-filters" v-if="hasActiveFilters">
+            <span class="crm2-af-label">Đang hoạt động:</span>
+            <span class="crm2-filter-chip" v-if="typeFilter">Loại: {{ typeFilter }}<button @click="typeFilter = ''; handleFilterChange()" class="crm2-chip-remove">×</button></span>
+            <span class="crm2-filter-chip" v-if="vipTierFilter">Cấp: {{ vipTierFilter }}<button @click="vipTierFilter = ''; handleFilterChange()" class="crm2-chip-remove">×</button></span>
+            <span class="crm2-filter-chip" v-if="activityFilter === 'ACTIVE_30'">HD 30 ngày<button @click="activityFilter = ''; handleFilterChange()" class="crm2-chip-remove">×</button></span>
+            <span class="crm2-filter-chip" v-if="isPointsFilterApplied">Điểm: {{ appliedPointsMin }}–{{ appliedPointsMax === 999999 ? '∞' : appliedPointsMax }}<button @click="clearPointsFilter" class="crm2-chip-remove">×</button></span>
           </div>
         </div>
 
-        <!-- TABLE -->
-        <div class="table-panel">
-          <div class="table-loading" v-if="loading">
-            <div class="loader-dots"><span/><span/><span/></div>
-            <p>Đang tải dữ liệu…</p>
+        <!-- Table -->
+        <div class="crm2-card">
+          <div class="crm2-toolbar">
+            <div class="crm2-toolbar__left">
+              <span class="crm2-count"><span class="crm2-count__num">{{ filtered.length }}</span><span class="crm2-count__label">/ {{ rows.length }} khách</span></span>
+            </div>
           </div>
-          <div class="table-scroll" v-else>
-            <table class="crm-table">
+          <div class="crm2-table-wrap" :class="{'crm2-table-wrap--loading': loading}">
+            <div v-if="loading" class="crm2-loader-overlay"><div class="crm2-loader-ring"></div></div>
+            <table class="crm2-table">
               <thead>
                 <tr>
-                  <th>STT</th>
-                  <th>Khách hàng</th>
-                  <th>Liên hệ</th>
-                  <th>Loại</th>
-                  <th>Cấp</th>
-                  <th>Điểm</th>
-                  <th>Chi tiêu</th>
-                  <th>Ghi chú VIP</th>
-                  <th>Ghi chú</th>
-                  <th>Thao tác</th>
+                  <th style="width:70px">STT</th>
+                  <th style="min-width:180px">Khách hàng</th>
+                  <th style="min-width:160px">Liên hệ</th>
+                  <th style="width:100px">Loại</th>
+                  <th style="width:110px">Cấp</th>
+                  <th style="width:130px">Điểm</th>
+                  <th style="width:110px">Chi tiêu</th>
+                  <th style="min-width:160px">Ghi chú VIP</th>
+                  <th style="min-width:140px">Ghi chú</th>
+                  <th style="width:180px;text-align:center">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="paged.length === 0">
-                  <td colspan="10" class="empty-row">
-                    <p class="empty-msg">Không tìm thấy khách hàng</p>
+                <tr v-if="paged.length === 0 && !loading">
+                  <td colspan="10" class="crm2-empty">
+                    <div class="crm2-empty__inner">
+                      <div class="crm2-empty__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+                      <p>Không tìm thấy khách hàng</p>
+                    </div>
                   </td>
                 </tr>
-                <tr v-for="row in paged" :key="row.id" class="crm-row">
-                  <td><span class="id-mono">#{{ row.id }}</span></td>
+                <tr v-for="row in paged" :key="row.id" class="crm2-row">
+                  <td><span class="crm2-mono-id">{{ row.id }}</span></td>
                   <td>
-                    <div class="customer-cell">
-                      <div class="avatar" :style="{ background: getAvatarColor(row.fullName) }">{{ getInitials(row.fullName) }}</div>
-                      <div class="cust-info">
-                        <span class="cust-name">{{ row.fullName }}</span>
-                        <span class="cust-dob" v-if="row.birthDate">{{ row.birthDate }}</span>
+                    <div class="crm2-customer-cell">
+                      <div class="crm2-avatar" :style="{ background: getAvatarColor(row.fullName) }">{{ getInitials(row.fullName) }}</div>
+                      <div class="crm2-cust-info">
+                        <span class="crm2-cust-name">{{ row.fullName }}</span>
+                        <span class="crm2-cust-dob crm2-mono" v-if="row.birthDate">{{ row.birthDate }}</span>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <div class="contact-cell">
-                      <span class="contact-email">{{ row.email }}</span>
-                      <span class="contact-phone" v-if="row.phone">{{ row.phone }}</span>
+                    <div class="crm2-contact-cell">
+                      <span class="crm2-contact-email">{{ row.email }}</span>
+                      <span class="crm2-contact-phone crm2-mono" v-if="row.phone">{{ row.phone }}</span>
                     </div>
                   </td>
+                  <td><span class="crm2-tag" :class="row.customerType === 'VIP' ? 'crm2-tag--orange' : 'crm2-tag--gray'">{{ row.customerType || 'REGULAR' }}</span></td>
                   <td>
-                    <span :class="['badge-type', row.customerType === 'VIP' ? 'badge-vip' : 'badge-reg']">
-                      {{ row.customerType || 'REGULAR' }}
-                    </span>
+                    <span v-if="row.raw.vipTier" class="crm2-tier-tag" :class="'crm2-tier--' + row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
+                    <span v-else class="crm2-text--muted">—</span>
                   </td>
                   <td>
-                    <span v-if="row.raw.vipTier" :class="['badge-tier', `tier-${row.raw.vipTier.toLowerCase()}`]">
-                      {{ row.raw.vipTier }}
-                    </span>
-                    <span v-else class="muted">—</span>
-                  </td>
-                  <td>
-                    <div class="points-cell">
-                      <span class="points-num">{{ (row.loyaltyPoints || 0).toLocaleString() }}</span>
-                      <div class="points-track" v-if="row.raw.vipTier">
-                        <div class="points-fill" :style="{ width: getPointsProgress(row.raw) + '%', background: getTierColor(row.raw.vipTier) }" />
+                    <div class="crm2-points-cell">
+                      <span class="crm2-points-num crm2-mono">{{ (row.loyaltyPoints || 0).toLocaleString() }}</span>
+                      <div class="crm2-points-track" v-if="row.raw.vipTier">
+                        <div class="crm2-points-fill" :style="{ width: getPointsProgress(row.raw) + '%', background: getTierColor(row.raw.vipTier) }"></div>
                       </div>
                     </div>
                   </td>
-                  <td><span class="spent-val">{{ formatCurrencyShort(row.raw.totalSpent) }}</span></td>
+                  <td><span class="crm2-mono crm2-text--muted">{{ formatCurrencyShort(row.raw.totalSpent) }}</span></td>
                   <td>
                     <template v-if="row.raw.vipTier">
-                      <div v-if="row.raw.vipNote" class="vipnote-cell" @click="openVipNoteEdit(row)">
-                        <span class="vipnote-text">{{ row.raw.vipNote.substring(0, 28) }}{{ row.raw.vipNote.length > 28 ? '…' : '' }}</span>
+                      <div v-if="row.raw.vipNote" class="crm2-vipnote-cell" @click="openVipNoteEdit(row)">
+                        <span class="crm2-vipnote-text">{{ row.raw.vipNote.substring(0, 28) }}{{ row.raw.vipNote.length > 28 ? '…' : '' }}</span>
                       </div>
-                      <button v-else class="btn-ghost-sm" @click="openVipNoteEdit(row)">Thêm ghi chú</button>
+                      <button v-else class="crm2-btn-ghost-sm" @click="openVipNoteEdit(row)">+ Thêm ghi chú</button>
                     </template>
-                    <span v-else class="muted">—</span>
+                    <span v-else class="crm2-text--muted">—</span>
                   </td>
                   <td>
-                    <span class="note-text" v-if="row.notes" :title="row.notes">
-                      {{ row.notes.substring(0, 22) }}{{ row.notes.length > 22 ? '…' : '' }}
-                    </span>
-                    <span v-else class="muted">—</span>
+                    <span class="crm2-note-text" v-if="row.notes" :title="row.notes">{{ row.notes.substring(0, 22) }}{{ row.notes.length > 22 ? '…' : '' }}</span>
+                    <span v-else class="crm2-text--muted">—</span>
                   </td>
                   <td>
-                    <div class="action-row">
-                      <button class="act-btn" @click="viewDetails(row)" title="Xem">Xem</button>
-                      <button class="act-btn" @click="openEdit(row)" title="Sửa">Sửa</button>
-                      <button v-if="row.raw.vipTier" class="act-btn act-gold" @click="openVipNoteEdit(row)" title="Ghi chú VIP">VIP</button>
-                      <button class="act-btn act-danger" @click="remove(row)" title="Xóa">Xóa</button>
+                    <div class="crm2-actions">
+                      <button class="crm2-action-btn crm2-action-btn--blue" @click="viewDetails(row)">Xem</button>
+                      <button class="crm2-action-btn crm2-action-btn--edit" @click="openEdit(row)">Sửa</button>
+                      <button v-if="row.raw.vipTier" class="crm2-action-btn crm2-action-btn--gold" @click="openVipNoteEdit(row)">VIP</button>
+                      <button class="crm2-action-btn crm2-action-btn--delete" @click="remove(row)">Xóa</button>
                     </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div class="table-footer">
-            <span class="pager-info">Hiển thị {{ Math.min((page-1)*pageSize+1, filtered.length) }}–{{ Math.min(page*pageSize, filtered.length) }} của {{ filtered.length }}</span>
-            <div class="pager">
-              <button class="pager-btn" :disabled="page===1" @click="page--">‹</button>
-              <button v-for="p in pageCount" :key="p"
-                :class="['pager-btn', { 'pager-active': p===page }]"
-                @click="page=p"
-                v-show="Math.abs(p-page)<=2 || p===1 || p===pageCount">{{ p }}</button>
-              <button class="pager-btn" :disabled="page===pageCount" @click="page++">›</button>
+          <div class="crm2-pagination">
+            <span class="crm2-pagination__info">Hiển thị {{ Math.min((page-1)*pageSize+1, filtered.length) }}–{{ Math.min(page*pageSize, filtered.length) }} của {{ filtered.length }}</span>
+            <div class="crm2-pagination__controls">
+              <button class="crm2-page-btn" :disabled="page===1" @click="page--">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <template v-for="p in pageCount" :key="p">
+                <button v-show="Math.abs(p-page)<=2 || p===1 || p===pageCount" class="crm2-page-btn" :class="{'crm2-page-btn--active': p===page}" @click="page=p">{{ p }}</button>
+              </template>
+              <button class="crm2-page-btn" :disabled="page===pageCount" @click="page++">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -239,35 +260,36 @@
 
       <!-- ══ TAB 2: BIRTHDAYS ══ -->
       <template v-if="mainTab === 'birthdays'">
-        <div class="sub-nav">
-          <button :class="['sub-nav-btn', { active: birthdayTab==='today' }]" @click="birthdayTab='today'">Hôm nay</button>
-          <button :class="['sub-nav-btn', { active: birthdayTab==='monthly' }]" @click="birthdayTab='monthly'; loadMonthlyBirthdays()">Tháng này</button>
-          <button :class="['sub-nav-btn', { active: birthdayTab==='statistics' }]" @click="birthdayTab='statistics'">Thống kê</button>
-          <button :class="['sub-nav-btn', { active: birthdayTab==='upcoming' }]" @click="birthdayTab='upcoming'">Sắp tới</button>
-          <button :class="['sub-nav-btn', { active: birthdayTab==='history' }]" @click="birthdayTab='history'; loadNotificationHistory()">Lịch sử</button>
+        <div class="crm2-sub-tabs">
+          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='today'}" @click="birthdayTab='today'">Hôm nay</button>
+          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='monthly'}" @click="birthdayTab='monthly'; loadMonthlyBirthdays()">Tháng này</button>
+          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='statistics'}" @click="birthdayTab='statistics'">Thống kê</button>
+          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='upcoming'}" @click="birthdayTab='upcoming'">Sắp tới</button>
+          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='history'}" @click="birthdayTab='history'; loadNotificationHistory()">Lịch sử</button>
         </div>
 
-        <div class="table-panel" style="margin-top:0">
-          <div class="table-loading" v-if="loading"><div class="loader-dots"><span/><span/><span/></div><p>Đang tải…</p></div>
+        <div class="crm2-card">
+          <div v-if="loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
 
           <!-- Today -->
           <template v-if="!loading && birthdayTab==='today'">
-            <div class="bd-banner" :class="todayBirthdays.length>0 ? 'bd-green' : 'bd-blue'">
+            <div class="crm2-bd-banner" :class="todayBirthdays.length>0 ? 'crm2-bd-banner--green' : 'crm2-bd-banner--blue'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               {{ todayBirthdays.length>0 ? `${todayBirthdays.length} sinh nhật hôm nay` : 'Không có sinh nhật nào hôm nay' }}
             </div>
-            <div class="table-scroll">
-              <table class="crm-table">
-                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Tuổi</th><th>Loại</th><th>Cấp</th><th>Thao tác</th></tr></thead>
+            <div class="crm2-table-wrap">
+              <table class="crm2-table">
+                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Tuổi</th><th>Loại</th><th>Cấp</th><th style="text-align:center">Thao tác</th></tr></thead>
                 <tbody>
-                  <tr v-if="todayBirthdays.length===0"><td colspan="7" class="empty-row"><p class="empty-msg">Không có sinh nhật nào hôm nay</p></td></tr>
-                  <tr v-for="row in todayBirthdays" :key="row.id" class="crm-row">
+                  <tr v-if="todayBirthdays.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Không có sinh nhật nào hôm nay</p></div></td></tr>
+                  <tr v-for="row in todayBirthdays" :key="row.id" class="crm2-row">
                     <td><strong>{{ row.name }}</strong></td>
-                    <td>{{ row.email }}</td>
-                    <td>{{ row.phone }}</td>
-                    <td>{{ row.age }}</td>
-                    <td><span :class="['badge-type', row.customerType==='VIP'?'badge-vip':'badge-reg']">{{ row.customerType }}</span></td>
-                    <td><span v-if="row.vipTier" :class="['badge-tier',`tier-${row.vipTier.toLowerCase()}`]">{{ row.vipTier }}</span><span v-else class="muted">—</span></td>
-                    <td><button class="btn-solid btn-sm" @click="sendGreeting(row)">Gửi lời chúc</button></td>
+                    <td><span class="crm2-text--muted">{{ row.email }}</span></td>
+                    <td><span class="crm2-mono crm2-text--muted">{{ row.phone }}</span></td>
+                    <td><span class="crm2-mono">{{ row.age }}</span></td>
+                    <td><span class="crm2-tag" :class="row.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ row.customerType }}</span></td>
+                    <td><span v-if="row.vipTier" class="crm2-tier-tag" :class="'crm2-tier--'+row.vipTier.toLowerCase()">{{ row.vipTier }}</span><span v-else class="crm2-text--muted">—</span></td>
+                    <td style="text-align:center"><button class="crm2-btn crm2-btn--primary" style="padding:6px 14px;font-size:12px" @click="sendGreeting(row)">Gửi lời chúc</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -276,27 +298,27 @@
 
           <!-- Monthly -->
           <template v-if="!loading && birthdayTab==='monthly'">
-            <div class="bd-controls">
-              <select v-model="selectedMonth" @change="loadMonthlyBirthdays" class="field-select" style="min-width:150px">
+            <div class="crm2-bd-controls">
+              <select v-model="selectedMonth" @change="loadMonthlyBirthdays" class="crm2-input crm2-select" style="min-width:150px">
                 <option v-for="m in monthOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
               </select>
-              <div class="bd-banner bd-blue" style="flex:1;margin:0" v-if="monthlyBirthdays.length>0">
+              <div class="crm2-bd-banner crm2-bd-banner--blue" style="flex:1;margin:0" v-if="monthlyBirthdays.length>0">
                 <strong>{{ monthlyBirthdays.length }}</strong> khách hàng tháng này
               </div>
             </div>
-            <div class="table-scroll">
-              <table class="crm-table">
-                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Ngày</th><th>Tuổi</th><th>Loại</th><th>Thao tác</th></tr></thead>
+            <div class="crm2-table-wrap">
+              <table class="crm2-table">
+                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Ngày</th><th>Tuổi</th><th>Loại</th><th style="text-align:center">Thao tác</th></tr></thead>
                 <tbody>
-                  <tr v-if="monthlyBirthdays.length===0"><td colspan="7" class="empty-row"><p class="empty-msg">Không có sinh nhật nào trong tháng</p></td></tr>
-                  <tr v-for="row in monthlyBirthdays" :key="row.id" class="crm-row">
+                  <tr v-if="monthlyBirthdays.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Không có sinh nhật nào trong tháng</p></div></td></tr>
+                  <tr v-for="row in monthlyBirthdays" :key="row.id" class="crm2-row">
                     <td><strong>{{ row.name }}</strong></td>
-                    <td>{{ row.email }}</td>
-                    <td>{{ row.phone }}</td>
+                    <td><span class="crm2-text--muted">{{ row.email }}</span></td>
+                    <td><span class="crm2-mono crm2-text--muted">{{ row.phone }}</span></td>
                     <td>{{ formatBirthdayDate(row) }}</td>
-                    <td>{{ row.age }}</td>
-                    <td><span :class="['badge-type', row.customerType==='VIP'?'badge-vip':'badge-reg']">{{ row.customerType }}</span></td>
-                    <td><button class="btn-solid btn-sm" @click="sendGreeting(row)">Send</button></td>
+                    <td><span class="crm2-mono">{{ row.age }}</span></td>
+                    <td><span class="crm2-tag" :class="row.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ row.customerType }}</span></td>
+                    <td style="text-align:center"><button class="crm2-btn crm2-btn--primary" style="padding:6px 14px;font-size:12px" @click="sendGreeting(row)">Send</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -305,17 +327,17 @@
 
           <!-- Statistics -->
           <template v-if="!loading && birthdayTab==='statistics'">
-            <div class="table-scroll">
-              <table class="crm-table">
-                <thead><tr><th>Tháng</th><th>Số lượng</th><th>Phân bổ</th><th>Thao tác</th></tr></thead>
+            <div class="crm2-table-wrap">
+              <table class="crm2-table">
+                <thead><tr><th>Tháng</th><th>Số lượng</th><th style="min-width:200px">Phân bổ</th><th style="text-align:center">Thao tác</th></tr></thead>
                 <tbody>
-                  <tr v-for="row in statsTableData" :key="row.month" class="crm-row">
+                  <tr v-for="row in statsTableData" :key="row.month" class="crm2-row">
                     <td><strong>{{ row.monthLabel }}</strong></td>
-                    <td><span :class="['badge-type', row.count>0?'badge-vip':'badge-reg']">{{ row.count }}</span></td>
-                    <td style="min-width:200px">
-                      <div class="bar-track-h"><div class="bar-fill-h" :style="{ width: getBdBarPct(row.count)+'%' }" /></div>
+                    <td><span class="crm2-tag" :class="row.count>0?'crm2-tag--blue':'crm2-tag--gray'">{{ row.count }}</span></td>
+                    <td>
+                      <div class="crm2-bar-wrap"><div class="crm2-bar crm2-bar--blue" :style="{ width: getBdBarPct(row.count)+'%' }"></div></div>
                     </td>
-                    <td><button v-if="row.count>0" class="btn-ghost-sm" @click="viewMonthDetail(row.month)">Chi tiết</button></td>
+                    <td style="text-align:center"><button v-if="row.count>0" class="crm2-btn-ghost-sm" @click="viewMonthDetail(row.month)">Chi tiết</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -324,22 +346,22 @@
 
           <!-- Upcoming -->
           <template v-if="!loading && birthdayTab==='upcoming'">
-            <div class="bd-banner" :class="upcomingBirthdays.length>0?'bd-amber':'bd-blue'">
+            <div class="crm2-bd-banner" :class="upcomingBirthdays.length>0?'crm2-bd-banner--orange':'crm2-bd-banner--blue'">
               {{ upcomingBirthdays.length>0 ? `${upcomingBirthdays.length} sắp tới trong 7 ngày` : 'Không có sinh nhật sắp tới' }}
             </div>
-            <div class="table-scroll">
-              <table class="crm-table">
-                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Ngày</th><th>Còn lại</th><th>Loại</th><th>Thao tác</th></tr></thead>
+            <div class="crm2-table-wrap">
+              <table class="crm2-table">
+                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Ngày</th><th>Còn lại</th><th>Loại</th><th style="text-align:center">Thao tác</th></tr></thead>
                 <tbody>
-                  <tr v-if="upcomingBirthdays.length===0"><td colspan="7" class="empty-row"><p class="empty-msg">Không có sinh nhật sắp tới</p></td></tr>
-                  <tr v-for="row in upcomingBirthdays" :key="row.id" class="crm-row">
+                  <tr v-if="upcomingBirthdays.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Không có sinh nhật sắp tới</p></div></td></tr>
+                  <tr v-for="row in upcomingBirthdays" :key="row.id" class="crm2-row">
                     <td><strong>{{ row.name }}</strong></td>
-                    <td>{{ row.email }}</td>
-                    <td>{{ row.phone }}</td>
+                    <td><span class="crm2-text--muted">{{ row.email }}</span></td>
+                    <td><span class="crm2-mono crm2-text--muted">{{ row.phone }}</span></td>
                     <td>{{ formatBirthdayDate(row) }}</td>
-                    <td><span :class="['badge-type', row.daysUntilBirthday<=3?'badge-vip':'badge-reg']">{{ row.daysUntilBirthday }} ngày</span></td>
-                    <td><span :class="['badge-type', row.customerType==='VIP'?'badge-vip':'badge-reg']">{{ row.customerType }}</span></td>
-                    <td><button class="btn-solid btn-sm" @click="sendGreeting(row)">Send</button></td>
+                    <td><span class="crm2-tag" :class="row.daysUntilBirthday<=3?'crm2-tag--red':'crm2-tag--orange'">{{ row.daysUntilBirthday }} ngày</span></td>
+                    <td><span class="crm2-tag" :class="row.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ row.customerType }}</span></td>
+                    <td style="text-align:center"><button class="crm2-btn crm2-btn--primary" style="padding:6px 14px;font-size:12px" @click="sendGreeting(row)">Send</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -348,26 +370,27 @@
 
           <!-- History -->
           <template v-if="birthdayTab==='history'">
-            <div class="bd-controls" style="justify-content:space-between">
-              <span class="bd-banner bd-blue" style="margin:0;flex:1" v-if="notificationHistory.length>0"><strong>{{ notificationHistory.length }}</strong> thông báo đã gửi</span>
-              <button class="btn-ghost-sm" @click="loadNotificationHistory" :disabled="historyLoading">
-                <span v-if="historyLoading" class="spin-icon">↻</span> Tải lại
+            <div class="crm2-bd-controls" style="justify-content:space-between">
+              <span class="crm2-bd-banner crm2-bd-banner--blue" style="margin:0;flex:1" v-if="notificationHistory.length>0"><strong>{{ notificationHistory.length }}</strong> thông báo đã gửi</span>
+              <button class="crm2-btn-ghost-sm" @click="loadNotificationHistory" :disabled="historyLoading">
+                <span v-if="historyLoading" class="crm2-spinner" style="width:12px;height:12px"></span>
+                Tải lại
               </button>
             </div>
-            <div v-if="historyLoading" class="table-loading"><div class="loader-dots"><span/><span/><span/></div><p>Đang tải…</p></div>
-            <div class="table-scroll" v-else>
-              <table class="crm-table">
+            <div v-if="historyLoading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
+            <div class="crm2-table-wrap" v-else>
+              <table class="crm2-table">
                 <thead><tr><th>Khách hàng</th><th>Email</th><th>Tiêu đề</th><th>Nội dung</th><th>Trạng thái</th><th>Gửi lúc</th><th>Đọc lúc</th></tr></thead>
                 <tbody>
-                  <tr v-if="notificationHistory.length===0"><td colspan="7" class="empty-row"><p class="empty-msg">Chưa có thông báo nào</p></td></tr>
-                  <tr v-for="row in notificationHistory" :key="row.id" class="crm-row">
+                  <tr v-if="notificationHistory.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Chưa có thông báo nào</p></div></td></tr>
+                  <tr v-for="row in notificationHistory" :key="row.id" class="crm2-row">
                     <td><strong>{{ row.customerName }}</strong></td>
-                    <td>{{ row.customerEmail }}</td>
+                    <td><span class="crm2-text--muted">{{ row.customerEmail }}</span></td>
                     <td>{{ row.title }}</td>
-                    <td class="td-truncate" :title="row.message">{{ row.message }}</td>
-                    <td><span :class="['badge-type', row.isRead?'badge-vip':'badge-reg']">{{ row.isRead ? 'Đã đọc' : 'Chưa đọc' }}</span></td>
-                    <td class="mono-sm">{{ formatDateTime(row.createdAt) }}</td>
-                    <td class="mono-sm">{{ row.readAt ? formatDateTime(row.readAt) : '—' }}</td>
+                    <td class="crm2-td-truncate" :title="row.message">{{ row.message }}</td>
+                    <td><span class="crm2-tag" :class="row.isRead?'crm2-tag--green':'crm2-tag--orange'">{{ row.isRead ? 'Đã đọc' : 'Chưa đọc' }}</span></td>
+                    <td><span class="crm2-mono crm2-text--muted" style="font-size:12px">{{ formatDateTime(row.createdAt) }}</span></td>
+                    <td><span class="crm2-mono crm2-text--muted" style="font-size:12px">{{ row.readAt ? formatDateTime(row.readAt) : '—' }}</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -378,470 +401,424 @@
 
       <!-- ══ TAB 3: INACTIVE ══ -->
       <template v-if="mainTab === 'inactive'">
-        <div class="seg-tabs">
+        <div class="crm2-seg-tabs">
           <button v-for="tab in inactiveTabs" :key="tab.days"
-            :class="['seg-btn', { active: activeInactiveTab===tab.days }]"
+            class="crm2-seg-btn" :class="{'crm2-seg-btn--active': activeInactiveTab===tab.days}"
             @click="switchInactiveTab(tab.days)">
-            <span class="seg-label">{{ tab.label }}</span>
-            <span class="seg-count" :class="{ loaded: inactiveCounts[tab.days]!==null }">
+            <span class="crm2-seg-label">{{ tab.label }}</span>
+            <span class="crm2-seg-count" :class="{'crm2-seg-count--loaded': inactiveCounts[tab.days]!==null}">
               {{ inactiveCounts[tab.days]!==null ? inactiveCounts[tab.days] : '—' }}
             </span>
           </button>
         </div>
 
-        <div class="inactive-stats" v-if="!loading && currentInactive.length>0">
-          <div class="ist-card"><div class="ist-val">{{ currentInactive.length }}</div><div class="ist-lbl">Khách hàng</div></div>
-          <div class="ist-card"><div class="ist-val gold">{{ inactiveTotalPoints }}</div><div class="ist-lbl">Tổng điểm</div></div>
-          <div class="ist-card"><div class="ist-val green">{{ formatMoneyShort(inactiveTotalSpent) }}</div><div class="ist-lbl">Tổng chi tiêu</div></div>
-          <div class="ist-card"><div class="ist-val blue">{{ inactiveTopTier }}</div><div class="ist-lbl">Cấp cao nhất</div></div>
+        <div class="crm2-stats4" v-if="!loading && currentInactive.length>0">
+          <div class="crm2-stat crm2-stat--blue">
+            <div class="crm2-stat__num">{{ currentInactive.length }}</div>
+            <div class="crm2-stat__label">Khách hàng</div>
+          </div>
+          <div class="crm2-stat crm2-stat--orange">
+            <div class="crm2-stat__num">{{ inactiveTotalPoints }}</div>
+            <div class="crm2-stat__label">Tổng điểm</div>
+          </div>
+          <div class="crm2-stat crm2-stat--green">
+            <div class="crm2-stat__num">{{ formatMoneyShort(inactiveTotalSpent) }}</div>
+            <div class="crm2-stat__label">Tổng chi tiêu</div>
+          </div>
+          <div class="crm2-stat crm2-stat--purple">
+            <div class="crm2-stat__num">{{ inactiveTopTier }}</div>
+            <div class="crm2-stat__label">Cấp cao nhất</div>
+          </div>
         </div>
 
-        <div class="filter-bar" v-if="!loading">
-          <input v-model="inactiveQ" placeholder="Tìm tên, email, SĐT…" class="field-input" style="flex:1" />
-          <select v-model="inactiveTierFilter" class="field-select">
+        <div class="crm2-filter-bar" v-if="!loading">
+          <input v-model="inactiveQ" placeholder="Tìm tên, email, SĐT…" class="crm2-input" style="flex:1" />
+          <select v-model="inactiveTierFilter" class="crm2-input crm2-select" style="max-width:160px">
             <option value="">Tất cả cấp</option>
             <option v-for="t in tiers" :key="t" :value="t">{{ t }}</option>
           </select>
-          <select v-model="inactiveSortBy" class="field-select">
+          <select v-model="inactiveSortBy" class="crm2-input crm2-select" style="max-width:200px">
             <option value="spent">Chi tiêu nhiều nhất</option>
             <option value="points">Điểm nhiều nhất</option>
             <option value="name">Tên A→Z</option>
           </select>
         </div>
 
-        <div class="table-loading" v-if="loading"><div class="loader-dots"><span/><span/><span/></div><p>Đang tải…</p></div>
+        <div v-if="loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
 
-        <div class="empty-state" v-if="!loading && inactiveFiltered.length===0">
-          <div class="empty-title">Tốt cả</div>
-          <div class="empty-sub">Tất cả khách hàng đều hoạt động trong {{ activeInactiveTab }} ngày qua.</div>
+        <div class="crm2-empty" v-if="!loading && inactiveFiltered.length===0" style="padding:80px 20px">
+          <div class="crm2-empty__inner">
+            <div class="crm2-empty__icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <p style="font-size:16px;font-weight:700;color:var(--c-text)">Tốt cả</p>
+            <p>Tất cả khách hàng đều hoạt động trong {{ activeInactiveTab }} ngày qua.</p>
+          </div>
         </div>
 
-        <div class="cards-grid" v-if="!loading && inactivePaged.length>0">
-          <div class="cust-card" v-for="(row, idx) in inactivePaged" :key="row.id" :style="{ animationDelay: idx*0.04+'s' }">
-            <div class="card-tier-bar" :class="'cb-'+(row.raw?.vipTier||'none').toLowerCase()" />
-            <div class="card-head">
-              <div class="avatar" :style="{ background: getAvatarColor(row.fullName) }">{{ getInitials(row.fullName) }}</div>
-              <div class="card-info">
-                <div class="card-name">{{ row.fullName }}</div>
-                <div class="card-email">{{ row.email }}</div>
+        <div class="crm2-cards-grid" v-if="!loading && inactivePaged.length>0">
+          <div class="crm2-cust-card" v-for="(row, idx) in inactivePaged" :key="row.id" :style="{ animationDelay: idx*0.04+'s' }">
+            <div class="crm2-card-tier-bar" :class="'crm2-tier-bar--'+(row.raw?.vipTier||'none').toLowerCase()"></div>
+            <div class="crm2-card-head">
+              <div class="crm2-avatar" :style="{ background: getAvatarColor(row.fullName) }">{{ getInitials(row.fullName) }}</div>
+              <div class="crm2-card-info">
+                <div class="crm2-card-name">{{ row.fullName }}</div>
+                <div class="crm2-card-email crm2-text--muted">{{ row.email }}</div>
               </div>
-              <span v-if="row.raw?.vipTier" :class="['badge-tier', `tier-${row.raw.vipTier.toLowerCase()}`]" style="flex-shrink:0">{{ row.raw.vipTier }}</span>
+              <span v-if="row.raw?.vipTier" class="crm2-tier-tag crm2-tier-tag--sm" :class="'crm2-tier--'+row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
             </div>
-            <div class="card-sep" />
-            <div class="card-metrics">
-              <div class="cm"><div class="cm-val">{{ (row.loyaltyPoints||0).toLocaleString() }}</div><div class="cm-lbl">Điểm</div></div>
-              <div class="cm-div" />
-              <div class="cm"><div class="cm-val">{{ formatMoneyShort(row.raw?.totalSpent) }}</div><div class="cm-lbl">Chi tiêu</div></div>
-              <div class="cm-div" />
-              <div class="cm"><div class="cm-val sm">{{ row.phone || '—' }}</div><div class="cm-lbl">SĐT</div></div>
+            <div class="crm2-card-divider"></div>
+            <div class="crm2-card-metrics">
+              <div class="crm2-cm"><div class="crm2-cm__val crm2-mono">{{ (row.loyaltyPoints||0).toLocaleString() }}</div><div class="crm2-cm__label">Điểm</div></div>
+              <div class="crm2-cm-divider"></div>
+              <div class="crm2-cm"><div class="crm2-cm__val crm2-mono">{{ formatMoneyShort(row.raw?.totalSpent) }}</div><div class="crm2-cm__label">Chi tiêu</div></div>
+              <div class="crm2-cm-divider"></div>
+              <div class="crm2-cm"><div class="crm2-cm__val crm2-mono" style="font-size:11px">{{ row.phone || '—' }}</div><div class="crm2-cm__label">SĐT</div></div>
             </div>
-            <div class="card-foot">
-              <span class="last-order-txt" :class="{ 'lo-none': !row.raw?.lastOrderAt }">
-                {{ row.raw?.lastOrderAt ? 'Đơn hàng cuối: '+relativeDate(row.raw.lastOrderAt) : 'Chưa có đơn hàng' }}
+            <div class="crm2-card-foot">
+              <span class="crm2-last-order" :class="{'crm2-last-order--none': !row.raw?.lastOrderAt}">
+                {{ row.raw?.lastOrderAt ? 'Đơn cuối: '+relativeDate(row.raw.lastOrderAt) : 'Chưa có đơn hàng' }}
               </span>
-              <button class="act-btn" @click="openInactiveDetail(row)">Xem</button>
+              <button class="crm2-action-btn crm2-action-btn--blue" @click="openInactiveDetail(row)">Xem</button>
             </div>
           </div>
         </div>
 
-        <div class="pager-row" v-if="!loading && inactiveFiltered.length>inactivePageSize">
-          <button class="pager-btn" :disabled="inactivePage===1" @click="inactivePage--">‹</button>
-          <button v-for="p in inactiveTotalPages" :key="p" class="pager-btn" :class="{'pager-active':p===inactivePage}" @click="inactivePage=p">{{ p }}</button>
-          <button class="pager-btn" :disabled="inactivePage===inactiveTotalPages" @click="inactivePage++">›</button>
-          <span class="pager-info">{{ (inactivePage-1)*inactivePageSize+1 }}–{{ Math.min(inactivePage*inactivePageSize, inactiveFiltered.length) }} / {{ inactiveFiltered.length }}</span>
+        <div class="crm2-pagination" v-if="!loading && inactiveFiltered.length>inactivePageSize">
+          <span class="crm2-pagination__info">{{ (inactivePage-1)*inactivePageSize+1 }}–{{ Math.min(inactivePage*inactivePageSize, inactiveFiltered.length) }} / {{ inactiveFiltered.length }}</span>
+          <div class="crm2-pagination__controls">
+            <button class="crm2-page-btn" :disabled="inactivePage===1" @click="inactivePage--">‹</button>
+            <button v-for="p in inactiveTotalPages" :key="p" class="crm2-page-btn" :class="{'crm2-page-btn--active':p===inactivePage}" @click="inactivePage=p">{{ p }}</button>
+            <button class="crm2-page-btn" :disabled="inactivePage===inactiveTotalPages" @click="inactivePage++">›</button>
+          </div>
         </div>
       </template>
+
       <!-- ══ TAB 4: ZERO ORDER ══ -->
-<template v-if="mainTab === 'zeroorder'">
+      <template v-if="mainTab === 'zeroorder'">
 
-  <!-- STATS -->
-  <div class="stats-grid" style="margin-bottom:20px">
-    <div class="stat-card">
-      <span class="stat-label">Đăng ký ≥ 3 ngày</span>
-      <span class="stat-value">{{ zeroOrderStats.registeredOver3Days ?? '—' }}</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">Đăng ký ≥ 7 ngày</span>
-      <span class="stat-value accent-gold">{{ zeroOrderStats.registeredOver7Days ?? '—' }}</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">Đăng ký ≥ 30 ngày</span>
-      <span class="stat-value" style="color:#f87171">{{ zeroOrderStats.registeredOver30Days ?? '—' }}</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">Đang chọn</span>
-      <span class="stat-value accent-teal">{{ zoSelected.length }}</span>
-    </div>
-  </div>
-
-  <!-- FILTER + ACTIONS -->
-  <div class="filter-panel" style="margin-bottom:16px">
-    <div class="filter-panel-head">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <span class="filter-panel-title">Đăng ký tối thiểu</span>
-        <div style="display:flex;gap:6px">
-          <button
-            v-for="opt in zoDayOptions" :key="opt.value"
-            :class="['pager-btn', { 'pager-active': zoSelectedDays === opt.value }]"
-            @click="zoSelectDays(opt.value)"
-          >{{ opt.label }}</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn-outline" @click="zoSelectAll">
-          {{ zoIsAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}
-        </button>
-        <button
-          class="btn-solid"
-          :disabled="zoSelected.length === 0 || zoSending"
-          @click="openZoSendDialog"
-        >
-          📨 Gửi thông báo
-          <span v-if="zoSelected.length > 0" style="background:#fff;color:#0a0c10;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:4px">{{ zoSelected.length }}</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="filter-grid" style="margin-top:14px">
-      <div class="field-group" style="grid-column:1/3">
-        <label class="field-label">Tìm kiếm</label>
-        <input v-model="zoSearch" class="field-input" placeholder="Tên / Email / SĐT…" @input="zoPage=1" />
-      </div>
-    </div>
-  </div>
-
-  <!-- TABLE -->
-  <div class="table-panel">
-    <div class="table-loading" v-if="loading">
-      <div class="loader-dots"><span/><span/><span/></div>
-      <p>Đang tải…</p>
-    </div>
-
-    <div class="table-scroll" v-else>
-      <table class="crm-table">
-        <thead>
-          <tr>
-            <th style="width:44px;text-align:center">
-              <input type="checkbox" :checked="zoIsAllSelected" @change="zoSelectAll" style="cursor:pointer;accent-color:#7dd3fc" />
-            </th>
-            <th>Khách hàng</th>
-            <th>Loại</th>
-            <th>Đăng ký lúc</th>
-            <th>Ngày chờ</th>
-            <th>Trạng thái</th>
-            <th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="zoFiltered.length === 0">
-            <td colspan="7" class="empty-row">
-              <p class="empty-msg">🎉 Tất cả khách đều đã mua hàng trong khoảng này!</p>
-            </td>
-          </tr>
-          <tr
-            v-for="c in zoPaged" :key="c.id"
-            class="crm-row"
-            :class="{ 'zo-selected-row': zoSelected.includes(c.id) }"
-          >
-            <td style="text-align:center">
-              <input type="checkbox" :value="c.id" v-model="zoSelected" style="cursor:pointer;accent-color:#7dd3fc" />
-            </td>
-            <td>
-              <div class="customer-cell">
-                <div class="avatar" :style="{ background: getAvatarColor(c.name) }">{{ getInitials(c.name) }}</div>
-                <div class="cust-info">
-                  <span class="cust-name">{{ c.name }}</span>
-                  <span class="contact-email">{{ c.email }}</span>
-                  <span class="contact-phone" v-if="c.phone">{{ c.phone }}</span>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span :class="['badge-type', c.customerType === 'VIP' ? 'badge-vip' : 'badge-reg']">
-                {{ c.customerType || 'REGULAR' }}
-              </span>
-            </td>
-            <td>
-              <div class="zo-date">{{ formatDate(c.createdAt) }}</div>
-              <div style="font-size:11px;color:#374151">{{ relativeDate(c.createdAt) }}</div>
-            </td>
-            <td>
-              <span :class="['badge-type', zoDaysSince(c.createdAt) >= 30 ? 'badge-vip' : zoDaysSince(c.createdAt) >= 7 ? 'badge-reg' : 'badge-reg']"
-                    :style="zoDaysSince(c.createdAt) >= 30 ? 'background:#1a0a0a;color:#f87171;border-color:#2d1010' : zoDaysSince(c.createdAt) >= 7 ? 'color:#fbbf24;background:#1c1500;border-color:#2d1f00' : ''">
-                {{ zoDaysSince(c.createdAt) }} ngày
-              </span>
-            </td>
-            <td>
-              <span class="note-text">{{ zoStatusLabel(c) }}</span>
-            </td>
-            <td>
-              <div class="action-row">
-                <button
-                  class="act-btn"
-                  :disabled="zoSendingIds.has(c.id)"
-                  @click="zoSendSingle(c)"
-                >
-                  <span v-if="zoSendingIds.has(c.id)" class="spin-icon">↻</span>
-                  {{ zoSendingIds.has(c.id) ? '…' : '📨 Gửi' }}
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="table-footer">
-      <span class="pager-info">
-        {{ zoFiltered.length > 0 ? `${Math.min((zoPage-1)*pageSize+1, zoFiltered.length)}–${Math.min(zoPage*pageSize, zoFiltered.length)} của ${zoFiltered.length}` : '0 khách' }}
-      </span>
-      <div class="pager" v-if="zoPageCount > 1">
-        <button class="pager-btn" :disabled="zoPage===1" @click="zoPage--">‹</button>
-        <button v-for="p in zoPageCount" :key="p"
-          :class="['pager-btn', { 'pager-active': p===zoPage }]"
-          @click="zoPage=p"
-          v-show="Math.abs(p-zoPage)<=2 || p===1 || p===zoPageCount">{{ p }}</button>
-        <button class="pager-btn" :disabled="zoPage===zoPageCount" @click="zoPage++">›</button>
-      </div>
-    </div>
-  </div>
-</template>
-
-    </div><!-- /crm-inner -->
-
-    <!-- ══════════ DIALOGS ══════════ -->
-
-    <!-- CREATE / EDIT -->
-    <Teleport to="body">
-      <div class="overlay" v-if="dlg.open" @click.self="dlg.open=false">
-        <div class="modal modal-lg">
-          <div class="modal-hd">
-            <h2 class="modal-ttl">{{ dlg.mode==='create' ? 'Khách hàng mới' : 'Sửa khách hàng' }}</h2>
-            <button class="modal-x" @click="dlg.open=false">×</button>
+        <!-- Stats -->
+        <div class="crm2-stats4">
+          <div class="crm2-stat crm2-stat--dim">
+            <div class="crm2-stat__num">{{ zeroOrderStats.registeredOver3Days ?? '—' }}</div>
+            <div class="crm2-stat__label">Đăng ký ≥ 3 ngày</div>
           </div>
-          <div class="modal-alert" v-if="dlg.alert">{{ dlg.alert }}</div>
-          <div class="modal-bd">
-            <div class="form-grid">
-              <div class="field-group">
-                <label class="field-label">Họ và tên <span class="req">*</span></label>
-                <input v-model="dlg.form.fullName" class="field-input" placeholder="Nguyen Van A" />
+          <div class="crm2-stat crm2-stat--orange">
+            <div class="crm2-stat__num">{{ zeroOrderStats.registeredOver7Days ?? '—' }}</div>
+            <div class="crm2-stat__label">Đăng ký ≥ 7 ngày</div>
+          </div>
+          <div class="crm2-stat crm2-stat--red">
+            <div class="crm2-stat__num">{{ zeroOrderStats.registeredOver30Days ?? '—' }}</div>
+            <div class="crm2-stat__label">Đăng ký ≥ 30 ngày</div>
+          </div>
+          <div class="crm2-stat crm2-stat--blue">
+            <div class="crm2-stat__num">{{ zoSelected.length }}</div>
+            <div class="crm2-stat__label">Đang chọn</div>
+          </div>
+        </div>
+
+        <!-- Filter + actions -->
+        <div class="crm2-filter-panel" style="margin-bottom:16px">
+          <div class="crm2-filter-panel__head">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <span class="crm2-filter-panel__title">Đăng ký tối thiểu</span>
+              <div style="display:flex;gap:6px">
+                <button v-for="opt in zoDayOptions" :key="opt.value" class="crm2-page-btn" :class="{'crm2-page-btn--active': zoSelectedDays === opt.value}" @click="zoSelectDays(opt.value)">{{ opt.label }}</button>
               </div>
-              <div class="field-group">
-                <label class="field-label">Loại khách hàng</label>
-                <select v-model="dlg.form.customerType" class="field-select">
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="crm2-btn crm2-btn--outline" @click="zoSelectAll">{{ zoIsAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}</button>
+              <button class="crm2-btn crm2-btn--primary" :disabled="zoSelected.length === 0 || zoSending" @click="openZoSendDialog">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Gửi thông báo
+                <span v-if="zoSelected.length > 0" class="crm2-count-badge">{{ zoSelected.length }}</span>
+              </button>
+            </div>
+          </div>
+          <div style="padding:12px 16px 16px">
+            <span class="crm2-filter-field__label" style="display:block;margin-bottom:6px">Tìm kiếm</span>
+            <input v-model="zoSearch" class="crm2-input" placeholder="Tên / Email / SĐT…" @input="zoPage=1" style="max-width:400px" />
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="crm2-card">
+          <div v-if="loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
+          <div class="crm2-table-wrap" v-else>
+            <table class="crm2-table">
+              <thead>
+                <tr>
+                  <th style="width:44px;text-align:center"><input type="checkbox" :checked="zoIsAllSelected" @change="zoSelectAll" /></th>
+                  <th>Khách hàng</th>
+                  <th>Loại</th>
+                  <th>Đăng ký lúc</th>
+                  <th>Ngày chờ</th>
+                  <th>Trạng thái</th>
+                  <th style="text-align:center">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="zoFiltered.length === 0">
+                  <td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>🎉 Tất cả khách đều đã mua hàng trong khoảng này!</p></div></td>
+                </tr>
+                <tr v-for="c in zoPaged" :key="c.id" class="crm2-row" :class="{'crm2-row--selected': zoSelected.includes(c.id)}">
+                  <td style="text-align:center"><input type="checkbox" :value="c.id" v-model="zoSelected" /></td>
+                  <td>
+                    <div class="crm2-customer-cell">
+                      <div class="crm2-avatar" :style="{ background: getAvatarColor(c.name) }">{{ getInitials(c.name) }}</div>
+                      <div class="crm2-cust-info">
+                        <span class="crm2-cust-name">{{ c.name }}</span>
+                        <span class="crm2-contact-email">{{ c.email }}</span>
+                        <span class="crm2-contact-phone crm2-mono" v-if="c.phone">{{ c.phone }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="crm2-tag" :class="c.customerType === 'VIP' ? 'crm2-tag--orange' : 'crm2-tag--gray'">{{ c.customerType || 'REGULAR' }}</span></td>
+                  <td>
+                    <div class="crm2-mono" style="font-size:12px">{{ formatDate(c.createdAt) }}</div>
+                    <div class="crm2-text--muted" style="font-size:11px">{{ relativeDate(c.createdAt) }}</div>
+                  </td>
+                  <td>
+                    <span class="crm2-tag" :class="zoDaysSince(c.createdAt) >= 30 ? 'crm2-tag--red' : zoDaysSince(c.createdAt) >= 7 ? 'crm2-tag--orange' : 'crm2-tag--gray'">
+                      {{ zoDaysSince(c.createdAt) }} ngày
+                    </span>
+                  </td>
+                  <td><span class="crm2-text--muted" style="font-size:12.5px">{{ zoStatusLabel(c) }}</span></td>
+                  <td style="text-align:center">
+                    <button class="crm2-action-btn crm2-action-btn--blue" :disabled="zoSendingIds.has(c.id)" @click="zoSendSingle(c)">
+                      <span v-if="zoSendingIds.has(c.id)" class="crm2-spinner" style="width:12px;height:12px;border-top-color:#fff"></span>
+                      {{ zoSendingIds.has(c.id) ? '…' : '📨 Gửi' }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="crm2-pagination">
+            <span class="crm2-pagination__info">
+              {{ zoFiltered.length > 0 ? `${Math.min((zoPage-1)*pageSize+1, zoFiltered.length)}–${Math.min(zoPage*pageSize, zoFiltered.length)} của ${zoFiltered.length}` : '0 khách' }}
+            </span>
+            <div class="crm2-pagination__controls" v-if="zoPageCount > 1">
+              <button class="crm2-page-btn" :disabled="zoPage===1" @click="zoPage--">‹</button>
+              <button v-for="p in zoPageCount" :key="p" class="crm2-page-btn" :class="{'crm2-page-btn--active': p===zoPage}" v-show="Math.abs(p-zoPage)<=2 || p===1 || p===zoPageCount" @click="zoPage=p">{{ p }}</button>
+              <button class="crm2-page-btn" :disabled="zoPage===zoPageCount" @click="zoPage++">›</button>
+            </div>
+          </div>
+        </div>
+      </template>
+
+    </div>
+
+    <!-- ══════════════════════════════════════
+         DIALOG: Create / Edit
+    ═══════════════════════════════════════ -->
+    <Teleport to="body">
+      <div class="crm2-overlay" v-if="dlg.open" @click.self="dlg.open=false">
+        <div class="crm2-dialog crm2-dialog--lg">
+
+          <div class="crm2-dialog__band" :class="dlg.mode==='create' ? 'crm2-dialog__band--blue' : 'crm2-dialog__band--orange'">
+            <div class="crm2-dialog__band-circles"><span class="crm2-band-circle crm2-band-circle--1"/><span class="crm2-band-circle crm2-band-circle--2"/><span class="crm2-band-circle crm2-band-circle--3"/></div>
+            <div class="crm2-dialog__icon-wrap"><div class="crm2-dialog__icon-ring">
+              <svg v-if="dlg.mode==='create'" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg v-else width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div></div>
+          </div>
+
+          <div class="crm2-dialog__body">
+            <div class="crm2-dialog__badge" :class="dlg.mode==='create'?'crm2-dialog__badge--blue':'crm2-dialog__badge--orange'">{{ dlg.mode==='create' ? 'Khách hàng mới' : 'Chỉnh sửa' }}</div>
+            <div class="crm2-dialog__head-row">
+              <h2 class="crm2-dialog__title">{{ dlg.mode==='create' ? 'Thêm khách hàng' : 'Sửa khách hàng' }}</h2>
+              <button class="crm2-icon-btn" @click="dlg.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <div v-if="dlg.alert" class="crm2-dialog__notice crm2-dialog__notice--red">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {{ dlg.alert }}
+            </div>
+
+            <div class="crm2-dlg-section">Thông tin cơ bản</div>
+            <div class="crm2-row2">
+              <div class="crm2-field"><label class="crm2-field__label">Họ và tên <span class="crm2-required">*</span></label><input v-model="dlg.form.fullName" class="crm2-input" placeholder="Nguyen Van A" /></div>
+              <div class="crm2-field"><label class="crm2-field__label">Loại khách hàng</label>
+                <select v-model="dlg.form.customerType" class="crm2-input crm2-select">
                   <option value="REGULAR">Thường</option>
                   <option value="VIP">VIP</option>
                 </select>
               </div>
-              <div class="field-group">
-                <label class="field-label">Email <span class="req">*</span></label>
-                <input v-model="dlg.form.email" type="email" class="field-input" placeholder="email@example.com" />
-              </div>
-              <div class="field-group">
-                <label class="field-label">SĐT <span class="req">*</span></label>
-                <input v-model="dlg.form.phone" class="field-input" placeholder="0912345678" />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Ngày sinh</label>
-                <input v-model="dlg.form.birthDate" type="date" class="field-input" />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Địa chỉ</label>
-                <input v-model="dlg.form.address" class="field-input" placeholder="123 Street, City" />
-              </div>
-              <div class="field-group full-col">
-                <label class="field-label">Ghi chú</label>
-                <textarea v-model="dlg.form.notes" class="field-textarea" rows="2" placeholder="General notes…" />
-              </div>
-              <div class="field-group full-col vip-note-block" v-if="dlg.mode==='edit' && dlg.form.vipTier">
-                <div class="vipn-head">
-                  <label class="field-label">Ghi chú VIP <span class="internal-tag">Nội bộ · Chỉ admin</span></label>
-                  <span class="tier-indicator">{{ tierIcon(dlg.form.vipTier) }} {{ dlg.form.vipTier }}</span>
+            </div>
+            <div class="crm2-row2">
+              <div class="crm2-field"><label class="crm2-field__label">Email <span class="crm2-required">*</span></label><input v-model="dlg.form.email" type="email" class="crm2-input" placeholder="email@example.com" /></div>
+              <div class="crm2-field"><label class="crm2-field__label">SĐT <span class="crm2-required">*</span></label><input v-model="dlg.form.phone" class="crm2-input" placeholder="0912345678" /></div>
+            </div>
+            <div class="crm2-row2">
+              <div class="crm2-field"><label class="crm2-field__label">Ngày sinh</label><input v-model="dlg.form.birthDate" type="date" class="crm2-input" /></div>
+              <div class="crm2-field"><label class="crm2-field__label">Địa chỉ</label><input v-model="dlg.form.address" class="crm2-input" placeholder="123 Street, City" /></div>
+            </div>
+            <div class="crm2-field"><label class="crm2-field__label">Ghi chú</label><textarea v-model="dlg.form.notes" class="crm2-input crm2-textarea" rows="2" placeholder="General notes…"></textarea></div>
+
+            <template v-if="dlg.mode==='edit' && dlg.form.vipTier">
+              <div class="crm2-dlg-section">Ghi chú VIP <span class="crm2-internal-tag">Nội bộ · Chỉ admin</span></div>
+              <div class="crm2-vip-note-block">
+                <div class="crm2-vip-note-head">
+                  <span class="crm2-tier-tag" :class="'crm2-tier--'+dlg.form.vipTier.toLowerCase()">{{ tierIcon(dlg.form.vipTier) }} {{ dlg.form.vipTier }}</span>
                 </div>
-                <textarea v-model="dlg.form.vipNote" class="field-textarea vip-textarea" rows="3" placeholder="e.g. Prefers gaming laptops, no display units…" maxlength="500" />
-                <div class="vipn-hint">Khách hàng không thể xem ghi chú này. <span class="char-count">{{ (dlg.form.vipNote||'').length }}/500</span></div>
+                <textarea v-model="dlg.form.vipNote" class="crm2-input crm2-textarea crm2-vip-textarea" rows="3" placeholder="e.g. Prefers gaming laptops, no display units…" maxlength="500"></textarea>
+                <div class="crm2-vip-note-hint">Khách hàng không thể xem ghi chú này. <span class="crm2-mono" style="font-size:11px">{{ (dlg.form.vipNote||'').length }}/500</span></div>
               </div>
-              <div class="field-group full-col" v-if="dlg.mode==='create'">
-                <p class="vip-unavail">Ghi chú VIP có sẵn khi khách hàng đạt cấp Đồng trở lên.</p>
-              </div>
+            </template>
+            <div v-if="dlg.mode==='create'" class="crm2-vip-unavail">Ghi chú VIP có sẵn khi khách hàng đạt cấp Đồng trở lên.</div>
+
+            <div class="crm2-dialog__actions">
+              <button class="crm2-btn crm2-btn--ghost" @click="dlg.open=false">Hủy bỏ</button>
+              <button class="crm2-btn" :class="[dlg.mode==='create'?'crm2-btn--confirm-blue':'crm2-btn--confirm-orange', {'crm2-btn--loading': dlg.loading}]" @click="save" :disabled="dlg.loading">
+                <span v-if="dlg.loading" class="crm2-spinner crm2-spinner--white"></span>
+                <svg v-else-if="dlg.mode==='create'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+                {{ dlg.mode==='create' ? 'Tạo mới' : 'Lưu thay đổi' }}
+              </button>
             </div>
           </div>
-          <div class="modal-ft">
-            <button class="btn-outline" @click="dlg.open=false">Hủy</button>
-            <button class="btn-solid" :disabled="dlg.loading" @click="save">
-              <span v-if="dlg.loading" class="spin-icon">↻</span>
-              {{ dlg.mode==='create' ? 'Tạo' : 'Lưu thay đổi' }}
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ══ DIALOG: Details ══ -->
+    <Teleport to="body">
+      <div class="crm2-overlay" v-if="detailsDialog.open" @click.self="detailsDialog.open=false">
+        <div class="crm2-dialog crm2-dialog--lg" v-if="detailsDialog.customer">
+          <div class="crm2-dialog__head-simple">
+            <div class="crm2-details-hd">
+              <div class="crm2-avatar crm2-avatar--lg" :style="{ background: getAvatarColor(detailsDialog.customer.fullName) }">{{ getInitials(detailsDialog.customer.fullName) }}</div>
+              <div>
+                <h2 class="crm2-dialog__title">{{ detailsDialog.customer.fullName }}</h2>
+                <p class="crm2-dialog__sub">#{{ detailsDialog.customer.id }} · {{ detailsDialog.customer.email }}</p>
+              </div>
+            </div>
+            <button class="crm2-icon-btn" @click="detailsDialog.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+          <div class="crm2-dialog__body" style="padding-top:0">
+            <div class="crm2-details-grid">
+              <div class="crm2-detail-block">
+                <div class="crm2-detail-block__head">Thông tin cá nhân</div>
+                <div class="crm2-detail-rows">
+                  <div class="crm2-detail-row"><span class="crm2-dk">Mã</span><span class="crm2-dv crm2-mono-id">#{{ detailsDialog.customer.id }}</span></div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">Tên</span><strong class="crm2-dv">{{ detailsDialog.customer.fullName }}</strong></div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">Email</span><span class="crm2-dv">{{ detailsDialog.customer.email }}</span></div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">SĐT</span><span class="crm2-dv crm2-mono">{{ detailsDialog.customer.phone||'—' }}</span></div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">Ngày sinh</span><span class="crm2-dv">{{ detailsDialog.customer.birthDate||'—' }}</span></div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">Địa chỉ</span><span class="crm2-dv">{{ detailsDialog.customer.address||'—' }}</span></div>
+                </div>
+              </div>
+              <div class="crm2-detail-block">
+                <div class="crm2-detail-block__head">Loyalty &amp; VIP</div>
+                <div class="crm2-detail-rows">
+                  <div class="crm2-detail-row"><span class="crm2-dk">Loại</span><span class="crm2-tag" :class="detailsDialog.customer.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ detailsDialog.customer.customerType }}</span></div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">Cấp</span>
+                    <span v-if="detailsDialog.customer.raw.vipTier" class="crm2-tier-tag" :class="'crm2-tier--'+detailsDialog.customer.raw.vipTier.toLowerCase()">{{ detailsDialog.customer.raw.vipTier }}</span>
+                    <span v-else class="crm2-text--muted">Chưa có cấp</span>
+                  </div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">Điểm</span><strong class="crm2-dv crm2-text--blue">{{ (detailsDialog.customer.loyaltyPoints||0).toLocaleString() }} điểm</strong></div>
+                  <div class="crm2-detail-row"><span class="crm2-dk">Tổng chi tiêu</span><strong class="crm2-dv crm2-text--green">{{ formatCurrency(detailsDialog.customer.raw.totalSpent) }}</strong></div>
+                </div>
+              </div>
+              <div class="crm2-detail-block" v-if="detailsDialog.customer.notes">
+                <div class="crm2-detail-block__head">Ghi chú</div>
+                <p class="crm2-detail-body-text">{{ detailsDialog.customer.notes }}</p>
+              </div>
+              <div class="crm2-detail-block crm2-vip-note-block" v-if="detailsDialog.customer.raw.vipTier">
+                <div class="crm2-detail-block__head">
+                  Ghi chú VIP <span class="crm2-internal-tag">Chỉ nội bộ</span>
+                  <button class="crm2-btn-ghost-sm" style="margin-left:auto" @click="openVipNoteEdit(detailsDialog.customer)">Sửa</button>
+                </div>
+                <p v-if="detailsDialog.customer.raw.vipNote" class="crm2-detail-body-text" style="color:var(--c-orange)">{{ detailsDialog.customer.raw.vipNote }}</p>
+                <p v-else class="crm2-detail-body-text crm2-text--muted" style="font-style:italic">Chưa có ghi chú VIP. <button class="crm2-btn-link" @click="openVipNoteEdit(detailsDialog.customer)">Thêm một →</button></p>
+              </div>
+            </div>
+            <div class="crm2-dialog__actions">
+              <button class="crm2-btn crm2-btn--ghost" @click="detailsDialog.open=false">Đóng</button>
+              <button class="crm2-btn crm2-btn--primary" @click="openEdit(detailsDialog.customer)">Sửa khách hàng</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ══ DIALOG: VIP Note ══ -->
+    <Teleport to="body">
+      <div class="crm2-overlay" v-if="vipNoteDialog.open" @click.self="vipNoteDialog.open=false">
+        <div class="crm2-dialog crm2-dialog--sm crm2-vip-modal">
+          <div class="crm2-vip-band">
+            <div class="crm2-vip-band__deco crm2-vip-band__deco--1"/>
+            <div class="crm2-vip-band__deco crm2-vip-band__deco--2"/>
+            <div class="crm2-vip-band__content">
+              <div class="crm2-vip-band__top">
+                <span class="crm2-vip-eyebrow">VIP Internal Note</span>
+                <span class="crm2-vip-admin-badge">Admin only</span>
+              </div>
+              <div class="crm2-vip-band__title">Ghi chú VIP</div>
+              <div class="crm2-vip-band__customer" v-if="vipNoteDialog.customerName">
+                ♦ {{ vipNoteDialog.vipTier }} · {{ vipNoteDialog.customerName }}
+              </div>
+            </div>
+            <button class="crm2-vip-close-btn" @click="vipNoteDialog.open=false">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
+
+          <div class="crm2-vip-notice">
+            🔒 Chỉ nội bộ — Khách hàng <strong>không thể xem</strong>. Chỉ Admin và Staff.
+          </div>
+
+          <div class="crm2-dialog__body">
+            <div v-if="!vipNoteDialog.note" class="crm2-vip-suggestions">
+              <p class="crm2-vip-suggestion-label">Gợi ý nhanh</p>
+              <div class="crm2-vip-chips">
+                <button v-for="s in vipSuggestions" :key="s" class="crm2-vip-chip" @click="vipNoteDialog.note = s">{{ s }}</button>
+              </div>
+            </div>
+            <div class="crm2-vip-textarea-wrap">
+              <textarea v-model="vipNoteDialog.note" class="crm2-vip-textarea" rows="5" placeholder="Ghi chú nội bộ về khách hàng VIP này…" maxlength="500" ref="vipNoteTextarea"></textarea>
+              <div class="crm2-vip-textarea-foot">
+                <button v-if="vipNoteDialog.note" class="crm2-btn-link" style="color:var(--c-red)" @click="vipNoteDialog.note = ''">Xóa nội dung</button>
+                <span class="crm2-mono" style="font-size:11px;color:var(--c-subtle);margin-left:auto" :style="{color:(vipNoteDialog.note||'').length>450?'var(--c-red)':(vipNoteDialog.note||'').length>350?'var(--c-orange)':'var(--c-subtle)'}">{{ (vipNoteDialog.note||'').length }}/500</span>
+              </div>
+            </div>
+            <div class="crm2-dialog__actions">
+              <button class="crm2-btn crm2-btn--ghost" @click="vipNoteDialog.open=false">Hủy bỏ</button>
+              <button class="crm2-btn crm2-btn--confirm-orange" :class="{'crm2-btn--loading': vipNoteDialog.loading}" @click="saveVipNote" :disabled="vipNoteDialog.loading">
+                <span v-if="vipNoteDialog.loading" class="crm2-spinner crm2-spinner--white"></span>
+                <span v-else>✦</span>
+                Lưu ghi chú VIP
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </Teleport>
 
-    <!-- DETAILS -->
+    <!-- ══ DIALOG: Loyalty Summary ══ -->
     <Teleport to="body">
-      <div class="overlay" v-if="detailsDialog.open" @click.self="detailsDialog.open=false">
-        <div class="modal modal-lg" v-if="detailsDialog.customer">
-          <div class="modal-hd">
-            <div class="details-hd-info">
-              <div class="avatar lg" :style="{ background: getAvatarColor(detailsDialog.customer.fullName) }">{{ getInitials(detailsDialog.customer.fullName) }}</div>
-              <div>
-                <h2 class="modal-ttl">{{ detailsDialog.customer.fullName }}</h2>
-                <p class="modal-sub">#{{ detailsDialog.customer.id }} · {{ detailsDialog.customer.email }}</p>
-              </div>
-            </div>
-            <button class="modal-x" @click="detailsDialog.open=false">×</button>
-          </div>
-          <div class="modal-bd">
-            <div class="details-grid">
-              <div class="detail-block">
-                <h3 class="detail-block-ttl">Thông tin cá nhân</h3>
-                <div class="detail-rows">
-                  <div class="detail-row"><span class="dk">Mã</span><span class="dv">#{{ detailsDialog.customer.id }}</span></div>
-                  <div class="detail-row"><span class="dk">Tên</span><strong class="dv">{{ detailsDialog.customer.fullName }}</strong></div>
-                  <div class="detail-row"><span class="dk">Email</span><span class="dv">{{ detailsDialog.customer.email }}</span></div>
-                  <div class="detail-row"><span class="dk">SĐT</span><span class="dv">{{ detailsDialog.customer.phone||'—' }}</span></div>
-                  <div class="detail-row"><span class="dk">Ngày sinh</span><span class="dv">{{ detailsDialog.customer.birthDate||'—' }}</span></div>
-                  <div class="detail-row"><span class="dk">Địa chỉ</span><span class="dv">{{ detailsDialog.customer.address||'—' }}</span></div>
-                </div>
-              </div>
-              <div class="detail-block">
-                <h3 class="detail-block-ttl">Loyalty &amp; VIP</h3>
-                <div class="detail-rows">
-                  <div class="detail-row"><span class="dk">Loại</span><span :class="['badge-type',detailsDialog.customer.customerType==='VIP'?'badge-vip':'badge-reg']">{{ detailsDialog.customer.customerType }}</span></div>
-                  <div class="detail-row">
-                    <span class="dk">Cấp</span>
-                    <span v-if="detailsDialog.customer.raw.vipTier" :class="['badge-tier',`tier-${detailsDialog.customer.raw.vipTier.toLowerCase()}`]">{{ detailsDialog.customer.raw.vipTier }}</span>
-                    <span v-else class="muted">Chưa có cấp</span>
-                  </div>
-                  <div class="detail-row"><span class="dk">Điểm</span><strong class="dv" style="color:#7dd3fc">{{ (detailsDialog.customer.loyaltyPoints||0).toLocaleString() }} điểm</strong></div>
-                  <div class="detail-row"><span class="dk">Tổng chi tiêu</span><strong class="dv" style="color:#6ee7b7">{{ formatCurrency(detailsDialog.customer.raw.totalSpent) }}</strong></div>
-                </div>
-              </div>
-              <div class="detail-block" v-if="detailsDialog.customer.notes">
-                <h3 class="detail-block-ttl">Ghi chú</h3>
-                <p class="detail-body-text">{{ detailsDialog.customer.notes }}</p>
-              </div>
-              <div class="detail-block vip-note-block" v-if="detailsDialog.customer.raw.vipTier">
-                <div class="vipn-head">
-                  <h3 class="detail-block-ttl" style="margin:0">Ghi chú VIP <span class="internal-tag">Chỉ nội bộ</span></h3>
-                  <button class="btn-ghost-sm" @click="openVipNoteEdit(detailsDialog.customer)">Sửa</button>
-                </div>
-                <p v-if="detailsDialog.customer.raw.vipNote" class="vip-note-body">{{ detailsDialog.customer.raw.vipNote }}</p>
-                <p v-else class="vip-note-empty">Chưa có ghi chú VIP. <button class="btn-link" @click="openVipNoteEdit(detailsDialog.customer)">Thêm một →</button></p>
-              </div>
-            </div>
-          </div>
-          <div class="modal-ft">
-            <button class="btn-outline" @click="detailsDialog.open=false">Đóng</button>
-            <button class="btn-solid" @click="openEdit(detailsDialog.customer)">Sửa khách hàng</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-<!-- VIP NOTE DIALOG -->
-<Teleport to="body">
-  <div class="overlay" v-if="vipNoteDialog.open" @click.self="vipNoteDialog.open=false">
-    <div class="modal modal-sm vip-modal-redesign">
-
-      <!-- Header gold -->
-      <div class="vip-modal-header">
-        <div class="vip-header-deco vip-deco-1" />
-        <div class="vip-header-deco vip-deco-2" />
-        <div class="vip-header-content">
-          <div class="vip-header-top">
-            <span class="vip-eyebrow">VIP Internal Note</span>
-            <span class="vip-admin-badge">Admin only</span>
-          </div>
-          <div class="vip-modal-title">Ghi chú VIP</div>
-          <div class="vip-modal-customer" v-if="vipNoteDialog.customerName">
-            <span class="vip-diamond-icon">♦</span>
-            {{ vipNoteDialog.vipTier }} · {{ vipNoteDialog.customerName }}
-          </div>
-        </div>
-        <button class="vip-close-btn" @click="vipNoteDialog.open=false">×</button>
-      </div>
-
-      <!-- Notice bar -->
-      <div class="vip-notice-bar">
-        <span class="vip-lock-icon">🔒</span>
-        <span>Chỉ nội bộ — Khách hàng <strong>không thể xem</strong>. Chỉ Admin và Staff có thể xem.</span>
-      </div>
-
-      <!-- Body -->
-      <div class="modal-bd">
-        <!-- Suggestions -->
-        <div class="vip-suggestion-section" v-if="!vipNoteDialog.note">
-          <p class="vip-suggestion-label">Gợi ý nhanh</p>
-          <div class="vip-chips">
-            <button
-              v-for="s in vipSuggestions" :key="s"
-              class="vip-chip"
-              @click="vipNoteDialog.note = s"
-            >{{ s }}</button>
-          </div>
-        </div>
-
-        <!-- Textarea -->
-        <div class="vip-textarea-wrap">
-          <textarea
-            v-model="vipNoteDialog.note"
-            class="vip-textarea"
-            rows="5"
-            placeholder="Ghi chú nội bộ về khách hàng VIP này…"
-            maxlength="500"
-            ref="vipNoteTextarea"
-          />
-          <div class="vip-textarea-foot">
-            <button
-              v-if="vipNoteDialog.note"
-              class="vip-clear-btn"
-              @click="vipNoteDialog.note = ''"
-            >Xóa nội dung</button>
-            <span class="vip-char-count" :class="{ 'vip-count-warn': (vipNoteDialog.note||'').length > 350, 'vip-count-danger': (vipNoteDialog.note||'').length > 450 }">
-              {{ (vipNoteDialog.note||'').length }}/500
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="modal-ft">
-        <button class="btn-outline" @click="vipNoteDialog.open=false">Hủy</button>
-        <button class="vip-save-btn" :disabled="vipNoteDialog.loading" @click="saveVipNote">
-          <span v-if="vipNoteDialog.loading" class="spin-icon">↻</span>
-          <span v-else class="vip-save-icon">✦</span>
-          Lưu ghi chú VIP
-        </button>
-      </div>
-
-    </div>
-  </div>
-</Teleport>
-
-    <!-- LOYALTY SUMMARY -->
-    <Teleport to="body">
-      <div class="overlay" v-if="summaryDlg.open" @click.self="summaryDlg.open=false">
-        <div class="modal modal-xl">
-          <div class="modal-hd">
+      <div class="crm2-overlay" v-if="summaryDlg.open" @click.self="summaryDlg.open=false">
+        <div class="crm2-dialog crm2-dialog--xl">
+          <div class="crm2-dialog__head-simple" style="border-bottom:1px solid var(--c-border-light)">
             <div>
-              <h2 class="modal-ttl">Tổng điểm</h2>
-              <p class="modal-sub">Phân tích điểm khách hàng trên tất cả khách hàng</p>
+              <h2 class="crm2-dialog__title">Tổng điểm</h2>
+              <p class="crm2-dialog__sub">Phân tích điểm khách hàng trên tất cả khách hàng</p>
             </div>
-            <button class="modal-x" @click="summaryDlg.open=false">×</button>
+            <button class="crm2-icon-btn" @click="summaryDlg.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
-          <div class="summary-controls">
-            <div class="sc-left">
-              <div class="ctrl-group">
-                <span class="ctrl-lbl">Kỳ</span>
-                <div class="toggle-set">
-                  <button :class="['tgl',summaryDlg.mode==='monthly'&&'tgl-on']" @click="summaryDlg.mode='monthly'; loadAdminSummary()">Hàng tháng</button>
-                  <button :class="['tgl',summaryDlg.mode==='weekly'&&'tgl-on']" @click="summaryDlg.mode='weekly'; loadAdminSummary()">Hàng tuần</button>
+
+          <!-- Controls -->
+          <div class="crm2-summary-controls">
+            <div class="crm2-sc-left">
+              <div class="crm2-ctrl-group">
+                <span class="crm2-ctrl-label">Kỳ</span>
+                <div class="crm2-toggle-set">
+                  <button :class="['crm2-tgl', summaryDlg.mode==='monthly'&&'crm2-tgl--on']" @click="summaryDlg.mode='monthly'; loadAdminSummary()">Tháng</button>
+                  <button :class="['crm2-tgl', summaryDlg.mode==='weekly'&&'crm2-tgl--on']" @click="summaryDlg.mode='weekly'; loadAdminSummary()">Tuần</button>
                 </div>
               </div>
-              <div class="ctrl-group">
-                <span class="ctrl-lbl">{{ summaryDlg.mode==='weekly' ? 'Tuần' : 'Tháng' }}</span>
-                <select class="field-select ctrl-select" v-model="summaryDlg.range" @change="loadAdminSummary">
+              <div class="crm2-ctrl-group">
+                <span class="crm2-ctrl-label">{{ summaryDlg.mode==='weekly' ? 'Tuần' : 'Tháng' }}</span>
+                <select class="crm2-input crm2-select" style="width:80px" v-model="summaryDlg.range" @change="loadAdminSummary">
                   <template v-if="summaryDlg.mode==='weekly'">
                     <option :value="4">4w</option><option :value="8">8w</option><option :value="12">12w</option><option :value="26">26w</option>
                   </template>
@@ -850,222 +827,218 @@
                   </template>
                 </select>
               </div>
-              <div class="ctrl-group">
-                <span class="ctrl-lbl">Xem</span>
-                <div class="toggle-set">
-                  <button :class="['tgl',summaryDlg.view==='overview'&&'tgl-on']" @click="summaryDlg.view='overview'">Tổng quan</button>
-                  <button :class="['tgl',summaryDlg.view==='detail'&&'tgl-on']" @click="summaryDlg.view='detail'">Theo khách hàng</button>
+              <div class="crm2-ctrl-group">
+                <span class="crm2-ctrl-label">Xem</span>
+                <div class="crm2-toggle-set">
+                  <button :class="['crm2-tgl', summaryDlg.view==='overview'&&'crm2-tgl--on']" @click="summaryDlg.view='overview'">Tổng quan</button>
+                  <button :class="['crm2-tgl', summaryDlg.view==='detail'&&'crm2-tgl--on']" @click="summaryDlg.view='detail'">Theo KH</button>
                 </div>
               </div>
             </div>
-            <button class="btn-ghost-sm" @click="loadAdminSummary" :disabled="summaryDlg.loading">
-              <span v-if="summaryDlg.loading" class="spin-icon">↻</span> Tải lại
+            <button class="crm2-btn-ghost-sm" @click="loadAdminSummary" :disabled="summaryDlg.loading">
+              <span v-if="summaryDlg.loading" class="crm2-spinner" style="width:12px;height:12px"></span> Tải lại
             </button>
           </div>
-          <div class="modal-bd summary-bd">
-            <div v-if="summaryDlg.loading" class="table-loading"><div class="loader-dots"><span/><span/><span/></div><p>Đang tải…</p></div>
-            <div v-else-if="!summaryDlg.data.length" class="empty-state"><p>Không có dữ liệu trong kỳ này</p></div>
+
+          <div class="crm2-dialog__body crm2-summary-body">
+            <div v-if="summaryDlg.loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
+            <div v-else-if="!summaryDlg.data.length" class="crm2-empty" style="padding:40px"><div class="crm2-empty__inner"><p>Không có dữ liệu trong kỳ này</p></div></div>
             <template v-else>
-              <div class="summary-kpis">
-                <div class="kpi earn"><div class="kpi-val">+{{ adminSummaryTotals.earned.toLocaleString() }}</div><div class="kpi-lbl">Điểm kiếm được</div></div>
-                <div class="kpi deduct"><div class="kpi-val">-{{ adminSummaryTotals.deducted.toLocaleString() }}</div><div class="kpi-lbl">Điểm đã dùng</div></div>
-                <div class="kpi net" :class="adminSummaryTotals.net>=0?'kpi-pos':'kpi-neg'"><div class="kpi-val">{{ adminSummaryTotals.net>=0?'+':'' }}{{ adminSummaryTotals.net.toLocaleString() }}</div><div class="kpi-lbl">Lý thuyết</div></div>
-                <div class="kpi tx"><div class="kpi-val">{{ adminSummaryTotals.transactions.toLocaleString() }}</div><div class="kpi-lbl">Giao dịch</div></div>
+              <!-- KPI Row -->
+              <div class="crm2-kpi-row">
+                <div class="crm2-kpi crm2-kpi--green"><div class="crm2-kpi__val">+{{ adminSummaryTotals.earned.toLocaleString() }}</div><div class="crm2-kpi__label">Điểm kiếm được</div></div>
+                <div class="crm2-kpi crm2-kpi--orange"><div class="crm2-kpi__val">-{{ adminSummaryTotals.deducted.toLocaleString() }}</div><div class="crm2-kpi__label">Điểm đã dùng</div></div>
+                <div class="crm2-kpi" :class="adminSummaryTotals.net>=0?'crm2-kpi--blue':'crm2-kpi--red'"><div class="crm2-kpi__val">{{ adminSummaryTotals.net>=0?'+':'' }}{{ adminSummaryTotals.net.toLocaleString() }}</div><div class="crm2-kpi__label">Lý thuyết</div></div>
+                <div class="crm2-kpi crm2-kpi--purple"><div class="crm2-kpi__val">{{ adminSummaryTotals.transactions.toLocaleString() }}</div><div class="crm2-kpi__label">Giao dịch</div></div>
               </div>
+
               <template v-if="summaryDlg.view==='overview'">
-                <div class="period-list">
-                  <div v-for="period in summaryDlg.data" :key="period.period" class="period-row">
-                    <div class="pr-meta">
-                      <div class="pr-label">{{ period.periodLabel }}</div>
-                      <div class="pr-dates">{{ formatAdminDate(period.periodStart) }} – {{ formatAdminDate(period.periodEnd) }}</div>
+                <div class="crm2-period-list">
+                  <div v-for="period in summaryDlg.data" :key="period.period" class="crm2-period-row">
+                    <div class="crm2-period-meta">
+                      <div class="crm2-period-label">{{ period.periodLabel }}</div>
+                      <div class="crm2-period-dates crm2-mono crm2-text--muted">{{ formatAdminDate(period.periodStart) }} – {{ formatAdminDate(period.periodEnd) }}</div>
                     </div>
-                    <div class="pr-bars">
-                      <div class="bar-row-h">
-                        <span class="br-num earn-num">+{{ period.totalPointsEarned.toLocaleString() }}</span>
-                        <div class="bar-bg"><div class="bar-fg bar-earn" :style="{width:getAdminBarWidth(period.totalPointsEarned,'earn')+'%'}" /></div>
+                    <div class="crm2-period-bars">
+                      <div class="crm2-bar-row">
+                        <span class="crm2-br-num crm2-text--green crm2-mono">+{{ period.totalPointsEarned.toLocaleString() }}</span>
+                        <div class="crm2-bar-bg"><div class="crm2-bar crm2-bar--green" :style="{width:getAdminBarWidth(period.totalPointsEarned,'earn')+'%'}"></div></div>
                       </div>
-                      <div class="bar-row-h">
-                        <span class="br-num deduct-num">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
-                        <div class="bar-bg"><div class="bar-fg bar-deduct" :style="{width:getAdminBarWidth(period.totalPointsDeducted,'deduct')+'%'}" /></div>
+                      <div class="crm2-bar-row">
+                        <span class="crm2-br-num crm2-text--orange crm2-mono">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
+                        <div class="crm2-bar-bg"><div class="crm2-bar crm2-bar--orange" :style="{width:getAdminBarWidth(period.totalPointsDeducted,'deduct')+'%'}"></div></div>
                       </div>
                     </div>
-                    <div class="pr-net">
-                      <span class="net-chip" :class="period.netPoints>=0?'nc-pos':'nc-neg'">{{ period.netPoints>=0?'+':'' }}{{ period.netPoints.toLocaleString() }}</span>
-                      <span class="pr-tx">{{ period.totalTransactions }} gd</span>
+                    <div class="crm2-period-net">
+                      <span class="crm2-net-chip" :class="period.netPoints>=0?'crm2-net-chip--pos':'crm2-net-chip--neg'">{{ period.netPoints>=0?'+':'' }}{{ period.netPoints.toLocaleString() }}</span>
+                      <span class="crm2-mono crm2-text--muted" style="font-size:11px">{{ period.totalTransactions }} gd</span>
                     </div>
                   </div>
                 </div>
               </template>
+
               <template v-else>
-                <div v-for="period in summaryDlg.data" :key="period.period" class="cust-period-block">
-                  <div class="cpb-head">
-                    <span class="cpb-title">{{ period.periodLabel }}</span>
-                    <div class="cpb-meta">
-                      <span class="earn-num">+{{ period.totalPointsEarned.toLocaleString() }}</span>
-                      <span class="muted">/</span>
-                      <span class="deduct-num">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
-                      <span class="muted tx-count">{{ period.totalTransactions }} txn</span>
+                <div v-for="period in summaryDlg.data" :key="period.period" class="crm2-cust-period">
+                  <div class="crm2-cust-period__head">
+                    <span class="crm2-mono crm2-text--muted" style="font-weight:700">{{ period.periodLabel }}</span>
+                    <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-family:'JetBrains Mono',monospace">
+                      <span class="crm2-text--green">+{{ period.totalPointsEarned.toLocaleString() }}</span>
+                      <span class="crm2-text--muted">/</span>
+                      <span class="crm2-text--orange">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
+                      <span class="crm2-text--muted">{{ period.totalTransactions }} txn</span>
                     </div>
                   </div>
-                  <table class="crm-table cdt" v-if="period.customerBreakdown?.length">
+                  <table class="crm2-table" v-if="period.customerBreakdown?.length">
                     <thead><tr><th>Khách hàng</th><th>Cấp</th><th style="text-align:right">Kiếm được</th><th style="text-align:right">Đã dùng</th><th style="text-align:right">Lý thuyết</th><th style="text-align:center">Gd</th></tr></thead>
                     <tbody>
-                      <tr v-for="c in period.customerBreakdown" :key="c.customerId" class="crm-row">
-                        <td><div class="cdt-name">{{ c.customerName }}</div><div class="cdt-email">{{ c.customerEmail }}</div></td>
-                        <td><span v-if="c.vipTier&&c.vipTier!=='Member'" :class="['badge-tier',`tier-${c.vipTier.toLowerCase()}`]">{{ c.vipTier }}</span><span v-else class="muted">—</span></td>
-                        <td style="text-align:right" class="earn-num">+{{ c.pointsEarned.toLocaleString() }}</td>
-                        <td style="text-align:right" class="deduct-num">{{ c.pointsDeducted>0?'-':'' }}{{ c.pointsDeducted.toLocaleString() }}</td>
-                        <td style="text-align:right"><span :style="{color:c.netPoints>=0?'#6ee7b7':'#f87171',fontWeight:700}">{{ c.netPoints>=0?'+':'' }}{{ c.netPoints.toLocaleString() }}</span></td>
-                        <td style="text-align:center" class="muted">{{ c.transactionCount }}</td>
+                      <tr v-for="c in period.customerBreakdown" :key="c.customerId" class="crm2-row">
+                        <td><div style="font-size:12px;font-weight:600">{{ c.customerName }}</div><div class="crm2-text--muted" style="font-size:11px">{{ c.customerEmail }}</div></td>
+                        <td><span v-if="c.vipTier&&c.vipTier!=='Member'" class="crm2-tier-tag" :class="'crm2-tier--'+c.vipTier.toLowerCase()">{{ c.vipTier }}</span><span v-else class="crm2-text--muted">—</span></td>
+                        <td style="text-align:right" class="crm2-text--green crm2-mono">+{{ c.pointsEarned.toLocaleString() }}</td>
+                        <td style="text-align:right" class="crm2-text--orange crm2-mono">{{ c.pointsDeducted>0?'-':'' }}{{ c.pointsDeducted.toLocaleString() }}</td>
+                        <td style="text-align:right"><span class="crm2-mono" :style="{color:c.netPoints>=0?'var(--c-green)':'var(--c-red)',fontWeight:700}">{{ c.netPoints>=0?'+':'' }}{{ c.netPoints.toLocaleString() }}</span></td>
+                        <td style="text-align:center" class="crm2-text--muted crm2-mono">{{ c.transactionCount }}</td>
                       </tr>
                     </tbody>
                   </table>
-                  <div v-else class="cdt-empty">Không có giao dịch</div>
+                  <div v-else class="crm2-empty" style="padding:16px"><div class="crm2-empty__inner" style="gap:6px"><p>Không có giao dịch</p></div></div>
                 </div>
               </template>
             </template>
           </div>
-          <div class="modal-ft"><button class="btn-outline" @click="summaryDlg.open=false">Đóng</button></div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- GREETING DIALOG -->
-    <Teleport to="body">
-      <div class="overlay" v-if="greetingDialog.open" @click.self="greetingDialog.open=false">
-        <div class="modal modal-sm">
-          <div class="modal-hd">
-            <h2 class="modal-ttl">Gửi lời chúc sinh nhật</h2>
-            <button class="modal-x" @click="greetingDialog.open=false">×</button>
-          </div>
-          <div class="modal-bd">
-            <div class="bd-banner bd-blue" style="margin-bottom:14px" v-if="greetingDialog.customer">
-              To: <strong>{{ greetingDialog.customer.name }}</strong> ({{ greetingDialog.customer.email }})
-            </div>
-            <div class="field-group">
-              <label class="field-label">Tin nhắn</label>
-              <textarea v-model="greetingDialog.form.message" class="field-textarea" rows="8" placeholder="Viết lời chúc sinh nhật…" />
-            </div>
-          </div>
-          <div class="modal-ft">
-            <button class="btn-outline" @click="greetingDialog.open=false">Hủy</button>
-            <button class="btn-solid" :disabled="greetingDialog.sending" @click="confirmSendGreeting">
-              <span v-if="greetingDialog.sending" class="spin-icon">↻</span> Gửi lời chúc
-            </button>
+          <div class="crm2-dialog__actions" style="padding:14px 24px;border-top:1px solid var(--c-border-light)">
+            <button class="crm2-btn crm2-btn--ghost" @click="summaryDlg.open=false">Đóng</button>
           </div>
         </div>
       </div>
     </Teleport>
 
-    <!-- INACTIVE DETAIL -->
+    <!-- ══ DIALOG: Greeting ══ -->
     <Teleport to="body">
-      <div class="overlay" v-if="inactiveDetail.open" @click.self="inactiveDetail.open=false">
-        <div class="modal modal-sm text-center" v-if="inactiveDetail.customer">
-          <button class="modal-x" @click="inactiveDetail.open=false">×</button>
-          <div class="modal-bd">
-            <div class="avatar xl mx-auto" :style="{background:getAvatarColor(inactiveDetail.customer.fullName)}">{{ getInitials(inactiveDetail.customer.fullName) }}</div>
-            <div class="modal-name">{{ inactiveDetail.customer.fullName }}</div>
-            <div class="muted" style="font-size:13px;margin-bottom:12px">{{ inactiveDetail.customer.email }}</div>
-            <span v-if="inactiveDetail.customer.raw?.vipTier" :class="['badge-tier',`tier-${inactiveDetail.customer.raw.vipTier.toLowerCase()}`]" style="font-size:13px;padding:4px 12px">{{ inactiveDetail.customer.raw.vipTier }}</span>
-            <div class="modal-stat-row">
-              <div class="ms"><div class="ms-val gold">{{ (inactiveDetail.customer.loyaltyPoints||0).toLocaleString() }}</div><div class="ms-lbl">Điểm</div></div>
-              <div class="ms"><div class="ms-val green">{{ formatCurrency(inactiveDetail.customer.raw?.totalSpent) }}</div><div class="ms-lbl">Chi tiêu</div></div>
+      <div class="crm2-overlay" v-if="greetingDialog.open" @click.self="greetingDialog.open=false">
+        <div class="crm2-dialog crm2-dialog--sm">
+          <div class="crm2-dialog__band crm2-dialog__band--green">
+            <div class="crm2-dialog__band-circles"><span class="crm2-band-circle crm2-band-circle--1"/><span class="crm2-band-circle crm2-band-circle--2"/><span class="crm2-band-circle crm2-band-circle--3"/></div>
+            <div class="crm2-dialog__icon-wrap"><div class="crm2-dialog__icon-ring">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div></div>
+          </div>
+          <div class="crm2-dialog__body">
+            <div class="crm2-dialog__badge crm2-dialog__badge--green">Lời chúc sinh nhật</div>
+            <div class="crm2-dialog__head-row">
+              <h2 class="crm2-dialog__title">Gửi lời chúc</h2>
+              <button class="crm2-icon-btn" @click="greetingDialog.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
-            <div class="detail-rows" style="margin-top:16px;text-align:left">
-              <div class="detail-row"><span class="dk">SĐT</span><span class="dv">{{ inactiveDetail.customer.phone||'—' }}</span></div>
-              <div class="detail-row"><span class="dk">Ngày sinh</span><span class="dv">{{ inactiveDetail.customer.birthDate||'—' }}</span></div>
-              <div class="detail-row"><span class="dk">Địa chỉ</span><span class="dv">{{ inactiveDetail.customer.raw?.address||'—' }}</span></div>
-              <div class="detail-row"><span class="dk">Đơn hàng cuối</span><span class="dv" style="color:#fb923c">{{ relativeDate(inactiveDetail.customer.raw?.lastOrderAt) }}</span></div>
-              <div class="detail-row" v-if="inactiveDetail.customer.notes"><span class="dk">Ghi chú</span><span class="dv">{{ inactiveDetail.customer.notes }}</span></div>
+            <div v-if="greetingDialog.customer" class="crm2-dialog__notice" style="background:var(--c-blue-bg);color:var(--c-blue);border-color:var(--c-blue-border)">
+              Gửi tới: <strong>{{ greetingDialog.customer.name }}</strong> ({{ greetingDialog.customer.email }})
             </div>
-            <div class="inactive-warning">
+            <div class="crm2-field"><label class="crm2-field__label">Tin nhắn</label><textarea v-model="greetingDialog.form.message" class="crm2-input crm2-textarea" rows="8" placeholder="Viết lời chúc sinh nhật…"></textarea></div>
+            <div class="crm2-dialog__actions">
+              <button class="crm2-btn crm2-btn--ghost" @click="greetingDialog.open=false">Hủy bỏ</button>
+              <button class="crm2-btn crm2-btn--confirm-green" :class="{'crm2-btn--loading': greetingDialog.sending}" @click="confirmSendGreeting" :disabled="greetingDialog.sending">
+                <span v-if="greetingDialog.sending" class="crm2-spinner crm2-spinner--white"></span>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Gửi lời chúc
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ══ DIALOG: Inactive Detail ══ -->
+    <Teleport to="body">
+      <div class="crm2-overlay" v-if="inactiveDetail.open" @click.self="inactiveDetail.open=false">
+        <div class="crm2-dialog crm2-dialog--sm" v-if="inactiveDetail.customer" style="text-align:center">
+          <div class="crm2-dialog__body">
+            <div style="display:flex;justify-content:flex-end"><button class="crm2-icon-btn" @click="inactiveDetail.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+            <div class="crm2-avatar crm2-avatar--xl" style="margin:0 auto 12px" :style="{background:getAvatarColor(inactiveDetail.customer.fullName)}">{{ getInitials(inactiveDetail.customer.fullName) }}</div>
+            <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px">{{ inactiveDetail.customer.fullName }}</div>
+            <div class="crm2-text--muted" style="font-size:13px;margin-bottom:12px">{{ inactiveDetail.customer.email }}</div>
+            <span v-if="inactiveDetail.customer.raw?.vipTier" class="crm2-tier-tag" :class="'crm2-tier--'+inactiveDetail.customer.raw.vipTier.toLowerCase()" style="font-size:13px;padding:4px 14px">{{ inactiveDetail.customer.raw.vipTier }}</span>
+            <div class="crm2-stat-row">
+              <div class="crm2-stat-mini crm2-stat-mini--orange"><div class="crm2-stat-mini__val">{{ (inactiveDetail.customer.loyaltyPoints||0).toLocaleString() }}</div><div class="crm2-stat-mini__label">Điểm</div></div>
+              <div class="crm2-stat-mini crm2-stat-mini--green"><div class="crm2-stat-mini__val">{{ formatCurrency(inactiveDetail.customer.raw?.totalSpent) }}</div><div class="crm2-stat-mini__label">Chi tiêu</div></div>
+            </div>
+            <div class="crm2-detail-rows" style="margin-top:16px;text-align:left">
+              <div class="crm2-detail-row"><span class="crm2-dk">SĐT</span><span class="crm2-dv crm2-mono">{{ inactiveDetail.customer.phone||'—' }}</span></div>
+              <div class="crm2-detail-row"><span class="crm2-dk">Ngày sinh</span><span class="crm2-dv">{{ inactiveDetail.customer.birthDate||'—' }}</span></div>
+              <div class="crm2-detail-row"><span class="crm2-dk">Địa chỉ</span><span class="crm2-dv">{{ inactiveDetail.customer.raw?.address||'—' }}</span></div>
+              <div class="crm2-detail-row"><span class="crm2-dk">Đơn hàng cuối</span><span class="crm2-dv" style="color:var(--c-orange)">{{ relativeDate(inactiveDetail.customer.raw?.lastOrderAt) }}</span></div>
+              <div class="crm2-detail-row" v-if="inactiveDetail.customer.notes"><span class="crm2-dk">Ghi chú</span><span class="crm2-dv">{{ inactiveDetail.customer.notes }}</span></div>
+            </div>
+            <div class="crm2-dialog__notice crm2-dialog__notice--red" style="margin-top:14px;text-align:left">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               Không có giao dịch trong <strong>{{ activeInactiveTab }}+ ngày</strong>. Cân nhắc liên hệ lại.
             </div>
           </div>
         </div>
       </div>
     </Teleport>
-    <!-- ZERO ORDER SEND DIALOG -->
-<Teleport to="body">
-  <div class="overlay" v-if="zoDlg.open" @click.self="zoDlg.open=false">
-    <div class="modal modal-lg">
-      <div class="modal-hd">
-        <div>
-          <h2 class="modal-ttl">📨 Gửi thông báo chào mừng</h2>
-          <p class="modal-sub">{{ zoSelected.length }} khách được chọn sẽ nhận thông báo</p>
-        </div>
-        <button class="modal-x" @click="zoDlg.open=false">×</button>
-      </div>
 
-      <div class="modal-bd">
-        <!-- Template selector -->
-        <div class="field-group" style="margin-bottom:16px">
-          <label class="field-label">Mẫu thông báo</label>
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">
-            <div
-              v-for="tpl in zoTemplates" :key="tpl.id"
-              @click="zoSelectTemplate(tpl)"
-              :style="{
-                border: zoDlg.form.templateId === tpl.id ? '1px solid #7dd3fc' : '1px solid #1a1f2b',
-                background: zoDlg.form.templateId === tpl.id ? '#040e1c' : '#ffffff',
-                borderRadius: '2px', padding: '12px 14px', cursor: 'pointer', transition: 'all .15s'
-              }"
-            >
-              <div style="font-size:20px;margin-bottom:4px">{{ tpl.icon }}</div>
-              <div style="font-size:12px;font-weight:700;color:#94a3b8">{{ tpl.name }}</div>
-              <div style="font-size:11px;color:#374151;margin-top:2px">{{ tpl.desc }}</div>
-            </div>
+    <!-- ══ DIALOG: Zero Order Send ══ -->
+    <Teleport to="body">
+      <div class="crm2-overlay" v-if="zoDlg.open" @click.self="zoDlg.open=false">
+        <div class="crm2-dialog crm2-dialog--lg">
+          <div class="crm2-dialog__band crm2-dialog__band--blue">
+            <div class="crm2-dialog__band-circles"><span class="crm2-band-circle crm2-band-circle--1"/><span class="crm2-band-circle crm2-band-circle--2"/><span class="crm2-band-circle crm2-band-circle--3"/></div>
+            <div class="crm2-dialog__icon-wrap"><div class="crm2-dialog__icon-ring">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </div></div>
           </div>
-        </div>
+          <div class="crm2-dialog__body">
+            <div class="crm2-dialog__badge crm2-dialog__badge--blue">Gửi thông báo chào mừng</div>
+            <div class="crm2-dialog__head-row">
+              <h2 class="crm2-dialog__title">📨 Gửi thông báo<span class="crm2-tag crm2-tag--blue" style="font-size:12px;margin-left:10px">{{ zoSelected.length }} khách</span></h2>
+              <button class="crm2-icon-btn" @click="zoDlg.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
 
-        <!-- Title -->
-        <div class="field-group" style="margin-bottom:14px">
-          <label class="field-label">Tiêu đề thông báo</label>
-          <input v-model="zoDlg.form.title" class="field-input" placeholder="Nhập tiêu đề…" />
-        </div>
-
-        <!-- Message -->
-        <div class="field-group" style="margin-bottom:14px">
-          <label class="field-label">Nội dung</label>
-          <textarea v-model="zoDlg.form.message" class="field-textarea" rows="5" placeholder="Nhập nội dung…" />
-          <span style="font-size:11px;color:#374151;margin-top:4px">Dùng <code style="background:#0d0f14;padding:1px 5px;border-radius:2px;color:#7dd3fc">{name}</code> để chèn tên khách</span>
-        </div>
-
-        <!-- Preview -->
-        <div style="background:#0d0f14;border:1px dashed #1a3a5c;border-radius:2px;padding:14px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#374151;margin-bottom:10px">👁 Xem trước</div>
-          <div style="background:#ffffff;border:1px solid #1a1f2b;border-radius:2px;padding:12px;display:flex;gap:12px;align-items:flex-start">
-            <span style="font-size:22px;flex-shrink:0">{{ zoDlg.currentTpl?.icon || '📢' }}</span>
-            <div>
-              <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px">{{ zoDlg.form.title || '(Chưa có tiêu đề)' }}</div>
-              <div style="font-size:12px;color:#374151;white-space:pre-line;line-height:1.5">
-                {{ (zoDlg.form.message || '(Chưa có nội dung)').replace(/\{name\}/g, 'Nguyễn Văn A') }}
+            <div class="crm2-field">
+              <label class="crm2-field__label">Mẫu thông báo</label>
+              <div class="crm2-zo-templates">
+                <div v-for="tpl in zoTemplates" :key="tpl.id" class="crm2-zo-tpl" :class="{'crm2-zo-tpl--active': zoDlg.form.templateId === tpl.id}" @click="zoSelectTemplate(tpl)">
+                  <div class="crm2-zo-tpl__icon">{{ tpl.icon }}</div>
+                  <div class="crm2-zo-tpl__name">{{ tpl.name }}</div>
+                  <div class="crm2-zo-tpl__desc">{{ tpl.desc }}</div>
+                </div>
               </div>
             </div>
+
+            <div class="crm2-field"><label class="crm2-field__label">Tiêu đề thông báo</label><input v-model="zoDlg.form.title" class="crm2-input" placeholder="Nhập tiêu đề…" /></div>
+            <div class="crm2-field">
+              <label class="crm2-field__label">Nội dung</label>
+              <textarea v-model="zoDlg.form.message" class="crm2-input crm2-textarea" rows="5" placeholder="Nhập nội dung…"></textarea>
+              <span style="font-size:11px;color:var(--c-muted);margin-top:4px;display:block">Dùng <code class="crm2-mono" style="background:var(--c-border-light);padding:1px 6px;border-radius:4px">{name}</code> để chèn tên khách</span>
+            </div>
+
+            <div class="crm2-zo-preview">
+              <div class="crm2-zo-preview__label">👁 Xem trước</div>
+              <div class="crm2-zo-preview__card">
+                <span style="font-size:22px;flex-shrink:0">{{ zoDlg.currentTpl?.icon || '📢' }}</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--c-text);margin-bottom:4px">{{ zoDlg.form.title || '(Chưa có tiêu đề)' }}</div>
+                  <div style="font-size:12px;color:var(--c-muted);white-space:pre-line;line-height:1.5">{{ (zoDlg.form.message || '(Chưa có nội dung)').replace(/\{name\}/g, 'Nguyễn Văn A') }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress -->
+            <div v-if="zoSending" class="crm2-zo-progress">
+              <div class="crm2-zo-progress__fill" :style="{ width: `${Math.round((zoSentCount / zoSelected.length) * 100)}%` }"></div>
+            </div>
+
+            <div class="crm2-dialog__actions">
+              <button class="crm2-btn crm2-btn--ghost" @click="zoDlg.open=false" :disabled="zoSending">Hủy bỏ</button>
+              <button class="crm2-btn crm2-btn--confirm-blue" :class="{'crm2-btn--loading': zoSending}" :disabled="!zoDlg.form.title || !zoDlg.form.message || zoSending" @click="zoSendBulk">
+                <span v-if="zoSending" class="crm2-spinner crm2-spinner--white"></span>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                {{ zoSending ? `Đang gửi (${zoSentCount}/${zoSelected.length})…` : `Gửi cho ${zoSelected.length} khách` }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- Progress bar -->
-      <div v-if="zoSending" style="height:3px;background:#1a1f2b;overflow:hidden">
-        <div style="height:100%;background:#7dd3fc;transition:width .4s ease"
-             :style="{ width: `${Math.round((zoSentCount / zoSelected.length) * 100)}%` }" />
-      </div>
-
-      <div class="modal-ft">
-        <button class="btn-outline" @click="zoDlg.open=false" :disabled="zoSending">Hủy</button>
-        <button
-          class="btn-solid"
-          :disabled="!zoDlg.form.title || !zoDlg.form.message || zoSending"
-          @click="zoSendBulk"
-        >
-          <span v-if="zoSending" class="spin-icon">↻</span>
-          {{ zoSending ? `Đang gửi (${zoSentCount}/${zoSelected.length})…` : `Gửi cho ${zoSelected.length} khách` }}
-        </button>
-      </div>
-    </div>
-  </div>
-</Teleport>
+    </Teleport>
 
   </div>
 </template>
@@ -1222,12 +1195,9 @@ function formatCurrencyShort(v) {
   if (v >= 1_000) return (v / 1_000).toFixed(0) + 'K';
   return v + '₫';
 }
-// ══════════════════════════════════════════════
-// ZERO ORDER
-// ══════════════════════════════════════════════
 const zoCustomers   = ref([]);
-const zoStats       = ref({});   // alias dùng trong template là zeroOrderStats
-const zeroOrderStats = zoStats;  // alias
+const zoStats       = ref({});
+const zeroOrderStats = zoStats;
 const zoSelected    = ref([]);
 const zoSendingIds  = ref(new Set());
 const zoSending     = ref(false);
@@ -1245,25 +1215,10 @@ const zoDayOptions = [
 ];
 
 const zoTemplates = [
-  {
-    id: "welcome", icon: "🎉", name: "Chào mừng", desc: "Mời mua lần đầu với ưu đãi",
-    title: "🎉 Chào mừng bạn đến với cửa hàng!",
-    message: `Xin chào {name}! 👋\n\nCảm ơn bạn đã đăng ký tài khoản.\n\n🛍️ Đặt đơn hàng đầu tiên ngay để nhận ưu đãi đặc biệt dành cho khách mới!`,
-  },
-  {
-    id: "offer", icon: "💰", name: "Ưu đãi hấp dẫn", desc: "Voucher giảm giá kèm deadline",
-    title: "💰 Ưu đãi đặc biệt chỉ dành riêng cho bạn!",
-    message: `Xin chào {name}!\n\nBạn chưa thực hiện đơn hàng nào.\n\n🎁 Chúng tôi tặng bạn ưu đãi GIẢM GIÁ ĐẶC BIỆT cho lần mua đầu tiên!\n\n⏰ Ưu đãi có hạn — Đặt hàng ngay!`,
-  },
-  {
-    id: "nudge", icon: "🤝", name: "Hỗ trợ tư vấn", desc: "Mời chat với tư vấn viên",
-    title: "🤝 Chúng tôi sẵn sàng hỗ trợ bạn!",
-    message: `Xin chào {name}!\n\nBạn đang phân vân chọn sản phẩm?\n\n💬 Đội ngũ tư vấn luôn sẵn sàng giúp bạn.\n✅ Tư vấn miễn phí · Bảo hành chính hãng · Giao hàng nhanh`,
-  },
-  {
-    id: "custom", icon: "✏️", name: "Tùy chỉnh", desc: "Soạn nội dung riêng",
-    title: "", message: "",
-  },
+  { id: "welcome", icon: "🎉", name: "Chào mừng", desc: "Mời mua lần đầu với ưu đãi", title: "🎉 Chào mừng bạn đến với cửa hàng!", message: `Xin chào {name}! 👋\n\nCảm ơn bạn đã đăng ký tài khoản.\n\n🛍️ Đặt đơn hàng đầu tiên ngay để nhận ưu đãi đặc biệt dành cho khách mới!` },
+  { id: "offer", icon: "💰", name: "Ưu đãi hấp dẫn", desc: "Voucher giảm giá kèm deadline", title: "💰 Ưu đãi đặc biệt chỉ dành riêng cho bạn!", message: `Xin chào {name}!\n\nBạn chưa thực hiện đơn hàng nào.\n\n🎁 Chúng tôi tặng bạn ưu đãi GIẢM GIÁ ĐẶC BIỆT cho lần mua đầu tiên!\n\n⏰ Ưu đãi có hạn — Đặt hàng ngay!` },
+  { id: "nudge", icon: "🤝", name: "Hỗ trợ tư vấn", desc: "Mời chat với tư vấn viên", title: "🤝 Chúng tôi sẵn sàng hỗ trợ bạn!", message: `Xin chào {name}!\n\nBạn đang phân vân chọn sản phẩm?\n\n💬 Đội ngũ tư vấn luôn sẵn sàng giúp bạn.\n✅ Tư vấn miễn phí · Bảo hành chính hãng · Giao hàng nhanh` },
+  { id: "custom", icon: "✏️", name: "Tùy chỉnh", desc: "Soạn nội dung riêng", title: "", message: "" },
 ];
 
 const zoDlg = reactive({
@@ -1272,29 +1227,17 @@ const zoDlg = reactive({
   get currentTpl() { return zoTemplates.find(t => t.id === this.form.templateId); },
 });
 
-// Computed
 const zoFiltered = computed(() => {
   const kw = zoSearch.value.trim().toLowerCase();
   if (!kw) return zoCustomers.value;
-  return zoCustomers.value.filter(c =>
-    `${c.name} ${c.email} ${c.phone ?? ""}`.toLowerCase().includes(kw)
-  );
+  return zoCustomers.value.filter(c => `${c.name} ${c.email} ${c.phone ?? ""}`.toLowerCase().includes(kw));
 });
 const zoPageCount  = computed(() => Math.max(1, Math.ceil(zoFiltered.value.length / pageSize)));
 const zoPaged      = computed(() => zoFiltered.value.slice((zoPage.value - 1) * pageSize, zoPage.value * pageSize));
-const zoIsAllSelected = computed(() =>
-  zoFiltered.value.length > 0 && zoFiltered.value.every(c => zoSelected.value.includes(c.id))
-);
+const zoIsAllSelected = computed(() => zoFiltered.value.length > 0 && zoFiltered.value.every(c => zoSelected.value.includes(c.id)));
 
-// Helpers
-function zoDaysSince(dateStr) {
-  if (!dateStr) return 0;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-}
-function formatDate(d) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("vi-VN");
-}
+function zoDaysSince(dateStr) { if (!dateStr) return 0; return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000); }
+function formatDate(d) { if (!d) return "—"; return new Date(d).toLocaleDateString("vi-VN"); }
 function zoStatusLabel(c) {
   const d = zoDaysSince(c.createdAt);
   if (d >= 30) return "Nguy cơ cao 🚨";
@@ -1302,93 +1245,44 @@ function zoStatusLabel(c) {
   return "Mới đăng ký 🌱";
 }
 
-// Actions
-function zoSelectDays(d) {
-  zoSelectedDays.value = d;
-  zoPage.value = 1;
-  zoSelected.value = [];
-  loadZeroOrderData();
-}
-function zoSelectAll() {
-  if (zoIsAllSelected.value) { zoSelected.value = []; }
-  else { zoSelected.value = zoFiltered.value.map(c => c.id); }
-}
-function zoSelectTemplate(tpl) {
-  zoDlg.form.templateId = tpl.id;
-  if (tpl.id !== "custom") {
-    zoDlg.form.title   = tpl.title;
-    zoDlg.form.message = tpl.message;
-  }
-}
-function openZoSendDialog() {
-  zoSelectTemplate(zoTemplates[0]);
-  zoDlg.open = true;
-}
+function zoSelectDays(d) { zoSelectedDays.value = d; zoPage.value = 1; zoSelected.value = []; loadZeroOrderData(); }
+function zoSelectAll() { if (zoIsAllSelected.value) { zoSelected.value = []; } else { zoSelected.value = zoFiltered.value.map(c => c.id); } }
+function zoSelectTemplate(tpl) { zoDlg.form.templateId = tpl.id; if (tpl.id !== "custom") { zoDlg.form.title = tpl.title; zoDlg.form.message = tpl.message; } }
+function openZoSendDialog() { zoSelectTemplate(zoTemplates[0]); zoDlg.open = true; }
 
 async function loadZeroOrderData() {
-  loading.value = true;
-  zoSelected.value = [];
-  try {
-    const res = await customersApi.listZeroOrder(zoSelectedDays.value);
-    zoCustomers.value = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-  } catch { toast("Không thể tải danh sách chưa mua", "error"); zoCustomers.value = []; }
+  loading.value = true; zoSelected.value = [];
+  try { const res = await customersApi.listZeroOrder(zoSelectedDays.value); zoCustomers.value = Array.isArray(res.data) ? res.data : (res.data?.data ?? []); }
+  catch { toast("Không thể tải danh sách chưa mua", "error"); zoCustomers.value = []; }
   finally { loading.value = false; }
 }
 async function loadZeroOrderStats() {
-  try {
-    const res = await customersApi.getZeroOrderStats();
-    zoStats.value = res.data ?? {};
-  } catch { /* silent */ }
+  try { const res = await customersApi.getZeroOrderStats(); zoStats.value = res.data ?? {}; } catch { /* silent */ }
 }
 
 async function zoSendSingle(customer) {
-  const s = new Set(zoSendingIds.value);
-  s.add(customer.id);
-  zoSendingIds.value = s;
+  const s = new Set(zoSendingIds.value); s.add(customer.id); zoSendingIds.value = s;
   try {
-    await http.post("/api/auth/notifications/send", {
-      customerIds: [customer.id],
-      title:   `🎉 Xin chào ${customer.name}!`,
-      message: zoTemplates[0].message.replace(/\{name\}/g, customer.name),
-      type:    "WELCOME",
-    });
+    await http.post("/api/auth/notifications/send", { customerIds: [customer.id], title: `🎉 Xin chào ${customer.name}!`, message: zoTemplates[0].message.replace(/\{name\}/g, customer.name), type: "WELCOME" });
     toast(`Đã gửi tới ${customer.name}`, "success");
-  } catch (e) {
-    toast(e?.response?.data?.message || "Gửi thất bại", "error");
-  } finally {
-    const s2 = new Set(zoSendingIds.value);
-    s2.delete(customer.id);
-    zoSendingIds.value = s2;
-  }
+  } catch (e) { toast(e?.response?.data?.message || "Gửi thất bại", "error"); }
+  finally { const s2 = new Set(zoSendingIds.value); s2.delete(customer.id); zoSendingIds.value = s2; }
 }
 
 async function zoSendBulk() {
   if (!zoDlg.form.title || !zoDlg.form.message) return;
-  zoSending.value  = true;
-  zoSentCount.value = 0;
-  const ids = [...zoSelected.value];
-  let success = 0, fail = 0;
-
+  zoSending.value = true; zoSentCount.value = 0;
+  const ids = [...zoSelected.value]; let success = 0, fail = 0;
   for (let i = 0; i < ids.length; i += 10) {
     const chunk = ids.slice(i, i + 10);
     const chunkCustomers = zoCustomers.value.filter(c => chunk.includes(c.id));
     await Promise.all(chunkCustomers.map(async c => {
-      try {
-        await http.post("/api/auth/notifications/send", {
-          customerIds: [c.id],
-          title:   zoDlg.form.title,
-          message: zoDlg.form.message.replace(/\{name\}/g, c.name),
-          type:    "WELCOME",
-        });
-        success++;
-      } catch { fail++; }
+      try { await http.post("/api/auth/notifications/send", { customerIds: [c.id], title: zoDlg.form.title, message: zoDlg.form.message.replace(/\{name\}/g, c.name), type: "WELCOME" }); success++; }
+      catch { fail++; }
       finally { zoSentCount.value++; }
     }));
   }
-
-  zoSending.value  = false;
-  zoDlg.open       = false;
-  zoSelected.value = [];
+  zoSending.value = false; zoDlg.open = false; zoSelected.value = [];
   toast(fail === 0 ? `✅ Đã gửi thành công ${success} thông báo!` : `⚠️ Thành công: ${success} | Thất bại: ${fail}`, fail === 0 ? "success" : "error");
   await loadZeroOrderData();
 }
@@ -1522,1127 +1416,508 @@ onMounted(load);
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/*
+  HARDCODE MAP (không dùng var()):
+  bg:#f6f7f9  card:#ffffff  border:#e4e7ec  border-light:#f0f2f5
+  text:#0f1117  muted:#6b7280  subtle:#9ca3af
+  blue:#2563eb  blue-bg:#eff6ff  blue-border:#bfdbfe
+  green:#16a34a  green-bg:#f0fdf4  green-border:#bbf7d0
+  red:#dc2626    red-bg:#fff1f2   red-border:#fecdd3
+  orange:#d97706 orange-bg:#fffbeb orange-border:#fde68a
+  purple:#7c3aed purple-bg:#f5f3ff purple-border:#ddd6fe
+  gray-bg:#f3f4f6  gray-border:#e5e7eb
+  radius:12px  radius-sm:8px
+  shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04)
+  shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04)
+  shadow-lg: 0 24px 64px rgba(0,0,0,.14), 0 8px 24px rgba(0,0,0,.06)
+*/
 
-/* ═══════════════════════════
-   ROOT & LAYOUT
-═══════════════════════════ */
-.crm-root {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #ffffff;
+.crm2-page {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background: #f6f7f9;
   min-height: 100vh;
-  padding: 40px 32px;
-  color: #1e293b;
+  padding: 32px 40px 60px;
+  color: #0f1117;
+  box-sizing: border-box;
 }
-.crm-inner {
-  max-width: 1440px;
-  margin: 0 auto;
-}
+.crm2-inner { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
 
-/* ═══════════════════════════
-   HEADER
-═══════════════════════════ */
-.crm-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-  margin-bottom: 36px;
-  padding: 32px 36px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-}
-.header-eyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #4b5563;
-  margin-bottom: 10px;
-}
-.header-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 38px;
-  font-weight: 800;
-  color: #1e293b;
-  line-height: 1.1;
-  letter-spacing: -0.5px;
-}
-.title-line {
-  color: #7dd3fc;
-}
-.header-meta {
-  font-size: 13px;
-  color: #4b5563;
-  margin-top: 8px;
-  font-weight: 400;
-  letter-spacing: 0.3px;
-}
-.header-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
+/* ── Header ──────────────────────────────── */
+.crm2-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.crm2-eyebrow { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
+.crm2-title { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 4px; line-height: 1.2; }
+.crm2-title__accent { color: #2563eb; }
+.crm2-subtitle { font-size: 13.5px; color: #6b7280; margin: 0; }
+.crm2-header__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 6px; }
 
-/* ═══════════════════════════
-   BUTTONS
-═══════════════════════════ */
-.btn-solid {
-  background: #f8fafc;
-  color: #0a0c10;
-  border: none;
-  padding: 9px 20px;
-  border-radius: 2px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  transition: all 0.15s;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: 0.2px;
+/* ── Tab bar ─────────────────────────────── */
+.crm2-tabbar {
+  display: flex; gap: 2px; background: #ffffff;
+  border: 1px solid #e4e7ec; border-radius: 12px; padding: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  overflow-x: auto;
 }
-.btn-solid:hover { background: #cbd5e1; }
-.btn-solid:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-solid.btn-sm { padding: 6px 14px; font-size: 12px; }
+.crm2-tab {
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600; border: none; border-radius: 8px;
+  background: transparent; color: #6b7280; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap; font-family: "Plus Jakarta Sans", sans-serif;
+}
+.crm2-tab:hover { background: #f0f2f5; color: #0f1117; }
+.crm2-tab--active { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 
-.btn-outline {
-  background: transparent;
-  color: #94a3b8;
-  border: 1px solid #e5e7eb;
-  padding: 9px 20px;
-  border-radius: 2px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  transition: all 0.15s;
-  font-family: 'Inter', sans-serif;
+/* ── Stats grid ──────────────────────────── */
+.crm2-stats4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+.crm2-stat {
+  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 8px; padding: 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: transform 0.15s;
 }
-.btn-outline:hover { border-color: #334155; color: #1e293b; }
-.btn-outline:disabled { opacity: 0.3; cursor: not-allowed; }
+.crm2-stat:hover { transform: translateY(-1px); }
+.crm2-stat--blue   { border-top: 3px solid #2563eb; }
+.crm2-stat--green  { border-top: 3px solid #16a34a; }
+.crm2-stat--orange { border-top: 3px solid #d97706; }
+.crm2-stat--red    { border-top: 3px solid #dc2626; }
+.crm2-stat--purple { border-top: 3px solid #7c3aed; }
+.crm2-stat--dim    { border-top: 3px solid #e4e7ec; }
+.crm2-stat__num { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.crm2-stat--blue   .crm2-stat__num { color: #2563eb; }
+.crm2-stat--green  .crm2-stat__num { color: #16a34a; }
+.crm2-stat--orange .crm2-stat__num { color: #d97706; }
+.crm2-stat--red    .crm2-stat__num { color: #dc2626; }
+.crm2-stat--purple .crm2-stat__num { color: #7c3aed; }
+.crm2-stat__label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
 
-.btn-gold {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  color: #fff;
-  border: none;
-  padding: 9px 20px;
-  border-radius: 2px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  transition: all 0.15s;
-  font-family: 'Inter', sans-serif;
+/* ── Filter panel ────────────────────────── */
+.crm2-filter-panel {
+  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 }
-.btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+.crm2-filter-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #f0f2f5; }
+.crm2-filter-panel__title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #0f1117; }
+.crm2-filter-badge { background: #eff6ff; color: #2563eb; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.crm2-filter-clear { font-size: 12px; color: #6b7280; background: none; border: none; cursor: pointer; padding: 0; transition: color 0.15s; font-family: "Plus Jakarta Sans", sans-serif; }
+.crm2-filter-clear:hover { color: #dc2626; }
+.crm2-filter-clear:disabled { opacity: 0.4; pointer-events: none; }
+.crm2-filter-fields { display: grid; grid-template-columns: repeat(4, 1fr); }
+.crm2-filter-field { padding: 12px 16px; border-right: 1px solid #f0f2f5; display: flex; flex-direction: column; gap: 6px; }
+.crm2-filter-field--actions { flex-direction: row; align-items: flex-end; gap: 8px; }
+.crm2-filter-field__label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+.crm2-filter-divider { height: 1px; background: #f0f2f5; }
+.crm2-filter-points { display: grid; grid-template-columns: 1fr 1fr auto; }
+.crm2-filter-bar { display: flex; gap: 10px; align-items: center; }
+.crm2-active-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid #f0f2f5; }
+.crm2-af-label { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; }
+.crm2-filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb;
+  padding: 3px 8px 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600;
+}
+.crm2-chip-remove { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; opacity: 0.6; }
+.crm2-chip-remove:hover { opacity: 1; }
 
-.btn-link {
-  background: none;
-  border: none;
-  color: #7dd3fc;
-  font-size: 12px;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  text-decoration: underline;
-  padding: 0;
-}
-.btn-ghost-sm {
-  background: transparent;
-  color: #64748b;
-  border: 1px solid #e5e7eb;
-  padding: 5px 11px;
-  border-radius: 2px;
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.12s;
-  font-family: 'Inter', sans-serif;
-}
-.btn-ghost-sm:hover { border-color: #334155; color: #94a3b8; }
-.btn-ghost-sm:disabled { opacity: 0.3; cursor: not-allowed; }
-
-/* ═══════════════════════════
-   NAV TABS
-═══════════════════════════ */
-.crm-nav {
-  display: flex;
-  gap: 0;
-  margin-bottom: 28px;
-  border-bottom: 1px solid #1e2330;
-  position: relative;
-}
-.crm-nav-tab {
-  background: transparent;
-  border: none;
-  color: #4b5563;
-  padding: 13px 24px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: 0.3px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.15s;
-}
-.crm-nav-tab:hover { color: #94a3b8; }
-.crm-nav-tab.active {
-  color: #1e293b;
-  border-bottom-color: #7dd3fc;
-}
-
-/* ═══════════════════════════
-   STATS GRID
-═══════════════════════════ */
-.stats-grid {
-  display: flex;
-  gap: 1px;
-  margin-bottom: 24px;
-  background: #1e2330;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
+/* ── Card ────────────────────────────────── */
+.crm2-card {
+  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   overflow: hidden;
 }
-.stat-card {
-  flex: 1;
-  background: #f8fafc;
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.stat-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: #334155;
-}
-.stat-value {
-  font-family: 'Inter', sans-serif;
-  font-size: 28px;
-  font-weight: 700;
-  color: #1e293b;
-  line-height: 1;
-  letter-spacing: -0.5px;
-}
-.accent-gold { color: #fbbf24; }
-.accent-blue { color: #7dd3fc; }
-.accent-teal { color: #6ee7b7; }
 
-/* ═══════════════════════════
-   FILTER PANEL
-═══════════════════════════ */
-.filter-panel {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 20px 24px;
-  margin-bottom: 20px;
-}
-.filter-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.filter-panel-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: #334155;
-}
-.filter-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-.filter-grid-points {
-  grid-template-columns: 1fr 1fr auto;
-  margin-top: 16px;
-}
-.filter-divider { height: 1px; background: #1a1f2b; margin: 16px 0 0; }
-.field-group { display: flex; flex-direction: column; gap: 6px; }
-.field-group-actions { display: flex; flex-direction: row; gap: 8px; align-items: flex-end; }
-.field-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #374151;
-}
-.req { color: #f87171; }
-.field-input, .field-select, .field-textarea {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 2px;
-  padding: 9px 12px;
-  font-size: 13px;
-  color: #1e293b;
-  font-family: 'Inter', sans-serif;
-  outline: none;
-  transition: border-color 0.15s;
-  width: 100%;
-}
-.field-input::placeholder { color: #2d3748; }
-.field-input:focus, .field-select:focus, .field-textarea:focus {
-  border-color: #334155;
-  background: #0d0f14;
-}
-.field-select { cursor: pointer; }
-.field-select option { background: #f8fafc; }
-.field-textarea { resize: vertical; min-height: 80px; }
+/* ── Toolbar ─────────────────────────────── */
+.crm2-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 13px 20px; border-bottom: 1px solid #f0f2f5; background: #fafbfc; }
+.crm2-toolbar__left { display: flex; align-items: center; gap: 10px; }
+.crm2-count { display: flex; align-items: baseline; gap: 4px; }
+.crm2-count__num { font-size: 18px; font-weight: 800; }
+.crm2-count__label { font-size: 12px; color: #9ca3af; font-weight: 600; }
+.crm2-count-badge { background: #fff; color: #2563eb; border-radius: 20px; padding: 1px 7px; font-size: 11px; font-weight: 800; margin-left: 4px; }
 
-.active-filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #1a1f2b;
-}
-.af-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #374151; text-transform: uppercase; }
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #161b25;
-  border: 1px solid #e5e7eb;
-  color: #94a3b8;
-  padding: 3px 8px 3px 10px;
-  border-radius: 2px;
-  font-size: 11px;
-  font-weight: 500;
-}
-.chip-remove { background: none; border: none; color: #4b5563; cursor: pointer; font-size: 14px; padding: 0; margin-left: 2px; line-height: 1; }
-.chip-remove:hover { color: #1e293b; }
+/* ── Table ───────────────────────────────── */
+.crm2-table-wrap { overflow-x: auto; position: relative; min-height: 100px; }
+.crm2-table-wrap--loading { pointer-events: none; }
+.crm2-loader-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.75); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.crm2-loader-ring { width: 36px; height: 36px; border: 3px solid #e4e7ec; border-top-color: #2563eb; border-radius: 50%; animation: crm2-spin 0.7s linear infinite; }
+.crm2-loading-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 48px; color: #6b7280; font-size: 13.5px; }
 
-/* ═══════════════════════════
-   TABLE
-═══════════════════════════ */
-.table-panel {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-.table-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px;
-  gap: 14px;
-  color: #2d3748;
-  font-size: 13px;
-}
-.loader-dots { display: flex; gap: 6px; }
-.loader-dots span { width: 7px; height: 7px; border-radius: 50%; background: #7dd3fc; animation: db 1.2s infinite; }
-.loader-dots span:nth-child(2) { animation-delay: 0.2s; }
-.loader-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes db { 0%,80%,100%{transform:scale(0.7);opacity:0.3} 40%{transform:scale(1);opacity:1} }
+.crm2-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.crm2-table thead tr { border-bottom: 2px solid #f0f2f5; }
+.crm2-table th { padding: 11px 14px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; background: #fafbfc; white-space: nowrap; }
+.crm2-table td { padding: 12px 14px; vertical-align: middle; border-bottom: 1px solid #f0f2f5; }
+.crm2-row { transition: background 0.12s; }
+.crm2-row:hover { background: #fafbfc; }
+.crm2-row:last-child td { border-bottom: none; }
+.crm2-row--selected { background: #eff6ff !important; }
+.crm2-td-truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.table-scroll { overflow-x: auto; }
-.crm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.crm-table thead tr { border-bottom: 1px solid #1a1f2b; }
-.crm-table th {
-  padding: 11px 14px;
-  text-align: left;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: #2d3748;
-  white-space: nowrap;
-  background: #ffffff;
-}
-.crm-row { border-bottom: 1px solid #0d0f14; transition: background 0.1s; }
-.crm-row:hover { background: #11141c; }
-.crm-row:last-child { border-bottom: none; }
-.crm-table td { padding: 11px 14px; vertical-align: middle; }
+/* Cell types */
+.crm2-mono-id { font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 2px 7px; border-radius: 5px; }
+.crm2-mono { font-family: "JetBrains Mono", monospace; font-size: 12px; }
+.crm2-text--muted  { color: #6b7280; }
+.crm2-text--blue   { color: #2563eb; }
+.crm2-text--green  { color: #16a34a; }
+.crm2-text--orange { color: #d97706; }
+.crm2-text--red    { color: #dc2626; }
 
-.id-mono { font-family: 'Inter', monospace; font-size: 11px; color: #2d3748; }
-.customer-cell { display: flex; align-items: center; gap: 10px; }
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255,255,255,0.9);
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  flex-shrink: 0;
-}
-.avatar.lg { width: 44px; height: 44px; font-size: 15px; border-radius: 4px; }
-.avatar.xl { width: 64px; height: 64px; font-size: 20px; border-radius: 4px; margin-bottom: 14px; }
-.mx-auto { margin: 0 auto; }
-.cust-info { display: flex; flex-direction: column; gap: 1px; }
-.cust-name { font-weight: 500; color: #1e293b; font-size: 13px; }
-.cust-dob { font-size: 11px; color: #2d3748; font-family: 'Inter', monospace; }
-.contact-cell { display: flex; flex-direction: column; gap: 2px; }
-.contact-email { color: #64748b; font-size: 12px; }
-.contact-phone { color: #334155; font-size: 11px; font-family: 'Inter', monospace; }
-.muted { color: #1e2a38; font-size: 12px; }
+.crm2-customer-cell { display: flex; align-items: center; gap: 10px; }
+.crm2-avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.9); font-family: "Plus Jakarta Sans", sans-serif; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.crm2-avatar--lg { width: 44px; height: 44px; font-size: 15px; }
+.crm2-avatar--xl { width: 64px; height: 64px; font-size: 20px; }
+.crm2-cust-info { display: flex; flex-direction: column; gap: 1px; }
+.crm2-cust-name { font-weight: 600; font-size: 13px; }
+.crm2-cust-dob { font-size: 11px; color: #9ca3af; }
+.crm2-contact-cell { display: flex; flex-direction: column; gap: 2px; }
+.crm2-contact-email { font-size: 12.5px; color: #6b7280; }
+.crm2-contact-phone { font-size: 11.5px; color: #6b7280; }
 
-/* Badges */
-.badge-type {
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-.badge-vip { background: #1c1500; color: #fbbf24; border: 1px solid #2d1f00; }
-.badge-reg { background: #111827; color: #374151; border: 1px solid #e5e7eb; }
+.crm2-points-cell { display: flex; flex-direction: column; gap: 4px; }
+.crm2-points-num { font-size: 12.5px; font-weight: 700; color: #2563eb; }
+.crm2-points-track { height: 3px; background: #e4e7ec; width: 70px; border-radius: 2px; overflow: hidden; }
+.crm2-points-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
 
-.badge-tier {
-  padding: 2px 9px;
-  border-radius: 2px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.tier-bronze { background: #1a0f00; color: #cd7f32; border: 1px solid #2a1a00; }
-.tier-silver { background: #111827; color: #94a3b8; border: 1px solid #e5e7eb; }
-.tier-gold { background: #1c1500; color: #fbbf24; border: 1px solid #2d1f00; }
-.tier-platinum { background: #0d0f1e; color: #818cf8; border: 1px solid #1a1c3a; }
-.tier-diamond { background: #031a12; color: #34d399; border: 1px solid #052e20; }
+.crm2-vipnote-cell { cursor: pointer; padding: 4px 8px; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a; max-width: 180px; transition: all 0.12s; }
+.crm2-vipnote-cell:hover { background: #fef3c7; }
+.crm2-vipnote-text { font-size: 11.5px; color: #d97706; line-height: 1.4; word-break: break-word; }
+.crm2-note-text { font-size: 12.5px; color: #6b7280; }
 
-.points-cell { display: flex; flex-direction: column; gap: 4px; }
-.points-num { font-family: 'Inter', monospace; font-size: 12px; font-weight: 500; color: #7dd3fc; }
-.points-track { height: 2px; background: #1a1f2b; width: 70px; border-radius: 1px; overflow: hidden; }
-.points-fill { height: 100%; border-radius: 1px; transition: width 0.3s; }
-.spent-val { font-family: 'Inter', monospace; font-size: 11px; color: #374151; }
+/* Tags */
+.crm2-tag { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+.crm2-tag--blue   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.crm2-tag--green  { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.crm2-tag--red    { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+.crm2-tag--orange { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.crm2-tag--purple { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
+.crm2-tag--gray   { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
 
-/* VIP Note cell */
-.vipnote-cell {
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 2px;
-  background: #160e00;
-  border: 1px solid #2a1a00;
-  max-width: 180px;
-  transition: all 0.12s;
-}
-.vipnote-cell:hover { background: #1e1500; }
-.vipnote-text { font-size: 11px; color: #a16207; line-height: 1.4; word-break: break-word; }
-.note-text { font-size: 11px; color: #334155; }
+/* Tier tags */
+.crm2-tier-tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; border: 1px solid transparent; white-space: nowrap; text-transform: uppercase; }
+.crm2-tier-tag--sm { font-size: 10px; padding: 2px 8px; }
+.crm2-tier--bronze   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.crm2-tier--silver   { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+.crm2-tier--gold     { background: #fef9c3; color: #a16207; border-color: #fde047; }
+.crm2-tier--platinum { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
+.crm2-tier--diamond  { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
 
 /* Action buttons */
-.action-row { display: flex; gap: 4px; }
-.act-btn {
-  background: transparent;
-  border: 1px solid #1a1f2b;
-  color: #374151;
-  padding: 4px 10px;
-  border-radius: 2px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  text-transform: uppercase;
-  transition: all 0.12s;
-  font-family: 'Inter', sans-serif;
-}
-.act-btn:hover { border-color: #334155; color: #94a3b8; }
-.act-gold { color: #92400e; border-color: #2a1a00; }
-.act-gold:hover { background: #160e00; color: #fbbf24; border-color: #fbbf24; }
-.act-danger:hover { border-color: #7f1d1d; color: #f87171; }
+.crm2-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+.crm2-action-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; border: 1.5px solid transparent; cursor: pointer; transition: all 0.15s ease; font-family: "Plus Jakarta Sans", sans-serif; white-space: nowrap; }
+.crm2-action-btn--edit   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.crm2-action-btn--edit:hover   { background: #2563eb; color: #fff; border-color: #2563eb; transform: translateY(-1px); }
+.crm2-action-btn--blue   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.crm2-action-btn--blue:hover   { background: #2563eb; color: #fff; border-color: #2563eb; transform: translateY(-1px); }
+.crm2-action-btn--gold   { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.crm2-action-btn--gold:hover   { background: #d97706; color: #fff; border-color: #d97706; transform: translateY(-1px); }
+.crm2-action-btn--delete { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+.crm2-action-btn--delete:hover { background: #dc2626; color: #fff; border-color: #dc2626; transform: translateY(-1px); }
+.crm2-action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-.empty-row { padding: 60px; text-align: center; }
-.empty-msg { color: #1e2330; font-size: 13px; }
+/* Empty state */
+.crm2-empty { text-align: center; padding: 60px 20px !important; }
+.crm2-empty__inner { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.crm2-empty__icon { width: 56px; height: 56px; border-radius: 50%; background: #f0f2f5; display: flex; align-items: center; justify-content: center; color: #9ca3af; }
+.crm2-empty__inner p { color: #6b7280; font-size: 14px; margin: 0; }
 
-/* Table footer */
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-top: 1px solid #0d0f14;
-  background: #ffffff;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.pager-info { font-size: 11px; color: #1e2a38; font-family: 'Inter', monospace; }
-.pager { display: flex; gap: 3px; }
-.pager-btn {
-  min-width: 30px;
-  height: 30px;
-  border: 1px solid #1a1f2b;
-  background: transparent;
-  border-radius: 2px;
-  font-size: 12px;
-  cursor: pointer;
-  color: #374151;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', monospace;
-  transition: all 0.12s;
-  padding: 0 6px;
-}
-.pager-btn:hover:not(:disabled) { border-color: #334155; color: #94a3b8; }
-.pager-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.pager-active { background: #f8fafc !important; color: #0a0c10 !important; border-color: #f8fafc !important; font-weight: 700; }
+/* Pagination */
+.crm2-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #f0f2f5; background: #fafbfc; flex-wrap: wrap; gap: 10px; }
+.crm2-pagination__info { font-size: 12.5px; color: #6b7280; font-weight: 600; }
+.crm2-pagination__controls { display: flex; align-items: center; gap: 4px; }
+.crm2-page-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1.5px solid #e4e7ec; background: #ffffff; color: #6b7280; cursor: pointer; transition: all 0.15s; font-family: "Plus Jakarta Sans", sans-serif; }
+.crm2-page-btn:hover:not(:disabled) { border-color: #2563eb; color: #2563eb; }
+.crm2-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.crm2-page-btn--active { background: #2563eb; border-color: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 
-/* ═══════════════════════════
-   BIRTHDAY SUBTAB
-═══════════════════════════ */
-.sub-nav {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid #1e2330;
-  margin-bottom: 0;
-}
-.sub-nav-btn {
-  background: transparent;
-  border: none;
-  color: #334155;
-  padding: 11px 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.12s;
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 1px;
-}
-.sub-nav-btn:hover { color: #64748b; }
-.sub-nav-btn.active { color: #1e293b; border-bottom-color: #1e293b; }
+/* Buttons */
+.crm2-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; transition: all 0.18s ease; font-family: "Plus Jakarta Sans", sans-serif; white-space: nowrap; }
+.crm2-btn--primary { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.22); }
+.crm2-btn--primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+.crm2-btn--outline { background: #ffffff; color: #0f1117; border: 1.5px solid #e4e7ec; }
+.crm2-btn--outline:hover { border-color: #9ca3af; background: #f9fafb; }
+.crm2-btn--ghost { background: transparent; color: #6b7280; border: 1.5px solid #e4e7ec; }
+.crm2-btn--ghost:hover { background: #f0f2f5; color: #0f1117; }
+.crm2-btn--loading, .crm2-btn:disabled { opacity: 0.65; pointer-events: none; transform: none !important; }
+.crm2-btn--confirm-blue   { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,0.35); padding: 11px 22px; }
+.crm2-btn--confirm-blue:hover { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); transform: translateY(-1px); }
+.crm2-btn--confirm-orange { background: linear-gradient(135deg, #b45309, #d97706); color: #fff; box-shadow: 0 4px 14px rgba(217,119,6,0.35); padding: 11px 22px; }
+.crm2-btn--confirm-orange:hover { background: linear-gradient(135deg, #92400e, #b45309); transform: translateY(-1px); }
+.crm2-btn--confirm-green  { background: linear-gradient(135deg, #15803d, #16a34a); color: #fff; box-shadow: 0 4px 14px rgba(22,163,74,0.35); padding: 11px 22px; }
+.crm2-btn--confirm-green:hover { background: linear-gradient(135deg, #14532d, #15803d); transform: translateY(-1px); }
 
-.bd-banner {
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  margin: 14px 16px;
-  border-radius: 2px;
-}
-.bd-green { background: #031a0e; border: 1px solid #052e20; color: #34d399; }
-.bd-blue { background: #040e1c; border: 1px solid #0a1e38; color: #7dd3fc; }
-.bd-amber { background: #160a00; border: 1px solid #2a1400; color: #fbbf24; }
-.bd-controls { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #0d0f14; }
-.bar-track-h { background: #1a1f2b; border-radius: 2px; height: 16px; overflow: hidden; }
-.bar-fill-h { background: #7dd3fc; height: 100%; border-radius: 2px; min-width: 2px; transition: width 0.4s; }
+.crm2-btn-ghost-sm { background: transparent; color: #6b7280; border: 1.5px solid #e4e7ec; padding: 5px 11px; border-radius: 8px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.12s; font-family: "Plus Jakarta Sans", sans-serif; display: inline-flex; align-items: center; gap: 5px; }
+.crm2-btn-ghost-sm:hover { border-color: #9ca3af; color: #0f1117; }
+.crm2-btn-ghost-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+.crm2-btn-link { background: none; border: none; color: #2563eb; font-size: 12px; cursor: pointer; font-family: "Plus Jakarta Sans", sans-serif; text-decoration: underline; padding: 0; }
 
-/* ═══════════════════════════
-   INACTIVE / SEGMENTS
-═══════════════════════════ */
-.seg-tabs {
-  display: flex;
-  gap: 0;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 20px;
-  background: #1e2330;
+.crm2-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: #f0f2f5; border-radius: 6px; cursor: pointer; color: #6b7280; flex-shrink: 0; transition: all 0.15s; }
+.crm2-icon-btn:hover { background: #fff1f2; color: #dc2626; }
+
+/* Input */
+.crm2-input { padding: 9px 12px; font-size: 13px; font-family: "Plus Jakarta Sans", sans-serif; border: 1.5px solid #e4e7ec; border-radius: 8px; background: #ffffff; color: #0f1117; outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; box-sizing: border-box; }
+.crm2-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+.crm2-input::placeholder { color: #9ca3af; }
+.crm2-select { cursor: pointer; }
+.crm2-textarea { resize: vertical; line-height: 1.6; min-height: 80px; }
+
+/* ── Birthday section ────────────────────── */
+.crm2-sub-tabs {
+  display: flex; gap: 2px; background: #ffffff;
+  border: 1px solid #e4e7ec; border-radius: 12px; padding: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  overflow-x: auto;
 }
-.seg-btn {
-  flex: 1;
-  background: #ffffff;
-  border: none;
-  color: #334155;
-  padding: 14px 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.12s;
-  letter-spacing: 0.5px;
+.crm2-sub-tab { display: inline-flex; align-items: center; padding: 7px 14px; font-size: 12px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: #6b7280; cursor: pointer; transition: all 0.15s; font-family: "Plus Jakarta Sans", sans-serif; white-space: nowrap; }
+.crm2-sub-tab:hover { background: #f0f2f5; color: #0f1117; }
+.crm2-sub-tab--active { background: #2563eb; color: #fff; }
+
+.crm2-bd-banner { display: flex; align-items: center; gap: 9px; padding: 10px 20px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0f2f5; }
+.crm2-bd-banner--green  { background: #f0fdf4; color: #16a34a; border-bottom-color: #bbf7d0; }
+.crm2-bd-banner--blue   { background: #eff6ff; color: #2563eb; border-bottom-color: #bfdbfe; }
+.crm2-bd-banner--orange { background: #fffbeb; color: #d97706; border-bottom-color: #fde68a; }
+.crm2-bd-controls { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f0f2f5; }
+
+/* ── Bar ─────────────────────────────────── */
+.crm2-bar-wrap { height: 6px; background: #e4e7ec; border-radius: 999px; overflow: hidden; }
+.crm2-bar { height: 100%; border-radius: 999px; transition: width 0.4s ease; min-width: 4px; }
+.crm2-bar--blue   { background: #2563eb; }
+.crm2-bar--green  { background: #16a34a; }
+.crm2-bar--orange { background: #d97706; }
+
+/* ── Inactive segment tabs ───────────────── */
+.crm2-seg-tabs {
+  display: flex; gap: 2px; background: #ffffff;
+  border: 1px solid #e4e7ec; border-radius: 12px; padding: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  overflow-x: auto;
 }
-.seg-btn:hover { background: #0d0f14; color: #64748b; }
-.seg-btn.active { background: #f8fafc; color: #1e293b; }
-.seg-label { font-size: 12px; font-weight: 500; }
-.seg-count {
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-size: 11px;
-  font-weight: 700;
-  background: #1e2330;
-  color: #374151;
-  font-family: 'Inter', monospace;
+.crm2-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: #6b7280; cursor: pointer; transition: all 0.15s; font-family: "Plus Jakarta Sans", sans-serif; }
+.crm2-seg-btn:hover { background: #f0f2f5; color: #0f1117; }
+.crm2-seg-btn--active { background: #ffffff; color: #0f1117; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.crm2-seg-label { font-size: 13px; }
+.crm2-seg-count { padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 700; background: #f0f2f5; color: #9ca3af; font-family: "JetBrains Mono", monospace; transition: all 0.2s; }
+.crm2-seg-count--loaded { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+/* ── Inactive cards ──────────────────────── */
+.crm2-cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width:1100px) { .crm2-cards-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width:700px)  { .crm2-cards-grid { grid-template-columns: 1fr; } }
+
+.crm2-cust-card {
+  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 12px; overflow: hidden;
   transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  animation: crm2-fadeUp 0.3s ease both;
 }
-.seg-count.loaded { background: #f8fafc; color: #0a0c10; }
+.crm2-cust-card:hover {
+  border-color: #bfdbfe; transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+}
+@keyframes crm2-fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.inactive-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  margin-bottom: 20px;
-  background: #1e2330;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.ist-card { background: #f8fafc; padding: 18px 22px; }
-.ist-val { font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #1e293b; }
-.ist-val.gold { color: #fbbf24; }
-.ist-val.green { color: #6ee7b7; font-size: 18px; }
-.ist-val.blue { color: #7dd3fc; }
-.ist-lbl { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #2d3748; font-weight: 600; margin-top: 4px; }
+.crm2-card-tier-bar { height: 3px; width: 100%; }
+.crm2-tier-bar--bronze   { background: #cd7f32; }
+.crm2-tier-bar--silver   { background: #94a3b8; }
+.crm2-tier-bar--gold     { background: #f0b429; }
+.crm2-tier-bar--platinum { background: #7c3aed; }
+.crm2-tier-bar--diamond  { background: #16a34a; }
+.crm2-tier-bar--none     { background: #e4e7ec; }
 
-.filter-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+.crm2-card-head { display: flex; align-items: center; gap: 10px; padding: 14px; }
+.crm2-card-info { flex: 1; min-width: 0; }
+.crm2-card-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crm2-card-email { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.crm2-card-divider { height: 1px; background: #f0f2f5; margin: 0 14px; }
+.crm2-card-metrics { display: flex; align-items: center; justify-content: space-around; padding: 12px 14px; }
+.crm2-cm { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.crm2-cm__val { font-size: 13px; font-weight: 600; color: #0f1117; }
+.crm2-cm__label { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.crm2-cm-divider { width: 1px; height: 28px; background: #f0f2f5; }
+.crm2-card-foot { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 14px; border-top: 1px solid #f0f2f5; }
+.crm2-last-order { font-size: 11.5px; color: #6b7280; }
+.crm2-last-order--none { color: #dc2626; }
 
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.cust-card {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-  transition: all 0.2s;
-  animation: fadeUp 0.35s ease both;
-}
-@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.cust-card:hover { border-color: #2d3748; background: #11141c; }
-.card-tier-bar { height: 2px; width: 100%; }
-.cb-bronze { background: #cd7f32; } .cb-silver { background: #94a3b8; } .cb-gold { background: #fbbf24; } .cb-platinum { background: #818cf8; } .cb-diamond { background: #34d399; } .cb-none { background: #1e2330; }
-.card-head { display: flex; align-items: center; gap: 10px; padding: 14px; }
-.card-info { flex: 1; min-width: 0; }
-.card-name { font-size: 13px; font-weight: 500; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-email { font-size: 11px; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-.card-sep { height: 1px; background: #0d0f14; margin: 0 14px; }
-.card-metrics { display: flex; align-items: center; justify-content: space-around; padding: 12px 14px; }
-.cm { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.cm-val { font-family: 'Inter', monospace; font-size: 13px; font-weight: 500; color: #94a3b8; }
-.cm-val.sm { font-size: 11px; color: #334155; }
-.cm-lbl { font-size: 9px; color: #2d3748; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
-.cm-div { width: 1px; height: 28px; background: #0d0f14; }
-.card-foot { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 14px; border-top: 1px solid #0d0f14; }
-.last-order-txt { font-size: 11px; color: #334155; }
-.lo-none { color: #7f1d1d; }
+/* ── Zero Order templates ────────────────── */
+.crm2-zo-templates { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+.crm2-zo-tpl { padding: 12px 14px; border: 1.5px solid #e4e7ec; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+.crm2-zo-tpl:hover { border-color: #bfdbfe; background: #eff6ff; }
+.crm2-zo-tpl--active { border-color: #2563eb; background: #eff6ff; }
+.crm2-zo-tpl__icon { font-size: 20px; margin-bottom: 4px; }
+.crm2-zo-tpl__name { font-size: 12px; font-weight: 700; color: #0f1117; }
+.crm2-zo-tpl__desc { font-size: 11px; color: #6b7280; margin-top: 2px; }
 
-.empty-state { text-align: center; padding: 80px 20px; }
-.empty-title { font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 700; color: #1e2330; margin-bottom: 8px; }
-.empty-sub { color: #1e2330; font-size: 13px; }
+.crm2-zo-preview { background: #f0f2f5; border: 1px dashed #bfdbfe; border-radius: 8px; padding: 14px; }
+.crm2-zo-preview__label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; margin-bottom: 10px; }
+.crm2-zo-preview__card { background: #ffffff; border: 1px solid #e4e7ec; border-radius: 8px; padding: 12px; display: flex; gap: 12px; align-items: flex-start; }
 
-.pager-row { display: flex; justify-content: center; align-items: center; gap: 4px; margin-bottom: 24px; }
+.crm2-zo-progress { height: 4px; background: #f0f2f5; overflow: hidden; margin: 0 -24px; }
+.crm2-zo-progress__fill { height: 100%; background: #2563eb; transition: width 0.4s ease; }
 
-/* ═══════════════════════════
-   MODALS
-═══════════════════════════ */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+/* ══════════════════════════════════════════
+   DIALOGS
+══════════════════════════════════════════ */
+.crm2-overlay { position: fixed; inset: 0; background: rgba(10,12,20,0.28); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; backdrop-filter: blur(2px); }
+.crm2-dialog {
+  background: #fff; border-radius: 20px; width: 100%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.14), 0 8px 24px rgba(0,0,0,0.06);
+  overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;
 }
-.modal {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
-  display: flex;
-  flex-direction: column;
-}
-.modal-lg { max-width: 760px; }
-.modal-sm { max-width: 480px; }
-.modal-xl { max-width: 1000px; }
-.text-center { text-align: center; }
-.modal-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid #1a1f2b;
-  flex-shrink: 0;
-}
-.modal-ttl {
-  font-family: 'Inter', sans-serif;
-  font-size: 19px;
-  font-weight: 700;
-  color: #1e293b;
-}
-.modal-sub { font-size: 11px; color: #374151; margin-top: 3px; font-family: 'Inter', monospace; }
-.modal-x {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #374151;
-  line-height: 1;
-  padding: 2px 4px;
-  transition: color 0.1s;
-}
-.modal-x:hover { color: #94a3b8; }
-.modal-alert {
-  background: #1a0a0a;
-  border-left: 2px solid #f87171;
-  color: #f87171;
-  padding: 10px 24px;
-  font-size: 12px;
-}
-.modal-bd { padding: 20px 24px; flex: 1; }
-.modal-ft {
-  padding: 14px 24px;
-  border-top: 1px solid #1a1f2b;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.modal-name { font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+.crm2-dialog--sm { max-width: 480px; }
+.crm2-dialog--lg { max-width: 760px; }
+.crm2-dialog--xl { max-width: 1000px; }
 
-/* Forms */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.full-col { grid-column: 1 / -1; }
+/* Band */
+.crm2-dialog__band { position: relative; height: 100px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.crm2-dialog__band--blue   { background: linear-gradient(135deg, #1d4ed8, #2563eb 60%, #60a5fa); }
+.crm2-dialog__band--orange { background: linear-gradient(135deg, #b45309, #d97706 60%, #fbbf24); }
+.crm2-dialog__band--green  { background: linear-gradient(135deg, #15803d, #16a34a 60%, #4ade80); }
+.crm2-dialog__band--purple { background: linear-gradient(135deg, #5b21b6, #7c3aed 60%, #a78bfa); }
+.crm2-dialog__band-circles { position: absolute; inset: 0; pointer-events: none; }
+.crm2-band-circle { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.1); }
+.crm2-band-circle--1 { width: 120px; height: 120px; top: -30px; right: -20px; }
+.crm2-band-circle--2 { width: 70px;  height: 70px;  bottom: -15px; left: 20px; }
+.crm2-band-circle--3 { width: 45px;  height: 45px;  top: 10px; left: 50%; margin-left: -22px; background: rgba(255,255,255,0.07); }
+.crm2-dialog__icon-wrap { position: relative; z-index: 1; }
+.crm2-dialog__icon-ring { width: 56px; height: 56px; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; backdrop-filter: blur(4px); box-shadow: 0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3); }
 
-/* VIP note form */
-.vip-note-block {
-  border: 1px solid #2a1a00;
-  border-radius: 2px;
-  padding: 14px;
-  background: #0d0800;
-}
-.vipn-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.internal-tag {
-  display: inline-block;
-  background: #1a0f00;
-  color: #78350f;
-  border: 1px solid #2a1a00;
-  padding: 1px 7px;
-  border-radius: 2px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  margin-left: 8px;
-}
-.tier-indicator { font-size: 11px; color: #92400e; font-weight: 600; font-family: 'Inter', monospace; }
-.vip-textarea { border-color: #2a1a00; background: #0a0600; color: #d97706; }
-.vip-textarea:focus { border-color: #92400e; }
-.vipn-hint { font-size: 10px; color: #374151; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
-.char-count { font-family: 'Inter', monospace; font-size: 10px; color: #2d3748; }
-.vip-unavail { font-size: 11px; color: #2d3748; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 2px; background: #ffffff; }
+/* Dialog body */
+.crm2-dialog__body { padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
+.crm2-dialog__head-simple { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; border-bottom: 1px solid #f0f2f5; gap: 12px; flex-shrink: 0; }
+.crm2-dialog__head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.crm2-details-hd { display: flex; align-items: center; gap: 12px; }
+.crm2-dialog__badge { display: inline-flex; align-self: flex-start; font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
+.crm2-dialog__badge--blue   { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.crm2-dialog__badge--orange { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.crm2-dialog__badge--green  { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.crm2-dialog__title { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crm2-dialog__sub { font-size: 12px; color: #6b7280; margin: 3px 0 0; font-family: "JetBrains Mono", monospace; }
+.crm2-dialog__notice { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; line-height: 1.5; border: 1px solid transparent; }
+.crm2-dialog__notice--red { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+.crm2-dialog__actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px; border-top: 1px solid #f0f2f5; margin-top: 4px; }
 
-/* Details */
-.details-hd-info { display: flex; align-items: center; gap: 12px; }
-.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.detail-block { border: 1px solid #1a1f2b; border-radius: 2px; overflow: hidden; }
-.detail-block-ttl {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: #2d3748;
-  background: #ffffff;
-  padding: 10px 14px;
-  border-bottom: 1px solid #1a1f2b;
-}
-.detail-rows { padding: 6px 14px; }
-.detail-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #0d0f14; font-size: 12px; }
-.detail-row:last-child { border-bottom: none; }
-.dk { color: #2d3748; font-weight: 500; }
-.dv { color: #94a3b8; text-align: right; font-size: 12px; }
-.detail-body-text { padding: 12px 14px; font-size: 12px; color: #4b5563; }
-.vip-note-body { padding: 12px 14px; font-size: 12px; color: #92400e; line-height: 1.6; }
-.vip-note-empty { padding: 12px 14px; font-size: 12px; color: #374151; font-style: italic; }
-.vipn-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+/* Dialog form sections */
+.crm2-dlg-section { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; padding-bottom: 8px; border-bottom: 1px solid #f0f2f5; margin-top: 4px; }
+.crm2-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.crm2-field { display: flex; flex-direction: column; gap: 5px; }
+.crm2-field__label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+.crm2-required { color: #dc2626; margin-left: 2px; }
 
-/* VIP Note modal */
-.vip-modal-hd { background: #0d0800; border-bottom-color: #2a1a00; }
-.vip-notice {
-  background: #0d0800;
-  border: 1px solid #2a1a00;
-  border-radius: 2px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: #78350f;
-  margin-bottom: 14px;
-  line-height: 1.5;
-}
-.suggestion-section { margin-bottom: 12px; }
-.suggestion-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #2d3748; margin-bottom: 8px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  color: #374151;
-  padding: 4px 10px;
-  border-radius: 2px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.12s;
-  font-family: 'Inter', sans-serif;
-}
-.chip:hover { border-color: #2a1a00; color: #92400e; background: #0d0800; }
+/* Details grid */
+.crm2-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.crm2-detail-block { border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; }
+.crm2-detail-block__head { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; background: #fafbfc; padding: 10px 14px; border-bottom: 1px solid #f0f2f5; }
+.crm2-detail-rows { padding: 4px 14px; }
+.crm2-detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 12.5px; }
+.crm2-detail-row:last-child { border-bottom: none; }
+.crm2-dk { color: #6b7280; font-weight: 600; }
+.crm2-dv { color: #0f1117; text-align: right; font-size: 12.5px; }
+.crm2-detail-body-text { padding: 12px 14px; font-size: 12.5px; color: #6b7280; line-height: 1.6; }
 
-/* Summary dialog */
-.summary-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  border-bottom: 1px solid #1a1f2b;
-  background: #ffffff;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.sc-left { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.ctrl-group { display: flex; align-items: center; gap: 8px; }
-.ctrl-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #2d3748; white-space: nowrap; }
-.ctrl-select { width: auto; min-width: 80px; }
-.toggle-set { display: flex; border: 1px solid #e5e7eb; border-radius: 2px; overflow: hidden; }
-.tgl {
-  padding: 6px 14px;
-  font-size: 11px;
-  font-weight: 600;
-  border: none;
-  background: #ffffff;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  color: #374151;
-  transition: all 0.12s;
-  letter-spacing: 0.3px;
-}
-.tgl:hover { background: #0d0f14; color: #64748b; }
-.tgl-on { background: #f8fafc !important; color: #0a0c10 !important; font-weight: 700; }
-.summary-bd { max-height: 60vh; overflow-y: auto; }
-.summary-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  margin-bottom: 24px;
-  background: #1e2330;
-  border: 1px solid #e5e7eb;
-  border-radius: 2px;
-  overflow: hidden;
-}
-.kpi { background: #ffffff; padding: 16px 18px; }
-.kpi-val { font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 700; color: #1e293b; }
-.kpi-lbl { font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: #2d3748; font-weight: 600; margin-top: 4px; }
-.earn .kpi-val { color: #6ee7b7; } .deduct .kpi-val { color: #fb923c; } .kpi-pos .kpi-val { color: #7dd3fc; } .kpi-neg .kpi-val { color: #f87171; } .tx .kpi-val { color: #a78bfa; }
-.earn-num { color: #6ee7b7; font-weight: 600; }
-.deduct-num { color: #fb923c; font-weight: 600; }
+/* VIP note block */
+.crm2-vip-note-block { border-color: #fde68a; }
+.crm2-vip-note-head { padding: 10px 14px; background: #fffbeb; border-bottom: 1px solid #fde68a; }
+.crm2-internal-tag { display: inline-block; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 1px 7px; border-radius: 20px; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-left: 6px; }
+.crm2-vip-textarea { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+.crm2-vip-textarea:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.08); }
+.crm2-vip-note-hint { font-size: 10.5px; color: #6b7280; margin-top: 5px; display: flex; justify-content: space-between; }
+.crm2-vip-unavail { font-size: 11.5px; color: #6b7280; padding: 10px 14px; border: 1px solid #e4e7ec; border-radius: 8px; background: #f0f2f5; }
 
-.period-list { display: flex; flex-direction: column; gap: 6px; }
-.period-row {
-  display: grid;
-  grid-template-columns: 150px 1fr 110px;
-  gap: 16px;
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #1a1f2b;
-  border-radius: 2px;
-  padding: 12px 16px;
-  transition: background 0.1s;
-}
-.period-row:hover { background: #0d0f14; }
-.pr-label { font-weight: 600; font-size: 13px; color: #1e293b; }
-.pr-dates { font-size: 10px; color: #2d3748; font-family: 'Inter', monospace; margin-top: 2px; }
-.pr-bars { display: flex; flex-direction: column; gap: 5px; }
-.bar-row-h { display: flex; align-items: center; gap: 8px; }
-.br-num { font-size: 11px; font-weight: 600; font-family: 'Inter', monospace; width: 80px; text-align: right; }
-.bar-bg { flex: 1; height: 6px; background: #1a1f2b; border-radius: 1px; overflow: hidden; }
-.bar-fg { height: 100%; border-radius: 1px; transition: width 0.4s ease; min-width: 2px; }
-.bar-earn { background: #6ee7b7; } .bar-deduct { background: #fb923c; }
-.pr-net { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.net-chip {
-  font-family: 'Inter', monospace;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 2px;
-}
-.nc-pos { background: #031a0e; color: #6ee7b7; border: 1px solid #052e20; }
-.nc-neg { background: #1a0a0a; color: #f87171; border: 1px solid #2d1010; }
-.pr-tx { font-size: 10px; color: #2d3748; font-family: 'Inter', monospace; }
+/* VIP modal */
+.crm2-vip-modal { border: 1px solid #fde68a; }
+.crm2-vip-band { position: relative; background: linear-gradient(135deg, #451a03, #78350f 50%, #92400e); padding: 22px 24px 18px; overflow: hidden; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.crm2-vip-band__deco { position: absolute; border-radius: 50%; border: 1px solid rgba(205,127,50,0.15); background: rgba(205,127,50,0.06); pointer-events: none; }
+.crm2-vip-band__deco--1 { width: 120px; height: 120px; top: -20px; right: -20px; }
+.crm2-vip-band__deco--2 { width: 60px;  height: 60px;  top: 10px;  right: 30px; }
+.crm2-vip-band__content { flex: 1; position: relative; z-index: 1; }
+.crm2-vip-band__top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.crm2-vip-eyebrow { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: #d97706; font-weight: 500; }
+.crm2-vip-admin-badge { background: rgba(205,127,50,0.15); border: 1px solid rgba(205,127,50,0.3); color: #fbbf24; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+.crm2-vip-band__title { font-size: 22px; color: #fef3c7; font-weight: 800; letter-spacing: -0.02em; }
+.crm2-vip-band__customer { margin-top: 6px; font-size: 12px; color: #d97706; letter-spacing: 0.3px; }
+.crm2-vip-close-btn { position: relative; z-index: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(205,127,50,0.25); color: #d97706; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+.crm2-vip-close-btn:hover { background: rgba(205,127,50,0.2); color: #fbbf24; }
 
-.cust-period-block { margin-bottom: 16px; border: 1px solid #1a1f2b; border-radius: 2px; overflow: hidden; }
-.cpb-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #ffffff; border-bottom: 1px solid #1a1f2b; }
-.cpb-title { font-weight: 600; font-size: 12px; color: #94a3b8; font-family: 'Inter', monospace; }
-.cpb-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; font-family: 'Inter', monospace; }
-.tx-count { background: #1e2330; color: #374151; padding: 1px 6px; border-radius: 2px; }
-.crm-table.cdt .cdt-name { font-size: 12px; font-weight: 500; color: #94a3b8; }
-.crm-table.cdt .cdt-email { font-size: 10px; color: #2d3748; }
-.cdt-empty { padding: 14px; text-align: center; color: #1e2330; font-size: 12px; }
-.mono-sm { font-family: 'Inter', monospace; font-size: 11px; color: #334155; }
-.td-truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crm2-vip-notice { background: #fffbeb; border-bottom: 1px solid #fde68a; padding: 9px 24px; font-size: 12px; color: #92400e; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-/* Inactive detail modal */
-.modal-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
-.ms { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 2px; padding: 14px; text-align: center; }
-.ms-val { font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
-.ms-val.gold { color: #fbbf24; } .ms-val.green { color: #6ee7b7; font-size: 14px; }
-.ms-lbl { font-size: 10px; color: #2d3748; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
-.inactive-warning {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: #1a0a0a;
-  border: 1px solid #2d1010;
-  border-radius: 2px;
-  font-size: 12px;
-  color: #f87171;
-  margin-top: 14px;
-  text-align: left;
-}
+.crm2-vip-suggestions { margin-bottom: 4px; }
+.crm2-vip-suggestion-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #9ca3af; font-weight: 700; margin-bottom: 8px; }
+.crm2-vip-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.crm2-vip-chip { background: #ffffff; border: 1.5px solid #e4e7ec; color: #6b7280; padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; font-family: "Plus Jakarta Sans", sans-serif; transition: all 0.15s; }
+.crm2-vip-chip:hover { border-color: #fde68a; color: #92400e; background: #fffbeb; }
 
-/* Misc */
-.spin-icon { display: inline-block; animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.crm2-vip-textarea-wrap { position: relative; }
+.crm2-vip-textarea { width: 100%; background: #fffdf7; border: 1.5px solid #fde68a; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #0f1117; font-family: "Plus Jakarta Sans", sans-serif; resize: vertical; min-height: 120px; box-sizing: border-box; outline: none; line-height: 1.6; transition: border-color 0.15s; }
+.crm2-vip-textarea:focus { border-color: #d97706; background: #fffcf0; }
+.crm2-vip-textarea::placeholder { color: #9ca3af; }
+.crm2-vip-textarea-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; min-height: 20px; }
 
-@media (max-width: 1100px) { .cards-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) {
-  .crm-root { padding: 16px; }
-  .form-grid { grid-template-columns: 1fr; }
-  .full-col { grid-column: 1; }
-  .details-grid { grid-template-columns: 1fr; }
-  .filter-grid { grid-template-columns: 1fr 1fr; }
-  .filter-grid-points { grid-template-columns: 1fr 1fr; }
-  .stats-grid { flex-wrap: wrap; }
-  .inactive-stats { grid-template-columns: 1fr 1fr; }
-  .summary-kpis { grid-template-columns: 1fr 1fr; }
-  .cards-grid { grid-template-columns: 1fr; }
-  .period-row { grid-template-columns: 1fr; }
-  .seg-tabs { flex-wrap: wrap; }
-}
-/* Zero Order selected row */
-.zo-selected-row { background: #040e1c !important; }
-.zo-selected-row:hover { background: #06142a !important; }
-/* ═══════════════════════════
-   VIP NOTE MODAL — REDESIGN
-═══════════════════════════ */
-.vip-modal-redesign {
-  border: 1px solid #2a1a00;
-  overflow: hidden;
-}
+/* Summary controls */
+.crm2-summary-controls { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid #f0f2f5; background: #fafbfc; gap: 12px; flex-wrap: wrap; flex-shrink: 0; }
+.crm2-sc-left { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.crm2-ctrl-group { display: flex; align-items: center; gap: 8px; }
+.crm2-ctrl-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; white-space: nowrap; }
+.crm2-toggle-set { display: flex; border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; }
+.crm2-tgl { padding: 6px 14px; font-size: 12px; font-weight: 600; border: none; background: #ffffff; cursor: pointer; font-family: "Plus Jakarta Sans", sans-serif; color: #6b7280; transition: all 0.12s; }
+.crm2-tgl:hover { background: #f0f2f5; }
+.crm2-tgl--on { background: #2563eb !important; color: #fff !important; }
 
-/* Header */
-.vip-modal-header {
-  position: relative;
-  background: linear-gradient(135deg, #1a0e00 0%, #2d1a00 50%, #1a0e00 100%);
-  padding: 22px 24px 18px;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.vip-header-deco {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(205,127,50,0.12);
-  background: rgba(205,127,50,0.05);
-  pointer-events: none;
-}
-.vip-deco-1 { width: 120px; height: 120px; top: -20px; right: -20px; }
-.vip-deco-2 { width: 60px; height: 60px; top: 10px; right: 30px; background: rgba(205,127,50,0.03); }
+.crm2-summary-body { max-height: 60vh; overflow-y: auto; }
 
-.vip-header-content { flex: 1; position: relative; z-index: 1; }
-.vip-header-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.vip-eyebrow {
-  font-size: 10px;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: #92400e;
-  font-weight: 500;
-}
-.vip-admin-badge {
-  background: rgba(205,127,50,0.15);
-  border: 1px solid rgba(205,127,50,0.3);
-  color: #d97706;
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-weight: 700;
-}
-.vip-modal-title {
-  font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: 22px;
-  color: #f5d08a;
-  letter-spacing: -0.3px;
-  line-height: 1.2;
-  font-weight: normal;
-}
-.vip-modal-customer {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #92400e;
-  letter-spacing: 0.5px;
-}
-.vip-diamond-icon {
-  font-size: 11px;
-  color: rgba(205,127,50,0.5);
-}
-.vip-close-btn {
-  position: relative;
-  z-index: 1;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(205,127,50,0.2);
-  color: #92400e;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  line-height: 1;
-  transition: all 0.15s;
-}
-.vip-close-btn:hover { background: rgba(205,127,50,0.15); color: #d97706; }
+/* KPI row */
+.crm2-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.crm2-kpi { background: #f0f2f5; border: 1px solid #e4e7ec; border-radius: 8px; padding: 16px; }
+.crm2-kpi--green  { border-top: 3px solid #16a34a; }
+.crm2-kpi--orange { border-top: 3px solid #d97706; }
+.crm2-kpi--blue   { border-top: 3px solid #2563eb; }
+.crm2-kpi--red    { border-top: 3px solid #dc2626; }
+.crm2-kpi--purple { border-top: 3px solid #7c3aed; }
+.crm2-kpi__val { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.crm2-kpi--green  .crm2-kpi__val { color: #16a34a; }
+.crm2-kpi--orange .crm2-kpi__val { color: #d97706; }
+.crm2-kpi--blue   .crm2-kpi__val { color: #2563eb; }
+.crm2-kpi--red    .crm2-kpi__val { color: #dc2626; }
+.crm2-kpi--purple .crm2-kpi__val { color: #7c3aed; }
+.crm2-kpi__label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #9ca3af; margin-top: 6px; }
 
-/* Notice bar */
-.vip-notice-bar {
-  background: #fef9ee;
-  border-bottom: 1px solid #fde68a;
-  padding: 9px 24px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #92400e;
-}
-.vip-lock-icon { font-size: 13px; flex-shrink: 0; }
+/* Period list */
+.crm2-period-list { display: flex; flex-direction: column; gap: 6px; }
+.crm2-period-row { display: grid; grid-template-columns: 150px 1fr 110px; gap: 16px; align-items: center; background: #f0f2f5; border: 1px solid #e4e7ec; border-radius: 8px; padding: 12px 16px; transition: background 0.1s; }
+.crm2-period-row:hover { background: #ffffff; }
+.crm2-period-label { font-weight: 700; font-size: 13px; }
+.crm2-period-dates { font-size: 10.5px; margin-top: 2px; }
+.crm2-period-bars { display: flex; flex-direction: column; gap: 5px; }
+.crm2-bar-row { display: flex; align-items: center; gap: 8px; }
+.crm2-br-num { font-size: 11px; font-weight: 600; font-family: "JetBrains Mono", monospace; width: 80px; text-align: right; }
+.crm2-bar-bg { flex: 1; height: 6px; background: #e4e7ec; border-radius: 999px; overflow: hidden; }
+.crm2-period-net { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.crm2-net-chip { font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.crm2-net-chip--pos { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.crm2-net-chip--neg { background: #fff1f2; color: #dc2626; border: 1px solid #fecdd3; }
 
-/* Suggestions */
-.vip-suggestion-section { margin-bottom: 16px; }
-.vip-suggestion-label {
-  font-size: 10px;
-  letter-spacing: 1.8px;
-  text-transform: uppercase;
-  color: #2d3748;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-.vip-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.vip-chip {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  color: #4b5563;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.15s;
-}
-.vip-chip:hover {
-  border-color: #d97706;
-  color: #92400e;
-  background: #fef9ee;
-}
+.crm2-cust-period { margin-bottom: 16px; border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; }
+.crm2-cust-period__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #fafbfc; border-bottom: 1px solid #f0f2f5; }
 
-/* Textarea */
-.vip-textarea-wrap { position: relative; }
-.vip-textarea {
-  width: 100%;
-  background: #fffdf7;
-  border: 1px solid #fde68a;
-  border-radius: 4px;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: #1e293b;
-  font-family: 'Inter', sans-serif;
-  resize: vertical;
-  min-height: 120px;
-  box-sizing: border-box;
-  outline: none;
-  line-height: 1.6;
-  transition: border-color 0.15s;
-}
-.vip-textarea:focus { border-color: #d97706; background: #fffcf0; }
-.vip-textarea::placeholder { color: #9ca3af; }
-.vip-textarea-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-  padding: 0 2px;
-  min-height: 20px;
-}
-.vip-clear-btn {
-  background: none;
-  border: none;
-  color: #f87171;
-  font-size: 12px;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  text-decoration: underline;
-  padding: 0;
-}
-.vip-clear-btn:hover { color: #dc2626; }
-.vip-char-count {
-  margin-left: auto;
-  font-size: 11px;
-  color: #9ca3af;
-  font-family: 'Inter', monospace;
-  font-variant-numeric: tabular-nums;
-}
-.vip-count-warn { color: #f59e0b; }
-.vip-count-danger { color: #f87171; }
+/* Inactive detail mini stats */
+.crm2-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.crm2-stat-mini { background: #f0f2f5; border: 1px solid #e4e7ec; border-radius: 8px; padding: 14px; text-align: center; }
+.crm2-stat-mini--orange { border-top: 3px solid #d97706; }
+.crm2-stat-mini--green  { border-top: 3px solid #16a34a; }
+.crm2-stat-mini__val   { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+.crm2-stat-mini--orange .crm2-stat-mini__val { color: #d97706; }
+.crm2-stat-mini--green  .crm2-stat-mini__val { color: #16a34a; }
+.crm2-stat-mini__label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
 
-/* Save button */
-.vip-save-btn {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  color: #fff;
-  border: none;
-  padding: 9px 22px;
-  border-radius: 2px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: 0.3px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.15s;
+/* Spinner */
+.crm2-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.12); border-top-color: #6b7280; border-radius: 50%; animation: crm2-spin 0.6s linear infinite; flex-shrink: 0; }
+.crm2-spinner--white { border-color: rgba(255,255,255,0.25); border-top-color: #fff; }
+@keyframes crm2-spin { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .crm2-page { padding: 20px 16px 40px; }
+  .crm2-filter-fields { grid-template-columns: 1fr 1fr; }
+  .crm2-filter-points { grid-template-columns: 1fr 1fr; }
+  .crm2-row2 { grid-template-columns: 1fr; }
+  .crm2-details-grid { grid-template-columns: 1fr; }
+  .crm2-kpi-row { grid-template-columns: 1fr 1fr; }
+  .crm2-period-row { grid-template-columns: 1fr; }
 }
-.vip-save-btn:hover { background: linear-gradient(135deg, #b45309, #92400e); }
-.vip-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.vip-save-icon { font-size: 11px; }
 </style>

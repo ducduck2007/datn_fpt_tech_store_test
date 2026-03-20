@@ -67,5 +67,6 @@ public class CreateOrderResponse {
         private BigDecimal price;
         private BigDecimal discount;
         private BigDecimal lineTotal;
+        private BigDecimal shippingFee;
     }
 }

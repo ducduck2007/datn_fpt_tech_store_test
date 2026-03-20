@@ -77,4 +77,7 @@ public class OrderItem {
     @OneToMany(mappedBy = "orderItem")
     private Set<Return> returns = new LinkedHashSet<>();
 
+    @Column(name = "shipping_fee", precision = 18, scale = 2)
+    private BigDecimal shippingFee = BigDecimal.ZERO;
+
 }

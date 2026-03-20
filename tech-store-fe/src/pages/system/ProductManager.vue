@@ -1,528 +1,929 @@
 <template>
-  <div class="container-xl">
-    <el-card shadow="never">
-      <div class="d-flex align-items-end justify-content-between gap-2 flex-wrap">
-        <div>
-          <div class="kicker">Quản trị</div>
-          <div class="title">Quản lý sản phẩm</div>
-          <div class="muted">
-            Hỗ trợ: Biến thể, Tồn kho, Đa danh mục, Sắp xếp, Thùng rác, Thẻ
+  <div class="pm-page">
+
+    <!-- ── Header ─────────────────────────────────────────────────── -->
+    <div class="pm-header">
+      <div class="pm-header__left">
+        <div class="pm-header__eyebrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/>
+            <rect x="2" y="11" width="6" height="6" rx="1"/><rect x="9" y="11" width="6" height="6" rx="1"/><rect x="16" y="11" width="6" height="6" rx="1"/>
+          </svg>
+          Quản trị
+        </div>
+        <h1 class="pm-header__title">Quản lý sản phẩm</h1>
+        <p class="pm-header__sub">Hỗ trợ: Biến thể · Tồn kho · Đa danh mục · Sắp xếp · Thùng rác · Thẻ</p>
+      </div>
+      <div class="pm-header__actions">
+        <!-- View mode toggle -->
+        <div class="pm-view-toggle">
+          <button class="pm-view-btn" :class="{ active: viewMode === 'active' }" @click="viewMode = 'active'; load()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+            Hoạt động
+          </button>
+          <button class="pm-view-btn" :class="{ active: viewMode === 'trash' }" @click="viewMode = 'trash'; load()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            Thùng rác
+          </button>
+        </div>
+
+        <button class="pm-btn pm-btn--outline" @click="load" :disabled="loading">
+          <svg :class="{ 'pm-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {{ loading ? 'Đang tải…' : 'Tải lại' }}
+        </button>
+        <button v-if="viewMode === 'active'" class="pm-btn pm-btn--primary" @click="openCreateDialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Thêm sản phẩm
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Filter Panel (chỉ khi active) ──────────────────────────── -->
+    <div v-if="viewMode === 'active'" class="pm-filter-panel">
+      <div class="pm-filter-header">
+        <div class="pm-filter-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+          </svg>
+          Bộ lọc
+          <span v-if="activeFilterCount > 0" class="pm-filter-badge">{{ activeFilterCount }} đang áp dụng</span>
+        </div>
+        <button v-if="activeFilterCount > 0" class="pm-filter-clear" @click="clearFilters">Xoá tất cả</button>
+      </div>
+      <div class="pm-filter-fields">
+        <!-- Search -->
+        <div class="pm-filter-field">
+          <span class="pm-field-label">Tìm kiếm</span>
+          <div class="pm-search-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="pm-search-icon">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input v-model="keyword" class="pm-search-input" placeholder="Tên / SKU…" @keyup.enter="onFilter" />
+            <button v-if="keyword" class="pm-search-clear" @click="keyword = ''; onFilter()">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
         </div>
-        <div class="d-flex gap-2">
-          <el-radio-group v-model="viewMode" size="small" @change="load" style="margin-right: 10px;">
-            <el-radio-button label="active">Hoạt động</el-radio-button>
-            <el-radio-button label="trash">Thùng rác</el-radio-button>
-          </el-radio-group>
 
-          <el-button @click="load" :loading="loading" icon="Refresh">Tải lại</el-button>
-          
-          <el-button v-if="viewMode === 'active'" type="primary" icon="Plus" @click="openCreateDialog">Thêm sản phẩm</el-button>
-        </div>
-      </div>
-
-      <el-divider />
-
-      <!-- KHU VỰC BỘ LỌC (Chỉ hiện khi ở chế độ Active) -->
-      <div class="row g-3" v-if="viewMode === 'active'">
-        <div class="col-12 col-md-2">
-          <el-input
-            v-model="keyword"
-            placeholder="Tìm kiếm tên/SKU..."
-            clearable
-            @clear="onFilter"
-            @keyup.enter="onFilter"
-          >
-            <template #append>
-              <el-button @click="onFilter" icon="Search"></el-button>
-            </template>
-          </el-input>
+        <!-- Category -->
+        <div class="pm-filter-field">
+          <span class="pm-field-label">Danh mục</span>
+          <select v-model="categoryIds" multiple class="pm-select pm-select--multi" @change="onFilter">
+            <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
         </div>
 
-        <div class="col-12 col-md-2">
-          <el-select
-            v-model="categoryIds"
-            multiple
-            collapse-tags
-            collapse-tags-tooltip
-            clearable
-            placeholder="Danh mục"
-            @change="onFilter"
-            style="width: 100%"
-          >
-            <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
+        <!-- Tag -->
+        <div class="pm-filter-field">
+          <span class="pm-field-label">Thẻ</span>
+          <select v-model="filterTagId" class="pm-select" @change="onFilter">
+            <option :value="null">Tất cả thẻ</option>
+            <option v-for="t in tags" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </select>
         </div>
 
-        <div class="col-12 col-md-2">
-          <el-select
-            v-model="filterTagId"
-            clearable
-            placeholder="Lọc theo thẻ"
-            @change="onFilter"
-            style="width: 100%"
-          >
-            <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
-          </el-select>
+        <!-- Sort -->
+        <div class="pm-filter-field">
+          <span class="pm-field-label">Sắp xếp</span>
+          <select v-model="sortBy" class="pm-select" @change="onFilter">
+            <option value="recently_updated">Mới cập nhật</option>
+            <option value="newest_arrival">Ngày nhập mới nhất</option>
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="best_selling">Bán chạy nhất</option>
+            <option value="price_asc">Giá: Thấp → Cao</option>
+            <option value="price_desc">Giá: Cao → Thấp</option>
+            <option value="name_asc">Tên: A → Z</option>
+            <option value="name_desc">Tên: Z → A</option>
+          </select>
         </div>
 
-        <div class="col-12 col-md-3">
-          <el-select v-model="sortBy" placeholder="Sắp xếp" @change="onFilter" style="width: 100%">
-            <el-option label="Mới cập nhật (Recently Updated)" value="recently_updated" />
-            <el-option label="Ngày nhập mới nhất" value="newest_arrival" />
-            <el-option label="Mới nhất" value="newest" />
-            <el-option label="Cũ nhất" value="oldest" />
-            <el-option label="Bán chạy nhất" value="best_selling" />
-            <el-option label="Giá: Thấp → Cao" value="price_asc" />
-            <el-option label="Giá: Cao → Thấp" value="price_desc" />
-            <el-option label="Tên: A → Z" value="name_asc" />
-            <el-option label="Tên: Z → A" value="name_desc" />
-          </el-select>
-        </div>
-
-        <div class="col-12 col-md-3 d-flex align-items-center">
-          <el-checkbox v-model="inStockOnly" @change="onFilter" border>
-            <span class="text-success fw-bold">Chỉ hiển thị còn hàng</span>
-          </el-checkbox>
-        </div>
-
-        <!-- BỘ LỌC NÂNG CAO -->
-        <div class="col-12 col-md-4">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            start-placeholder="Từ ngày"
-            end-placeholder="Đến ngày"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD" 
-            @change="onFilter"
-            style="width: 100%"
-          />
-        </div>
-        <div class="col-12 col-md-2">
-          <el-select v-model="filterIsNew" placeholder="Sản phẩm mới?" clearable @change="onFilter" style="width: 100%">
-            <el-option label="Chỉ sản phẩm mới" :value="true" />
-            <el-option label="Sản phẩm thường" :value="false" />
-          </el-select>
-        </div>
-        <div class="col-12 col-md-2">
-          <el-select v-model="filterIsFaulty" placeholder="Trạng thái chất lượng" clearable @change="onFilter" style="width: 100%">
-            <el-option label="Lỗi (Ẩn)" :value="true" />
-            <el-option label="Chất lượng tốt" :value="false" />
-          </el-select>
-        </div>
-      </div>
-
-      <el-divider v-if="viewMode === 'active'" />
-
-      <!-- THANH CÔNG CỤ BATCH UPDATE/DELETE -->
-      <div v-if="selectedIds.length > 0 && viewMode === 'active'" class="mb-3 p-2 bg-light border rounded d-flex justify-content-between align-items-center">
-        <span class="fw-bold text-primary px-2">Đã chọn {{ selectedIds.length }} sản phẩm</span>
-        <div class="d-flex gap-2">
-          <el-button type="primary" size="small" icon="Edit" @click="openBatchUpdateDialog">Sửa hàng loạt</el-button>
-          <el-popconfirm title="Bạn có chắc chắn muốn xóa (ẩn) các sản phẩm này?" @confirm="handleBatchDelete">
-            <template #reference>
-              <el-button type="danger" size="small" icon="Delete" :loading="isBatchDeleting">Xóa hàng loạt</el-button>
-            </template>
-          </el-popconfirm>
-        </div>
-      </div>
-
-      <!-- DANH SÁCH SẢN PHẨM -->
-      <el-table :data="rows" border :loading="loading" style="width: 100%" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="50" align="center" v-if="viewMode === 'active'" />
-
-        <el-table-column prop="id" label="ID" width="70" align="center" />
-        
-        <el-table-column label="Image" width="100" align="center">
-          <template #default="{ row }">
-            <el-image 
-              style="width: 70px; height: 50px; border-radius: 4px; border: 1px solid #eee"
-              :src="row.imageUrl" 
-              :preview-src-list="[row.imageUrl]"
-              fit="cover" 
-            />
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="name" label="Thông tin sản phẩm" min-width="250">
-          <template #default="{ row }">
-            <div class="d-flex align-items-center gap-2">
-              <div class="fw-bold text-primary">{{ row.name }}</div>
-              <el-tag v-if="row.isNew" size="small" type="success" effect="dark">MỚI</el-tag>
-              <el-tag v-if="row.isFaulty" size="small" type="danger" effect="dark">LỖI</el-tag>
-            </div>
-            <div class="small text-muted mb-1">SKU: {{ row.sku }}</div>
-            
-            <div v-if="row.tags && row.tags.length > 0" class="mb-1">
-              <el-tag v-for="(tagName, idx) in row.tags" :key="idx" size="small" type="warning" effect="dark" class="me-1">
-                {{ tagName }}
-              </el-tag>
-            </div>
-            
-            <div class="d-flex gap-3 mt-1 align-items-center" style="font-size: 12px">
-               <span v-if="row.minPrice" class="text-danger fw-bold">Giá từ: {{ formatCurrency(row.minPrice) }}</span>
-               
-               <el-tag :type="row.inStock ? 'success' : 'danger'" size="small" effect="plain" v-if="viewMode === 'active'">
-                 {{ row.inStock ? `Còn hàng (${row.totalStock || 0})` : 'Hết hàng' }}
-               </el-tag>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Mô tả" min-width="200">
-          <template #default="{ row }">
-            <div class="text-truncate-3" style="font-size: 12px; white-space: pre-wrap; color: #666">
-              {{ row.description }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Ngày nhập" width="130" align="center">
-          <template #default="{ row }">
-            <div style="font-size: 11px; color: #666">{{ formatDate(row.createdAt) }}</div>
-          </template>
-        </el-table-column>
-
-        <!-- MERGED: el-switch khi active, tag tĩnh khi trash -->
-        <el-table-column prop="isVisible" label="Trạng thái" width="150" align="center">
-          <template #default="{ row }">
-            <div v-if="viewMode === 'active'">
-              <el-switch
-                v-model="row.isVisible"
-                :active-value="true"
-                :inactive-value="false"
-                inline-prompt
-                active-text="ON"
-                inactive-text="OFF"
-                @change="toggleProductStatus(row)"
-              />
-            </div>
-            <div v-else>
-              <el-tag type="info" size="small">Trong thùng rác</el-tag>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Hành động" width="220" align="center" fixed="right">
-          <template #default="{ row }">
-            <div v-if="viewMode === 'active'">
-              <el-button type="success" link size="small" icon="Connection" @click="openVariantDrawer(row)">Biến thể</el-button>
-              <el-button type="primary" link size="small" icon="Edit" @click="onEdit(row)">Sửa</el-button>
-              
-              <el-popconfirm :title="row.isFaulty ? 'Sản phẩm lỗi. Xóa vĩnh viễn?' : 'Chuyển vào thùng rác?'" @confirm="onDelete(row)">
-                <template #reference>
-                  <el-button type="danger" link size="small" icon="Delete">{{ row.isFaulty ? 'Xóa hẳn' : 'Xóa' }}</el-button>
-                </template>
-              </el-popconfirm>
-            </div>
-
-            <div v-else>
-              <el-button 
-                type="warning" 
-                size="small" 
-                icon="RefreshLeft" 
-                @click="onRestore(row.id)"
-                style="font-weight: bold"
-              >
-                Khôi phục sản phẩm
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="d-flex justify-content-center mt-4">
-        <el-pagination
-          background
-          layout="total, prev, pager, next"
-          :page-size="20"
-          :total="totalElements"
-          :current-page="page + 1"
-          @current-change="onPageChange"
-        />
-      </div>
-    </el-card>
-
-    <!-- DIALOG BATCH UPDATE -->
-    <el-dialog v-model="batchDlg.open" :title="'Cập nhật ' + selectedIds.length + ' sản phẩm'" width="500px">
-      <el-alert title="Chỉ những trường có dữ liệu mới được áp dụng. Bỏ trống nếu không muốn thay đổi." type="info" show-icon class="mb-3" :closable="false"/>
-      <el-form label-position="top">
-        <el-form-item label="Trạng thái hiển thị (Status)">
-          <el-select v-model="batchDlg.form.isVisible" placeholder="Không thay đổi" clearable style="width: 100%">
-            <el-option label="Bật hiển thị (ON)" :value="true" />
-            <el-option label="Tắt hiển thị (OFF)" :value="false" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Nhãn hàng mới (New Arrival)">
-          <el-select v-model="batchDlg.form.isNew" placeholder="Không thay đổi" clearable style="width: 100%">
-            <el-option label="Đánh dấu là Hàng Mới (NEW)" :value="true" />
-            <el-option label="Gỡ nhãn Mới" :value="false" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Trạng thái Lỗi (Faulty)">
-          <el-select v-model="batchDlg.form.isFaulty" placeholder="Không thay đổi" clearable style="width: 100%">
-            <el-option label="Đánh dấu bị Lỗi (FAULTY)" :value="true" />
-            <el-option label="Hàng Tốt" :value="false" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Gắn chung Tags">
-          <el-select v-model="batchDlg.form.tagIds" multiple placeholder="Không thay đổi" style="width: 100%">
-            <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="batchDlg.open = false">Hủy</el-button>
-        <el-button type="primary" :loading="batchDlg.loading" @click="submitBatchUpdate">Áp dụng thay đổi</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- DRAWER VARIANTS -->
-    <el-drawer v-model="vr.open" :title="'Quản lý biến thể: ' + vr.productName" size="60%" destroy-on-close>
-      <div class="mb-4">
-        <h6 class="fw-bold mb-3">Các biến thể hiện có</h6>
-        <el-table :data="vr.variants" border size="small" v-loading="vr.loading">
-          <el-table-column prop="variantName" label="Tên" min-width="150" />
-          <el-table-column prop="sku" label="SKU" width="120" />
-          <el-table-column label="Giá / Tồn" width="160">
-            <template #default="{ row }">
-              <div class="text-danger fw-bold">{{ formatCurrency(row.price) }}</div>
-              <div class="small">Tồn: <span :class="row.stockQuantity > 0 ? 'text-success fw-bold' : 'text-danger'">{{ row.stockQuantity }}</span></div>
-            </template>
-          </el-table-column>
-          <el-table-column label="Hành động" width="180" align="center">
-            <template #default="{ row }">
-              <el-button type="warning" link size="small" @click="openSerialDialog(row)">Số Seri</el-button>
-              <el-button type="primary" link size="small" @click="editVariant(row)">Sửa</el-button>
-              <el-popconfirm title="Xóa biến thể?" @confirm="deleteVariant(row.id)">
-                <template #reference><el-button type="danger" link size="small">Xóa</el-button></template>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-
-      <el-divider />
-
-      <div>
-        <h6 class="fw-bold mb-3 text-primary">{{ vr.isEdit ? 'Cập nhật biến thể' : 'Thêm biến thể mới' }}</h6>
-        <el-form :model="vr.form" label-position="top" class="row g-2">
-          <div class="col-md-6"><el-form-item label="Tên biến thể" required><el-input v-model="vr.form.variantName" placeholder="vd: Đỏ, 16GB..."/></el-form-item></div>
-          <div class="col-md-6"><el-form-item label="SKU" required><el-input v-model="vr.form.sku" /></el-form-item></div>
-          <div class="col-md-6"><el-form-item label="Giá (VND)" required><el-input-number v-model="vr.form.price" style="width: 100%" :min="0"/></el-form-item></div>
-          
-          <div class="col-md-6">
-            <el-form-item label="Số lượng tồn (tự động bởi Seri)" required>
-              <el-input-number v-model="vr.form.stockQuantity" style="width: 100%" :min="0" disabled />
-            </el-form-item>
+        <!-- Date range -->
+        <div class="pm-filter-field">
+          <span class="pm-field-label">Ngày nhập</span>
+          <div class="pm-date-range">
+            <input type="date" v-model="dateRange[0]" class="pm-date-input" @change="onFilter" placeholder="Từ ngày" />
+            <span class="pm-date-sep">—</span>
+            <input type="date" v-model="dateRange[1]" class="pm-date-input" @change="onFilter" placeholder="Đến ngày" />
           </div>
-          
-          <div class="col-12 mt-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <label class="small fw-bold">Dynamic Attributes</label>
-              <el-button size="small" icon="Plus" @click="addVariantAttr">Thêm</el-button>
-            </div>
-            <div v-for="(attr, index) in vr.attrsList" :key="index" class="d-flex gap-2 mb-2">
-              <el-input v-model="attr.key" placeholder="Key (e.g. Color)" size="small" />
-              <el-input v-model="attr.value" placeholder="Value" size="small" />
-              <el-button type="danger" icon="Delete" circle size="small" @click="removeVariantAttr(index)" />
-            </div>
-          </div>
-
-          <div class="col-12 mt-3 text-end">
-            <el-button v-if="vr.isEdit" @click="resetVariantForm">Hủy</el-button>
-            <el-button type="primary" :loading="vr.saving" @click="saveVariant">
-              {{ vr.isEdit ? 'Lưu thay đổi' : 'Thêm biến thể' }}
-            </el-button>
-          </div>
-        </el-form>
-      </div>
-    </el-drawer>
-
-    <!-- DIALOG SERIAL NUMBERS -->
-    <el-dialog v-model="serialDlg.open" :title="'Quản lý số Seri: ' + serialDlg.variantName" width="650px" append-to-body>
-      <div class="mb-3 d-flex align-items-center gap-3">
-        <div>
-          <label class="fw-bold small mb-1 d-block">Số lượng cần nhập kho</label>
-          <el-input-number v-model="serialDlg.genQuantity" :min="1" :max="500" style="width: 160px" />
         </div>
-        <div style="padding-top: 22px">
-          <el-button type="primary" :loading="serialDlg.adding" icon="MagicStick" @click="generateSerials(serialDlg.genQuantity)">
-            Gen Serial tự động
-          </el-button>
+
+        <!-- Is New -->
+        <div class="pm-filter-field">
+          <span class="pm-field-label">Sản phẩm mới</span>
+          <select v-model="filterIsNew" class="pm-select" @change="onFilter">
+            <option :value="null">Tất cả</option>
+            <option :value="true">Chỉ hàng mới</option>
+            <option :value="false">Hàng thường</option>
+          </select>
+        </div>
+
+        <!-- Is Faulty -->
+        <div class="pm-filter-field">
+          <span class="pm-field-label">Chất lượng</span>
+          <select v-model="filterIsFaulty" class="pm-select" @change="onFilter">
+            <option :value="null">Tất cả</option>
+            <option :value="true">Bị lỗi (ẩn)</option>
+            <option :value="false">Chất lượng tốt</option>
+          </select>
+        </div>
+
+        <!-- In stock -->
+        <div class="pm-filter-field pm-filter-field--check">
+          <label class="pm-checkbox-label">
+            <input type="checkbox" v-model="inStockOnly" class="pm-checkbox" @change="onFilter" />
+            <span class="pm-checkbox-custom"></span>
+            <span>Chỉ còn hàng</span>
+          </label>
+        </div>
+
+        <!-- Apply -->
+        <div class="pm-filter-field pm-filter-field--action">
+          <button class="pm-btn pm-btn--primary pm-btn--sm" @click="onFilter">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            Lọc
+          </button>
         </div>
       </div>
-      <el-divider />
-      <div class="fw-bold small mb-2 text-muted">Danh sách máy trong kho:</div>
-      <el-table :data="serialDlg.list" border size="small" v-loading="serialDlg.loading" max-height="400">
-         <el-table-column type="index" width="50" align="center" />
-         <el-table-column prop="serialNumber" label="Số Seri / IMEI" min-width="150" />
-         <el-table-column prop="status" label="Trạng thái" width="120" align="center">
-           <template #default="{ row }">
-             <el-tag :type="row.status === 'IN_STOCK' ? 'success' : (row.status === 'SOLD' ? 'info' : 'danger')" size="small">
-               {{ row.status === 'IN_STOCK' ? 'Trong kho' : row.status }}
-             </el-tag>
-           </template>
-         </el-table-column>
-         <el-table-column label="Hành động" width="100" align="center">
-           <template #default="{ row }">
-             <el-popconfirm title="Xóa seri này?" @confirm="deleteSerial(row.id)">
-               <template #reference>
-                 <el-button type="danger" size="small" :disabled="row.status !== 'IN_STOCK'">Xóa</el-button>
-               </template>
-             </el-popconfirm>
-           </template>
-         </el-table-column>
-      </el-table>
-    </el-dialog>
+    </div>
 
-    <!-- DIALOG PRODUCT (có Tabs + Lịch sử thao tác) -->
-    <el-dialog v-model="dlg.open" :title="dlg.isEdit ? 'Thông tin sản phẩm' : 'Thêm sản phẩm mới'" width="850px" top="5vh">
-      <el-alert v-if="dlg.alert" :title="dlg.alert" type="error" show-icon class="mb-3" />
+    <!-- ── Batch action bar ────────────────────────────────────────── -->
+    <Transition name="pm-slide-down">
+      <div v-if="selectedIds.length > 0 && viewMode === 'active'" class="pm-batch-bar">
+        <div class="pm-batch-bar__left">
+          <div class="pm-batch-dot"></div>
+          <span class="pm-batch-count">Đã chọn <strong>{{ selectedIds.length }}</strong> sản phẩm</span>
+        </div>
+        <div class="pm-batch-bar__actions">
+          <button class="pm-btn pm-btn--outline pm-btn--sm" @click="openBatchUpdateDialog">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Sửa hàng loạt
+          </button>
+          <button class="pm-btn pm-btn--danger pm-btn--sm" :disabled="isBatchDeleting" @click="confirmBatchDelete">
+            <span class="pm-spinner pm-spinner--white" v-if="isBatchDeleting"/>
+            <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            </svg>
+            Xóa hàng loạt
+          </button>
+        </div>
+      </div>
+    </Transition>
 
-      <el-tabs v-model="dlg.activeTab" class="custom-tabs">
-        <!-- TAB 1: THÔNG TIN CƠ BẢN -->
-        <el-tab-pane label="Thông tin cơ bản" name="info">
-          <el-form :model="dlg.form" label-position="top" class="row g-3 mt-2">
-            <div class="col-md-6"><el-form-item label="Tên sản phẩm" required><el-input v-model="dlg.form.name" /></el-form-item></div>
-            <div class="col-md-6"><el-form-item label="SKU chính" required><el-input v-model="dlg.form.sku" /></el-form-item></div>
+    <!-- ── Table Card ──────────────────────────────────────────────── -->
+    <div class="pm-card">
+      <!-- Toolbar -->
+      <div class="pm-toolbar">
+        <div class="pm-toolbar__info">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/>
+            <rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="11" width="6" height="6" rx="1"/>
+          </svg>
+          {{ viewMode === 'active' ? 'Sản phẩm hoạt động' : 'Thùng rác' }}
+        </div>
+        <span class="pm-count">
+          <span class="pm-count__num">{{ totalElements }}</span>
+          <span class="pm-count__label">sản phẩm</span>
+        </span>
+      </div>
 
-            <div class="col-md-3">
-              <el-form-item label="Đánh dấu Mới">
-                <el-switch v-model="dlg.form.isNew" active-text="Mới" inactive-text="Bình thường" />
-              </el-form-item>
-            </div>
-            <div class="col-md-3">
-              <el-form-item label="Đánh dấu Lỗi (Ẩn)">
-                <el-switch v-model="dlg.form.isFaulty" active-color="#ff4949" active-text="Lỗi" inactive-text="Tốt" />
-              </el-form-item>
-            </div>
+      <!-- Table -->
+      <div class="pm-table-wrap" :class="{ 'pm-table-wrap--loading': loading }">
+        <div class="pm-loader-overlay" v-if="loading">
+          <div class="pm-loader-ring"/>
+        </div>
 
-            <div class="col-md-6">
-              <el-form-item label="Danh mục">
-                <el-select v-model="dlg.form.categoryIds" multiple placeholder="Chọn danh mục" style="width: 100%">
-                  <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
-                </el-select>
-              </el-form-item>
-            </div>
-
-            <div class="col-md-6">
-              <el-form-item label="Thẻ chiến dịch">
-                <el-select v-model="dlg.form.tagIds" multiple placeholder="Chọn thẻ" style="width: 100%">
-                  <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
-                </el-select>
-              </el-form-item>
-            </div>
-
-            <div class="col-md-12">
-              <el-form-item label="Mô tả">
-                <el-input v-model="dlg.form.description" type="textarea" :rows="3" />
-              </el-form-item>
-            </div>
-
-            <div class="col-12">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <label class="fw-bold">Thông số kỹ thuật (Thuộc tính)</label>
-                <el-button size="small" icon="Plus" @click="addAttribute">Thêm</el-button>
-              </div>
-              <div v-for="(attr, index) in dlg.attributesList" :key="index" class="d-flex gap-2 mb-2">
-                <el-input v-model="attr.name" placeholder="Label (e.g. RAM)" />
-                <el-input v-model="attr.value" placeholder="Value" />
-                <el-button type="danger" icon="Delete" circle @click="removeAttribute(index)" />
-              </div>
-            </div>
-
-            <div class="col-12" v-if="dlg.isEdit && dlg.existingImages.length > 0">
-              <label class="fw-bold mb-2">Thư viện ảnh</label>
-              <div class="d-flex gap-2 flex-wrap p-3 border rounded bg-light">
-                <div v-for="img in dlg.existingImages" :key="img.id" class="position-relative text-center" style="width: 110px;">
-                  <el-image 
-                    :src="fixImageUrl(img.url)" 
-                    style="width: 100px; height: 100px; border-radius: 8px; border: 2px solid"
-                    :style="{ borderColor: img.isPrimary ? '#67c23a' : '#dcdfe6' }"
-                    fit="cover"
-                  />
-                  <div class="d-flex justify-content-center gap-2 mt-2">
-                     <el-button v-if="!img.isPrimary" type="warning" icon="Star" circle size="small" @click="setPrimaryImage(img.id)" />
-                     <el-button type="danger" icon="Delete" circle size="small" @click="markImageForDelete(img.id)" />
+        <table class="pm-table">
+          <thead>
+            <tr>
+              <th v-if="viewMode === 'active'" style="width:44px; text-align:center">
+                <input type="checkbox" class="pm-checkbox" :checked="selectedIds.length === rows.length && rows.length > 0" @change="toggleSelectAll" />
+              </th>
+              <th style="width:60px; text-align:center">ID</th>
+              <th style="width:88px; text-align:center">Ảnh</th>
+              <th style="min-width:260px">Thông tin sản phẩm</th>
+              <th style="min-width:200px">Mô tả</th>
+              <th style="width:130px; text-align:center">Ngày nhập</th>
+              <th style="width:140px; text-align:center">Trạng thái</th>
+              <th style="width:200px; text-align:center">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Empty -->
+            <tr v-if="!loading && rows.length === 0">
+              <td :colspan="viewMode === 'active' ? 8 : 7" class="pm-empty">
+                <div class="pm-empty__inner">
+                  <div class="pm-empty__icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                      <rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/>
+                      <rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="11" width="6" height="6" rx="1"/>
+                    </svg>
                   </div>
-                  <div v-if="img.isPrimary" class="position-absolute top-0 start-0 bg-success text-white px-2 small rounded-start">MAIN</div>
+                  <p>{{ viewMode === 'trash' ? 'Thùng rác trống' : 'Chưa có sản phẩm nào' }}</p>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-for="row in rows" :key="row.id" class="pm-row" :class="{ 'pm-row--selected': selectedIds.includes(row.id), 'pm-row--faulty': row.isFaulty }">
+              <!-- Checkbox -->
+              <td v-if="viewMode === 'active'" style="text-align:center">
+                <input type="checkbox" class="pm-checkbox" :checked="selectedIds.includes(row.id)"
+                  @change="toggleRowSelect(row.id)" />
+              </td>
+
+              <!-- ID -->
+              <td style="text-align:center">
+                <span class="pm-id">#{{ row.id }}</span>
+              </td>
+
+              <!-- Image -->
+              <td style="text-align:center">
+                <div class="pm-img-wrap">
+                  <img v-if="row.imageUrl" :src="row.imageUrl" class="pm-img" :alt="row.name" />
+                  <div v-else class="pm-img-empty">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Product info -->
+              <td>
+                <div class="pm-product-info">
+                  <div class="pm-product-name-row">
+                    <span class="pm-product-name">{{ row.name }}</span>
+                    <span v-if="row.isNew" class="pm-badge pm-badge--green">MỚI</span>
+                    <span v-if="row.isFaulty" class="pm-badge pm-badge--red">LỖI</span>
+                  </div>
+                  <div class="pm-product-sku">
+                    <span class="pm-sku-label">SKU</span>
+                    <span class="pm-sku-val">{{ row.sku }}</span>
+                  </div>
+                  <div v-if="row.tags?.length" class="pm-tag-row">
+                    <span v-for="(tagName, idx) in row.tags" :key="idx" class="pm-tag pm-tag--orange">{{ tagName }}</span>
+                  </div>
+                  <div class="pm-product-meta">
+                    <span v-if="row.minPrice" class="pm-price">{{ formatCurrency(row.minPrice) }}</span>
+                    <span v-if="viewMode === 'active'" class="pm-stock-tag" :class="row.inStock ? 'pm-stock-tag--in' : 'pm-stock-tag--out'">
+                      <span class="pm-tag__dot"></span>
+                      {{ row.inStock ? `Còn hàng (${row.totalStock || 0})` : 'Hết hàng' }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Description -->
+              <td>
+                <span class="pm-desc">{{ row.description || '—' }}</span>
+              </td>
+
+              <!-- Date -->
+              <td style="text-align:center">
+                <span class="pm-date">{{ formatDate(row.createdAt) }}</span>
+              </td>
+
+              <!-- Status -->
+              <td style="text-align:center">
+                <div v-if="viewMode === 'active'" class="pm-switch-wrap">
+                  <label class="pm-switch">
+                    <input type="checkbox" :checked="row.isVisible" @change="toggleProductStatus(row)" />
+                    <span class="pm-switch__track">
+                      <span class="pm-switch__thumb"></span>
+                    </span>
+                    <span class="pm-switch__label">{{ row.isVisible ? 'ON' : 'OFF' }}</span>
+                  </label>
+                </div>
+                <span v-else class="pm-tag pm-tag--gray">
+                  <span class="pm-tag__dot"></span>
+                  Thùng rác
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td style="text-align:center">
+                <div v-if="viewMode === 'active'" class="pm-dropdown-wrap">
+                  <button class="pm-action-btn pm-action-btn--variant" @click="openVariantDrawer(row)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                      <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                    </svg>
+                    Biến thể
+                  </button>
+                  <div class="pm-action-group">
+                    <button class="pm-action-btn pm-action-btn--edit" @click="onEdit(row)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      Sửa
+                    </button>
+                    <button class="pm-action-btn pm-action-btn--delete" @click="openDeleteConfirm(row)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                      </svg>
+                      {{ row.isFaulty ? 'Xóa hẳn' : 'Xóa' }}
+                    </button>
+                  </div>
+                </div>
+                <div v-else>
+                  <button class="pm-btn pm-btn--restore pm-btn--sm" @click="onRestore(row.id)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M1 4v6h6M23 20v-6h-6"/>
+                      <path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/>
+                    </svg>
+                    Khôi phục
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pm-pagination" v-if="totalElements > 0">
+        <span class="pm-page-info">{{ page * 20 + 1 }}–{{ Math.min((page + 1) * 20, totalElements) }} / {{ totalElements }}</span>
+        <div class="pm-page-btns">
+          <button class="pm-page-btn" :disabled="page === 0" @click="onPageChange(page)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button
+            v-for="p in pageNumbers" :key="p"
+            class="pm-page-btn" :class="{ active: p - 1 === page }"
+            @click="onPageChange(p)"
+          >{{ p }}</button>
+          <button class="pm-page-btn" :disabled="(page + 1) * 20 >= totalElements" @click="onPageChange(page + 2)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         DIALOG: XÁC NHẬN XÓA
+    ═══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="pm-dialog-fade">
+        <div v-if="deleteDlg.open" class="pm-overlay" @click.self="deleteDlg.open = false">
+          <div class="pm-dialog pm-dialog--sm">
+            <div class="pm-dialog__band pm-dialog__band--red">
+              <div class="pm-band-circles"><span class="pm-band-c pm-band-c--1"/><span class="pm-band-c pm-band-c--2"/><span class="pm-band-c pm-band-c--3"/></div>
+              <div class="pm-dialog__icon-ring">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                </svg>
+              </div>
+            </div>
+            <div class="pm-dialog__body">
+              <span class="pm-dialog__badge pm-dialog__badge--red">{{ deleteDlg.isFaulty ? 'Xóa vĩnh viễn' : 'Chuyển thùng rác' }}</span>
+              <h2 class="pm-dialog__title">{{ deleteDlg.isFaulty ? 'Xóa vĩnh viễn?' : 'Xóa sản phẩm?' }}</h2>
+              <p class="pm-dialog__desc">
+                Sản phẩm <strong class="pm-dialog__hi--red">{{ deleteDlg.name }}</strong>
+                {{ deleteDlg.isFaulty ? 'sẽ bị xóa vĩnh viễn khỏi hệ thống.' : 'sẽ được chuyển vào thùng rác.' }}
+              </p>
+              <div class="pm-dialog__notice pm-dialog__notice--red">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {{ deleteDlg.isFaulty ? 'Không thể hoàn tác sau khi xác nhận.' : 'Có thể khôi phục từ thùng rác.' }}
+              </div>
+              <div class="pm-dialog__actions">
+                <button class="pm-btn pm-btn--ghost" @click="deleteDlg.open = false">Hủy bỏ</button>
+                <button class="pm-btn pm-btn--danger" @click="confirmDelete">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         DIALOG: XÁC NHẬN XÓA HÀNG LOẠT
+    ═══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="pm-dialog-fade">
+        <div v-if="batchDeleteDlg" class="pm-overlay" @click.self="batchDeleteDlg = false">
+          <div class="pm-dialog pm-dialog--sm">
+            <div class="pm-dialog__band pm-dialog__band--red">
+              <div class="pm-band-circles"><span class="pm-band-c pm-band-c--1"/><span class="pm-band-c pm-band-c--2"/><span class="pm-band-c pm-band-c--3"/></div>
+              <div class="pm-dialog__icon-ring">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                </svg>
+              </div>
+            </div>
+            <div class="pm-dialog__body">
+              <span class="pm-dialog__badge pm-dialog__badge--red">Xóa hàng loạt</span>
+              <h2 class="pm-dialog__title">Xóa {{ selectedIds.length }} sản phẩm?</h2>
+              <p class="pm-dialog__desc">Tất cả sản phẩm đã chọn sẽ được chuyển vào thùng rác.</p>
+              <div class="pm-dialog__notice pm-dialog__notice--red">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Có thể khôi phục từng sản phẩm từ thùng rác.
+              </div>
+              <div class="pm-dialog__actions">
+                <button class="pm-btn pm-btn--ghost" @click="batchDeleteDlg = false">Hủy bỏ</button>
+                <button class="pm-btn pm-btn--danger" :class="{ 'pm-btn--loading': isBatchDeleting }" @click="handleBatchDelete">
+                  <span class="pm-spinner pm-spinner--white" v-if="isBatchDeleting"/>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         DIALOG: BATCH UPDATE
+    ═══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="pm-dialog-fade">
+        <div v-if="batchDlg.open" class="pm-overlay" @click.self="batchDlg.open = false">
+          <div class="pm-dialog">
+            <div class="pm-dialog__band pm-dialog__band--blue">
+              <div class="pm-band-circles"><span class="pm-band-c pm-band-c--1"/><span class="pm-band-c pm-band-c--2"/><span class="pm-band-c pm-band-c--3"/></div>
+              <div class="pm-dialog__icon-ring">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="pm-dialog__body">
+              <span class="pm-dialog__badge pm-dialog__badge--blue">Cập nhật hàng loạt</span>
+              <h2 class="pm-dialog__title">Cập nhật {{ selectedIds.length }} sản phẩm</h2>
+              <div class="pm-dialog__notice pm-dialog__notice--blue">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Chỉ những trường có giá trị mới được áp dụng.
+              </div>
+              <div class="pm-form">
+                <div class="pm-field">
+                  <label class="pm-field__label">Trạng thái hiển thị</label>
+                  <select v-model="batchDlg.form.isVisible" class="pm-select">
+                    <option :value="null">Không thay đổi</option>
+                    <option :value="true">Bật hiển thị (ON)</option>
+                    <option :value="false">Tắt hiển thị (OFF)</option>
+                  </select>
+                </div>
+                <div class="pm-field">
+                  <label class="pm-field__label">Nhãn hàng mới</label>
+                  <select v-model="batchDlg.form.isNew" class="pm-select">
+                    <option :value="null">Không thay đổi</option>
+                    <option :value="true">Đánh dấu Hàng Mới</option>
+                    <option :value="false">Gỡ nhãn Mới</option>
+                  </select>
+                </div>
+                <div class="pm-field">
+                  <label class="pm-field__label">Trạng thái lỗi</label>
+                  <select v-model="batchDlg.form.isFaulty" class="pm-select">
+                    <option :value="null">Không thay đổi</option>
+                    <option :value="true">Đánh dấu Lỗi</option>
+                    <option :value="false">Hàng Tốt</option>
+                  </select>
+                </div>
+                <div class="pm-field">
+                  <label class="pm-field__label">Gắn Tags</label>
+                  <select v-model="batchDlg.form.tagIds" multiple class="pm-select pm-select--multi">
+                    <option v-for="t in tags" :key="t.id" :value="t.id">{{ t.name }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="pm-dialog__actions">
+                <button class="pm-btn pm-btn--ghost" @click="batchDlg.open = false">Hủy bỏ</button>
+                <button class="pm-btn pm-btn--primary" :class="{ 'pm-btn--loading': batchDlg.loading }" @click="submitBatchUpdate">
+                  <span class="pm-spinner pm-spinner--white" v-if="batchDlg.loading"/>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Áp dụng thay đổi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         DRAWER: BIẾN THỂ
+    ═══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="pm-drawer-slide">
+        <div v-if="vr.open" class="pm-drawer-backdrop" @click.self="vr.open = false">
+          <div class="pm-drawer">
+            <div class="pm-drawer__header">
+              <div>
+                <div class="pm-drawer__eyebrow">Quản lý biến thể</div>
+                <h2 class="pm-drawer__title">{{ vr.productName }}</h2>
+              </div>
+              <button class="pm-drawer__close" @click="vr.open = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div class="pm-drawer__body">
+              <!-- Variant list -->
+              <div class="pm-drawer-section">
+                <div class="pm-drawer-section__title">Các biến thể hiện có</div>
+                <div class="pm-table-wrap" :class="{ 'pm-table-wrap--loading': vr.loading }">
+                  <div class="pm-loader-overlay" v-if="vr.loading"><div class="pm-loader-ring"/></div>
+                  <table class="pm-table">
+                    <thead>
+                      <tr>
+                        <th>Tên biến thể</th>
+                        <th style="width:110px">SKU</th>
+                        <th style="width:130px; text-align:right">Giá / Tồn</th>
+                        <th style="width:160px; text-align:center">Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-if="!vr.loading && vr.variants.length === 0">
+                        <td colspan="4" class="pm-empty"><div class="pm-empty__inner"><p>Chưa có biến thể</p></div></td>
+                      </tr>
+                      <tr v-for="v in vr.variants" :key="v.id" class="pm-row">
+                        <td><span class="pm-product-name" style="font-size:13px">{{ v.variantName }}</span></td>
+                        <td><span class="pm-sku-val" style="font-size:12px">{{ v.sku }}</span></td>
+                        <td style="text-align:right">
+                          <div class="pm-price" style="font-size:13px">{{ formatCurrency(v.price) }}</div>
+                          <div style="font-size:11px; color:var(--c-subtle); margin-top:2px">
+                            Tồn: <span :style="v.stockQuantity > 0 ? 'color:var(--c-green);font-weight:700' : 'color:var(--c-red);font-weight:700'">{{ v.stockQuantity }}</span>
+                          </div>
+                        </td>
+                        <td style="text-align:center">
+                          <div class="pm-action-group">
+                            <button class="pm-action-btn pm-action-btn--variant" @click="openSerialDialog(v)" style="font-size:11px; padding:5px 9px">
+                              Số Seri
+                            </button>
+                            <button class="pm-action-btn pm-action-btn--edit" @click="editVariant(v)">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                              Sửa
+                            </button>
+                            <button class="pm-action-btn pm-action-btn--delete" @click="deleteVariant(v.id)">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                              </svg>
+                              Xóa
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Variant form -->
+              <div class="pm-drawer-section pm-drawer-section--form">
+                <div class="pm-drawer-section__title" :class="vr.isEdit ? 'pm-drawer-section__title--edit' : 'pm-drawer-section__title--add'">
+                  {{ vr.isEdit ? 'Cập nhật biến thể' : 'Thêm biến thể mới' }}
+                </div>
+                <div class="pm-form pm-form--grid">
+                  <div class="pm-field">
+                    <label class="pm-field__label">Tên biến thể <span class="pm-required">*</span></label>
+                    <input v-model="vr.form.variantName" class="pm-input" placeholder="vd: Đỏ, 16GB…" />
+                  </div>
+                  <div class="pm-field">
+                    <label class="pm-field__label">SKU <span class="pm-required">*</span></label>
+                    <input v-model="vr.form.sku" class="pm-input" />
+                  </div>
+                  <div class="pm-field">
+                    <label class="pm-field__label">Giá (VND) <span class="pm-required">*</span></label>
+                    <input type="number" v-model="vr.form.price" class="pm-input" min="0" />
+                  </div>
+                  <div class="pm-field">
+                    <label class="pm-field__label">Tồn kho <span class="pm-field__hint-inline">(tự động bởi Seri)</span></label>
+                    <input type="number" v-model="vr.form.stockQuantity" class="pm-input" disabled />
+                  </div>
+                </div>
+
+                <!-- Dynamic attributes -->
+                <div class="pm-attr-section">
+                  <div class="pm-attr-header">
+                    <span class="pm-field__label">Dynamic Attributes</span>
+                    <button class="pm-btn pm-btn--outline pm-btn--xs" @click="addVariantAttr">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Thêm
+                    </button>
+                  </div>
+                  <div v-for="(attr, i) in vr.attrsList" :key="i" class="pm-attr-row">
+                    <input v-model="attr.key" class="pm-input" placeholder="Key (e.g. Color)" />
+                    <input v-model="attr.value" class="pm-input" placeholder="Value" />
+                    <button class="pm-icon-btn pm-icon-btn--red" @click="removeVariantAttr(i)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="pm-form-footer">
+                  <button v-if="vr.isEdit" class="pm-btn pm-btn--ghost pm-btn--sm" @click="resetVariantForm">Hủy</button>
+                  <button class="pm-btn pm-btn--primary pm-btn--sm" :class="{ 'pm-btn--loading': vr.saving }" @click="saveVariant">
+                    <span class="pm-spinner pm-spinner--white" v-if="vr.saving"/>
+                    <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    {{ vr.isEdit ? 'Lưu thay đổi' : 'Thêm biến thể' }}
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
-            <div class="col-12">
-              <el-form-item label="Upload ảnh mới">
-                <input type="file" multiple accept="image/*" class="form-control" @change="onPickFiles" />
-              </el-form-item>
+    <!-- ══════════════════════════════════════════════════════════════
+         DIALOG: SERIAL NUMBERS
+    ═══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="pm-dialog-fade">
+        <div v-if="serialDlg.open" class="pm-overlay" @click.self="serialDlg.open = false">
+          <div class="pm-dialog pm-dialog--lg">
+            <div class="pm-dialog__band pm-dialog__band--blue">
+              <div class="pm-band-circles"><span class="pm-band-c pm-band-c--1"/><span class="pm-band-c pm-band-c--2"/><span class="pm-band-c pm-band-c--3"/></div>
+              <div class="pm-dialog__icon-ring">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+                </svg>
+              </div>
             </div>
-          </el-form>
-        </el-tab-pane>
+            <div class="pm-dialog__body">
+              <span class="pm-dialog__badge pm-dialog__badge--blue">Quản lý Seri</span>
+              <h2 class="pm-dialog__title">{{ serialDlg.variantName }}</h2>
 
-        <!-- TAB 2: LỊCH SỬ THAO TÁC -->
-        <el-tab-pane label="Lịch sử thay đổi" name="history" v-if="dlg.isEdit">
-          <div class="history-container mt-3">
-            <div v-if="dlg.historyLoading" class="history-loading text-center py-5">
-               <el-icon class="is-loading" :size="30" color="#409eff"><Loading /></el-icon>
-               <div class="mt-2 text-muted">Đang tải dữ liệu lịch sử...</div>
+              <!-- Gen controls -->
+              <div class="pm-serial-controls">
+                <div class="pm-field" style="flex:0 0 160px">
+                  <label class="pm-field__label">Số lượng nhập kho</label>
+                  <input type="number" v-model="serialDlg.genQuantity" class="pm-input" min="1" max="500" />
+                </div>
+                <div style="padding-top:24px">
+                  <button class="pm-btn pm-btn--primary pm-btn--sm" :disabled="serialDlg.adding" @click="generateSerials(serialDlg.genQuantity)">
+                    <span class="pm-spinner pm-spinner--white" v-if="serialDlg.adding"/>
+                    <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"/></svg>
+                    Gen Serial tự động
+                  </button>
+                </div>
+              </div>
+
+              <!-- Serial list -->
+              <div class="pm-serial-label">Danh sách máy trong kho</div>
+              <div class="pm-table-wrap pm-table-wrap--serial" :class="{ 'pm-table-wrap--loading': serialDlg.loading }">
+                <div class="pm-loader-overlay" v-if="serialDlg.loading"><div class="pm-loader-ring"/></div>
+                <table class="pm-table">
+                  <thead>
+                    <tr>
+                      <th style="width:50px; text-align:center">#</th>
+                      <th>Số Seri / IMEI</th>
+                      <th style="width:120px; text-align:center">Trạng thái</th>
+                      <th style="width:90px; text-align:center">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-if="!serialDlg.loading && serialDlg.list.length === 0">
+                      <td colspan="4" class="pm-empty"><div class="pm-empty__inner"><p>Chưa có seri nào</p></div></td>
+                    </tr>
+                    <tr v-for="(s, idx) in serialDlg.list" :key="s.id" class="pm-row">
+                      <td style="text-align:center"><span class="pm-muted-num">{{ idx + 1 }}</span></td>
+                      <td><span class="pm-serial-num">{{ s.serialNumber }}</span></td>
+                      <td style="text-align:center">
+                        <span class="pm-tag" :class="s.status === 'IN_STOCK' ? 'pm-tag--green' : s.status === 'SOLD' ? 'pm-tag--gray' : 'pm-tag--red'">
+                          <span class="pm-tag__dot"></span>
+                          {{ s.status === 'IN_STOCK' ? 'Trong kho' : s.status }}
+                        </span>
+                      </td>
+                      <td style="text-align:center">
+                        <button class="pm-action-btn pm-action-btn--delete" :disabled="s.status !== 'IN_STOCK'" @click="deleteSerial(s.id)">Xóa</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pm-dialog__actions">
+                <button class="pm-btn pm-btn--ghost" @click="serialDlg.open = false">Đóng</button>
+              </div>
             </div>
-            
-            <el-empty v-else-if="dlg.history.length === 0" description="Chưa có bản ghi thay đổi nào" :image-size="80" />
-            
-            <el-timeline v-else class="custom-history-timeline">
-              <el-timeline-item
-                v-for="(log, index) in dlg.history"
-                :key="index"
-                :timestamp="formatDate(log.createdAt)" 
-                :type="getLogType(log.severity)"
-                placement="top"
-              >
-                <div class="history-log-item">
-                  <div class="log-item-header">
-                    <div class="log-item-user">
-                      <el-avatar :size="24" class="bg-primary-light me-2">
-                        {{ (log.username || 'S').charAt(0).toUpperCase() }}
-                      </el-avatar>
-                      <span class="user-name">{{ log.username || 'System' }}</span>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         DIALOG: THÊM / SỬA SẢN PHẨM
+    ═══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="pm-dialog-fade">
+        <div v-if="dlg.open" class="pm-overlay" @click.self="dlg.open = false">
+          <div class="pm-dialog pm-dialog--xl">
+            <div class="pm-dialog__band pm-dialog__band--blue">
+              <div class="pm-band-circles"><span class="pm-band-c pm-band-c--1"/><span class="pm-band-c pm-band-c--2"/><span class="pm-band-c pm-band-c--3"/></div>
+              <div class="pm-dialog__icon-ring">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="pm-dialog__body">
+              <span class="pm-dialog__badge pm-dialog__badge--blue">{{ dlg.isEdit ? 'Cập nhật' : 'Tạo mới' }}</span>
+              <h2 class="pm-dialog__title">{{ dlg.isEdit ? 'Thông tin sản phẩm' : 'Thêm sản phẩm mới' }}</h2>
+
+              <!-- Alert -->
+              <div class="pm-alert" v-if="dlg.alert">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {{ dlg.alert }}
+              </div>
+
+              <!-- Tab nav -->
+              <div class="pm-tab-nav">
+                <button class="pm-tab-item" :class="{ active: dlg.activeTab === 'info' }" @click="dlg.activeTab = 'info'">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Thông tin cơ bản
+                </button>
+                <button v-if="dlg.isEdit" class="pm-tab-item" :class="{ active: dlg.activeTab === 'history' }" @click="dlg.activeTab = 'history'">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Lịch sử thay đổi
+                </button>
+              </div>
+
+              <!-- TAB: Info -->
+              <div v-if="dlg.activeTab === 'info'" class="pm-tab-content">
+                <div class="pm-form pm-form--grid">
+                  <div class="pm-field">
+                    <label class="pm-field__label">Tên sản phẩm <span class="pm-required">*</span></label>
+                    <input v-model="dlg.form.name" class="pm-input" placeholder="Nhập tên sản phẩm" />
+                  </div>
+                  <div class="pm-field">
+                    <label class="pm-field__label">SKU chính <span class="pm-required">*</span></label>
+                    <input v-model="dlg.form.sku" class="pm-input" />
+                  </div>
+                  <div class="pm-field">
+                    <label class="pm-field__label">Danh mục</label>
+                    <select v-model="dlg.form.categoryIds" multiple class="pm-select pm-select--multi">
+                      <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+                    </select>
+                  </div>
+                  <div class="pm-field">
+                    <label class="pm-field__label">Thẻ chiến dịch</label>
+                    <select v-model="dlg.form.tagIds" multiple class="pm-select pm-select--multi">
+                      <option v-for="t in tags" :key="t.id" :value="t.id">{{ t.name }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Toggles -->
+                <div class="pm-toggle-row">
+                  <label class="pm-toggle-item">
+                    <span class="pm-toggle-label">Đánh dấu Mới</span>
+                    <label class="pm-switch">
+                      <input type="checkbox" v-model="dlg.form.isNew" />
+                      <span class="pm-switch__track"><span class="pm-switch__thumb"></span></span>
+                      <span class="pm-switch__label">{{ dlg.form.isNew ? 'Mới' : 'Thường' }}</span>
+                    </label>
+                  </label>
+                  <label class="pm-toggle-item">
+                    <span class="pm-toggle-label">Đánh dấu Lỗi (Ẩn)</span>
+                    <label class="pm-switch pm-switch--red">
+                      <input type="checkbox" v-model="dlg.form.isFaulty" />
+                      <span class="pm-switch__track"><span class="pm-switch__thumb"></span></span>
+                      <span class="pm-switch__label">{{ dlg.form.isFaulty ? 'Lỗi' : 'Tốt' }}</span>
+                    </label>
+                  </label>
+                </div>
+
+                <div class="pm-field" style="margin-top:14px">
+                  <label class="pm-field__label">Mô tả</label>
+                  <textarea v-model="dlg.form.description" class="pm-textarea" rows="3" />
+                </div>
+
+                <!-- Attributes -->
+                <div class="pm-attr-section" style="margin-top:14px">
+                  <div class="pm-attr-header">
+                    <span class="pm-field__label">Thông số kỹ thuật</span>
+                    <button class="pm-btn pm-btn--outline pm-btn--xs" @click="addAttribute">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Thêm
+                    </button>
+                  </div>
+                  <div v-for="(attr, i) in dlg.attributesList" :key="i" class="pm-attr-row">
+                    <input v-model="attr.name" class="pm-input" placeholder="Label (e.g. RAM)" />
+                    <input v-model="attr.value" class="pm-input" placeholder="Value" />
+                    <button class="pm-icon-btn pm-icon-btn--red" @click="removeAttribute(i)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Existing images -->
+                <div v-if="dlg.isEdit && dlg.existingImages.length > 0" style="margin-top:14px">
+                  <label class="pm-field__label" style="display:block; margin-bottom:10px">Thư viện ảnh</label>
+                  <div class="pm-image-gallery">
+                    <div v-for="img in dlg.existingImages" :key="img.id" class="pm-image-item">
+                      <img :src="fixImageUrl(img.url)" class="pm-gallery-img" :class="{ 'pm-gallery-img--primary': img.isPrimary }" />
+                      <div v-if="img.isPrimary" class="pm-gallery-badge">MAIN</div>
+                      <div class="pm-gallery-actions">
+                        <button v-if="!img.isPrimary" class="pm-gallery-btn pm-gallery-btn--star" @click="setPrimaryImage(img.id)">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </button>
+                        <button class="pm-gallery-btn pm-gallery-btn--del" @click="markImageForDelete(img.id)">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
                     </div>
-                    <el-tag 
-                      size="small" 
-                      :type="getLogType(log.severity)" 
-                      effect="light" 
-                      round
-                      class="log-action-tag"
-                    >
-                      {{ log.actionType || 'UPDATE' }}
-                    </el-tag>
-                  </div>
-                  
-                  <div class="log-item-content mt-2">
-                    <p class="log-desc">{{ log.description }}</p>
-                  </div>
-
-                  <div class="log-item-footer mt-2 d-flex align-items-center text-muted small">
-                    <span class="ip-address"><el-icon class="me-1"><Monitor /></el-icon> IP: {{ log.ipAddress || 'N/A' }}</span>
                   </div>
                 </div>
-              </el-timeline-item>
-            </el-timeline>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
 
-      <template #footer>
-        <el-button @click="dlg.open = false">Hủy</el-button>
-        <el-button v-if="dlg.activeTab === 'info'" type="primary" :loading="dlg.loading" @click="submitForm">
-          {{ dlg.isEdit ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm' }}
-        </el-button>
-      </template>
-    </el-dialog>
+                <!-- File upload -->
+                <div class="pm-field" style="margin-top:14px">
+                  <label class="pm-field__label">Upload ảnh mới</label>
+                  <label class="pm-file-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    {{ dlg.form.galleryImages?.length ? `${dlg.form.galleryImages.length} file đã chọn` : 'Chọn ảnh (nhiều file)…' }}
+                    <input type="file" multiple accept="image/*" style="display:none" @change="onPickFiles" />
+                  </label>
+                </div>
+              </div>
+
+              <!-- TAB: History -->
+              <div v-else-if="dlg.activeTab === 'history'" class="pm-tab-content">
+                <div v-if="dlg.historyLoading" class="pm-history-loading">
+                  <div class="pm-loader-ring pm-loader-ring--center"/>
+                  <span>Đang tải lịch sử…</span>
+                </div>
+                <div v-else-if="dlg.history.length === 0" class="pm-empty" style="padding: 40px 20px">
+                  <div class="pm-empty__inner">
+                    <div class="pm-empty__icon">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <p>Chưa có bản ghi thay đổi nào</p>
+                  </div>
+                </div>
+                <div v-else class="pm-timeline">
+                  <div v-for="(log, i) in dlg.history" :key="i" class="pm-timeline-item">
+                    <div class="pm-timeline-dot" :class="'pm-timeline-dot--' + getLogType(log.severity)"></div>
+                    <div class="pm-timeline-content">
+                      <div class="pm-timeline-header">
+                        <div class="pm-timeline-user">
+                          <div class="pm-avatar">{{ (log.username || 'S').charAt(0).toUpperCase() }}</div>
+                          <span class="pm-timeline-username">{{ log.username || 'System' }}</span>
+                        </div>
+                        <div class="pm-timeline-meta">
+                          <span class="pm-tag pm-tag--log" :class="'pm-tag--log-' + getLogType(log.severity)">{{ log.actionType || 'UPDATE' }}</span>
+                          <span class="pm-timeline-time">{{ formatDate(log.createdAt) }}</span>
+                        </div>
+                      </div>
+                      <p class="pm-timeline-desc">{{ log.description }}</p>
+                      <div class="pm-timeline-ip">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        IP: {{ log.ipAddress || 'N/A' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dialog footer -->
+              <div class="pm-dialog__actions">
+                <button class="pm-btn pm-btn--ghost" @click="dlg.open = false">Hủy bỏ</button>
+                <button v-if="dlg.activeTab === 'info'" class="pm-btn pm-btn--primary" :class="{ 'pm-btn--loading': dlg.loading }" @click="submitForm">
+                  <span class="pm-spinner pm-spinner--white" v-if="dlg.loading"/>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  {{ dlg.isEdit ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, computed } from "vue";
 import { categoriesApi } from "../../api/categories.api";
 import { productsApi } from "../../api/products.api";
 import { toast } from "../../ui/toast";
@@ -549,6 +950,49 @@ const isBatchDeleting = ref(false);
 const dateRange = ref([]);
 const filterIsNew = ref(null);
 const filterIsFaulty = ref(null);
+
+// --- Delete confirm state ---
+const deleteDlg = reactive({ open: false, row: null, name: '', isFaulty: false });
+const batchDeleteDlg = ref(false);
+
+const activeFilterCount = computed(() =>
+  [keyword.value, categoryIds.value?.length, filterTagId.value, inStockOnly.value || null, dateRange.value?.length, filterIsNew.value, filterIsFaulty.value]
+    .filter(v => v !== null && v !== undefined && v !== '' && v !== false && v !== 0).length
+);
+
+const pageNumbers = computed(() => {
+  const total = Math.ceil(totalElements.value / 20);
+  const p = page.value + 1;
+  const range = [];
+  for (let i = Math.max(1, p - 2); i <= Math.min(total, p + 2); i++) range.push(i);
+  return range;
+});
+
+function clearFilters() {
+  keyword.value = ''; categoryIds.value = []; filterTagId.value = null;
+  sortBy.value = 'newest_arrival'; inStockOnly.value = false;
+  dateRange.value = []; filterIsNew.value = null; filterIsFaulty.value = null;
+  onFilter();
+}
+
+function toggleSelectAll(e) {
+  if (e.target.checked) selectedIds.value = rows.value.map(r => r.id);
+  else selectedIds.value = [];
+}
+function toggleRowSelect(id) {
+  const i = selectedIds.value.indexOf(id);
+  if (i >= 0) selectedIds.value.splice(i, 1);
+  else selectedIds.value.push(id);
+}
+
+function openDeleteConfirm(row) {
+  deleteDlg.row = row; deleteDlg.name = row.name; deleteDlg.isFaulty = row.isFaulty; deleteDlg.open = true;
+}
+async function confirmDelete() {
+  await onDelete(deleteDlg.row);
+  deleteDlg.open = false;
+}
+function confirmBatchDelete() { batchDeleteDlg.value = true; }
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -620,10 +1064,6 @@ async function load() {
 function onFilter() { page.value = 0; load(); }
 function onPageChange(val) { page.value = val - 1; load(); }
 
-function handleSelectionChange(val) {
-  selectedIds.value = val.map(item => item.id);
-}
-
 async function handleBatchDelete() {
   if (selectedIds.value.length === 0) return;
   isBatchDeleting.value = true;
@@ -631,6 +1071,7 @@ async function handleBatchDelete() {
     await productsApi.batchDelete(selectedIds.value);
     toast(`Đã chuyển ${selectedIds.value.length} sản phẩm vào thùng rác`, "success");
     selectedIds.value = []; 
+    batchDeleteDlg.value = false;
     await load(); 
   } catch (e) {
     toast("Lỗi khi xóa hàng loạt", "error");
@@ -749,7 +1190,6 @@ async function deleteVariant(id) {
   catch { toast("Thất bại", "error"); } 
 }
 
-// LOGIC QUẢN LÝ SỐ SERI
 async function openSerialDialog(row) {
   serialDlg.variantId = row.id;
   serialDlg.variantName = row.variantName;
@@ -821,7 +1261,6 @@ async function generateSerials(quantity = 1) {
   }
 }
 
-// --- Product Actions ---
 async function onRestore(id) { 
   try { await axios.put(`${BASE_URL_API}/${id}/restore`); toast("Khôi phục thành công!", "success"); load(); } 
   catch { toast("Khôi phục thất bại", "error"); } 
@@ -849,7 +1288,6 @@ async function setPrimaryImage(imgId) {
   } catch { toast("Thất bại", "error"); } 
 }
 
-// --- Dialog Management ---
 const dlg = reactive({
   open: false, isEdit: false, loading: false, alert: "", editId: null, attributesList: [], existingImages: [], idsToDelete: [], 
   activeTab: 'info', history: [], historyLoading: false, 
@@ -923,7 +1361,6 @@ async function submitForm() {
   dlg.loading = true;
   try {
     const formData = new FormData();
-    
     formData.append("name", String(dlg.form.name || "")); 
     formData.append("sku", String(dlg.form.sku || "")); 
     formData.append("description", String(dlg.form.description || "")); 
@@ -940,7 +1377,6 @@ async function submitForm() {
     if (Array.isArray(dlg.idsToDelete) && dlg.idsToDelete.length > 0) {
       dlg.idsToDelete.forEach(id => formData.append("idsToDelete", id));
     }
-
     if (dlg.form.galleryImages && dlg.form.galleryImages.length > 0) {
       for (let i = 0; i < dlg.form.galleryImages.length; i++) {
          let file = dlg.form.galleryImages[i];
@@ -949,7 +1385,6 @@ async function submitForm() {
          }
       }
     }
-
     const validAttrs = dlg.attributesList.filter(a => a.name && a.name.trim() !== "" && a.value && a.value.trim() !== "");
     if (validAttrs.length > 0) {
       formData.append("attributes", JSON.stringify(validAttrs));
@@ -981,103 +1416,613 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.text-truncate-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ─────────────────────────────────────────────────────────────────
+   BIẾN MÀU ĐÃ ĐƯỢC HARDCODE TRỰC TIẾP (không dùng var())
+   bg:#f6f7f9  card:#ffffff  border:#e4e7ec  border-light:#f0f2f5
+   text:#0f1117  muted:#6b7280  subtle:#9ca3af
+   blue:#2563eb  blue-bg:#eff6ff  blue-border:#bfdbfe
+   green:#16a34a  green-bg:#f0fdf4  green-border:#bbf7d0
+   red:#dc2626  red-bg:#fff1f2  red-border:#fecdd3
+   orange:#d97706  orange-bg:#fffbeb  orange-border:#fde68a
+   purple:#7c3aed  purple-bg:#f5f3ff  purple-border:#ddd6fe
+   radius:12px  radius-sm:8px
+   shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04)
+   shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04)
+   shadow-lg: 0 24px 64px rgba(0,0,0,.13), 0 8px 24px rgba(0,0,0,.06)
+───────────────────────────────────────────────────────────────── */
+
+.pm-page {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #f6f7f9;
+  min-height: 100vh;
+  padding: 32px 40px 60px;
+  color: #0f1117;
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Header ────────────────────────────────────────────────────── */
+.pm-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 20px; margin-bottom: 22px; flex-wrap: wrap;
+}
+.pm-header__eyebrow {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #6b7280; margin-bottom: 6px;
+}
+.pm-header__title { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 4px; }
+.pm-header__sub { font-size: 13px; color: #6b7280; margin: 0; font-weight: 500; }
+.pm-header__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 4px; flex-wrap: wrap; }
+
+/* View toggle */
+.pm-view-toggle {
+  display: flex; background: #f6f7f9; border: 1px solid #e4e7ec;
+  border-radius: 8px; padding: 3px; gap: 2px;
+}
+.pm-view-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border: none; background: transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px; font-weight: 700;
+  color: #6b7280; cursor: pointer; border-radius: 6px; transition: all 0.15s;
+}
+.pm-view-btn:hover { color: #0f1117; background: #ffffff; }
+.pm-view-btn.active {
+  background: #0f1117; color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.pm-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; font-size: 13.5px; font-weight: 700;
+  border-radius: 8px; border: none; cursor: pointer;
+  transition: all 0.18s ease; font-family: 'Plus Jakarta Sans', sans-serif; white-space: nowrap;
+}
+.pm-btn--xs { padding: 5px 10px; font-size: 12px; }
+.pm-btn--sm { padding: 7px 14px; font-size: 13px; }
+.pm-btn--outline { background: #ffffff; border: 1.5px solid #e4e7ec; color: #0f1117; }
+.pm-btn--outline:hover:not(:disabled) { border-color: #9ca3af; background: #f9fafb; }
+.pm-btn--outline:disabled { opacity: 0.5; cursor: not-allowed; }
+.pm-btn--primary { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+.pm-btn--primary:hover:not(:disabled) { background: linear-gradient(135deg, #1e40af, #1d4ed8); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(37,99,235,0.35); }
+.pm-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.pm-btn--danger { background: linear-gradient(135deg, #b91c1c, #dc2626); color: #fff; box-shadow: 0 4px 12px rgba(220,38,38,0.3); }
+.pm-btn--danger:hover { background: linear-gradient(135deg, #991b1b, #b91c1c); transform: translateY(-1px); }
+.pm-btn--ghost { background: transparent; border: 1.5px solid #e4e7ec; color: #6b7280; padding: 10px 20px; border-radius: 8px; }
+.pm-btn--ghost:hover { background: #f0f2f5; color: #0f1117; }
+.pm-btn--restore { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #16a34a; font-weight: 700; border-radius: 8px; }
+.pm-btn--restore:hover { background: #16a34a; color: #fff; border-color: #16a34a; }
+.pm-btn--loading { opacity: 0.8; pointer-events: none; transform: none !important; }
+@keyframes spin-r { to { transform: rotate(360deg); } }
+.pm-spin { animation: spin-r 0.7s linear infinite; }
+
+/* ── Filter Panel ──────────────────────────────────────────────── */
+.pm-filter-panel {
+  background: #ffffff; border: 1px solid #e4e7ec;
+  border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  margin-bottom: 16px;
+}
+.pm-filter-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; border-bottom: 1px solid #f0f2f5;
+}
+.pm-filter-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700; color: #0f1117;
+}
+.pm-filter-badge {
+  background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+}
+.pm-filter-clear {
+  font-size: 12px; color: #9ca3af; background: none; border: none;
+  cursor: pointer; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600; transition: color 0.15s;
+}
+.pm-filter-clear:hover { color: #dc2626; }
+.pm-filter-fields {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.8fr 1.2fr 1.4fr 0.8fr 0.8fr auto auto;
+  align-items: end;
+}
+.pm-filter-field { padding: 12px 14px; border-right: 1px solid #f0f2f5; }
+.pm-filter-field:last-child { border-right: none; }
+.pm-filter-field--check { display: flex; align-items: center; }
+.pm-filter-field--action { display: flex; align-items: center; padding: 12px 16px; }
+.pm-field-label {
+  display: block; font-size: 10.5px; font-weight: 700; color: #9ca3af;
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+}
+.pm-search-wrap { position: relative; display: flex; align-items: center; }
+.pm-search-icon { position: absolute; left: 10px; color: #9ca3af; pointer-events: none; }
+.pm-search-input {
+  width: 100%; padding: 8px 30px 8px 32px; font-size: 13px;
+  font-family: 'Plus Jakarta Sans', sans-serif; border: 1.5px solid #e4e7ec;
+  border-radius: 8px; background: #ffffff; color: #0f1117; outline: none;
+  transition: border-color 0.15s;
+}
+.pm-search-input:focus { border-color: #2563eb; }
+.pm-search-clear {
+  position: absolute; right: 8px; background: none; border: none; cursor: pointer;
+  color: #9ca3af; padding: 2px; display: flex; align-items: center;
+}
+.pm-search-clear:hover { color: #0f1117; }
+.pm-select {
+  width: 100%; padding: 8px 10px; font-size: 13px;
+  font-family: 'Plus Jakarta Sans', sans-serif; border: 1.5px solid #e4e7ec;
+  border-radius: 8px; background: #ffffff; color: #0f1117;
+  outline: none; cursor: pointer; transition: border-color 0.15s;
+}
+.pm-select:focus { border-color: #2563eb; }
+.pm-select--multi { min-height: 36px; }
+.pm-date-range { display: flex; align-items: center; gap: 6px; }
+.pm-date-input {
+  flex: 1; padding: 7px 8px; font-size: 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif; border: 1.5px solid #e4e7ec;
+  border-radius: 8px; background: #ffffff; color: #0f1117;
+  outline: none; transition: border-color 0.15s;
+}
+.pm-date-input:focus { border-color: #2563eb; }
+.pm-date-sep { font-size: 11px; color: #9ca3af; font-weight: 700; }
+.pm-checkbox { width: 15px; height: 15px; accent-color: #2563eb; cursor: pointer; }
+.pm-checkbox-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: #0f1117; cursor: pointer;
+}
+.pm-checkbox-custom { display: none; }
+
+/* ── Batch bar ─────────────────────────────────────────────────── */
+.pm-batch-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: #eff6ff;
+  border: 1px solid #bfdbfe; border-radius: 12px;
+  margin-bottom: 14px; gap: 12px; flex-wrap: wrap;
+}
+.pm-batch-bar__left { display: flex; align-items: center; gap: 10px; }
+.pm-batch-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #2563eb; box-shadow: 0 0 6px #2563eb;
+  animation: blink 1.2s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pm-batch-count { font-size: 13.5px; font-weight: 600; color: #2563eb; }
+.pm-batch-count strong { font-weight: 800; }
+.pm-batch-bar__actions { display: flex; gap: 8px; }
+
+/* ── Card ──────────────────────────────────────────────────────── */
+.pm-card {
+  background: #ffffff; border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   overflow: hidden;
 }
-.kicker { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-.title { font-weight: 800; font-size: 20px; color: #1e293b; }
-.muted { color: #64748b; font-size: 13px; margin-top: 2px; }
+.pm-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 20px; border-bottom: 1px solid #f0f2f5; background: #fafbfc;
+}
+.pm-toolbar__info {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 700; color: #6b7280;
+}
+.pm-count { display: flex; align-items: baseline; gap: 4px; }
+.pm-count__num { font-size: 16px; font-weight: 800; color: #0f1117; }
+.pm-count__label { font-size: 12px; color: #9ca3af; font-weight: 600; }
 
-/* === PREMIUM HISTORY UI === */
-.history-container {
-  max-height: 500px;
-  overflow-y: auto;
-  padding: 10px;
+/* ── Table ─────────────────────────────────────────────────────── */
+.pm-table-wrap { overflow-x: auto; position: relative; min-height: 120px; }
+.pm-table-wrap--loading { pointer-events: none; }
+.pm-table-wrap--serial { max-height: 360px; overflow-y: auto; }
+.pm-loader-overlay {
+  position: absolute; inset: 0; background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10;
+}
+.pm-loader-ring {
+  width: 36px; height: 36px; border: 3px solid #e4e7ec;
+  border-top-color: #2563eb; border-radius: 50%; animation: spin-r 0.7s linear infinite;
+}
+.pm-loader-ring--center { margin: 0 auto; }
+.pm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pm-table thead tr { border-bottom: 2px solid #f0f2f5; }
+.pm-table th {
+  padding: 11px 14px; text-align: left; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af;
+  background: #fafbfc; white-space: nowrap;
+}
+.pm-table td { padding: 12px 14px; vertical-align: middle; border-bottom: 1px solid #f0f2f5; }
+.pm-row { transition: background 0.12s; }
+.pm-row:hover { background: #fafbfc; }
+.pm-row:last-child td { border-bottom: none; }
+.pm-row--selected { background: #eff6ff !important; }
+.pm-row--faulty { opacity: 0.75; }
+
+/* Cells */
+.pm-id {
+  font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600;
+  color: #2563eb; background: #eff6ff; padding: 2px 7px; border-radius: 5px;
+}
+.pm-img-wrap { display: flex; justify-content: center; }
+.pm-img { width: 68px; height: 50px; border-radius: 8px; object-fit: cover; border: 1px solid #f0f2f5; }
+.pm-img-empty {
+  width: 68px; height: 50px; border-radius: 8px; background: #f0f2f5;
+  border: 1px dashed #e4e7ec; display: flex; align-items: center;
+  justify-content: center; color: #9ca3af;
+}
+.pm-product-info { display: flex; flex-direction: column; gap: 4px; }
+.pm-product-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pm-product-name { font-size: 13.5px; font-weight: 800; color: #2563eb; }
+.pm-badge {
+  font-size: 10px; font-weight: 800; padding: 2px 7px;
+  border-radius: 999px; letter-spacing: 0.05em; border: 1px solid transparent;
+}
+.pm-badge--green { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.pm-badge--red  { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+.pm-product-sku { display: flex; align-items: center; gap: 5px; }
+.pm-sku-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+.pm-sku-val { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6b7280; font-weight: 500; }
+.pm-tag-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.pm-product-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.pm-price { font-size: 13px; font-weight: 800; color: #dc2626; font-family: 'JetBrains Mono', monospace; }
+.pm-stock-tag {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+  font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent;
+}
+.pm-stock-tag--in  { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.pm-stock-tag--out { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+
+/* Status tags */
+.pm-tag {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 700;
+  white-space: nowrap; border: 1px solid transparent;
+}
+.pm-tag__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.pm-tag--green { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.pm-tag--green .pm-tag__dot { background: #16a34a; }
+.pm-tag--red   { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+.pm-tag--red   .pm-tag__dot { background: #dc2626; }
+.pm-tag--orange { background: #fffbeb; color: #d97706; border-color: #fde68a; font-size: 10.5px; padding: 2px 7px; }
+.pm-tag--gray  { background: #f3f4f6; color: #6b7280; border-color: #e4e7ec; }
+.pm-tag--gray  .pm-tag__dot { background: #9ca3af; }
+
+.pm-desc {
+  display: block; font-size: 12.5px; color: #6b7280; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  max-width: 220px; line-height: 1.5;
+}
+.pm-date { font-size: 12px; color: #6b7280; white-space: nowrap; font-weight: 500; }
+.pm-muted-num { font-size: 12px; color: #9ca3af; font-family: 'JetBrains Mono', monospace; }
+.pm-serial-num { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 500; color: #0f1117; }
+
+/* Switch */
+.pm-switch-wrap { display: flex; justify-content: center; }
+.pm-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.pm-switch input { display: none; }
+.pm-switch__track {
+  width: 40px; height: 22px; border-radius: 999px; background: #e5e7eb;
+  position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.pm-switch input:checked + .pm-switch__track { background: #16a34a; }
+.pm-switch--red input:checked + .pm-switch__track { background: #dc2626; }
+.pm-switch__thumb {
+  position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+  border-radius: 50%; background: white; transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.pm-switch input:checked + .pm-switch__track .pm-switch__thumb { transform: translateX(18px); }
+.pm-switch__label { font-size: 11.5px; font-weight: 700; color: #6b7280; min-width: 26px; }
+
+/* Action buttons */
+.pm-dropdown-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pm-action-group { display: flex; gap: 5px; justify-content: center; }
+.pm-action-btn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px;
+  font-size: 11.5px; font-weight: 700; border: 1.5px solid transparent;
+  border-radius: 8px; cursor: pointer; transition: all 0.18s ease;
+  font-family: 'Plus Jakarta Sans', sans-serif; white-space: nowrap;
+}
+.pm-action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+.pm-action-btn--variant  { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; width: 100%; justify-content: center; }
+.pm-action-btn--variant:hover  { background: #7c3aed; color: white; border-color: #7c3aed; }
+.pm-action-btn--edit     { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.pm-action-btn--edit:hover     { background: #2563eb; color: white; border-color: #2563eb; transform: translateY(-1px); }
+.pm-action-btn--delete   { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+.pm-action-btn--delete:hover:not(:disabled) { background: #dc2626; color: white; border-color: #dc2626; transform: translateY(-1px); }
+
+/* Empty */
+.pm-empty { text-align: center; padding: 56px 20px !important; }
+.pm-empty__inner { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pm-empty__icon {
+  width: 52px; height: 52px; border-radius: 50%; background: #f0f2f5;
+  display: flex; align-items: center; justify-content: center; color: #9ca3af;
+}
+.pm-empty__inner p { color: #6b7280; font-size: 14px; margin: 0; font-weight: 500; }
+
+/* Pagination */
+.pm-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-top: 1px solid #f0f2f5; background: #fafbfc;
+}
+.pm-page-info { font-size: 12.5px; color: #9ca3af; font-weight: 600; }
+.pm-page-btns { display: flex; align-items: center; gap: 4px; }
+.pm-page-btn {
+  min-width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid #e4e7ec; border-radius: 8px; background: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700;
+  color: #0f1117; cursor: pointer; transition: all 0.15s; padding: 0 6px;
+}
+.pm-page-btn:hover:not(:disabled) { border-color: #2563eb; color: #2563eb; }
+.pm-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pm-page-btn.active { background: #0f1117; border-color: #0f1117; color: white; }
+
+/* ── Dialog ────────────────────────────────────────────────────── */
+.pm-overlay {
+  position: fixed; inset: 0; background: rgba(10,12,20,0.28);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+}
+.pm-dialog {
+  background: #fff; border-radius: 20px; width: 100%; max-width: 480px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.13), 0 8px 24px rgba(0,0,0,0.06);
+  overflow: hidden; max-height: 90vh; overflow-y: auto;
+}
+.pm-dialog--sm { max-width: 420px; }
+.pm-dialog--lg { max-width: 600px; }
+.pm-dialog--xl { max-width: 800px; }
+
+/* Band */
+.pm-dialog__band {
+  position: relative; height: 110px; display: flex;
+  align-items: center; justify-content: center; overflow: hidden;
+}
+.pm-dialog__band--blue { background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #60a5fa 100%); }
+.pm-dialog__band--red  { background: linear-gradient(135deg, #b91c1c 0%, #dc2626 60%, #f87171 100%); }
+.pm-band-circles { position: absolute; inset: 0; pointer-events: none; }
+.pm-band-c { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.1); }
+.pm-band-c--1 { width: 130px; height: 130px; top: -40px; right: -25px; }
+.pm-band-c--2 { width: 70px;  height: 70px;  bottom: -15px; left: 20px; }
+.pm-band-c--3 { width: 45px;  height: 45px;  top: 12px; left: 48%; background: rgba(255,255,255,0.07); }
+.pm-dialog__icon-ring {
+  position: relative; z-index: 1; width: 60px; height: 60px;
+  background: rgba(255,255,255,0.18); border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: #fff; backdrop-filter: blur(4px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.pm-dialog__body { padding: 26px 30px 28px; display: flex; flex-direction: column; gap: 14px; }
+.pm-dialog__badge {
+  display: inline-flex; align-self: flex-start;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 999px;
+}
+.pm-dialog__badge--blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.pm-dialog__badge--red  { background: #fff1f2; color: #dc2626; border: 1px solid #fecdd3; }
+.pm-dialog__title { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; margin: 0; line-height: 1.2; }
+.pm-dialog__desc { font-size: 14px; color: #6b7280; line-height: 1.65; margin: 0; }
+.pm-dialog__hi--red {
+  font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  color: #dc2626; background: #fff1f2; padding: 1px 6px; border-radius: 5px;
+}
+.pm-dialog__notice {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  border-radius: 8px; font-size: 12.5px; font-weight: 600; line-height: 1.4;
+}
+.pm-dialog__notice--red  { background: #fff1f2; color: #b91c1c; border: 1px solid #fecdd3; }
+.pm-dialog__notice--blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.pm-dialog__actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px; }
+
+/* Alert */
+.pm-alert {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  background: #fff1f2; border: 1px solid #fecdd3;
+  border-radius: 8px; font-size: 13px; font-weight: 600; color: #dc2626;
+}
+
+/* Tab nav */
+.pm-tab-nav { display: flex; gap: 3px; border-bottom: 1px solid #f0f2f5; padding: 0; margin-bottom: 16px; }
+.pm-tab-item {
+  display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px;
+  border: none; border-bottom: 2.5px solid transparent; background: transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700;
+  color: #6b7280; cursor: pointer; transition: all 0.15s; white-space: nowrap; margin-bottom: -1px;
+}
+.pm-tab-item:hover { color: #0f1117; }
+.pm-tab-item.active { color: #2563eb; border-bottom-color: #2563eb; }
+.pm-tab-content { overflow-y: auto; max-height: 480px; }
+
+/* Form */
+.pm-form { display: flex; flex-direction: column; gap: 14px; }
+.pm-form--grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pm-field { display: flex; flex-direction: column; gap: 6px; }
+.pm-field__label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #0f1117; }
+.pm-field__hint-inline { font-size: 10px; font-weight: 500; color: #9ca3af; font-style: italic; text-transform: none; letter-spacing: 0; }
+.pm-required { color: #dc2626; margin-left: 2px; }
+.pm-input, .pm-textarea {
+  width: 100%; padding: 9px 12px; font-size: 13.5px;
+  font-family: 'Plus Jakarta Sans', sans-serif; border: 1.5px solid #e4e7ec;
+  border-radius: 8px; color: #0f1117; background: #fafbfc;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pm-input:focus, .pm-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
   background: #fff;
-  border-radius: 8px;
+}
+.pm-input:disabled { background: #f0f2f5; color: #9ca3af; cursor: not-allowed; }
+.pm-textarea { resize: vertical; line-height: 1.5; }
+
+/* Toggle row */
+.pm-toggle-row { display: flex; gap: 20px; margin-top: 4px; flex-wrap: wrap; }
+.pm-toggle-item { display: flex; flex-direction: column; gap: 8px; }
+.pm-toggle-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #0f1117; }
+
+/* Attributes */
+.pm-attr-section { display: flex; flex-direction: column; gap: 8px; }
+.pm-attr-header { display: flex; align-items: center; justify-content: space-between; }
+.pm-attr-row { display: flex; gap: 8px; align-items: center; }
+.pm-icon-btn {
+  width: 32px; height: 32px; display: inline-flex; align-items: center;
+  justify-content: center; border: none; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.pm-icon-btn--red { background: #fff1f2; color: #dc2626; }
+.pm-icon-btn--red:hover { background: #dc2626; color: white; }
+
+/* Image gallery */
+.pm-image-gallery {
+  display: flex; gap: 10px; flex-wrap: wrap; padding: 14px;
+  background: #f6f7f9; border-radius: 12px; border: 1px solid #e4e7ec;
+}
+.pm-image-item { position: relative; }
+.pm-gallery-img { width: 96px; height: 96px; border-radius: 8px; object-fit: cover; border: 2px solid #e4e7ec; display: block; }
+.pm-gallery-img--primary { border-color: #16a34a; }
+.pm-gallery-badge {
+  position: absolute; top: 0; left: 0; background: #16a34a; color: white;
+  font-size: 9px; font-weight: 800; padding: 2px 6px;
+  border-radius: 8px 0 8px 0; letter-spacing: 0.05em;
+}
+.pm-gallery-actions { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
+.pm-gallery-btn {
+  width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #e4e7ec;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;
+}
+.pm-gallery-btn--star { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.pm-gallery-btn--star:hover { background: #d97706; color: white; border-color: #d97706; }
+.pm-gallery-btn--del  { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+.pm-gallery-btn--del:hover  { background: #dc2626; color: white; border-color: #dc2626; }
+
+/* File upload */
+.pm-file-label {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px;
+  border: 1.5px dashed #e4e7ec; border-radius: 8px;
+  background: #fafbfc; font-size: 13px; font-weight: 600; color: #6b7280;
+  cursor: pointer; transition: all 0.15s; width: 100%;
+}
+.pm-file-label:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+
+/* Serial controls */
+.pm-serial-controls { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.pm-serial-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: #9ca3af; margin-bottom: 8px;
 }
 
-.custom-history-timeline {
-  margin-left: 10px;
-  padding-top: 15px;
+/* Form footer */
+.pm-form-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+/* History timeline */
+.pm-history-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: #6b7280; font-size: 13px; }
+.pm-timeline { display: flex; flex-direction: column; gap: 0; padding: 4px 0; }
+.pm-timeline-item { display: flex; gap: 14px; padding-bottom: 20px; position: relative; }
+.pm-timeline-item::before { content: ''; position: absolute; left: 6px; top: 22px; bottom: 0; width: 1px; background: #f0f2f5; }
+.pm-timeline-item:last-child::before { display: none; }
+.pm-timeline-dot {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  margin-top: 4px; border: 2px solid white; box-shadow: 0 0 0 1px #e4e7ec;
+}
+.pm-timeline-dot--primary { background: #2563eb; }
+.pm-timeline-dot--warning  { background: #d97706; }
+.pm-timeline-dot--danger   { background: #dc2626; }
+.pm-timeline-content {
+  flex: 1; background: #ffffff; border: 1px solid #e4e7ec;
+  border-radius: 12px; padding: 14px 16px; transition: all 0.15s;
+}
+.pm-timeline-content:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+.pm-timeline-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.pm-timeline-user { display: flex; align-items: center; gap: 8px; }
+.pm-avatar {
+  width: 26px; height: 26px; border-radius: 8px; background: #eff6ff;
+  color: #2563eb; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0;
+}
+.pm-timeline-username { font-size: 13.5px; font-weight: 700; color: #0f1117; }
+.pm-timeline-meta { display: flex; align-items: center; gap: 8px; }
+.pm-timeline-time { font-size: 11px; font-weight: 600; color: #9ca3af; font-family: 'JetBrains Mono', monospace; }
+.pm-tag--log { font-weight: 800; font-size: 10.5px; padding: 2px 8px; border-radius: 999px; }
+.pm-tag--log-primary { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.pm-tag--log-warning  { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.pm-tag--log-danger   { background: #fff1f2; color: #dc2626; border: 1px solid #fecdd3; }
+.pm-timeline-desc { margin: 8px 0 0; color: #4a5568; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+.pm-timeline-ip {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
+  padding: 3px 10px; background: #f6f7f9; border: 1px solid #f0f2f5;
+  border-radius: 6px; font-size: 11px; color: #9ca3af; font-weight: 600;
 }
 
-.history-log-item {
-  background: #ffffff;
-  border: 1px solid #edf2f7;
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+/* ── Drawer ────────────────────────────────────────────────────── */
+.pm-drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(10,12,20,0.22);
+  z-index: 999; display: flex; justify-content: flex-end;
 }
-
-.history-log-item:hover {
-  border-color: #cbd5e0;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  transform: translateX(4px);
+.pm-drawer {
+  width: 58%; max-width: 860px; background: #ffffff;
+  height: 100%; display: flex; flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.12); border-left: 1px solid #e4e7ec;
 }
-
-.log-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.pm-drawer__header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 22px 28px 20px; border-bottom: 1px solid #e4e7ec;
+  flex-shrink: 0; background: #fafbfc;
 }
-
-.log-item-user {
-  display: flex;
-  align-items: center;
+.pm-drawer__eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; margin-bottom: 4px; }
+.pm-drawer__title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.pm-drawer__close {
+  width: 32px; height: 32px; border: 1.5px solid #e4e7ec; border-radius: 8px;
+  background: #ffffff; color: #6b7280; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;
 }
+.pm-drawer__close:hover { border-color: #dc2626; color: #dc2626; background: #fff1f2; }
+.pm-drawer__body { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 24px; }
+.pm-drawer-section { display: flex; flex-direction: column; gap: 14px; }
+.pm-drawer-section--form { padding: 20px; background: #f6f7f9; border: 1px solid #e4e7ec; border-radius: 12px; }
+.pm-drawer-section__title { font-size: 13px; font-weight: 800; color: #0f1117; letter-spacing: -0.01em; }
+.pm-drawer-section__title--edit { color: #2563eb; }
+.pm-drawer-section__title--add  { color: #16a34a; }
 
-.user-name {
-  font-weight: 600;
-  color: #2d3748;
-  font-size: 14px;
+/* ── Spinner ───────────────────────────────────────────────────── */
+.pm-spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(0,0,0,0.1); border-top-color: currentColor;
+  border-radius: 50%; animation: spin-r 0.6s linear infinite; flex-shrink: 0;
 }
+.pm-spinner--white { border-color: rgba(255,255,255,0.25); border-top-color: #fff; }
 
-.bg-primary-light {
-  background-color: #ebf8ff;
-  color: #3182ce;
+/* ── Transitions ───────────────────────────────────────────────── */
+.pm-dialog-fade-enter-active, .pm-dialog-fade-leave-active { transition: opacity 0.22s ease; }
+.pm-dialog-fade-enter-active .pm-dialog,
+.pm-dialog-fade-leave-active .pm-dialog { transition: transform 0.28s cubic-bezier(0.34,1.4,0.64,1), opacity 0.22s ease; }
+.pm-dialog-fade-enter-from, .pm-dialog-fade-leave-to { opacity: 0; }
+.pm-dialog-fade-enter-from .pm-dialog { transform: scale(0.9) translateY(20px); opacity: 0; }
+.pm-dialog-fade-leave-to  .pm-dialog { transform: scale(0.96) translateY(8px); opacity: 0; }
+
+.pm-drawer-slide-enter-active, .pm-drawer-slide-leave-active { transition: opacity 0.22s ease; }
+.pm-drawer-slide-enter-active .pm-drawer,
+.pm-drawer-slide-leave-active .pm-drawer { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+.pm-drawer-slide-enter-from, .pm-drawer-slide-leave-to { opacity: 0; }
+.pm-drawer-slide-enter-from .pm-drawer { transform: translateX(100%); }
+.pm-drawer-slide-leave-to   .pm-drawer { transform: translateX(100%); }
+
+.pm-slide-down-enter-active, .pm-slide-down-leave-active { transition: all 0.2s ease; }
+.pm-slide-down-enter-from, .pm-slide-down-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .pm-filter-fields { grid-template-columns: 1fr 1fr 1fr; }
+  .pm-filter-field { border-right: none; border-bottom: 1px solid #f0f2f5; }
+  .pm-filter-field:last-child { border-bottom: none; }
 }
-
-.log-action-tag {
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.log-desc {
-  margin: 0;
-  color: #4a5568;
-  font-size: 13.5px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.ip-address {
-  background: #f7fafc;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid #edf2f7;
-}
-
-:deep(.el-timeline-item__timestamp) {
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: 700;
-  color: #718096;
-  font-size: 12px;
-  margin-bottom: 8px;
-}
-
-.custom-tabs :deep(.el-tabs__item) {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.custom-tabs :deep(.el-tabs__active-bar) {
-  height: 3px;
-  border-radius: 3px;
+@media (max-width: 900px) {
+  .pm-page { padding: 16px 16px 40px; }
+  .pm-header { flex-direction: column; }
+  .pm-filter-fields { grid-template-columns: 1fr 1fr; }
+  .pm-form--grid { grid-template-columns: 1fr; }
+  .pm-drawer { width: 92%; }
+  .pm-dialog--xl { max-width: 96vw; }
 }
 </style>

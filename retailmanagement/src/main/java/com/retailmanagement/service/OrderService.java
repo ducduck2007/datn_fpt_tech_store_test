@@ -261,18 +261,25 @@ public class OrderService {
             order.setAppliedPromotionCode(discountCalc.getPromoCode());
         }
 
-        BigDecimal effectiveDiscount = discountCalc.getTotalDiscount()
-                .subtract(shippingFee)
-                .max(BigDecimal.ZERO);
+        BigDecimal effectiveDiscount = discountCalc.getTotalDiscount();
 
+        // Tỉ lệ phân bổ discount theo từng line
         BigDecimal totalDiscountRate = BigDecimal.ZERO;
         if (subtotal.compareTo(BigDecimal.ZERO) > 0) {
             totalDiscountRate = effectiveDiscount
                     .divide(subtotal, 4, RoundingMode.HALF_UP);
         }
 
+        // Tỉ lệ phân bổ shipping fee theo từng line
+        BigDecimal totalShippingRate = BigDecimal.ZERO;
+        if (subtotal.compareTo(BigDecimal.ZERO) > 0 && shippingFee.compareTo(BigDecimal.ZERO) > 0) {
+            totalShippingRate = shippingFee
+                    .divide(subtotal, 4, RoundingMode.HALF_UP);
+        }
+
         List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
         BigDecimal totalLineDiscount = BigDecimal.ZERO;
+        BigDecimal totalLineShipping = BigDecimal.ZERO;
         int itemIndex = 0;
 
         for (CreateOrderItemRequest itemReq : request.getItems()) {
@@ -281,11 +288,9 @@ public class OrderService {
 
             int available;
             if ("OFFLINE".equals(request.getChannel())) {
-                // Đơn POS: đếm serial thực tế IN_STOCK, không dùng StockTransaction
                 available = productSerialRepository
                         .countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
             } else {
-                // Đơn ONLINE: dùng stockQuantity - reservedQty như cũ
                 available = variant.getStockQuantity() - variant.getReservedQty();
             }
             if (available < itemReq.getQuantity()) {
@@ -295,9 +300,12 @@ public class OrderService {
             BigDecimal lineSubtotal = variant.getPrice()
                     .multiply(BigDecimal.valueOf(itemReq.getQuantity()));
 
-            BigDecimal lineDiscount;
+            boolean isLastItem = (itemIndex + 1 == request.getItems().size());
             itemIndex++;
-            if (itemIndex == request.getItems().size()) {
+
+            // Phân bổ discount
+            BigDecimal lineDiscount;
+            if (isLastItem) {
                 lineDiscount = effectiveDiscount.subtract(totalLineDiscount);
             } else {
                 lineDiscount = lineSubtotal
@@ -306,7 +314,19 @@ public class OrderService {
                 totalLineDiscount = totalLineDiscount.add(lineDiscount);
             }
 
-            BigDecimal lineTotal = lineSubtotal.subtract(lineDiscount);
+            // Phân bổ shipping fee
+            BigDecimal lineShipping;
+            if (isLastItem) {
+                lineShipping = shippingFee.subtract(totalLineShipping);
+            } else {
+                lineShipping = lineSubtotal
+                        .multiply(totalShippingRate)
+                        .setScale(0, RoundingMode.HALF_UP);
+                totalLineShipping = totalLineShipping.add(lineShipping);
+            }
+
+            // lineTotal = tiền hàng - discount + shipping
+            BigDecimal lineTotal = lineSubtotal.subtract(lineDiscount).add(lineShipping);
 
             OrderItem item = new OrderItem();
             item.setOrder(order);
@@ -318,6 +338,7 @@ public class OrderService {
             item.setQuantity(itemReq.getQuantity());
             item.setUnitPrice(variant.getPrice());
             item.setDiscount(lineDiscount);
+            item.setShippingFee(lineShipping);  // cột mới
             item.setLineTotal(lineTotal);
             item.setCreatedAt(Instant.now());
             orderItemRepository.save(item);
@@ -353,6 +374,7 @@ public class OrderService {
                     item.getQuantity(),
                     item.getUnitPrice(),
                     item.getDiscount(),
+                    item.getShippingFee(),  // thêm vào response
                     item.getLineTotal()
             ));
         }
@@ -416,8 +438,6 @@ public class OrderService {
 
         if (discountCalc.getPromotionId() != null) {
             promotionService.recordRedemption(discountCalc.getPromotionId(), 1L);
-
-            // Record per-customer usage so this customer can't use this promo again
             promotionService.recordCustomerUsage(
                     discountCalc.getPromotionId(),
                     customer.getId(),
@@ -558,7 +578,8 @@ public class OrderService {
                         i.getQuantity(),
                         i.getUnitPrice(),
                         i.getDiscount(),
-                        i.getLineTotal()
+                        i.getLineTotal(),
+                        i.getShippingFee()
                 )).toList();
 
         return new OrderDetailResponse(
