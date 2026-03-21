@@ -107,6 +107,10 @@ public class AuthService {
         String token = jwtService.generateToken(user);
         UserResponse userRes = modelMapper.map(user, UserResponse.class);
 
+        if (user.getRole() != null) {
+            userRes.setRole(user.getRole().getName());
+        }
+
         return AuthResponse.builder()
                 .token(token)
                 .expiresIn(jwtService.getExpirationMillis())
@@ -160,6 +164,10 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
         UserResponse userRes = modelMapper.map(user, UserResponse.class);
+
+        if (user.getRole() != null) {
+            userRes.setRole(user.getRole().getName());
+        }
 
         return AuthResponse.builder()
                 .token(token)

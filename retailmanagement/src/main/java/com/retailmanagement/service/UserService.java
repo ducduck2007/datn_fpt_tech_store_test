@@ -31,6 +31,9 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Role hợp lệ cho staff (không cho phép tạo CUSTOMER qua API này)
+    private static final List<String> ALLOWED_ROLES = List.of("ADMIN", "SALES", "INVENTORY", "CUSTOMER");
+
     @SensitiveOperation(
             action = ActionType.CREATE_OPERATION,
             entity = "USER",
@@ -51,8 +54,17 @@ public class UserService {
             throw new RuntimeException("Email đã tồn tại trong hệ thống");
         }
 
-        Role role = roleRepository.findByName("CUSTOMER")
-                .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+        // ✅ FIX: đọc role từ request thay vì hardcode "CUSTOMER"
+        String roleName = (request.getRole() != null && !request.getRole().isBlank())
+                ? request.getRole().toUpperCase()
+                : "ADMIN"; // fallback mặc định cho trang admin
+
+        if (!ALLOWED_ROLES.contains(roleName)) {
+            throw new RuntimeException("Role không hợp lệ: " + roleName + ". Chỉ chấp nhận: " + ALLOWED_ROLES);
+        }
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new RuntimeException("Role không tồn tại trong hệ thống: " + roleName));
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -113,7 +125,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
-        if(!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())){
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Mật khẩu cũ không đúng");
         }
 
@@ -141,10 +153,6 @@ public class UserService {
         Role newRole = roleRepository.findByName(request.getRole())
                 .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
 
-        if (newRole == null) {
-            throw new RuntimeException("Role không tồn tại");
-        }
-
         Role oldRole = user.getRole();
 
         if (oldRole.getName().equals(newRole.getName())) {
@@ -153,9 +161,7 @@ public class UserService {
 
         user.setRole(newRole);
 
-        User savedUser = userRepository.save(user);
-
-        return toResponse(savedUser);
+        return toResponse(userRepository.save(user));
     }
 
     @Audit(

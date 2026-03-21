@@ -179,7 +179,8 @@ async function doLogin() {
     const data = res?.data;
     const { token, user } = pickTokenUser(data);
 
-    const role = String(user?.role || "").toUpperCase();
+    const rawRole = user?.role?.name ?? user?.role?.roleName ?? user?.role ?? "";
+  const role = String(rawRole).toUpperCase();
     if (role !== "CUSTOMER") {
       toast("Tài khoản này không phải khách hàng. Chuyển sang đăng nhập hệ thống.", "warning");
       return router.replace("/system/login");

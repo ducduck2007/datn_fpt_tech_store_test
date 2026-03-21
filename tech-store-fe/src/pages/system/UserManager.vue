@@ -50,7 +50,7 @@
               </td>
               <td class="email-cell">{{ row.email }}</td>
               <td>
-                <span class="role-tag" :class="row.role?.toLowerCase()">{{ row.role }}</span>
+                <span class="role-tag" :class="roleClass(row.role)">{{ row.role || "—" }}</span>
               </td>
               <td class="actions-cell">
                 <button class="btn-edit" @click="openEdit(row)">
@@ -144,13 +144,26 @@ function extractList(payload) {
 }
 
 function normalize(list) {
-  return (list || []).map((u) => ({
-    id: u?.id ?? u?.userId,
-    username: u?.username ?? u?.name ?? "",
-    email: u?.email ?? "",
-    role: (u?.role ?? "").toString(),
-    raw: u,
-  }));
+  return (list || []).map((u) => {
+    const rawRole = u?.role?.name ?? u?.role?.roleName ?? u?.role ?? "";
+    return {
+      id: u?.id ?? u?.userId,
+      username: u?.username ?? u?.name ?? "",
+      email: u?.email ?? "",
+      role: String(rawRole).toUpperCase(),
+      raw: u,
+    };
+  });
+}
+
+function roleClass(role) {
+  const map = {
+    ADMIN:     "admin",
+    SALES:     "sales",
+    INVENTORY: "inventory",
+    CUSTOMER:  "customer",
+  };
+  return map[String(role || "").toUpperCase()] ?? "unknown";
 }
 
 async function load() {
@@ -168,34 +181,70 @@ async function load() {
 
 const dlg = reactive({
   open: false, mode: "create", loading: false, alert: "", id: null,
-  form: { username: "", email: "", password: "", role: "STAFF" },
+  originalRole: "", // ✅ lưu role gốc để so sánh, tránh gọi API thừa
+  form: { username: "", email: "", password: "", role: "ADMIN" },
 });
 
 function openCreate() {
-  Object.assign(dlg, { open: true, mode: "create", alert: "", id: null });
+  Object.assign(dlg, { open: true, mode: "create", alert: "", id: null, originalRole: "" });
   dlg.form = { username: "", email: "", password: "", role: "ADMIN" };
 }
 
 function openEdit(row) {
-  Object.assign(dlg, { open: true, mode: "edit", alert: "", id: row?.id });
-  dlg.form = { username: row?.username || "", email: row?.email || "", password: "", role: (row?.role || "ADMIN").toUpperCase() };
+  const rawRole = row?.raw?.role?.name ?? row?.raw?.role?.roleName ?? row?.role ?? "ADMIN";
+  const role = String(rawRole).toUpperCase();
+  // ✅ lưu originalRole để so sánh trong save()
+  Object.assign(dlg, { open: true, mode: "edit", alert: "", id: row?.id, originalRole: role });
+  dlg.form = {
+    username: row?.username || "",
+    email: row?.email || "",
+    password: "",
+    role,
+  };
 }
 
 async function save() {
   dlg.alert = "";
-  if (!dlg.form.username || !dlg.form.email || !dlg.form.role) { dlg.alert = "Username, email và vai trò là bắt buộc."; return; }
-  if (dlg.mode === "create" && !dlg.form.password) { dlg.alert = "Mật khẩu là bắt buộc khi tạo mới."; return; }
+  if (!dlg.form.username || !dlg.form.email || !dlg.form.role) {
+    dlg.alert = "Username, email và vai trò là bắt buộc.";
+    return;
+  }
+  if (dlg.mode === "create" && !dlg.form.password) {
+    dlg.alert = "Mật khẩu là bắt buộc khi tạo mới.";
+    return;
+  }
+
   dlg.loading = true;
   try {
     if (dlg.mode === "create") {
-      await usersApi.add({ username: dlg.form.username, email: dlg.form.email, password: dlg.form.password, role: dlg.form.role });
+      // Tạo mới: role gửi trong body, backend xử lý 1 lần
+      await usersApi.add({
+        username: dlg.form.username,
+        email: dlg.form.email,
+        password: dlg.form.password,
+        role: dlg.form.role,
+      });
       toast("Tạo tài khoản thành công!", "success");
+
     } else {
-      await usersApi.update(dlg.id, { username: dlg.form.username, email: dlg.form.email, role: dlg.form.role });
+      // ✅ Bước 1: update username + email (endpoint /update)
+      await usersApi.update(dlg.id, {
+        username: dlg.form.username,
+        email: dlg.form.email,
+      });
+
+      // ✅ Bước 2: update role — chỉ gọi khi role thay đổi
+      // (backend sẽ throw "Role không thay đổi" nếu giống nhau → tránh lỗi thừa)
+      if (dlg.form.role !== dlg.originalRole) {
+        await usersApi.updateRole(dlg.id, dlg.form.role);
+      }
+
       toast("Cập nhật thành công!", "success");
     }
+
     dlg.open = false;
     await load();
+
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || "Lưu thất bại";
     dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg);
@@ -211,7 +260,9 @@ async function remove(row) {
     await usersApi.remove(row.id);
     toast("Đã xóa người dùng.", "success");
     await load();
-  } catch { toast("Xóa thất bại.", "error"); }
+  } catch {
+    toast("Xóa thất bại.", "error");
+  }
 }
 
 onMounted(load);
@@ -275,11 +326,15 @@ onMounted(load);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .email-cell { color: #6b7280; }
+
+/* Role tags */
 .role-tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 50px; }
-.role-tag.admin { background: #fef2f2; color: #dc2626; }
-.role-tag.sales { background: #dcfce7; color: #16a34a; }
+.role-tag.admin     { background: #fef2f2; color: #dc2626; }
+.role-tag.sales     { background: #dcfce7; color: #16a34a; }
 .role-tag.inventory { background: #eff6ff; color: #2563eb; }
-.role-tag.staff { background: #f1f5f9; color: #64748b; }
+.role-tag.customer  { background: #fefce8; color: #ca8a04; }
+.role-tag.unknown   { background: #f3f4f6; color: #9ca3af; }
+
 .actions-cell { text-align: right; }
 .btn-edit {
   display: inline-flex; align-items: center; gap: 5px;
