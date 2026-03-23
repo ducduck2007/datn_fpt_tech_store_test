@@ -185,6 +185,37 @@
       <router-view />
     </el-main>
 
+    <!-- ─── Footer ───────────────────────────────────────── -->
+<footer v-if="showFooter" class="app-footer">
+  <div class="footer-inner">
+
+    <!-- Brand -->
+    <div class="footer-brand">
+      <div class="footer-brand__mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="footer-brand__name">Tech Store</span>
+    </div>
+
+    <!-- Nav links -->
+    <nav class="footer-nav">
+      <a class="footer-nav__link" @click="$router.push('/')">Trang chủ</a>
+      <a class="footer-nav__link" @click="$router.push('/spin-wheel')">Sự kiện</a>
+      <a v-if="isAuthed && isCustomer" class="footer-nav__link" @click="$router.push('/my-orders')">Đơn hàng</a>
+      <a v-if="isAuthed && isCustomer" class="footer-nav__link" @click="$router.push('/cart')">Giỏ hàng</a>
+      <a v-if="isAuthed && isCustomer" class="footer-nav__link" @click="$router.push('/profile')">Tài khoản</a>
+      <a v-if="!isAuthed" class="footer-nav__link" @click="$router.push('/login')">Đăng nhập</a>
+    </nav>
+
+    <!-- Copyright -->
+    <div class="footer-copy">© {{ new Date().getFullYear() }} Tech Store. All rights reserved.</div>
+
+  </div>
+</footer>
+
     <!-- ─── Notification Modal ─────────────────────────── -->
     <Teleport to="body">
       <transition name="modal-fade">
@@ -276,6 +307,10 @@ const avatarLetter = computed(() => {
 const showHeader = computed(() => route.meta?.hideHeader !== true);
 const showSearch = computed(
   () => route.name === "home" && (route.meta?.portal || "customer") === "customer",
+);
+
+const showFooter = computed(
+  () => route.meta?.hideHeader !== true && (route.meta?.portal || "customer") === "customer",
 );
 
 function emitSearch() {
@@ -998,5 +1033,76 @@ onBeforeUnmount(() => {
 .app-main {
   padding: 24px 20px;
   font-family: "Be Vietnam Pro", sans-serif;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.app-footer {
+  background: #0f0f11;
+  border-top: 1px solid #27272a;
+}
+
+.footer-inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.footer-brand__mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.footer-brand__name {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f4f4f5;
+  letter-spacing: -0.3px;
+}
+
+.footer-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.footer-nav__link {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #71717a;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+.footer-nav__link:hover {
+  color: #e4e4e7;
+  background: #27272a;
+}
+
+.footer-copy {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 11.5px;
+  color: #3f3f46;
+  flex-shrink: 0;
 }
 </style>

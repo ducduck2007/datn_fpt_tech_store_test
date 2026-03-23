@@ -565,8 +565,7 @@ function normalizeProducts(list) {
         isOutOfStock: isOutOfStock,
         raw: p,
       };
-    })
-    .filter(p => !p.isOutOfStock); 
+    }); 
 }
 
 function normalizeCategories(list) {
