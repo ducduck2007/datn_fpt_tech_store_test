@@ -7,8 +7,13 @@ import com.retailmanagement.entity.OrderItem;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
-import java.io.ByteArrayOutputStream;
+import java.io.*;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.*;
 import java.text.NumberFormat;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -17,202 +22,252 @@ import java.util.Locale;
 @Service
 public class PdfService {
 
+    // ── Màu sắc ───────────────────────────────────────────────────────────
     private static final Color DARK   = new Color(0x0f, 0x17, 0x2a);
     private static final Color MUTED  = new Color(0x64, 0x74, 0x8b);
     private static final Color BORDER = new Color(0xe2, 0xe8, 0xf0);
     private static final Color GREEN  = new Color(0x16, 0xa3, 0x4a);
+    private static final Color LIGHT  = new Color(0xf8, 0xfa, 0xfc);
+    private static final Color BLUE   = new Color(0x0e, 0xa5, 0xe9);
 
-    private static final Font F_BRAND    = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  16, DARK);
-    private static final Font F_TITLE    = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  22, DARK);
-    private static final Font F_LABEL    = FontFactory.getFont(FontFactory.HELVETICA,        8, MUTED);
-    private static final Font F_VALUE    = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  10, DARK);
-    private static final Font F_TH       = FontFactory.getFont(FontFactory.HELVETICA_BOLD,   8, MUTED);
-    private static final Font F_TD       = FontFactory.getFont(FontFactory.HELVETICA,         9, DARK);
-    private static final Font F_TD_MUTED = FontFactory.getFont(FontFactory.HELVETICA,         9, MUTED);
-    private static final Font F_SUM_L    = FontFactory.getFont(FontFactory.HELVETICA,         9, MUTED);
-    private static final Font F_SUM_V    = FontFactory.getFont(FontFactory.HELVETICA,         9, DARK);
-    private static final Font F_DISCOUNT = FontFactory.getFont(FontFactory.HELVETICA,         9, GREEN);
-    private static final Font F_TOTAL_L  = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  10, Color.WHITE);
-    private static final Font F_TOTAL_V  = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  12, Color.WHITE);
-    private static final Font F_FOOTER   = FontFactory.getFont(FontFactory.HELVETICA,       7.5f, MUTED);
+    // ── Font: ưu tiên resources → tải về temp → fallback ─────────────────
+    // Để bỏ phụ thuộc mạng: đặt file vào src/main/resources/fonts/
+    //   DejaVuSans.ttf  +  DejaVuSans-Bold.ttf
+    // Tải tại: https://dejavu-fonts.github.io
+    private static final String URL_REGULAR =
+            "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf";
+    private static final String URL_BOLD =
+            "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf";
+
+    private volatile BaseFont cachedRegular;
+    private volatile BaseFont cachedBold;
+
+    private BaseFont bf(boolean bold) {
+        if (bold  && cachedBold    != null) return cachedBold;
+        if (!bold && cachedRegular != null) return cachedRegular;
+
+        BaseFont result = fromResources(bold);
+        if (result == null) result = fromCacheOrDownload(bold);
+        if (result == null) result = fallback();
+
+        if (bold) cachedBold = result; else cachedRegular = result;
+        return result;
+    }
+
+    private BaseFont fromResources(boolean bold) {
+        String res = bold ? "/fonts/DejaVuSans-Bold.ttf" : "/fonts/DejaVuSans.ttf";
+        try (InputStream is = getClass().getResourceAsStream(res)) {
+            if (is == null) return null;
+            byte[] b = is.readAllBytes();
+            return BaseFont.createFont(res, BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, b, null);
+        } catch (Exception e) { return null; }
+    }
+
+    private BaseFont fromCacheOrDownload(boolean bold) {
+        String name  = bold ? "DejaVuSans-Bold.ttf" : "DejaVuSans.ttf";
+        Path   cache = Path.of(System.getProperty("java.io.tmpdir"), "techstore_fonts", name);
+        try {
+            if (!Files.exists(cache)) {
+                Files.createDirectories(cache.getParent());
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest req = HttpRequest.newBuilder(URI.create(bold ? URL_BOLD : URL_REGULAR)).GET().build();
+                HttpResponse<byte[]> resp = client.send(req, HttpResponse.BodyHandlers.ofByteArray());
+                if (resp.statusCode() != 200) return null;
+                Files.write(cache, resp.body());
+            }
+            byte[] b = Files.readAllBytes(cache);
+            return BaseFont.createFont(cache.toString(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, b, null);
+        } catch (Exception e) {
+            System.err.println("[PdfService] Failed to load DejaVu font: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private BaseFont fallback() {
+        try { return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED); }
+        catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    private Font font(boolean bold, float size, Color color) {
+        Font f = new Font(bf(bold), size, bold ? Font.BOLD : Font.NORMAL);
+        f.setColor(color);
+        return f;
+    }
 
     private String money(BigDecimal v) {
-        if (v == null) return "0 ₫";
-        return NumberFormat.getInstance(new Locale("vi", "VN")).format(v) + " ₫";
+        if (v == null) return "0";
+        return NumberFormat.getInstance(new Locale("en", "US")).format(v);
     }
 
-    private PdfPCell bare(Phrase ph, int align) {
-        PdfPCell c = new PdfPCell(ph);
-        c.setHorizontalAlignment(align);
-        c.setBackgroundColor(Color.WHITE);
-        c.setPadding(0);
-        c.setBorder(Rectangle.NO_BORDER);
-        return c;
+    private boolean pos(BigDecimal v) {
+        return v != null && v.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    private PdfPCell row(Phrase ph, int align) {
-        PdfPCell c = new PdfPCell(ph);
-        c.setHorizontalAlignment(align);
-        c.setBackgroundColor(Color.WHITE);
-        c.setPadding(9);
-        c.setPaddingLeft(0); c.setPaddingRight(0);
-        c.setBorder(Rectangle.BOTTOM);
-        c.setBorderColorBottom(BORDER);
-        c.setBorderWidthBottom(0.5f);
-        return c;
-    }
+    private String safe(String s) { return (s != null && !s.isBlank()) ? s : "—"; }
 
+    // ── PDF generator ─────────────────────────────────────────────────────
     public byte[] generateOrderPdf(Order order) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            float m = 48;
+            // Font definitions
+            Font fBrand   = font(true,  18,    DARK);
+            Font fSubBrand= font(false, 9,     MUTED);
+            Font fSection = font(true,  8,     MUTED);
+            Font fLabel   = font(false, 9,     MUTED);
+            Font fValue   = font(true,  9,     DARK);
+            Font fStatus  = font(true,  9,     GREEN);
+            Font fTh      = font(true,  8,     MUTED);
+            Font fTd      = font(false, 9,     DARK);
+            Font fTdMuted = font(false, 9,     MUTED);
+            Font fSumL    = font(false, 9,     MUTED);
+            Font fSumV    = font(false, 9,     DARK);
+            Font fDisc    = font(false, 9,     GREEN);
+            Font fTotalL  = font(true,  10,    Color.WHITE);
+            Font fTotalV  = font(true,  13,    Color.WHITE);
+            Font fNote    = font(false, 8.5f,  DARK);
+            Font fNoteL   = font(true,  8.5f,  MUTED);
+            Font fFooter  = font(false, 7.5f,  MUTED);
+
+            float m = 52;
             Document doc = new Document(PageSize.A4, m, m, 40, 40);
             PdfWriter.getInstance(doc, out);
             doc.open();
 
             String date = order.getCreatedAt() != null
-                    ? order.getCreatedAt()
-                    .atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
-                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                    ? order.getCreatedAt().atZone(ZoneId.of("UTC"))
+                    .format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"))
                     : "—";
 
-            // ── 1. Header: Brand | INVOICE ───────────────────────
+            // ── 1. HEADER ────────────────────────────────────────────────
             PdfPTable header = new PdfPTable(2);
             header.setWidthPercentage(100);
-            header.setSpacingAfter(6);
-            header.addCell(bare(new Phrase("TechStore", F_BRAND), Element.ALIGN_LEFT));
-            header.addCell(bare(new Phrase("HÓA ĐƠN", F_TITLE), Element.ALIGN_RIGHT));
+            header.setSpacingAfter(4);
+
+            PdfPCell brandCell = bare(new Phrase("TechStore", fBrand), Element.ALIGN_LEFT);
+            PdfPCell tagCell   = bare(new Phrase("HOA DON BAN HANG", fSubBrand), Element.ALIGN_RIGHT);
+            tagCell.setPaddingTop(8);
+            header.addCell(brandCell);
+            header.addCell(tagCell);
             doc.add(header);
 
-            // ── Divider ──────────────────────────────────────────
-            PdfPTable hr = new PdfPTable(1);
-            hr.setWidthPercentage(100);
-            hr.setSpacingAfter(20);
-            PdfPCell hrCell = new PdfPCell(new Phrase(" "));
-            hrCell.setBorder(Rectangle.BOTTOM);
-            hrCell.setBorderColorBottom(DARK);
-            hrCell.setBorderWidthBottom(1.5f);
-            hrCell.setPadding(0);
-            hr.addCell(hrCell);
-            doc.add(hr);
+            hr(doc, DARK, 1.5f, 20);
 
-            // ── 2. Meta: order# / date / customer ───────────────
-            PdfPTable meta = new PdfPTable(3);
-            meta.setWidthPercentage(100);
-            meta.setSpacingAfter(28);
+            // ── 2. THÔNG TIN ĐƠN HÀNG ───────────────────────────────────
+            section(doc, "THONG TIN DON HANG", fSection);
+            infoRow(doc, "Ma don hang",     "#" + order.getOrderNumber(), fLabel, fValue);
+            infoRow(doc, "Ngay tao",         date,                         fLabel, fSumV);
+            infoRow(doc, "Trang thai",        safe(order.getStatus()),      fLabel, fStatus);
+            infoRow(doc, "Thanh toan",        safe(order.getPaymentMethod()), fLabel, fValue);
+            infoRow(doc, "Dia chi giao hang",
+                    safe(order.getShippingAddress()), fLabel, fValue);
+            if (order.getAppliedPromotionCode() != null)
+                infoRow(doc, "Ma khuyen mai", order.getAppliedPromotionCode(), fLabel, fDisc);
 
-            String[][] fields = {
-                    {"Mã đơn hàng", "#" + order.getOrderNumber()},
-                    {"Ngày tạo",    date},
-                    {"Khách hàng",  order.getCustomer().getName()}
-            };
-            for (String[] f : fields) {
-                PdfPTable stack = new PdfPTable(1);
-                stack.addCell(bare(new Phrase(f[0], F_LABEL), Element.ALIGN_LEFT));
-                PdfPCell valCell = bare(new Phrase(f[1], F_VALUE), Element.ALIGN_LEFT);
-                valCell.setPaddingTop(4);
-                stack.addCell(valCell);
-                PdfPCell w = new PdfPCell(stack);
-                w.setBorder(Rectangle.NO_BORDER);
-                w.setPadding(0);
-                meta.addCell(w);
+            // ── 3. THÔNG TIN KHÁCH HÀNG ─────────────────────────────────
+            spacer(doc, 16);
+            section(doc, "THONG TIN KHACH HANG", fSection);
+            if (order.getCustomer() != null) {
+                infoRow(doc, "Ho ten",       safe(order.getCustomer().getName()),    fLabel, fValue);
+                infoRow(doc, "Email",         safe(order.getCustomer().getEmail()),   fLabel, fSumV);
+                infoRow(doc, "Dien thoai",    safe(order.getCustomer().getPhone()),   fLabel, fValue);
+                infoRow(doc, "Dia chi",       safe(order.getCustomer().getAddress()), fLabel, fValue);
             }
-            doc.add(meta);
 
-            // ── 3. Items table ───────────────────────────────────
-            PdfPTable table = new PdfPTable(4);
-            table.setWidthPercentage(100);
-            table.setWidths(new float[]{4f, 0.8f, 1.6f, 1.6f});
-            table.setSpacingAfter(20);
+            // ── 4. BẢNG SẢN PHẨM ────────────────────────────────────────
+            spacer(doc, 16);
+            section(doc, "SAN PHAM", fSection);
 
-            String[] ths = {"SẢN PHẨM", "SL", "ĐƠN GIÁ", "THÀNH TIỀN"};
+            PdfPTable tbl = new PdfPTable(4);
+            tbl.setWidthPercentage(100);
+            tbl.setWidths(new float[]{4.5f, 0.8f, 1.9f, 1.9f});
+            tbl.setSpacingAfter(0);
+
+            // Table header
+            String[] ths = {"SAN PHAM", "SL", "DON GIA", "THANH TIEN"};
             int[]    als = {Element.ALIGN_LEFT, Element.ALIGN_CENTER,
                     Element.ALIGN_RIGHT, Element.ALIGN_RIGHT};
-            for (int i = 0; i < ths.length; i++) {
-                PdfPCell th = new PdfPCell(new Phrase(ths[i], F_TH));
+            for (int i = 0; i < 4; i++) {
+                PdfPCell th = new PdfPCell(new Phrase(ths[i], fTh));
                 th.setHorizontalAlignment(als[i]);
-                th.setBackgroundColor(Color.WHITE);
-                th.setPaddingTop(0); th.setPaddingBottom(8);
-                th.setPaddingLeft(0); th.setPaddingRight(0);
-                th.setBorder(Rectangle.BOTTOM);
-                th.setBorderColorBottom(MUTED);
-                th.setBorderWidthBottom(0.75f);
-                table.addCell(th);
+                th.setBackgroundColor(LIGHT);
+                th.setPaddingTop(8); th.setPaddingBottom(8);
+                th.setPaddingLeft(i == 0 ? 8 : 0);
+                th.setPaddingRight(i == 3 ? 8 : 0);
+                th.setBorder(Rectangle.TOP | Rectangle.BOTTOM);
+                th.setBorderColorTop(BORDER); th.setBorderColorBottom(BORDER);
+                th.setBorderWidthTop(0.75f);  th.setBorderWidthBottom(0.75f);
+                tbl.addCell(th);
             }
 
+            // Table rows
             for (OrderItem item : order.getOrderItems()) {
-                table.addCell(row(new Phrase(item.getProductName(), F_TD), Element.ALIGN_LEFT));
-                table.addCell(row(new Phrase(String.valueOf(item.getQuantity()), F_TD_MUTED), Element.ALIGN_CENTER));
-                table.addCell(row(new Phrase(money(item.getUnitPrice()), F_TD_MUTED), Element.ALIGN_RIGHT));
-                table.addCell(row(new Phrase(money(item.getLineTotal()), F_TD), Element.ALIGN_RIGHT));
+                tbl.addCell(tdLeft(item.getProductName(), fTd));
+                tbl.addCell(tdCenter(String.valueOf(item.getQuantity()), fTdMuted));
+                tbl.addCell(tdRight(money(item.getUnitPrice()), fTdMuted));
+                tbl.addCell(tdRight(money(item.getLineTotal()), fTd));
             }
-            doc.add(table);
+            doc.add(tbl);
 
-            // ── 4. Summary (right half) ──────────────────────────
-            PdfPTable sw = new PdfPTable(2);
-            sw.setWidthPercentage(100);
-            sw.setWidths(new float[]{1f, 1.1f});
-            sw.setSpacingAfter(20);
-            sw.addCell(bare(new Phrase(""), Element.ALIGN_LEFT));
-
-            PdfPTable si = new PdfPTable(2);
-            si.setWidthPercentage(100);
-
+            // ── 5. TÓM TẮT CHI PHÍ ──────────────────────────────────────
+            spacer(doc, 8);
             if (order.getSubtotal() != null)
-                addRow(si, "Tạm tính", money(order.getSubtotal()), F_SUM_V, false);
+                sumLine(doc, "Tam tinh",        money(order.getSubtotal()),            fSumL, fSumV);
+            if (pos(order.getShippingFee()))
+                sumLine(doc, "Phi van chuyen",  money(order.getShippingFee()),          fSumL, fSumV);
+            if (pos(order.getVipDiscount()))
+                sumLine(doc, "Giam VIP",        "- " + money(order.getVipDiscount()),   fSumL, fDisc);
+            if (pos(order.getSpinDiscount()))
+                sumLine(doc, "Giam Vong quay",  "- " + money(order.getSpinDiscount()),  fSumL, fDisc);
+            if (pos(order.getDiscountTotal()))
+                sumLine(doc, "Tong giam",       "- " + money(order.getDiscountTotal()), fSumL, fDisc);
 
-            if (order.getVipDiscount() != null &&
-                    order.getVipDiscount().compareTo(BigDecimal.ZERO) > 0)
-                addRow(si, "Giảm VIP", "- " + money(order.getVipDiscount()), F_DISCOUNT, false);
+            // ── 6. THANH TỔNG ────────────────────────────────────────────
+            spacer(doc, 12);
+            PdfPTable totalBar = new PdfPTable(2);
+            totalBar.setWidthPercentage(100);
+            totalBar.setSpacingAfter(24);
 
-            if (order.getSpinDiscount() != null &&
-                    order.getSpinDiscount().compareTo(BigDecimal.ZERO) > 0)
-                addRow(si, "Giảm Vòng quay", "- " + money(order.getSpinDiscount()), F_DISCOUNT, false);
-
-            if (order.getAppliedPromotionCode() != null)
-                addRow(si, "Mã KM", order.getAppliedPromotionCode(), F_DISCOUNT, false);
-
-            if (order.getDiscountTotal() != null &&
-                    order.getDiscountTotal().compareTo(BigDecimal.ZERO) > 0)
-                addRow(si, "Tổng giảm", "- " + money(order.getDiscountTotal()), F_DISCOUNT, true);
-
-            PdfPCell sh = new PdfPCell(si);
-            sh.setBorder(Rectangle.NO_BORDER);
-            sh.setPadding(0);
-            sw.addCell(sh);
-            doc.add(sw);
-
-            // ── 5. Total bar ─────────────────────────────────────
-            PdfPTable total = new PdfPTable(2);
-            total.setWidthPercentage(100);
-            total.setSpacingAfter(32);
-
-            PdfPCell tl = new PdfPCell(new Phrase("TỔNG THANH TOÁN", F_TOTAL_L));
-            tl.setBackgroundColor(DARK);
+            PdfPCell tl = new PdfPCell(new Phrase("TONG THANH TOAN", fTotalL));
+            tl.setBackgroundColor(DARK); tl.setBorder(Rectangle.NO_BORDER);
             tl.setHorizontalAlignment(Element.ALIGN_LEFT);
-            tl.setBorder(Rectangle.NO_BORDER);
             tl.setPadding(14); tl.setPaddingLeft(16);
 
-            PdfPCell tv = new PdfPCell(new Phrase(money(order.getTotalAmount()), F_TOTAL_V));
-            tv.setBackgroundColor(DARK);
+            PdfPCell tv = new PdfPCell(new Phrase(money(order.getTotalAmount()), fTotalV));
+            tv.setBackgroundColor(DARK); tv.setBorder(Rectangle.NO_BORDER);
             tv.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            tv.setBorder(Rectangle.NO_BORDER);
             tv.setPadding(14); tv.setPaddingRight(16);
 
-            total.addCell(tl);
-            total.addCell(tv);
-            doc.add(total);
+            totalBar.addCell(tl);
+            totalBar.addCell(tv);
+            doc.add(totalBar);
 
-            // ── 6. Footer ────────────────────────────────────────
+            // ── 7. GHI CHÚ ───────────────────────────────────────────────
+            if (order.getNotes() != null && !order.getNotes().isBlank()) {
+                PdfPTable noteT = new PdfPTable(1);
+                noteT.setWidthPercentage(100);
+                noteT.setSpacingAfter(16);
+                Phrase noteP = new Phrase();
+                noteP.add(new Chunk("Ghi chu: ", fNoteL));
+                noteP.add(new Chunk(order.getNotes(), fNote));
+                PdfPCell nc = new PdfPCell(noteP);
+                nc.setBorder(Rectangle.LEFT);
+                nc.setBorderColorLeft(BLUE); nc.setBorderWidthLeft(2.5f);
+                nc.setBackgroundColor(new Color(0xf0, 0xf9, 0xff));
+                nc.setPadding(10); nc.setPaddingLeft(12);
+                noteT.addCell(nc);
+                doc.add(noteT);
+            }
+
+            // ── 8. FOOTER ────────────────────────────────────────────────
+            hr(doc, BORDER, 0.75f, 0);
             PdfPTable footer = new PdfPTable(1);
             footer.setWidthPercentage(100);
             PdfPCell fc = new PdfPCell(
-                    new Phrase("TechStore  ·  support@nguyenduc.me  ·  Cảm ơn bạn đã mua hàng!", F_FOOTER));
+                    new Phrase("TechStore  ·  support@nguyenduc.me  ·  Cam on ban da mua hang!", fFooter));
             fc.setHorizontalAlignment(Element.ALIGN_CENTER);
-            fc.setBorder(Rectangle.TOP);
-            fc.setBorderColorTop(BORDER);
-            fc.setBorderWidthTop(0.75f);
-            fc.setPaddingTop(12); fc.setPaddingBottom(4);
+            fc.setBorder(Rectangle.NO_BORDER);
+            fc.setPaddingTop(10); fc.setPaddingBottom(4);
             footer.addCell(fc);
             doc.add(footer);
 
@@ -220,38 +275,134 @@ public class PdfService {
             return out.toByteArray();
 
         } catch (Exception e) {
-            throw new RuntimeException("Cannot generate PDF", e);
+            throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
         }
     }
 
-    private void addRow(PdfPTable t, String label, String value, Font vFont, boolean topBorder) {
-        PdfPCell lc = new PdfPCell(new Phrase(label, F_SUM_L));
+    // ── Layout building blocks ────────────────────────────────────────────
+
+    /** Section header with underline */
+    private void section(Document doc, String text, Font font) throws DocumentException {
+        PdfPTable t = new PdfPTable(1);
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(2);
+        PdfPCell c = new PdfPCell(new Phrase(text, font));
+        c.setBorder(Rectangle.BOTTOM);
+        c.setBorderColorBottom(BORDER); c.setBorderWidthBottom(0.75f);
+        c.setBackgroundColor(Color.WHITE);
+        c.setPaddingBottom(6); c.setPaddingLeft(0); c.setPaddingTop(0);
+        t.addCell(c);
+        doc.add(t);
+    }
+
+    /** Label → value row with thin bottom border */
+    private void infoRow(Document doc, String label, String value,
+                         Font lf, Font vf) throws DocumentException {
+        PdfPTable t = new PdfPTable(2);
+        t.setWidthPercentage(100);
+        t.setWidths(new float[]{1.6f, 2.4f});
+        t.setSpacingAfter(0);
+
+        PdfPCell lc = new PdfPCell(new Phrase(label, lf));
         lc.setHorizontalAlignment(Element.ALIGN_LEFT);
         lc.setBackgroundColor(Color.WHITE);
-        lc.setPaddingTop(topBorder ? 10 : 6); lc.setPaddingBottom(6);
+        lc.setPaddingTop(7); lc.setPaddingBottom(7);
         lc.setPaddingLeft(0); lc.setPaddingRight(8);
-        if (topBorder) {
-            lc.setBorder(Rectangle.TOP);
-            lc.setBorderColorTop(BORDER);
-            lc.setBorderWidthTop(0.5f);
-        } else {
-            lc.setBorder(Rectangle.NO_BORDER);
-        }
+        lc.setBorder(Rectangle.BOTTOM);
+        lc.setBorderColorBottom(BORDER); lc.setBorderWidthBottom(0.4f);
 
-        PdfPCell vc = new PdfPCell(new Phrase(value, vFont));
+        PdfPCell vc = new PdfPCell(new Phrase(value, vf));
         vc.setHorizontalAlignment(Element.ALIGN_RIGHT);
         vc.setBackgroundColor(Color.WHITE);
-        vc.setPaddingTop(topBorder ? 10 : 6); vc.setPaddingBottom(6);
+        vc.setPaddingTop(7); vc.setPaddingBottom(7);
         vc.setPaddingLeft(8); vc.setPaddingRight(0);
-        if (topBorder) {
-            vc.setBorder(Rectangle.TOP);
-            vc.setBorderColorTop(BORDER);
-            vc.setBorderWidthTop(0.5f);
-        } else {
-            vc.setBorder(Rectangle.NO_BORDER);
-        }
+        vc.setBorder(Rectangle.BOTTOM);
+        vc.setBorderColorBottom(BORDER); vc.setBorderWidthBottom(0.4f);
 
         t.addCell(lc);
         t.addCell(vc);
+        doc.add(t);
+    }
+
+    /** Summary cost line, right-aligned */
+    private void sumLine(Document doc, String label, String value,
+                         Font lf, Font vf) throws DocumentException {
+        PdfPTable t = new PdfPTable(2);
+        t.setWidthPercentage(48);
+        t.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        t.setSpacingAfter(0);
+
+        PdfPCell lc = new PdfPCell(new Phrase(label, lf));
+        lc.setBorder(Rectangle.NO_BORDER);
+        lc.setBackgroundColor(Color.WHITE);
+        lc.setPaddingTop(4); lc.setPaddingBottom(4);
+        lc.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell vc = new PdfPCell(new Phrase(value, vf));
+        vc.setBorder(Rectangle.NO_BORDER);
+        vc.setBackgroundColor(Color.WHITE);
+        vc.setPaddingTop(4); vc.setPaddingBottom(4);
+        vc.setHorizontalAlignment(Element.ALIGN_RIGHT);
+
+        t.addCell(lc);
+        t.addCell(vc);
+        doc.add(t);
+    }
+
+    private void hr(Document doc, Color color, float w, float after) throws DocumentException {
+        PdfPTable t = new PdfPTable(1);
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(after);
+        PdfPCell c = new PdfPCell(new Phrase(" "));
+        c.setBorder(Rectangle.BOTTOM);
+        c.setBorderColorBottom(color); c.setBorderWidthBottom(w);
+        c.setPadding(0);
+        t.addCell(c);
+        doc.add(t);
+    }
+
+    private void spacer(Document doc, float h) throws DocumentException {
+        doc.add(new Paragraph(" ", font(false, h / 2.8f, Color.WHITE)));
+    }
+
+    private PdfPCell bare(Phrase ph, int align) {
+        PdfPCell c = new PdfPCell(ph);
+        c.setHorizontalAlignment(align);
+        c.setBackgroundColor(Color.WHITE);
+        c.setBorder(Rectangle.NO_BORDER);
+        c.setPadding(0);
+        return c;
+    }
+
+    private PdfPCell tdLeft(String text, Font f) {
+        PdfPCell c = new PdfPCell(new Phrase(text, f));
+        c.setHorizontalAlignment(Element.ALIGN_LEFT);
+        c.setBackgroundColor(Color.WHITE);
+        c.setPaddingTop(9); c.setPaddingBottom(9);
+        c.setPaddingLeft(8); c.setPaddingRight(0);
+        c.setBorder(Rectangle.BOTTOM);
+        c.setBorderColorBottom(BORDER); c.setBorderWidthBottom(0.4f);
+        return c;
+    }
+
+    private PdfPCell tdCenter(String text, Font f) {
+        PdfPCell c = new PdfPCell(new Phrase(text, f));
+        c.setHorizontalAlignment(Element.ALIGN_CENTER);
+        c.setBackgroundColor(Color.WHITE);
+        c.setPaddingTop(9); c.setPaddingBottom(9);
+        c.setBorder(Rectangle.BOTTOM);
+        c.setBorderColorBottom(BORDER); c.setBorderWidthBottom(0.4f);
+        return c;
+    }
+
+    private PdfPCell tdRight(String text, Font f) {
+        PdfPCell c = new PdfPCell(new Phrase(text, f));
+        c.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        c.setBackgroundColor(Color.WHITE);
+        c.setPaddingTop(9); c.setPaddingBottom(9);
+        c.setPaddingLeft(0); c.setPaddingRight(8);
+        c.setBorder(Rectangle.BOTTOM);
+        c.setBorderColorBottom(BORDER); c.setBorderWidthBottom(0.4f);
+        return c;
     }
 }

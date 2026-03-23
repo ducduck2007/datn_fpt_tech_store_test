@@ -149,10 +149,6 @@
                     <span class="info-value">{{ detail.customerName }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="info-label">ID</span>
-                    <span class="info-value">{{ detail.customerId }}</span>
-                  </div>
-                  <div class="info-row">
                     <span class="info-label">Email</span>
                     <span class="info-value">{{ detail.customerEmail }}</span>
                   </div>

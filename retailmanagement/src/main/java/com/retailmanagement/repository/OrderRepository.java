@@ -98,7 +98,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             SELECT u.username, COUNT(o.id) AS orders
             FROM orders o
             JOIN users u ON o.user_id = u.id
-            WHERE u.role = 'SALES'
+            WHERE u.role_id = 2
             GROUP BY u.username
             ORDER BY COUNT(o.id) DESC
             """, nativeQuery = true)

@@ -125,11 +125,11 @@
             <div class="total-inner">
               <div class="total-line">
                 <span class="total-label">Tạm tính</span>
-                <span class="total-value-light">{{ formatVND(order.totalAmount) }}</span>
+                <span class="total-value-light">{{ formatVND(order.subtotal) }}</span>
               </div>
               <div class="total-line">
                 <span class="total-label">Phí vận chuyển</span>
-                <span class="total-value-light">Miễn phí</span>
+                <span class="total-value-light">{{ order.shippingFee > 0 ? formatVND(order.shippingFee) : 'Miễn phí' }}</span>
               </div>
               <div class="total-divider"></div>
               <div class="total-line">
