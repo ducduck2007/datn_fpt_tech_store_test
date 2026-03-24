@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -37,6 +38,34 @@ public class EmailService {
                     .to(order.getCustomer().getEmail())
                     .subject("✅ Xác nhận đơn hàng #" + order.getOrderNumber())
                     .html(htmlContent)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Async
+    public void sendSecurityAlertToAdmins(
+            List<String> emails,
+            String subject,
+            String content
+    ) {
+        try {
+            if (emails == null || emails.isEmpty()) return;
+
+            // Tránh duplicate email
+            emails = emails.stream().distinct().toList();
+
+            Resend resend = new Resend(apiKey);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("Security <security@nguyenduc.me>")
+                    .to(emails.toArray(new String[0]))
+                    .subject(subject)
+                    .html(content)
                     .build();
 
             resend.emails().send(params);

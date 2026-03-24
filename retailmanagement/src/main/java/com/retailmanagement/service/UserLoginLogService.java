@@ -30,8 +30,10 @@ public class UserLoginLogService {
     private final SecurityLogService securityLogService;
     private final UserRepository userRepository;
 
-    private final Map<String, Integer> failedAttempts =
-            new ConcurrentHashMap<>();
+    private final Map<String, Integer> failedAttempts = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastAttemptTime = new ConcurrentHashMap<>();
+
+    private static final long WINDOW_MILLIS = 5 * 60 * 1000;
 
     public void logLoginSuccess(
             Integer userId,
@@ -50,7 +52,9 @@ public class UserLoginLogService {
 
         userLoginRepository.save(log);
 
-        failedAttempts.remove(username);
+        String ip = IpUtil.getClientIp(request);
+        String key = username + "|" + ip;
+        failedAttempts.remove(key);
     }
 
     public void logLoginFail(
@@ -66,11 +70,48 @@ public class UserLoginLogService {
 
         userLoginRepository.save(log);
 
-        int attempts = failedAttempts.getOrDefault(username, 0) + 1;
-        failedAttempts.put(username, attempts);
+        String ip = IpUtil.getClientIp(request);
+        String key = username + "|" + ip;
+
+        long now = System.currentTimeMillis();
+        Long lastTime = lastAttemptTime.get(key);
+
+        if (lastTime != null && now - lastTime > WINDOW_MILLIS) {
+            failedAttempts.remove(key);
+        }
+
+        int attempts = failedAttempts.getOrDefault(key, 0) + 1;
+
+        failedAttempts.put(key, attempts);
+        lastAttemptTime.put(key, now);
 
         if (attempts == 5) {
+            securityLogService.log(
+                    username,
+                    ActionType.ABNORMAL_OPERATION,
+                    "LOGIN",
+                    null,
+                    IpUtil.getClientIp(request),
+                    SeverityLevel.MEDIUM,
+                    "SUSPICIOUS",
+                    "Multiple failed login attempts: " + attempts
+            );
+        }
 
+        if (attempts == 10) {
+            securityLogService.log(
+                    username,
+                    ActionType.ABNORMAL_OPERATION,
+                    "LOGIN",
+                    null,
+                    IpUtil.getClientIp(request),
+                    SeverityLevel.HIGH,
+                    "SUSPICIOUS",
+                    "Multiple failed login attempts: " + attempts
+            );
+        }
+
+        if (attempts == 20 || attempts == 50 || attempts == 100) {
             securityLogService.log(
                     username,
                     ActionType.INTRUSION_ATTEMPT,
@@ -79,7 +120,7 @@ public class UserLoginLogService {
                     IpUtil.getClientIp(request),
                     SeverityLevel.CRITICAL,
                     "SUSPICIOUS",
-                    "Multiple failed login attempts"
+                    "Multiple failed login attempts: " + attempts
             );
         }
     }
