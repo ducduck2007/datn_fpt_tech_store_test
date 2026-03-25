@@ -426,7 +426,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { categoriesApi } from "../../api/categories.api";
-import AiChatWidget from '../../components/AiChatWidget.vue'
+import AiChatWidget from '../../components/Aichatwidget.vue'
 import { productsApi } from "../../api/products.api";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
