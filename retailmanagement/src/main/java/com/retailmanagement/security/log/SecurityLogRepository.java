@@ -13,7 +13,7 @@ public interface SecurityLogRepository
 
     @Query(value = """
     SELECT COUNT(*) 
-    FROM security_logs
+    FROM security_log
     WHERE action_type = :action
       AND severity = 'HIGH'
       AND created_at >= DATEADD(MINUTE, -5, GETUTCDATE())
