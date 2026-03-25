@@ -871,7 +871,7 @@ import { categoriesApi } from "../../api/categories.api";
 import { productsApi } from "../../api/products.api";
 import { toast } from "../../ui/toast";
 import axios from 'axios';
-import ProductImportDialog from '../../components/ProductImportDialog.vue'
+import ProductImportDialog from '../../components/Productimportdialog.vue'
 
 const BASE_URL_API = 'http://localhost:8080/api/products';
 

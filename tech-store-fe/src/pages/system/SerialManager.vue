@@ -468,7 +468,6 @@ onMounted(load);
 .sm-filter-fields { display: grid; grid-template-columns: 1fr 1.6fr auto; align-items: end; }
 .sm-filter-field { padding: 12px 16px; border-right: 1px solid #f0f2f5; display: flex; flex-direction: column; gap: 7px; }
 .sm-filter-field:last-child { border-right: none; }
-.sm-filter-field--search { }
 .sm-filter-field--action { justify-content: flex-end; padding-bottom: 14px; }
 .sm-filter-field__label { font-size: 10.5px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
 
