@@ -93,7 +93,7 @@ public class   TierUpgradeNotificationScheduler {
     /**
      * Chạy mỗi 4 giờ để gửi thông báo cho khách đang online
      */
-    @Scheduled(fixedRate = 14400000) // 4 giờ = 4 * 60 * 60 * 1000 ms
+    @Scheduled(fixedRate = 14400000, initialDelay = 60000) // 4 giờ = 4 * 60 * 60 * 1000 ms
     public void sendReminderForActiveCustomers() {
         System.out.println("🔔 Gửi thông báo nhắc nhở cho khách hàng đang hoạt động...");
 
