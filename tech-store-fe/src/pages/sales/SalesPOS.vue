@@ -22,6 +22,7 @@
             spellcheck="false"
             @focus="searchFocused = true"
             @blur="searchFocused = false"
+            @input="onSearchInput"
             @keyup.enter="doSearch"
           />
           <span v-if="searchQuery && !searchLoading" class="s-hint">Enter ↵</span>
@@ -32,10 +33,6 @@
             </svg>
           </button>
         </div>
-        <button class="s-btn" @click="doSearch" :disabled="searchLoading || !searchQuery.trim()">
-          <span v-if="!searchLoading">Tìm</span>
-          <span v-else class="spinner white"></span>
-        </button>
       </div>
 
       <!-- Search error -->
@@ -117,18 +114,16 @@
       </div>
 
       <!-- Idle / no result -->
-      <div v-else class="empty-state">
+      <div v-else-if="!searchLoading" class="empty-state">
         <div class="empty-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
             <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.2"/>
             <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            <path v-if="!hasSearched" d="M8 11h6M11 8v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            <path v-else d="M8 11h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <path v-if="hasSearched" d="M8 11h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
         </div>
-        <p class="empty-title">{{ hasSearched ? 'Không tìm thấy sản phẩm' : 'Tìm sản phẩm để bắt đầu' }}</p>
-        <p class="empty-sub">{{ hasSearched ? 'Thử từ khoá khác' : 'Nhập tên sản phẩm rồi nhấn Enter' }}</p>
-        <div v-if="!hasSearched" class="kbd-hint"><kbd>F2</kbd> focus ô tìm kiếm</div>
+        <p class="empty-title">{{ hasSearched ? 'Không tìm thấy sản phẩm' : 'Không có sản phẩm nào' }}</p>
+        <p class="empty-sub">{{ hasSearched ? 'Thử từ khoá khác' : 'Không có dữ liệu từ máy chủ' }}</p>
       </div>
     </div>
 
@@ -412,23 +407,36 @@ const searchQuery = ref("");
 const searchFocused = ref(false);
 const searchLoading = ref(false);
 const searchError = ref("");
-const productGroups = ref([]);  // [{ id, name, variants: [{ id, name, price, serials: [], serialsLoading }] }]
+const productGroups = ref([]);
 const hasSearched = ref(false);
 
-  const serialCode = (s) =>
-    s.serialNumber ?? s.serialCode ?? s.serial_number ?? s.serial ?? s.code ?? "";
+// Debounce timer ref
+let debounceTimer = null;
+
+const serialCode = (s) =>
+  s.serialNumber ?? s.serialCode ?? s.serial_number ?? s.serial ?? s.code ?? "";
+
+// Called on every keystroke — debounced 400ms
+function onSearchInput() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    doSearch();
+  }, 400);
+}
 
 async function doSearch() {
   const q = searchQuery.value.trim();
-  if (!q) return;
   searchLoading.value = true;
   searchError.value = "";
   productGroups.value = [];
-  hasSearched.value = true;
+  if (q) hasSearched.value = true;
 
   try {
-    // 1. Tìm sản phẩm theo tên
-    const res = await productsApi.list({ keyword: q, name: q, q, search: q });
+    // 1. Tìm sản phẩm — nếu q rỗng thì load tất cả
+    const params = q
+      ? { keyword: q, name: q, q, search: q }
+      : {};
+    const res = await productsApi.list(params);
     const raw = res?.data;
     let products = [];
     if (Array.isArray(raw)) products = raw;
@@ -437,7 +445,7 @@ async function doSearch() {
     else if (Array.isArray(raw?.items)) products = raw.items;
 
     if (!products.length) {
-      searchError.value = `Không tìm thấy sản phẩm nào khớp với "${q}"`;
+      if (q) searchError.value = `Không tìm thấy sản phẩm nào khớp với "${q}"`;
       return;
     }
 
@@ -455,7 +463,6 @@ async function doSearch() {
           } catch { variants = []; }
         }
 
-        // Mỗi variant có serials array ban đầu rỗng, load song song
         const variantRows = variants.map((v) => ({
           id: v.id,
           name: v.name || v.variantName || "Mặc định",
@@ -473,7 +480,6 @@ async function doSearch() {
               let serials = Array.isArray(sRaw) ? sRaw
                 : Array.isArray(sRaw?.data) ? sRaw.data
                 : Array.isArray(sRaw?.content) ? sRaw.content : [];
-              // DB status: IN_STOCK = còn hàng, SOLD = đã bán
               const SOLD_STATUSES = ["sold", "used", "inactive", "disabled", "deleted", "reserved"];
               vRow.serials = serials.filter((s) => {
                 const st = (s.status || "").toLowerCase();
@@ -498,10 +504,11 @@ async function doSearch() {
 
 function clearSearch() {
   searchQuery.value = "";
-  productGroups.value = [];
   searchError.value = "";
   hasSearched.value = false;
   searchInput.value?.focus();
+  // Reload all products when search is cleared
+  doSearch();
 }
 
 // ── Cart ────────────────────────────────────────────────────────
@@ -642,11 +649,15 @@ function resetAll() {
   foundCustomer.value = null;
   cusQuery.value = "";
   cusError.value = "";
-  clearSearch();
   payMethod.value = "CASH";
   cashIn.value = 0;
   payError.value = "";
   orderDone.value = null;
+  // Reset search and reload all products
+  searchQuery.value = "";
+  searchError.value = "";
+  hasSearched.value = false;
+  doSearch();
   searchInput.value?.focus();
 }
 
@@ -668,8 +679,16 @@ function onKey(e) {
   if (e.key === "F2") { e.preventDefault(); searchInput.value?.focus(); }
   if (e.key === "Escape" && showModal.value) closeModal();
 }
-onMounted(() => { window.addEventListener("keydown", onKey); searchInput.value?.focus(); });
-onUnmounted(() => window.removeEventListener("keydown", onKey));
+onMounted(() => {
+  window.addEventListener("keydown", onKey);
+  searchInput.value?.focus();
+  // Load tất cả sản phẩm ngay khi vào trang
+  doSearch();
+});
+onUnmounted(() => {
+  window.removeEventListener("keydown", onKey);
+  clearTimeout(debounceTimer);
+});
 </script>
 
 <style scoped>
@@ -728,18 +747,6 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .s-hint { font-size: 11px; color: #94a3b8; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; font-family: monospace; }
 .s-clear { background: none; border: none; cursor: pointer; color: #94a3b8; display: flex; padding: 3px; transition: color 0.15s; }
 .s-clear:hover { color: #475569; }
-.s-btn {
-  height: 46px; padding: 0 20px;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  border: none; border-radius: 10px; color: #fff;
-  font-size: 13.5px; font-weight: 700; cursor: pointer;
-  transition: opacity 0.15s; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  min-width: 64px; box-shadow: 0 2px 8px rgba(245,158,11,0.3);
-  font-family: inherit;
-}
-.s-btn:hover:not(:disabled) { opacity: 0.9; }
-.s-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
 
 .error-bar {
   display: flex; align-items: center; gap: 8px;
@@ -815,11 +822,6 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .empty-icon { color: #cbd5e1; margin-bottom: 8px; }
 .empty-title { font-size: 15px; font-weight: 600; color: #64748b; margin: 0; }
 .empty-sub { font-size: 13px; color: #94a3b8; margin: 0; }
-.kbd-hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; margin-top: 6px; }
-kbd {
-  background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px;
-  padding: 2px 7px; font-size: 11px; font-family: monospace; color: #475569;
-}
 
 /* ── Cart panel ── */
 .cart-header {
