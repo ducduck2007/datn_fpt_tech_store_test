@@ -482,10 +482,12 @@ function confettiStyle(i) {
   };
 }
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 function fixImageUrl(url) {
   if (!url) return "https://via.placeholder.com/300?text=No+Image";
   if (url.startsWith("http")) return url;
-  return `http://localhost:8080${url}`;
+  return `${BASE_URL}${url}`;
 }
 
 async function loadSpinExpiryBonuses() {

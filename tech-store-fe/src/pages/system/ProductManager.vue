@@ -871,9 +871,10 @@ import { categoriesApi } from "../../api/categories.api";
 import { productsApi } from "../../api/products.api";
 import { toast } from "../../ui/toast";
 import axios from 'axios';
+import http from "../../api/http";
 import ProductImportDialog from '../../components/Productimportdialog.vue'
 
-const BASE_URL_API = 'http://localhost:8080/api/products';
+const BASE_URL_API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const loading = ref(false);
 const categories = ref([]);
@@ -940,7 +941,7 @@ function formatDate(dateStr) {
 function fixImageUrl(url) {
   if (!url) return "https://via.placeholder.com/150?text=No+Image";
   if (url.startsWith("http")) return url;
-  return `http://localhost:8080${url}`;
+  return `${BASE_URL_API}${url}`;
 }
 function normalizeProducts(list) {
   return (list || []).map((p) => ({ ...p, imageUrl: fixImageUrl(p.imageUrl) }));
@@ -958,7 +959,7 @@ async function loadCategories() {
 }
 async function loadTags() {
   try {
-    const res = await axios.get('http://localhost:8080/api/tags');
+    const res = await http.get('/api/tags');
     tags.value = res.data?.data || res.data || [];
   } catch (e) { console.error("Lỗi lấy tag:", e); }
 }
@@ -972,7 +973,7 @@ async function load() {
   try {
     let res;
     if (viewMode.value === 'trash') {
-      res = await axios.get(`${BASE_URL_API}/trash`, { params: { page: page.value } });
+      res = await axios.get(`${BASE_URL_API}/api/products/trash`, { params: { page: page.value } });
     } else {
       const params = {
         page: page.value, keyword: keyword.value || undefined, sortBy: sortBy.value || undefined,
@@ -1017,10 +1018,10 @@ async function handleBatchDelete() {
 async function toggleProductStatus(row) {
   try {
     if (row.isVisible) {
-      await axios.put(`${BASE_URL_API}/${row.id}/restore`);
+      await axios.put(`${BASE_URL_API}/api/products/${row.id}/restore`);
       toast(`Đã bật hiển thị: ${row.name}`, "success");
     } else {
-      await axios.delete(`${BASE_URL_API}/${row.id}`);
+      await axios.delete(`${BASE_URL_API}/api/products/${row.id}`);
       toast(`Đã tắt (ẩn) sản phẩm: ${row.name}`, "warning");
     }
   } catch (e) {
@@ -1067,7 +1068,7 @@ async function openVariantDrawer(row) {
 async function loadVariants() {
   vr.loading = true;
   try {
-    const res = await axios.get(`${BASE_URL_API}/${vr.productId}/variants`);
+    const res = await axios.get(`${BASE_URL_API}/api/products/${vr.productId}/variants`);
     vr.variants = res.data || [];
   } catch (e) { toast("Tải biến thể thất bại", "error"); }
   vr.loading = false;
@@ -1095,15 +1096,15 @@ async function saveVariant() {
     const attrObj = {};
     vr.attrsList.forEach(item => { if (item.key && item.value) attrObj[item.key.trim()] = item.value.trim(); });
     const payload = { ...vr.form, attributesJson: Object.keys(attrObj).length > 0 ? JSON.stringify(attrObj) : null };
-    if (vr.isEdit) await axios.put(`${BASE_URL_API}/variants/${vr.editId}`, payload);
-    else await axios.post(`${BASE_URL_API}/${vr.productId}/variants`, payload);
+    if (vr.isEdit) await axios.put(`${BASE_URL_API}/api/products/variants/${vr.editId}`, payload);
+    else await axios.post(`${BASE_URL_API}/api/products/${vr.productId}/variants`, payload);
     toast("Thành công", "success");
     resetVariantForm(); await loadVariants(); load();
   } catch { toast("Thất bại", "error"); }
   vr.saving = false;
 }
 async function deleteVariant(id) {
-  try { await axios.delete(`${BASE_URL_API}/variants/${id}`); toast("Đã xóa", "success"); await loadVariants(); load(); }
+  try { await axios.delete(`${BASE_URL_API}/api/products/variants/${id}`); toast("Đã xóa", "success"); await loadVariants(); load(); }
   catch { toast("Thất bại", "error"); }
 }
 async function openSerialDialog(row) {
@@ -1113,36 +1114,36 @@ async function openSerialDialog(row) {
 async function loadSerials() {
   serialDlg.loading = true;
   try {
-    const res = await axios.get(`http://localhost:8080/api/products/variants/${serialDlg.variantId}/serials`);
+    const res = await http.get(`/api/products/variants/${serialDlg.variantId}/serials`);
     serialDlg.list = res.data || [];
   } catch (e) { toast("Lỗi tải danh sách seri", "error"); }
   finally { serialDlg.loading = false; }
 }
 async function deleteSerial(serialId) {
   try {
-    await axios.delete(`http://localhost:8080/api/products/variants/serials/${serialId}`);
+    await http.delete(`/api/products/variants/serials/${serialId}`);
     toast("Xóa Seri thành công", "success");
     await loadSerials(); await loadVariants(); await load();
   } catch (e) { toast("Xóa thất bại", "error"); }
 }
 async function generateSerials(quantity = 1) {
   try {
-    const res = await axios.post(`http://localhost:8080/api/products/variants/${serialDlg.variantId}/serials/generate`, null, { params: { quantity } });
+    const res = await http.post(`/api/products/variants/${serialDlg.variantId}/serials/generate`, null, { params: { quantity } });
     toast(`Đã gen ${res.data?.serials?.length || quantity} serial thành công`, "success");
     await loadSerials(); await loadVariants(); await load();
   } catch (e) { toast("Gen serial thất bại", "error"); }
 }
 async function onRestore(id) {
-  try { await axios.put(`${BASE_URL_API}/${id}/restore`); toast("Khôi phục thành công!", "success"); load(); }
+  try { await axios.put(`${BASE_URL_API}/api/products/${id}/restore`); toast("Khôi phục thành công!", "success"); load(); }
   catch { toast("Khôi phục thất bại", "error"); }
 }
 async function onDelete(row) {
   try {
     if (row.isFaulty) {
-      await axios.delete(`${BASE_URL_API}/${row.id}/hard`);
+      await axios.delete(`${BASE_URL_API}/api/products/${row.id}/hard`);
       toast("Đã xóa vĩnh viễn sản phẩm lỗi.", "success");
     } else {
-      await axios.delete(`${BASE_URL_API}/${row.id}`);
+      await axios.delete(`${BASE_URL_API}/api/products/${row.id}`);
       toast("Đã chuyển vào thùng rác.", "success");
     }
     load();
@@ -1150,7 +1151,7 @@ async function onDelete(row) {
 }
 async function setPrimaryImage(imgId) {
   try {
-    await axios.put(`${BASE_URL_API}/${dlg.editId}/images/${imgId}/primary`);
+    await axios.put(`${BASE_URL_API}/api/products/${dlg.editId}/images/${imgId}/primary`);
     toast("Cập nhật ảnh chính thành công", "success");
     const res = await productsApi.get(dlg.editId);
     dlg.existingImages = (res.data?.data || res.data).images || [];

@@ -501,7 +501,7 @@ import { onMounted, onBeforeUnmount, reactive, ref } from "vue";
 import axios from "axios";
 import { toast } from "../../ui/toast";
 
-const BASE_URL = "http://localhost:8080/api/categories";
+const BASE_URL =  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 const loading = ref(false);
 const treeData = ref([]); 
@@ -549,7 +549,7 @@ function openDeleteConfirm(row) {
 async function confirmRemove() {
   deleteConfirm.loading = true;
   try {
-    await axios.delete(`${BASE_URL}/${deleteConfirm.id}`);
+    await axios.delete(`${BASE_URL}/api/categories/${deleteConfirm.id}`);
     toast("Danh mục đã được ẩn thành công.", "success");
     deleteConfirm.open = false;
     load();
@@ -565,7 +565,7 @@ async function confirmRemove() {
 function fixImageUrl(url) {
   if (!url) return "https://via.placeholder.com/150?text=No+Image";
   if (url.startsWith("http")) return url;
-  return `http://localhost:8080${url}`;
+  return `${BASE_URL}${url}`;
 }
 
 // --- Tree Builder Logic ---
@@ -600,7 +600,7 @@ async function load() {
   loading.value = true;
   try {
     // Lấy toàn bộ danh sách (không phân trang) để dựng cây
-    const res = await axios.get(BASE_URL, { params: { activeOnly: false } });
+    const res = await axios.get(`${BASE_URL}/api/categories`, { params: { activeOnly: false } });
     const flatList = res.data?.data || [];
     
     parentOptions.value = flatList;
@@ -678,10 +678,10 @@ async function save() {
     }
 
     if (dlg.mode === "create") {
-      await axios.post(BASE_URL, formData);
+      await axios.post(`${BASE_URL}/api/categories`, formData);
       toast("Category created successfully.", "success");
     } else {
-      await axios.put(`${BASE_URL}/${dlg.id}`, formData);
+      await axios.put(`${BASE_URL}/api/categories/${dlg.id}`, formData);
       toast("Category updated successfully.", "success");
     }
 

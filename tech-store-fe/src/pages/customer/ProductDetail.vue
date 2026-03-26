@@ -198,6 +198,8 @@ const selectedVariant = ref(null);
 const quantity = ref(1);
 const activeTab = ref("description");
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
 // Tính toán tồn kho dựa trên biến thể đang chọn
 const currentStock = computed(() => {
   if (!selectedVariant.value) return 0;
@@ -226,7 +228,7 @@ function formatPrice(val) {
 function fixImageUrl(url) {
   if (!url) return "https://via.placeholder.com/600?text=No+Image";
   if (url.startsWith("http")) return url;
-  return `http://localhost:8080${url}`;
+  return `${BASE_URL}${url}`;
 }
 
 function selectVariant(v) {
@@ -281,7 +283,7 @@ async function loadProductData() {
       variants.value = data.variants.filter((v) => v.isActive);
     } else {
       const varRes = await fetch(
-        `http://localhost:8080/api/products/${productId}/variants`,
+        `${BASE_URL}/api/products/${productId}/variants`,
       ).then((r) => r.json());
       variants.value = (varRes || []).filter((v) => v.isActive);
     }
