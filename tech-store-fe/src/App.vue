@@ -1,4 +1,5 @@
 <template>
+  <Analytics />
   <el-container class="app-shell">
     <!-- ─── Header ─────────────────────────────────────── -->
     <el-header v-if="showHeader" class="app-header">
@@ -282,6 +283,7 @@ import { toast } from "./ui/toast";
 import { clearLastAuthResponse, clearSession, useAuthStore } from "./stores/auth";
 import { useCartStore } from "./stores/cart";
 import http from "./api/http";
+import { Analytics } from '@vercel/analytics/vue';
 
 const route = useRoute();
 const router = useRouter();
