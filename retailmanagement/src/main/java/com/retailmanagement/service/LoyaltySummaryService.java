@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class LoyaltySummaryService {
-
+private final CustomerService customerService;
     private final LoyaltyLedgerRepository ledgerRepository;
 
     // ═══════════════════════════════════════════════════════════════════
