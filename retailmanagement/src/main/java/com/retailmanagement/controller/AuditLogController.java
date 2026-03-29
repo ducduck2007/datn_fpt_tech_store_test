@@ -1,13 +1,8 @@
 package com.retailmanagement.controller;
 
-import com.retailmanagement.audit.AuditLog;
-import com.retailmanagement.audit.AuditLogFilterRequest;
-import com.retailmanagement.audit.AuditLogService;
-import com.retailmanagement.audit.AuditReportService;
-import com.retailmanagement.dto.response.AuditLogResponse;
-import com.retailmanagement.dto.response.AuditSummaryResponse;
-import com.retailmanagement.dto.response.ModuleLogReportResponse;
-import com.retailmanagement.dto.response.UserActionReportResponse;
+import com.retailmanagement.audit.*;
+import com.retailmanagement.dto.response.*;
+import com.retailmanagement.service.DashboardService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +22,8 @@ public class AuditLogController {
 
     private final AuditLogService auditLogService;
     private final AuditReportService reportService;
+    private final LogSummaryService logSummaryService;
+    private final DashboardService dashboardService;
 
     // Get all
     @GetMapping("")
@@ -81,6 +78,16 @@ public class AuditLogController {
     @GetMapping("report/summary")
     public AuditSummaryResponse getSummaryReport(){
         return reportService.getSummaryReport();
+    }
+
+    @GetMapping("log/summary")
+    public LogSummaryResponse summary(@RequestParam String type) {
+        return logSummaryService.getSummary(type);
+    }
+
+    @GetMapping("/dashboard")
+    public DashboardResponse dashboard() {
+        return dashboardService.getDashboard();
     }
 
     // Advanced filter

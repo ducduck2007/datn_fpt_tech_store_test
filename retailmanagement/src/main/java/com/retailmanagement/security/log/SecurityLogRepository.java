@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.util.List;
+
 @Repository
 public interface SecurityLogRepository
         extends JpaRepository<SecurityLog, Long>,
@@ -18,5 +21,21 @@ public interface SecurityLogRepository
       AND severity = 'HIGH'
       AND created_at >= DATEADD(MINUTE, -5, GETUTCDATE())
     """, nativeQuery = true)
-    long countRecentHigh(@Param("action") String action);
+    long countRecentHigh(@Param("action") ActionType actionType, Instant time);
+
+    long countByCreatedAtBetween(Instant start, Instant end);
+
+    long countByActionTypeInAndCreatedAtBetween(
+            List<ActionType> actionTypes,
+            Instant start,
+            Instant end
+    );
+
+    @Query("""
+        SELECT l.severity, COUNT(l)
+        FROM SecurityLog l
+        WHERE l.createdAt BETWEEN :start AND :end
+        GROUP BY l.severity
+    """)
+    List<Object[]> countBySeverity(Instant start, Instant end);
 }

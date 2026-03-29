@@ -26,10 +26,9 @@ public class SecurityLog {
     @Column(name = "username", length = 100)
     private String username;
 
-    @Size(max = 100)
-    @Nationalized
+    @Enumerated(EnumType.STRING)
     @Column(name = "action_type", length = 100)
-    private String actionType;
+    private ActionType actionType;
 
     @Size(max = 100)
     @Nationalized
@@ -46,10 +45,9 @@ public class SecurityLog {
     @Column(name = "ip_address", length = 50)
     private String ipAddress;
 
-    @Size(max = 20)
-    @Nationalized
-    @Column(name = "severity", length = 20)
-    private String severity;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "severity")
+    private SeverityLevel severity;
 
     @Size(max = 50)
     @Nationalized

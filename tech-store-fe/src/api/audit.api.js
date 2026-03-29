@@ -4,6 +4,17 @@ const BASE = "/api/auth/audit-log";
 
 export const auditApi = {
 
+  // ===== DASHBOARD =====
+  dashboard() {
+    return http.get(`${BASE}/dashboard`);
+  },
+
+  logSummary(type = "week") {
+    return http.get(`${BASE}/log/summary`, {
+      params: { type }
+    });
+  },
+
   // ===== GET ALL =====
   list() {
     return http.get(BASE);
