@@ -21,7 +21,7 @@ public interface SecurityLogRepository
       AND severity = 'HIGH'
       AND created_at >= DATEADD(MINUTE, -5, GETUTCDATE())
     """, nativeQuery = true)
-    long countRecentHigh(@Param("action") ActionType actionType, Instant time);
+    long countRecentHigh(@Param("action") String action);
 
     long countByCreatedAtBetween(Instant start, Instant end);
 

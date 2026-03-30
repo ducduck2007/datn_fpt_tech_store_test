@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -29,6 +31,7 @@ public class SecurityLogService {
     // =====================================================
     // LOG MAIN
     // =====================================================
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(
             String username,
             ActionType actionType,
@@ -100,13 +103,8 @@ public class SecurityLogService {
     // =====================================================
     private void handleHighThreshold(SecurityLog log) {
 
-        Instant fiveMinutesAgo = Instant.now().minusSeconds(300);
-
-        long count =
-                securityLogRepository.countRecentHigh(
-                        log.getActionType(),
-                        fiveMinutesAgo
-                );
+        // Truyền chuỗi .name() và bỏ tham số Instant để khớp với cấu trúc Repository mới
+        long count = securityLogRepository.countRecentHigh(log.getActionType().name());
 
         if (count < 10) return;
 
