@@ -2,7 +2,6 @@
   <div class="sm-page">
     <div class="sm-inner">
 
-      <!-- ── Header ── -->
       <header class="sm-header">
         <div class="sm-header__left">
           <div class="sm-eyebrow">
@@ -29,50 +28,37 @@
         </div>
       </header>
 
-      <!-- ── Stat cards ── -->
       <div class="sm-stats">
         <div class="sm-stat sm-stat--blue">
           <div class="sm-stat__icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
           </div>
-          <div class="sm-stat__num">{{ total }}</div>
+          <div class="sm-stat__num">{{ globalTotal }}</div>
           <div class="sm-stat__label">Tổng Seri</div>
         </div>
         <div class="sm-stat sm-stat--green">
           <div class="sm-stat__icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <div class="sm-stat__num">{{ countInStock }}</div>
+          <div class="sm-stat__num">{{ globalInStock }}</div>
           <div class="sm-stat__label">Trong kho</div>
         </div>
         <div class="sm-stat sm-stat--purple">
           <div class="sm-stat__icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
           </div>
-          <div class="sm-stat__num">{{ countSold }}</div>
+          <div class="sm-stat__num">{{ globalSold }}</div>
           <div class="sm-stat__label">Đã bán</div>
         </div>
         <div class="sm-stat sm-stat--red">
           <div class="sm-stat__icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
-          <div class="sm-stat__num">{{ countFaulty }}</div>
+          <div class="sm-stat__num">{{ globalFaulty }}</div>
           <div class="sm-stat__label">Lỗi / Hỏng</div>
         </div>
       </div>
 
-      <!-- ── Filter panel ── -->
       <div class="sm-filter-panel">
         <div class="sm-filter-panel__head">
           <div class="sm-filter-panel__title">
@@ -88,7 +74,6 @@
           >Xóa bộ lọc</button>
         </div>
         <div class="sm-filter-fields">
-          <!-- Search -->
           <div class="sm-filter-field sm-filter-field--search">
             <span class="sm-filter-field__label">Tìm kiếm</span>
             <div class="sm-search-wrap">
@@ -109,7 +94,6 @@
             </div>
           </div>
 
-          <!-- Status filter -->
           <div class="sm-filter-field">
             <span class="sm-filter-field__label">Trạng thái</span>
             <div class="sm-status-toggle">
@@ -125,7 +109,6 @@
             </div>
           </div>
 
-          <!-- Apply -->
           <div class="sm-filter-field sm-filter-field--action">
             <button class="sm-btn sm-btn--primary sm-btn--sm" @click="load">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -137,15 +120,13 @@
         </div>
       </div>
 
-      <!-- ── Table card ── -->
       <div class="sm-card">
-        <!-- Toolbar -->
         <div class="sm-toolbar">
           <div class="sm-toolbar__left">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
             </svg>
-            <span>Danh sách Số Seri</span>
+            <span>Danh sách Số Seri (Đã gom nhóm theo Sản phẩm)</span>
             <span v-if="filterStatus" class="sm-active-filter-chip">
               {{ statusOptions.find(o => o.value === filterStatus)?.label }}
               <button class="sm-chip-remove" @click="filterStatus = ''; load()">×</button>
@@ -157,7 +138,6 @@
           </div>
         </div>
 
-        <!-- Table -->
         <div class="sm-table-wrap" :class="{ 'sm-table-wrap--loading': loading }">
           <div class="sm-loader-overlay" v-if="loading">
             <div class="sm-loader-ring"></div>
@@ -174,8 +154,7 @@
               </tr>
             </thead>
             <tbody>
-              <!-- Empty -->
-              <tr v-if="!loading && rows.length === 0">
+              <tr v-if="!loading && groupedRows.length === 0">
                 <td colspan="5" class="sm-empty">
                   <div class="sm-empty__inner">
                     <div class="sm-empty__icon">
@@ -188,66 +167,79 @@
                 </td>
               </tr>
 
-              <tr v-for="row in rows" :key="row.id" class="sm-row">
-                <!-- ID -->
-                <td style="text-align:center">
-                  <span class="sm-id">#{{ row.id }}</span>
-                </td>
-
-                <!-- Serial -->
-                <td>
-                  <div class="sm-serial-cell">
-                    <span class="sm-serial-num">{{ row.serialNumber }}</span>
-                    <button class="sm-copy-btn" @click="copySerial(row.serialNumber)" :title="'Sao chép ' + row.serialNumber">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                        <rect x="9" y="9" width="13" height="13" rx="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-
-                <!-- Product info -->
-                <td>
-                  <div class="sm-product-cell">
-                    <span class="sm-product-name">{{ row.productName }}</span>
-                    <div class="sm-variant-tag">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="2" y1="12" x2="22" y2="12"/>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                      </svg>
-                      {{ row.variantName }}
+              <template v-for="group in groupedRows" :key="group.key">
+                <tr class="sm-group-row" @click="toggleGroup(group.key)">
+                  <td colspan="5" class="sm-group-td">
+                    <div class="sm-group-inner">
+                      <div class="sm-group-left">
+                        <svg class="sm-expand-icon" :class="{ 'is-expanded': expandedGroups.has(group.key) }" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                        <div class="sm-group-product-info">
+                          <span class="sm-product-name">{{ group.productName }}</span>
+                          <div class="sm-variant-tag mt-1">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            {{ group.variantName }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="sm-group-right">
+                        <span class="sm-stat-badge sm-stat-badge--gray">Tổng: {{ group.serials.length }}</span>
+                        <span v-if="group.inStock" class="sm-stat-badge sm-stat-badge--green">Còn kho: {{ group.inStock }}</span>
+                        <span v-if="group.sold" class="sm-stat-badge sm-stat-badge--purple">Đã bán: {{ group.sold }}</span>
+                        <span v-if="group.faulty" class="sm-stat-badge sm-stat-badge--red">Lỗi: {{ group.faulty }}</span>
+                      </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
+                </tr>
 
-                <!-- Status -->
-                <td style="text-align:center">
-                  <span class="sm-status-tag" :class="getStatusClass(row.status)">
-                    <span class="sm-tag-dot"></span>
-                    {{ formatStatus(row.status) }}
-                  </span>
-                </td>
+                <template v-if="expandedGroups.has(group.key)">
+                  <tr v-for="row in group.serials" :key="row.id" class="sm-row sm-detail-row">
+                    <td style="text-align:center">
+                      <span class="sm-id">#{{ row.id }}</span>
+                    </td>
 
-                <!-- Actions -->
-                <td style="text-align:center">
-                  <div class="sm-action-group">
-                    <button
-                      v-for="opt in statusActionOptions(row.status)"
-                      :key="opt.value"
-                      class="sm-action-btn"
-                      :class="`sm-action-btn--${opt.color}`"
-                      @click="handleStatusUpdate(row, opt.value)"
-                    >{{ opt.label }}</button>
-                  </div>
-                </td>
-              </tr>
+                    <td>
+                      <div class="sm-serial-cell pl-3">
+                        <span class="sm-serial-num">{{ row.serialNumber }}</span>
+                        <button class="sm-copy-btn" @click="copySerial(row.serialNumber)" :title="'Sao chép ' + row.serialNumber">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+
+                    <td>
+                      <span style="color: #9ca3af; font-size: 12px; font-style: italic;">↳ Thuộc: {{ group.variantName }}</span>
+                    </td>
+
+                    <td style="text-align:center">
+                      <span class="sm-status-tag" :class="getStatusClass(row.status)">
+                        <span class="sm-tag-dot"></span>
+                        {{ formatStatus(row.status) }}
+                      </span>
+                    </td>
+
+                    <td style="text-align:center">
+                      <div class="sm-action-group">
+                        <button
+                          v-for="opt in statusActionOptions(row.status)"
+                          :key="opt.value"
+                          class="sm-action-btn"
+                          :class="`sm-action-btn--${opt.color}`"
+                          @click="handleStatusUpdate(row, opt.value)"
+                        >{{ opt.label }}</button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </template>
             </tbody>
           </table>
         </div>
 
-        <!-- Pagination -->
         <div class="sm-pagination" v-if="total > 0">
           <span class="sm-pagination__info">
             {{ (page - 1) * 20 + 1 }}–{{ Math.min(page * 20, total) }} / {{ total }}
@@ -290,6 +282,9 @@ const page    = ref(1);
 const keyword = ref('');
 const filterStatus = ref('');
 
+// [MỚI] State để lưu các nhóm đang được xổ ra
+const expandedGroups = ref(new Set());
+
 const statusOptions = [
   { value: '',         label: 'Tất cả',    color: 'gray'   },
   { value: 'IN_STOCK', label: 'Trong kho', color: 'green'  },
@@ -297,9 +292,31 @@ const statusOptions = [
   { value: 'FAULTY',   label: 'Lỗi / Hỏng',color: 'red'   },
 ];
 
-const countInStock = computed(() => rows.value.filter(r => r.status === 'IN_STOCK').length);
-const countSold    = computed(() => rows.value.filter(r => r.status === 'SOLD').length);
-const countFaulty  = computed(() => rows.value.filter(r => r.status === 'FAULTY').length);
+//const countInStock = computed(() => rows.value.filter(r => r.status === 'IN_STOCK').length);
+//const countSold    = computed(() => rows.value.filter(r => r.status === 'SOLD').length);
+//const countFaulty  = computed(() => rows.value.filter(r => r.status === 'FAULTY').length);
+
+const globalInStock = ref(0);
+const globalSold = ref(0);
+const globalFaulty = ref(0);
+const globalTotal = computed(() => globalInStock.value + globalSold.value + globalFaulty.value);
+
+// Hàm gọi ngầm để lấy tổng số lượng tất cả các trang
+async function loadStats() {
+  try {
+    const kw = keyword.value || undefined;
+    const [r1, r2, r3] = await Promise.all([
+      serialsApi.list({ page: 0, size: 1, keyword: kw, status: 'IN_STOCK' }),
+      serialsApi.list({ page: 0, size: 1, keyword: kw, status: 'SOLD' }),
+      serialsApi.list({ page: 0, size: 1, keyword: kw, status: 'FAULTY' })
+    ]);
+    globalInStock.value = r1.data?.data?.totalElements ?? r1.data?.totalElements ?? 0;
+    globalSold.value = r2.data?.data?.totalElements ?? r2.data?.totalElements ?? 0;
+    globalFaulty.value = r3.data?.data?.totalElements ?? r3.data?.totalElements ?? 0;
+  } catch (e) {
+    console.error("Lỗi lấy thống kê", e);
+  }
+}
 
 const pageNumbers = computed(() => {
   const totalPages = Math.ceil(total.value / 20);
@@ -308,6 +325,39 @@ const pageNumbers = computed(() => {
   for (let i = Math.max(1, p - 2); i <= Math.min(totalPages, p + 2); i++) range.push(i);
   return range;
 });
+
+// [MỚI] Thuật toán gom nhóm Dữ liệu theo Sản Phẩm & Biến thể
+const groupedRows = computed(() => {
+  const map = {};
+  rows.value.forEach(row => {
+    const key = `${row.productName} | ${row.variantName}`;
+    if (!map[key]) {
+      map[key] = {
+        key,
+        productName: row.productName,
+        variantName: row.variantName,
+        inStock: 0,
+        sold: 0,
+        faulty: 0,
+        serials: []
+      };
+    }
+    map[key].serials.push(row);
+    if (row.status === 'IN_STOCK') map[key].inStock++;
+    if (row.status === 'SOLD') map[key].sold++;
+    if (row.status === 'FAULTY') map[key].faulty++;
+  });
+  return Object.values(map);
+});
+
+// [MỚI] Hàm click xổ nhóm
+function toggleGroup(key) {
+  if (expandedGroups.value.has(key)) {
+    expandedGroups.value.delete(key);
+  } else {
+    expandedGroups.value.add(key);
+  }
+}
 
 async function load() {
   loading.value = true;
@@ -320,14 +370,16 @@ async function load() {
     const data = res.data?.data || res.data;
     rows.value  = data.content;
     total.value = data.totalElements;
+    
+    // Đóng toàn bộ các tab mỗi lần sang trang mới để giao diện gọn gàng
+    expandedGroups.value.clear(); 
+    loadStats();
   } catch {
     toast('Lỗi tải dữ liệu Seri', 'error');
   } finally {
     loading.value = false;
   }
 }
-
-function onPageChange() { load(); }
 
 async function handleStatusUpdate(row, newStatus) {
   try {
@@ -384,16 +436,7 @@ onMounted(load);
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ─────────────────────────────────────────
-   HARDCODE COLOR MAP (không dùng var())
-   bg:#f6f7f9  card:#fff  border:#e4e7ec
-   border-light:#f0f2f5  text:#0f1117
-   muted:#6b7280  subtle:#9ca3af
-   blue:#2563eb / bg:#eff6ff / bdr:#bfdbfe
-   green:#16a34a / bg:#f0fdf4 / bdr:#bbf7d0
-   red:#dc2626 / bg:#fff1f2 / bdr:#fecdd3
-   orange:#d97706 / bg:#fffbeb / bdr:#fde68a
-   purple:#7c3aed / bg:#f5f3ff / bdr:#ddd6fe
-   radius:12px  radius-sm:8px
+   HARDCODE COLOR MAP
 ───────────────────────────────────────── */
 
 .sm-page {
@@ -549,8 +592,43 @@ onMounted(load);
   background: #fafbfc; white-space: nowrap;
 }
 .sm-table td { padding: 13px 16px; vertical-align: middle; border-bottom: 1px solid #f0f2f5; }
-.sm-row { transition: background 0.12s; }
-.sm-row:hover { background: #fafbfc; }
+
+/* [MỚI] Thiết kế cho Hàng chứa Tên Sản Phẩm (Group Row) */
+.sm-group-row {
+  cursor: pointer;
+  background: #ffffff;
+  transition: background 0.2s ease;
+}
+.sm-group-row:hover { background: #f8fafc; }
+.sm-group-td { padding: 14px 16px !important; }
+.sm-group-inner { display: flex; align-items: center; justify-content: space-between; }
+.sm-group-left { display: flex; align-items: center; gap: 12px; }
+.sm-expand-icon {
+  color: #9ca3af;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.sm-expand-icon.is-expanded {
+  transform: rotate(90deg);
+  color: #2563eb;
+}
+.sm-group-product-info { display: flex; flex-direction: column; }
+
+.sm-group-right { display: flex; gap: 8px; }
+.sm-stat-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+}
+.sm-stat-badge--green  { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.sm-stat-badge--purple { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.sm-stat-badge--red    { background: #fff1f2; color: #dc2626; border: 1px solid #fecdd3; }
+.sm-stat-badge--gray   { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+
+/* Thiết kế cho Hàng chứa Chi tiết Seri */
+.sm-detail-row {
+  background: #fafbfc;
+  border-left: 3px solid #bfdbfe;
+}
+.sm-detail-row:hover { background: #f0f4f8; }
+
 .sm-row:last-child td { border-bottom: none; }
 
 /* Cell styles */
@@ -572,8 +650,7 @@ onMounted(load);
 }
 .sm-copy-btn:hover { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
 
-.sm-product-cell { display: flex; flex-direction: column; gap: 4px; }
-.sm-product-name { font-size: 13.5px; font-weight: 700; color: #0f1117; }
+.sm-product-name { font-size: 14.5px; font-weight: 800; color: #0f1117; letter-spacing: -0.02em; }
 .sm-variant-tag {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 11px; font-weight: 600; color: #7c3aed;
