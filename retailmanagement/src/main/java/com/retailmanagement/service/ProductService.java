@@ -88,14 +88,16 @@ public class ProductService {
         Product savedProduct = productRepository.save(product);
 
         if (request.getCategoryIds() != null) {
+            boolean first = true;
             for (Integer catId : request.getCategoryIds()) {
                 ProductCategory pc = new ProductCategory();
                 ProductCategoryId pcId = new ProductCategoryId(savedProduct.getId(), catId);
                 pc.setId(pcId);
                 pc.setCategory(categoryRepository.getReferenceById(catId));
-                pc.setIsPrimary(false);
+                pc.setIsPrimary(first);  // ← category đầu tiên là primary
                 pc.setCreatedAt(Instant.now());
                 productCategoryRepository.save(pc);
+                first = false;
             }
         }
 
@@ -182,6 +184,19 @@ public class ProductService {
 
         productTagRepository.deleteByProduct_Id(product.getId());
         productTagRepository.flush();
+        if (request.getCategoryIds() != null) {
+            boolean first = true;
+            for (Integer catId : request.getCategoryIds()) {
+                ProductCategory pc = new ProductCategory();
+                ProductCategoryId pcId = new ProductCategoryId(product.getId(), catId);
+                pc.setId(pcId);
+                pc.setCategory(categoryRepository.getReferenceById(catId));
+                pc.setIsPrimary(first);  // ← category đầu tiên là primary
+                pc.setCreatedAt(Instant.now());
+                productCategoryRepository.save(pc);
+                first = false;
+            }
+        }
 
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
             for (Integer tagId : request.getTagIds()) {
