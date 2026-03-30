@@ -3,32 +3,32 @@ package com.retailmanagement.security.log;
 import com.retailmanagement.repository.UserRepository;
 import com.retailmanagement.service.EmailService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityLogService {
 
     private final SecurityLogRepository securityLogRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
 
+    /** anti spam alert cache */
     private final Map<String, Long> lastAlertMap = new ConcurrentHashMap<>();
 
+    // =====================================================
+    // LOG MAIN
+    // =====================================================
     public void log(
             String username,
             ActionType actionType,
@@ -39,93 +39,103 @@ public class SecurityLogService {
             String status,
             String description
     ) {
+
         try {
-            SecurityLog log = SecurityLog.builder()
+
+            SecurityLog logEntity = SecurityLog.builder()
                     .username(username)
-                    .actionType(actionType != null ? actionType.name() : null)
+                    .actionType(actionType)
                     .targetEntity(targetEntity)
                     .targetId(targetId)
                     .ipAddress(ip)
-                    .severity(severity != null ? severity.name() : null)
+                    .severity(severity)
                     .status(status)
                     .description(description)
                     .build();
 
-            securityLogRepository.save(log);
+            securityLogRepository.save(logEntity);
 
-            // CRITICAL → gửi ngay
+            // ===== ALERT LOGIC =====
             if (severity == SeverityLevel.CRITICAL) {
-                handleCriticalAlert(log);
+                handleCriticalAlert(logEntity);
             }
 
-            // HIGH → check threshold
             if (severity == SeverityLevel.HIGH) {
-                handleHighThreshold(log);
+                handleHighThreshold(logEntity);
             }
 
         } catch (Exception ex) {
-            // Không throw ra ngoài để tránh ảnh hưởng business flow
+            log.error("SecurityLog failed", ex); // ❗ không nuốt lỗi
         }
     }
 
-    //Helper
+    // =====================================================
+    // ADMIN EMAIL
+    // =====================================================
     private List<String> getAdminEmails() {
-        return userRepository.findAdminEmails().stream()
+        return userRepository.findAdminEmails()
+                .stream()
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
     }
 
-    //Xử lý alert
+    // =====================================================
+    // CRITICAL ALERT
+    // =====================================================
     private void handleCriticalAlert(SecurityLog log) {
 
-        List<String> adminEmails = getAdminEmails();
-
-        if (adminEmails.isEmpty()) return;
-
-        String subject = "CRITICAL SECURITY ALERT - " + log.getActionType();
-
-        String content = buildSecurityHtml(log);
+        List<String> admins = getAdminEmails();
+        if (admins.isEmpty()) return;
 
         emailService.sendSecurityAlertToAdmins(
-                adminEmails,
-                subject,
-                content
+                admins,
+                "CRITICAL SECURITY ALERT - " + log.getActionType(),
+                buildSecurityHtml(log)
         );
     }
 
+    // =====================================================
+    // HIGH ALERT THRESHOLD
+    // =====================================================
     private void handleHighThreshold(SecurityLog log) {
 
-        long count = securityLogRepository.countRecentHigh(log.getActionType());
+        Instant fiveMinutesAgo = Instant.now().minusSeconds(300);
+
+        long count =
+                securityLogRepository.countRecentHigh(
+                        log.getActionType(),
+                        fiveMinutesAgo
+                );
 
         if (count < 10) return;
 
-        String key = log.getActionType() + "_" + log.getIpAddress();
+        String key =
+                log.getActionType() + "_" +
+                        Optional.ofNullable(log.getIpAddress()).orElse("unknown");
 
         if (!shouldSendHighAlert(key)) return;
 
-        List<String> adminEmails = getAdminEmails();
-
-        if (adminEmails.isEmpty()) return;
-
-        String subject = "HIGH ALERT - " + log.getActionType();
-
-        String content = buildHighAlertHtml(log, count);
+        List<String> admins = getAdminEmails();
+        if (admins.isEmpty()) return;
 
         emailService.sendSecurityAlertToAdmins(
-                adminEmails,
-                subject,
-                content
+                admins,
+                "HIGH ALERT - " + log.getActionType(),
+                buildHighAlertHtml(log, count)
         );
     }
 
+    // =====================================================
+    // ANTI SPAM ALERT (5 phút)
+    // =====================================================
     private boolean shouldSendHighAlert(String key) {
 
         long now = System.currentTimeMillis();
 
         Long lastSent = lastAlertMap.get(key);
 
-        if (lastSent != null && now - lastSent < 300000) {
+        if (lastSent != null && now - lastSent < 300_000) {
             return false;
         }
 
@@ -133,29 +143,26 @@ public class SecurityLogService {
         return true;
     }
 
-    //Build HTML
+    // =====================================================
+    // EMAIL TEMPLATE
+    // =====================================================
     private String buildSecurityHtml(SecurityLog log) {
 
-        String formattedTime = log.getCreatedAt() != null
-                ? log.getCreatedAt()
-                .atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
-                .format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
-                : "N/A";
+        String time = formatTime(log.getCreatedAt());
 
         return """
-        <div style="font-family:Arial;padding:20px">
-            <h2 style="color:red">🚨 SECURITY ALERT</h2>
+            <div style="font-family:Arial;padding:20px">
+                <h2 style="color:red">🚨 SECURITY ALERT</h2>
 
-            <p><b>User:</b> %s</p>
-            <p><b>Action:</b> %s</p>
-            <p><b>Target:</b> %s (%s)</p>
-            <p><b>IP:</b> %s</p>
-            <p><b>Status:</b> %s</p>
-            <p><b>Description:</b> %s</p>
-            <p><b>Time:</b> %s</p>
-
-        </div>
-    """.formatted(
+                <p><b>User:</b> %s</p>
+                <p><b>Action:</b> %s</p>
+                <p><b>Target:</b> %s (%s)</p>
+                <p><b>IP:</b> %s</p>
+                <p><b>Status:</b> %s</p>
+                <p><b>Description:</b> %s</p>
+                <p><b>Time:</b> %s</p>
+            </div>
+        """.formatted(
                 log.getUsername(),
                 log.getActionType(),
                 log.getTargetEntity(),
@@ -163,34 +170,30 @@ public class SecurityLogService {
                 log.getIpAddress(),
                 log.getStatus(),
                 log.getDescription(),
-                formattedTime
+                time
         );
     }
 
     private String buildHighAlertHtml(SecurityLog log, long count) {
 
-        String time = log.getCreatedAt() != null
-                ? log.getCreatedAt()
-                .atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
-                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
-                : "N/A";
+        String time = formatTime(log.getCreatedAt());
 
         return """
-        <div style="font-family:Arial;padding:20px">
-            <h2 style="color:orange">⚠️ HIGH ALERT (Threshold Reached)</h2>
-            
-            <p><b>User:</b> %s</p>
-            <p><b>Action:</b> %s</p>
-            <p><b>Số lần:</b> %d lần trong 5 phút</p>
-            <p><b>IP:</b> %s</p>
-            <p><b>Time:</b> %s</p>
+            <div style="font-family:Arial;padding:20px">
+                <h2 style="color:orange">⚠️ HIGH ALERT (Threshold Reached)</h2>
 
-            <hr/>
-            <p style="font-size:12px;color:gray">
-                Có dấu hiệu tấn công hoặc hành vi bất thường
-            </p>
-        </div>
-    """.formatted(
+                <p><b>User:</b> %s</p>
+                <p><b>Action:</b> %s</p>
+                <p><b>Số lần:</b> %d lần trong 5 phút</p>
+                <p><b>IP:</b> %s</p>
+                <p><b>Time:</b> %s</p>
+
+                <hr/>
+                <p style="font-size:12px;color:gray">
+                    Có dấu hiệu tấn công hoặc hành vi bất thường
+                </p>
+            </div>
+        """.formatted(
                 log.getUsername(),
                 log.getActionType(),
                 count,
@@ -199,6 +202,16 @@ public class SecurityLogService {
         );
     }
 
+    private String formatTime(Instant instant) {
+        if (instant == null) return "N/A";
+
+        return instant.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
+    }
+
+    // =====================================================
+    // FILTER LOGS
+    // =====================================================
     public Page<SecurityLog> filterLogs(
             SecurityLogFilterRequest request,
             int page,
@@ -207,11 +220,9 @@ public class SecurityLogService {
             String sortDir
     ) {
 
-        // ===== 1. Giới hạn page size =====
-        size = Math.min(size, 100); // max 100 record / page
+        size = Math.min(size, 100);
 
-        // ===== 2. Whitelist field được sort =====
-        List<String> allowedSortFields = List.of(
+        List<String> whitelist = List.of(
                 "createdAt",
                 "username",
                 "actionType",
@@ -220,11 +231,10 @@ public class SecurityLogService {
                 "ipAddress"
         );
 
-        if (!allowedSortFields.contains(sortBy)) {
+        if (!whitelist.contains(sortBy)) {
             sortBy = "createdAt";
         }
 
-        // ===== 3. Validate sort direction =====
         Sort.Direction direction;
         try {
             direction = Sort.Direction.fromString(sortDir);
@@ -232,14 +242,12 @@ public class SecurityLogService {
             direction = Sort.Direction.DESC;
         }
 
-        // ===== 4. Build Pageable =====
         Pageable pageable = PageRequest.of(
                 Math.max(page, 0),
                 size,
                 Sort.by(direction, sortBy)
         );
 
-        // ===== 5. Specification =====
         Specification<SecurityLog> spec =
                 Specification.where(SecurityLogSpecification.filter(request));
 

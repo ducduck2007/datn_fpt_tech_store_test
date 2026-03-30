@@ -184,9 +184,10 @@
                   <path d="M5 7.5l2 2 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
-              Audit
+              Security
             </div>
           </template>
+          <el-menu-item index="/system/audit-dashboard">Audit Dashboard</el-menu-item>
           <el-menu-item index="/system/audit-logs">Audit Logs</el-menu-item>
           <el-menu-item index="/system/audit-report">Audit Report</el-menu-item>
           <el-menu-item index="/system/security-logs">Security Logs</el-menu-item>
