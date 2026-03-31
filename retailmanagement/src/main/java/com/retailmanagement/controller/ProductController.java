@@ -7,6 +7,7 @@ import com.retailmanagement.repository.ProductRepository;
 import com.retailmanagement.repository.ProductSerialRepository;
 import com.retailmanagement.repository.ProductVariantRepository;
 import com.retailmanagement.service.ProductService;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -25,7 +26,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
-
+@Transactional
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getProducts(
             @RequestParam(defaultValue = "0") int page,

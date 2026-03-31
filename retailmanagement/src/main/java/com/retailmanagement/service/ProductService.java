@@ -216,7 +216,7 @@ public class ProductService {
 
         productRepository.save(product);
     }
-
+@Transactional
     public Page<ProductResponse> getProducts(int page, List<Integer> categoryIds, String keyword, String sortBy, boolean inStockOnly, Integer tagId, LocalDateTime startDate, LocalDateTime endDate, Boolean isNew, Boolean isFaulty) {
         Sort sortObj = Sort.by(Sort.Direction.DESC, "id");
         if (sortBy != null) {
@@ -262,7 +262,7 @@ public class ProductService {
 
         return new PageImpl<>(content, pageable, productPage.getTotalElements());
     }
-
+@Transactional
     public ProductResponse getProductById(Integer id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm với ID: " + id));
@@ -363,16 +363,14 @@ public class ProductService {
         productCategoryRepository
                 .findFirstById_ProductIdAndIsPrimaryTrue(product.getId())
                 .ifPresent(pc -> dto.setCategoryId(pc.getCategory().getId()));
-
         int totalStock = productVariantRepository.findByProduct_Id(product.getId()).stream()
                 .filter(v -> Boolean.TRUE.equals(v.getIsActive()))
                 .mapToInt(v -> {
                     int actualStock = productSerialRepository.countByVariantIdAndStatus(v.getId(), "IN_STOCK");
                     if (v.getStockQuantity() == null || v.getStockQuantity() != actualStock) {
                         v.setStockQuantity(actualStock);
-                        productVariantRepository.save(v);
+                        productVariantRepository.save(v);  // ← GHI DỮ LIỆU bên trong method không có @Transactional!
                     }
-
                     return actualStock;
                 })
                 .sum();
