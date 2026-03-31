@@ -1,43 +1,43 @@
 <template>
   <div>
-    <el-card shadow="never" class="order-list-card">
+    <el-card shadow="never">
       <!-- Header -->
-      <div class="list-header">
-        <div>
+      <el-row justify="space-between" align="bottom">
+        <el-col :span="12">
           <div class="kicker">Admin · Quản lý đơn hàng</div>
           <div class="title">{{ title }}</div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <el-tag
-            v-if="rows.length"
-            type="info"
-            effect="plain"
-            class="count-tag"
-          >
-            {{ rows.length }} đơn
-          </el-tag>
-          <el-button class="reload-btn" :loading="loading" @click="load">
-            <svg
-              v-if="!loading"
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="margin-right: 5px"
-            >
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-            Reload
-          </el-button>
-        </div>
-      </div>
+        </el-col>
+        <el-col :span="12">
+          <el-row justify="end" align="middle">
+            <el-space>
+              <el-tag v-if="rows.length" type="info" effect="plain">
+                {{ rows.length }} đơn
+              </el-tag>
+              <el-button plain :loading="loading" @click="load">
+                <template #icon>
+                  <svg
+                    v-if="!loading"
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                </template>
+                Reload
+              </el-button>
+            </el-space>
+          </el-row>
+        </el-col>
+      </el-row>
 
-      <el-divider class="my-3" />
+      <el-divider class="divider" />
 
       <!-- Table -->
       <el-table
@@ -46,18 +46,17 @@
         border
         stripe
         @row-click="goDetail"
-        class="order-table"
         row-class-name="order-row"
       >
         <el-table-column prop="id" label="Mã đơn" width="90" align="center">
           <template #default="{ row }">
-            <span class="cell-id">#{{ row.id }}</span>
+            #{{ row.id }}
           </template>
         </el-table-column>
 
         <el-table-column label="Số đơn" width="150">
           <template #default="{ row }">
-            <span class="cell-order-number">{{ row.orderNumber }}</span>
+            {{ row.orderNumber }}
           </template>
         </el-table-column>
 
@@ -66,7 +65,6 @@
             <el-tag
               :type="statusMap[row.status]?.type ?? 'info'"
               effect="light"
-              class="status-tag"
               round
             >
               {{ statusMap[row.status]?.label ?? row.status }}
@@ -76,18 +74,16 @@
 
         <el-table-column label="Khách hàng" width="130" align="center">
           <template #default="{ row }">
-            <span class="cell-mono">{{ row.customerId }}</span>
+            {{ row.customerId }}
           </template>
         </el-table-column>
 
         <el-table-column label="Thanh toán" width="160">
           <template #default="{ row }">
-            <div class="cell-payment">
-              <span class="payment-icon">{{
-                paymentIcon(row.paymentMethod)
-              }}</span>
-              {{ formatPayment(row.paymentMethod) }}
-            </div>
+            <el-space :size="6">
+              <span>{{ paymentIcon(row.paymentMethod) }}</span>
+              <span>{{ formatPayment(row.paymentMethod) }}</span>
+            </el-space>
           </template>
         </el-table-column>
 
@@ -97,7 +93,6 @@
               :type="row.channel === 'ONLINE' ? 'primary' : 'warning'"
               effect="plain"
               size="small"
-              class="channel-tag"
             >
               {{ row.channel === "ONLINE" ? "🌐 Online" : "🏪 Offline" }}
             </el-tag>
@@ -107,29 +102,27 @@
         <el-table-column label="Thời gian tạo" min-width="160">
           <template #default="{ row }">
             <template v-if="row.createdAtDate">
-              <div class="cell-date">
-                <span class="date-main">{{ row.createdAtDate }}</span>
-                <span class="date-time">{{ row.createdAtTime }}</span>
-              </div>
+              <el-space direction="vertical" :size="2" alignment="flex-start">
+                <span>{{ row.createdAtDate }}</span>
+                <el-text type="info" size="small">{{ row.createdAtTime }}</el-text>
+              </el-space>
             </template>
-            <span v-else class="no-date">—</span>
+            <span v-else>—</span>
           </template>
         </el-table-column>
 
         <el-table-column label="Tổng tiền" width="150" align="right">
           <template #default="{ row }">
-            <span class="cell-amount">{{
-              formatCurrency(row.totalAmount)
-            }}</span>
+            {{ formatCurrency(row.totalAmount) }}
           </template>
         </el-table-column>
 
         <el-table-column label="Giảm giá" width="130" align="right">
           <template #default="{ row }">
-            <span v-if="row.discountTotal" class="cell-discount">
+            <el-text v-if="row.discountTotal" type="danger">
               -{{ formatCurrency(row.discountTotal) }}
-            </span>
-            <span v-else class="no-date">—</span>
+            </el-text>
+            <span v-else>—</span>
           </template>
         </el-table-column>
       </el-table>
@@ -138,14 +131,19 @@
         v-if="!loading && rows.length === 0"
         description="Không có đơn hàng nào"
         :image-size="80"
-        class="mt-4"
+        class="empty"
       />
 
       <!-- Pagination -->
-      <div v-if="rows.length > 0" class="pagination-bar">
-        <span class="pagination-info">
+      <el-row
+        v-if="rows.length > 0"
+        justify="space-between"
+        align="middle"
+        class="pagination-bar"
+      >
+        <el-text type="info" size="small">
           Hiển thị {{ pageStart }}–{{ pageEnd }} / {{ rows.length }} đơn
-        </span>
+        </el-text>
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -153,11 +151,10 @@
           :page-sizes="[10, 20, 50, 100]"
           layout="sizes, prev, pager, next, jumper"
           background
-          class="pagination"
           @size-change="onSizeChange"
           @current-change="onPageChange"
         />
-      </div>
+      </el-row>
     </el-card>
   </div>
 </template>
@@ -290,10 +287,10 @@ function normalize(list) {
         discountTotal: o?.discountTotal ?? o?.discount_total ?? null,
         createdAtDate: formatDate(raw),
         createdAtTime: formatTime(raw),
-        _sortKey: parseDate(raw)?.getTime() ?? 0, // 👈 thêm dòng này
+        _sortKey: parseDate(raw)?.getTime() ?? 0,
       };
     })
-    .sort((a, b) => b._sortKey - a._sortKey); // 👈 sort mới nhất lên đầu
+    .sort((a, b) => b._sortKey - a._sortKey);
 }
 
 // ── Load ───────────────────────────────────────────────
@@ -302,7 +299,7 @@ async function load() {
   try {
     const res = await props.loader();
     rows.value = normalize(extractList(res?.data));
-    currentPage.value = 1; // reset về trang 1 khi reload
+    currentPage.value = 1;
   } catch {
     rows.value = [];
     toast("Không thể tải danh sách đơn hàng.", "error");
@@ -322,194 +319,25 @@ onMounted(load);
 </script>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
-* {
-  font-family: "Inter", sans-serif;
-}
-
-.order-list-card {
-  border-radius: 16px !important;
-  border: 1.5px solid #e2e8f0 !important;
-}
-
-/* ── Header ──────────────────────────────────────────── */
-.list-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
 .kicker {
-  font-size: 11px;
-  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #94a3b8;
-}
-.title {
-  font-weight: 800;
-  font-size: 18px;
-  color: #0f172a;
-  letter-spacing: -0.3px;
-}
-.muted {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 2px;
 }
 
-.count-tag {
-  font-family: "Inter", sans-serif !important;
-  font-weight: 600 !important;
-  border-radius: 8px !important;
-}
-.reload-btn {
-  font-family: "Inter", sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  border-radius: 9px !important;
-  height: 36px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-}
-
-/* ── Table ───────────────────────────────────────────── */
-.order-table {
-  border-radius: 12px;
-  overflow: hidden;
+.divider {
+  margin: 12px 0;
 }
 
 :deep(.order-row) {
   cursor: pointer;
-  transition: background 0.15s;
-}
-:deep(.order-row:hover td) {
-  background: #f0f7ff !important;
 }
 
-:deep(.el-table th) {
-  background: #f8fafc !important;
-  font-size: 12px;
-  font-weight: 700;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-:deep(.el-table td) {
-  font-size: 13.5px;
-  color: #1e293b;
-  padding: 10px 12px !important;
+.empty {
+  margin-top: 16px;
 }
 
-/* ── Cells ───────────────────────────────────────────── */
-.cell-id {
-  font-weight: 700;
-  font-size: 13px;
-  color: #3b82f6;
-  letter-spacing: 0.3px;
-}
-.cell-mono {
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
-}
-.cell-payment {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13.5px;
-  font-weight: 500;
-}
-.payment-icon {
-  font-size: 15px;
-}
-
-/* ── Date cell ───────────────────────────────────────── */
-.cell-date {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  line-height: 1.3;
-}
-.date-main {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #1e293b;
-}
-.date-time {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: #94a3b8;
-}
-.no-date {
-  color: #cbd5e1;
-  font-size: 13px;
-}
-
-/* ── Tags ────────────────────────────────────────────── */
-.status-tag {
-  font-family: "Inter", sans-serif !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-}
-.channel-tag {
-  font-family: "Inter", sans-serif !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  border-radius: 6px !important;
-}
-
-.cell-order-number {
-  font-size: 13px;
-  font-weight: 600;
-  color: #0f172a;
-  letter-spacing: 0.2px;
-}
-.cell-amount {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0f172a;
-}
-.cell-discount {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ef4444;
-}
-
-/* ── Pagination ──────────────────────────────────────── */
 .pagination-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.pagination-info {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: #94a3b8;
-  white-space: nowrap;
-}
-
-.pagination {
-  font-family: "Inter", sans-serif !important;
-}
-
-:deep(.el-pagination .el-pagination__sizes .el-select .el-input__inner),
-:deep(.el-pagination button),
-:deep(.el-pagination .el-pager li) {
-  font-family: "Inter", sans-serif !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  border-radius: 8px !important;
-}
-
-:deep(.el-pagination .el-pager li.is-active) {
-  font-weight: 700 !important;
 }
 </style>

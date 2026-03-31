@@ -1,432 +1,318 @@
 <template>
-  <div class="ch-root">
-    <div class="ch-bg">
-      <div class="ch-bg__noise"></div>
-      <div class="ch-bg__orb ch-bg__orb--1"></div>
-      <div class="ch-bg__orb ch-bg__orb--2"></div>
-    </div>
+  <div class="ch-wrap">
+    <TierProgressBar v-if="isCustomer" ref="tierProgressRef" style="margin-bottom: 20px;" />
 
-    <div class="ch-wrap">
-      <TierProgressBar
-        v-if="isCustomer"
-        ref="tierProgressRef"
-        class="ch-tier"
-      />
-
-      <transition-group name="banner-list" tag="div" class="ch-banners">
-        <div
+    <!-- ── Notification Banners ─────────────────────── -->
+    <div class="ch-banners">
+      <!-- Welcome -->
+      <transition-group name="banner-list" tag="div">
+        <el-card
           v-for="notif in welcomeNotifications"
           :key="notif.id"
-          class="wb-card"
+          shadow="never"
+          style="margin-bottom: 10px;"
         >
-          <div class="wb-card__glow"></div>
-          <div class="wb-card__left">
-            <span class="wb-card__emoji">🎁</span>
-            <div class="wb-card__pulse"></div>
-          </div>
-          <div class="wb-card__body">
-            <div class="wb-card__eyebrow">✨ Dành riêng cho bạn</div>
-            <div class="wb-card__title">{{ notif.title }}</div>
-            <div
-              class="wb-card__msg"
-              v-html="formatMessage(notif.message)"
-            ></div>
-          </div>
-          <div class="wb-card__actions">
-            <button
-              class="btn-pill btn-pill--gold"
-              @click="handleWelcomeShop(notif.id)"
-            >
-              🛍️ Mua ngay
-            </button>
-            <button
-              class="btn-pill btn-pill--ghost"
-              @click="openNotificationsPanel"
-            >
-              Thông báo
-            </button>
-            <button
-              class="wb-card__close"
-              @click="markNotificationAsRead(notif.id)"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+          <el-row align="middle" :gutter="16" style="flex-wrap: nowrap;">
+            <el-col flex="none"><span style="font-size: 32px;">🎁</span></el-col>
+            <el-col flex="1" style="min-width: 0;">
+              <el-text size="small" type="warning" style="text-transform: uppercase; letter-spacing: 0.08em;">✨ Dành riêng cho bạn</el-text>
+              <div><el-text tag="b">{{ notif.title }}</el-text></div>
+              <el-text size="small" type="info"><span v-html="formatMessage(notif.message)" /></el-text>
+            </el-col>
+            <el-col flex="none">
+              <el-space :size="8">
+                <el-button type="primary" plain size="small" @click="handleWelcomeShop(notif.id)">🛍️ Mua ngay</el-button>
+                <el-button plain size="small" @click="openNotificationsPanel">Thông báo</el-button>
+                <el-button text size="small" @click="markNotificationAsRead(notif.id)">✕</el-button>
+              </el-space>
+            </el-col>
+          </el-row>
+        </el-card>
       </transition-group>
 
-      <transition-group name="banner-list" tag="div" class="ch-banners">
-        <div
+      <!-- Birthday -->
+      <transition-group name="banner-list" tag="div">
+        <el-card
           v-for="notif in birthdayNotifications"
           :key="notif.id"
-          class="bday-card"
+          shadow="never"
+          style="margin-bottom: 10px;"
         >
-          <div class="bday-card__confetti">
-            <span
-              v-for="i in 8"
-              :key="i"
-              class="confetti-dot"
-              :style="confettiStyle(i)"
-            ></span>
-          </div>
-          <div class="bday-card__icon">🎂</div>
-          <div class="bday-card__body">
-            <div class="bday-card__title">{{ notif.title }}</div>
-            <div
-              class="bday-card__msg"
-              v-html="formatMessage(notif.message)"
-            ></div>
-            <div class="bday-card__actions">
-              <button
-                class="btn-pill btn-pill--rose"
-                @click="markNotificationAsRead(notif.id)"
-              >
-                Cảm ơn! 🎉
-              </button>
-              <button
-                class="btn-pill btn-pill--ghost"
-                @click="openNotificationsPanel"
-              >
-                Xem tất cả
-              </button>
-            </div>
-          </div>
-          <button
-            class="card-close-btn"
-            @click="markNotificationAsRead(notif.id)"
-          >
-            ✕
-          </button>
-        </div>
+          <el-row align="top" :gutter="16" style="flex-wrap: nowrap;">
+            <el-col flex="none"><span style="font-size: 32px;">🎂</span></el-col>
+            <el-col flex="1" style="min-width: 0;">
+              <div><el-text tag="b">{{ notif.title }}</el-text></div>
+              <el-text size="small" type="info"><span v-html="formatMessage(notif.message)" /></el-text>
+              <el-space style="margin-top: 10px;">
+                <el-button type="primary" plain size="small" @click="markNotificationAsRead(notif.id)">Cảm ơn! 🎉</el-button>
+                <el-button plain size="small" @click="openNotificationsPanel">Xem tất cả</el-button>
+              </el-space>
+            </el-col>
+            <el-col flex="none">
+              <el-button text size="small" @click="markNotificationAsRead(notif.id)">✕</el-button>
+            </el-col>
+          </el-row>
+        </el-card>
       </transition-group>
 
-      <transition-group name="banner-list" tag="div" class="ch-banners">
-        <div
+      <!-- Reminder -->
+      <transition-group name="banner-list" tag="div">
+        <el-card
           v-for="notif in reminderNotifications"
           :key="notif.id"
-          class="remind-card"
+          shadow="never"
+          style="margin-bottom: 10px;"
         >
-          <div class="remind-card__icon">
-            {{ notif.type === "WINBACK" ? "💝" : "🛒" }}
-          </div>
-          <div class="remind-card__body">
-            <div class="remind-card__title">{{ notif.title }}</div>
-            <div
-              class="remind-card__msg"
-              v-html="formatMessage(notif.message)"
-            ></div>
-            <div class="remind-card__actions">
-              <button
-                class="btn-pill btn-pill--amber"
-                @click="handleReminderClick(notif.id)"
-              >
-                Xem ngay 🛍️
-              </button>
-              <button
-                class="btn-pill btn-pill--ghost"
-                @click="markNotificationAsRead(notif.id)"
-              >
-                Để sau
-              </button>
-            </div>
-          </div>
-          <button
-            class="card-close-btn"
-            @click="markNotificationAsRead(notif.id)"
-          >
-            ✕
-          </button>
-        </div>
+          <el-row align="top" :gutter="16" style="flex-wrap: nowrap;">
+            <el-col flex="none"><span style="font-size: 32px;">{{ notif.type === 'WINBACK' ? '💝' : '🛒' }}</span></el-col>
+            <el-col flex="1" style="min-width: 0;">
+              <div><el-text tag="b">{{ notif.title }}</el-text></div>
+              <el-text size="small" type="info"><span v-html="formatMessage(notif.message)" /></el-text>
+              <el-space style="margin-top: 10px;">
+                <el-button type="warning" plain size="small" @click="handleReminderClick(notif.id)">Xem ngay 🛍️</el-button>
+                <el-button plain size="small" @click="markNotificationAsRead(notif.id)">Để sau</el-button>
+              </el-space>
+            </el-col>
+            <el-col flex="none">
+              <el-button text size="small" @click="markNotificationAsRead(notif.id)">✕</el-button>
+            </el-col>
+          </el-row>
+        </el-card>
       </transition-group>
 
-      <transition-group name="banner-list" tag="div" class="ch-banners">
-        <div
+      <!-- Spin Expiry -->
+      <transition-group name="banner-list" tag="div">
+        <el-card
           v-for="bonus in spinExpiryBonuses"
           :key="bonus.customerId"
-          class="spin-card"
-          :class="'spin-card--' + getSpinUrgencyLevel(bonus.hoursLeft)"
+          shadow="never"
+          style="margin-bottom: 10px;"
         >
-          <div class="spin-card__track">
-            <div
-              class="spin-card__fill"
-              :style="{ width: getSpinProgressWidth(bonus.hoursLeft) }"
-            ></div>
-          </div>
-          <div class="spin-card__inner">
-            <div class="spin-card__wheel">🎡</div>
-            <div class="spin-card__body">
-              <div class="spin-card__title">Ưu đãi vòng quay sắp hết hạn!</div>
-              <div class="spin-card__sub">
+          <el-progress
+            :percentage="Math.round((bonus.hoursLeft / 24) * 100)"
+            :stroke-width="4"
+            :show-text="false"
+            :status="getSpinUrgencyLevel(bonus.hoursLeft) === 'critical' ? 'exception' : ''"
+            style="margin-bottom: 8px;"
+          />
+          <el-row align="middle" :gutter="16" style="flex-wrap: nowrap;">
+            <el-col flex="none"><span style="font-size: 32px;">🎡</span></el-col>
+            <el-col flex="1" style="min-width: 0;">
+              <div><el-text tag="b">Ưu đãi vòng quay sắp hết hạn!</el-text></div>
+              <el-text size="small" type="info">
                 Giảm <strong>{{ bonus.discountBonus }}%</strong> — còn
-                <strong>{{ bonus.hoursLeft }} giờ</strong> · Hết hạn
-                {{ formatDate(bonus.expiresAt) }}
-              </div>
-            </div>
-            <div class="spin-card__actions">
-              <button
-                class="btn-pill btn-pill--spin"
-                @click="handleSpinExpiryUseNow(bonus)"
-              >
-                Dùng ngay
-              </button>
-              <button
-                class="spin-card__close"
-                @click="dismissSpinExpiry(bonus.customerId)"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        </div>
+                <strong>{{ bonus.hoursLeft }} giờ</strong> · Hết hạn {{ formatDate(bonus.expiresAt) }}
+              </el-text>
+            </el-col>
+            <el-col flex="none">
+              <el-space :size="8">
+                <el-button type="primary" plain size="small" @click="handleSpinExpiryUseNow(bonus)">Dùng ngay</el-button>
+                <el-button text size="small" @click="dismissSpinExpiry(bonus.customerId)">✕</el-button>
+              </el-space>
+            </el-col>
+          </el-row>
+        </el-card>
       </transition-group>
+    </div>
 
-      <div v-if="topProducts.length > 0" class="top-selling-section mb-5">
-        <div class="top-selling-header">
-          <h3 class="top-selling-title">
-            <span class="fire-icon">🔥</span> SẢN PHẨM BÁN CHẠY NHẤT
-          </h3>
-          <p class="top-selling-subtitle">Những lựa chọn được yêu thích và săn đón nhiều nhất</p>
-        </div>
-        
-        <div class="product-grid top-selling-grid">
-          <div
-            v-for="(p, idx) in topProducts"
-            :key="'top-'+p.id"
-            class="product-card top-product-card"
-            :class="{ 'is-out-of-stock': p.isOutOfStock }"
-            :style="{ '--delay': idx * 0.04 + 's', cursor: 'pointer' }"
-            @click="$router.push('/product/' + p.id)"
-          >
-            <div class="product-card__img-wrap">
-              <img :src="p.imageUrl" :alt="p.name" class="product-card__img" loading="lazy" />
-              <div v-if="p.isOutOfStock" class="out-of-stock-badge">HẾT HÀNG</div>
-              <div v-else-if="p.isNew" class="product-card__new-badge">NEW</div>
-              <button
-                class="product-card__quick-add"
-                :disabled="!isCustomer || !p.defaultVariantId || p.isOutOfStock"
-                @click.stop="goOrder(p)"
-              >
-                <svg v-if="!p.isOutOfStock" class="me-1" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                  <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                  <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-                {{ p.isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ' }}
-              </button>
+    <!-- ── Top Selling: Horizontal Scroll ──────────── -->
+    <div v-if="topProducts.length > 0" style="margin-bottom: 32px;">
+      <el-row align="middle" justify="space-between" style="margin-bottom: 14px;">
+        <el-space :size="8" align="center">
+          <el-text tag="b" style="font-size: 15px; letter-spacing: -0.01em;">🔥 Bán chạy nhất</el-text>
+          <!-- <el-tag type="danger" effect="plain" size="small">Top 5</el-tag> -->
+        </el-space>
+        <el-text size="small" type="info">Được yêu thích nhiều nhất</el-text>
+      </el-row>
+
+      <div class="top-scroll">
+        <el-card
+          v-for="p in topProducts"
+          :key="'top-' + p.id"
+          shadow="never"
+          :body-style="{ padding: 0 }"
+          class="top-card"
+          :class="{ 'is-out-of-stock': p.isOutOfStock }"
+          @click="$router.push('/product/' + p.id)"
+        >
+          <div class="product-img-wrap">
+            <img :src="p.imageUrl" :alt="p.name" class="product-img" loading="lazy" />
+            <div v-if="p.isOutOfStock" class="badge-center">
+              <el-tag type="danger" effect="dark">HẾT HÀNG</el-tag>
             </div>
-            <div class="product-card__body">
-              <div class="product-card__name">{{ p.name }}</div>
-              <div class="product-card__desc">{{ p.description || "—" }}</div>
-              <div class="product-card__footer">
-                <div class="product-card__price">{{ p.priceText }}</div>
-              </div>
+            <div v-else-if="p.isNew" class="badge-tl">
+              <el-tag type="danger" size="small">NEW</el-tag>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="ch-layout">
-        <aside class="ch-sidebar">
-          <div class="sidebar-card">
-            <div class="sidebar-card__head">
-              <div class="sidebar-head__label">Danh mục</div>
-              <label class="toggle-switch" title="Chỉ hiện active">
-                <input
-                  type="checkbox"
-                  v-model="activeOnly"
-                  @change="reloadAll"
-                />
-                <span class="toggle-switch__track"></span>
-              </label>
-            </div>
-
-            <nav class="cat-nav">
-              <button
-                class="cat-nav__item"
-                :class="{ active: activeKey === 'all' }"
-                @click="onSelectCategory('all')"
-              >
-                <span class="cat-nav__dot"></span>
-                <span>Tất cả</span>
-                <span class="cat-nav__arrow">›</span>
-              </button>
-              <button
-                v-for="c in categories"
-                :key="c.id"
-                class="cat-nav__item"
-                :class="{ active: String(activeKey) === String(c.id) }"
-                @click="onSelectCategory(String(c.id))"
-              >
-                <span class="cat-nav__dot"></span>
-                <span>{{ c.name }}</span>
-                <span class="cat-nav__arrow">›</span>
-              </button>
-            </nav>
+          <div class="product-body">
+            <el-text class="product-name" tag="div">{{ p.name }}</el-text>
+            <el-text class="product-desc" size="small" type="info">{{ p.description || '—' }}</el-text>
+            <el-divider style="margin: 8px 0;" />
+            <el-row align="middle" justify="space-between">
+              <el-text tag="b" type="primary">{{ p.priceText }}</el-text>
+            </el-row>
+            <el-button
+              plain
+              size="small"
+              style="width: 100%; margin-top: 8px;"
+              :disabled="!isCustomer || !p.defaultVariantId || p.isOutOfStock"
+              @click.stop="goOrder(p)"
+            >
+              <el-icon v-if="!p.isOutOfStock"><ShoppingCart /></el-icon>
+              {{ p.isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ' }}
+            </el-button>
           </div>
-        </aside>
-
-        <main class="ch-main">
-          <div class="ch-toolbar">
-            <div class="ch-toolbar__left">
-              <div class="ch-toolbar__eyebrow">Sản phẩm</div>
-              <h1 class="ch-toolbar__title">{{ titleText }}</h1>
-              <div class="ch-toolbar__meta">
-                Trang {{ page + 1 }}
-                <span v-if="searchTerm">
-                  · "<em>{{ searchTerm }}</em>"
-                </span>
-              </div>
-            </div>
-
-            <div class="ch-toolbar__right">
-              <el-select
-                v-model="sortBy"
-                @change="onSelectSort"
-                class="sort-select"
-                placeholder="Mặc định"
-                popper-class="sort-dropdown-popper"
-              >
-                <el-option label="Mới nhất" value="newest_arrival">
-                  <span class="option-inner"><span class="option-icon">✦</span> Mới nhất</span>
-                </el-option>
-                <el-option label="Cũ nhất" value="oldest">
-                  <span class="option-inner"><span class="option-icon">↺</span> Cũ nhất</span>
-                </el-option>
-                <el-option label="Bán chạy nhất" value="best_selling">
-                  <span class="option-inner"><span class="option-icon">🔥</span> Bán chạy nhất</span>
-                </el-option>
-                <el-option label="Giá tăng dần" value="price_asc">
-                  <span class="option-inner"><span class="option-icon">↑</span> Giá tăng dần</span>
-                </el-option>
-                <el-option label="Giá giảm dần" value="price_desc">
-                  <span class="option-inner"><span class="option-icon">↓</span> Giá giảm dần</span>
-                </el-option>
-                <el-option label="Tên: A → Z" value="name_asc">
-                  <span class="option-inner"><span class="option-icon">Az</span> Tên: A → Z</span>
-                </el-option>
-                <el-option label="Tên: Z → A" value="name_desc">
-                  <span class="option-inner"><span class="option-icon">Za</span> Tên: Z → A</span>
-                </el-option>
-              </el-select>
-
-              <button
-                class="icon-btn"
-                :class="{ spinning: loading }"
-                @click="reloadProducts"
-                title="Reload"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                  />
-                  <path
-                    d="M3 3v5h5"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="ch-divider"></div>
-
-          <div v-if="loading" class="product-skeleton-grid">
-            <div v-for="i in 6" :key="i" class="skeleton-card">
-              <div class="skeleton-img"></div>
-              <div class="skeleton-line skeleton-line--long"></div>
-              <div class="skeleton-line skeleton-line--short"></div>
-              <div class="skeleton-line skeleton-line--price"></div>
-            </div>
-          </div>
-
-          <template v-else>
-            <div v-if="products.length === 0" class="ch-empty">
-              <div class="ch-empty__icon">🔍</div>
-              <div class="ch-empty__title">Không có sản phẩm nào</div>
-              <div class="ch-empty__sub">
-                Thử đổi danh mục hoặc từ khóa khác
-              </div>
-            </div>
-
-            <div v-else class="product-grid">
-              <div
-                v-for="(p, idx) in products"
-                :key="p.id"
-                class="product-card"
-                :class="{ 'is-out-of-stock': p.isOutOfStock }"
-                :style="{ '--delay': idx * 0.04 + 's', cursor: 'pointer' }"
-                @click="$router.push('/product/' + p.id)"
-              >
-                <div class="product-card__img-wrap">
-                  <img
-                    :src="p.imageUrl"
-                    :alt="p.name"
-                    class="product-card__img"
-                    loading="lazy"
-                  />
-                  <div v-if="p.isOutOfStock" class="out-of-stock-badge">HẾT HÀNG</div>
-                  <div v-else-if="p.isNew" class="product-card__new-badge">NEW</div>
-                  
-                  <button
-                    class="product-card__quick-add"
-                    :disabled="!isCustomer || !p.defaultVariantId || p.isOutOfStock"
-                    @click.stop="goOrder(p)"
-                  >
-                    <svg v-if="!p.isOutOfStock" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                    {{ p.isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ' }}
-                  </button>
-                </div>
-                <div class="product-card__body">
-                  <div class="product-card__name">{{ p.name }}</div>
-                  <div class="product-card__desc">
-                    {{ p.description || "—" }}
-                  </div>
-                  <div class="product-card__footer">
-                    <div class="product-card__price">{{ p.priceText }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ch-pagination">
-              <button
-                class="page-btn"
-                :disabled="page === 0"
-                @click="onServerPageChange(page)"
-              >
-                ‹
-              </button>
-              <span class="page-info">{{ page + 1 }} / {{ totalPages }}</span>
-              <button
-                class="page-btn"
-                :disabled="page + 1 >= totalPages"
-                @click="onServerPageChange(page + 2)"
-              >
-                ›
-              </button>
-            </div>
-          </template>
-        </main>
+        </el-card>
       </div>
     </div>
+
+    <!-- ── Main Layout: Sidebar + Product Grid ──────── -->
+    <div class="ch-layout">
+
+      <!-- Sidebar -->
+      <aside class="ch-sidebar">
+        <el-card shadow="never" style="position: sticky; top: 24px; overflow: hidden;">
+          <template #header>
+            <el-row justify="space-between" align="middle">
+              <el-text size="small" style="text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Danh mục</el-text>
+              <el-tooltip content="Chỉ hiện active" placement="top">
+                <el-switch v-model="activeOnly" size="small" @change="reloadAll" />
+              </el-tooltip>
+            </el-row>
+          </template>
+          <el-menu
+            :default-active="String(activeKey)"
+            style="border: none;"
+            @select="onSelectCategory"
+          >
+            <el-menu-item index="all">Tất cả</el-menu-item>
+            <el-menu-item
+              v-for="c in categories"
+              :key="c.id"
+              :index="String(c.id)"
+            >{{ c.name }}</el-menu-item>
+          </el-menu>
+        </el-card>
+      </aside>
+
+      <!-- Main content -->
+      <main class="ch-main">
+        <!-- Toolbar -->
+        <el-row justify="space-between" align="bottom" style="margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+          <el-space direction="vertical" :size="2">
+            <el-text size="small" type="info" style="text-transform: uppercase; letter-spacing: 0.1em;">Sản phẩm</el-text>
+            <el-text tag="b" style="font-size: 18px; letter-spacing: -0.02em;">{{ titleText }}</el-text>
+            <el-text type="info" size="small">
+              Trang {{ page + 1 }}
+              <span v-if="searchTerm"> · "<em>{{ searchTerm }}</em>"</span>
+            </el-text>
+          </el-space>
+          <el-space wrap>
+            <el-select v-model="sortBy" style="width: 156px;" @change="onSelectSort" placeholder="Mặc định">
+              <el-option label="Mới nhất"       value="newest_arrival" />
+              <el-option label="Cũ nhất"        value="oldest" />
+              <el-option label="Bán chạy nhất"  value="best_selling" />
+              <el-option label="Giá tăng dần"   value="price_asc" />
+              <el-option label="Giá giảm dần"   value="price_desc" />
+              <el-option label="Tên: A → Z"     value="name_asc" />
+              <el-option label="Tên: Z → A"     value="name_desc" />
+            </el-select>
+            <el-tooltip content="Làm mới" placement="top">
+              <el-button plain :loading="loading" @click="reloadProducts">
+                <el-icon v-if="!loading"><Refresh /></el-icon>
+              </el-button>
+            </el-tooltip>
+          </el-space>
+        </el-row>
+        <el-divider style="margin: 0 0 20px;" />
+
+        <!-- Skeleton -->
+        <div v-if="loading" class="product-grid">
+          <el-card v-for="i in 6" :key="i" shadow="never" :body-style="{ padding: 0 }">
+            <el-skeleton animated>
+              <template #template>
+                <el-skeleton-item variant="image" style="width: 100%; height: 170px;" />
+                <div style="padding: 14px;">
+                  <el-skeleton-item variant="p" style="width: 75%; margin-bottom: 8px;" />
+                  <el-skeleton-item variant="p" style="width: 50%; margin-bottom: 8px;" />
+                  <el-skeleton-item variant="p" style="width: 40%; margin-top: 4px;" />
+                </div>
+              </template>
+            </el-skeleton>
+          </el-card>
+        </div>
+
+        <template v-else>
+          <el-empty
+            v-if="products.length === 0"
+            description="Không có sản phẩm nào"
+            :image-size="80"
+          >
+            <el-text type="info">Thử đổi danh mục hoặc từ khóa khác</el-text>
+          </el-empty>
+
+          <div v-else class="product-grid">
+            <el-card
+              v-for="p in products"
+              :key="p.id"
+              shadow="never"
+              :body-style="{ padding: 0 }"
+              class="product-card"
+              :class="{ 'is-out-of-stock': p.isOutOfStock }"
+              @click="$router.push('/product/' + p.id)"
+            >
+              <div class="product-img-wrap">
+                <img :src="p.imageUrl" :alt="p.name" class="product-img" loading="lazy" />
+                <div v-if="p.isOutOfStock" class="badge-center">
+                  <el-tag type="danger" effect="dark">HẾT HÀNG</el-tag>
+                </div>
+                <div v-else-if="p.isNew" class="badge-tl">
+                  <el-tag type="danger" size="small">NEW</el-tag>
+                </div>
+              </div>
+              <div class="product-body">
+                <el-text class="product-name" tag="div">{{ p.name }}</el-text>
+                <el-text class="product-desc" size="small" type="info">{{ p.description || '—' }}</el-text>
+                <el-divider style="margin: 8px 0;" />
+                <el-text tag="b" type="primary">{{ p.priceText }}</el-text>
+                <el-button
+                  plain
+                  size="small"
+                  style="width: 100%; margin-top: 8px;"
+                  :disabled="!isCustomer || !p.defaultVariantId || p.isOutOfStock"
+                  @click.stop="goOrder(p)"
+                >
+                  <el-icon v-if="!p.isOutOfStock"><ShoppingCart /></el-icon>
+                  {{ p.isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ' }}
+                </el-button>
+              </div>
+            </el-card>
+          </div>
+
+          <el-row justify="center" style="margin-top: 36px;">
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :total="totalElements"
+              :page-size="20"
+              :current-page="page + 1"
+              :hide-on-single-page="true"
+              @current-change="onServerPageChange"
+            />
+          </el-row>
+        </template>
+      </main>
+    </div>
+
     <AiChatWidget />
   </div>
 </template>
 
 <script setup>
+import { Refresh, ShoppingCart } from "@element-plus/icons-vue";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { categoriesApi } from "../../api/categories.api";
-import AiChatWidget from '../../components/Aichatwidget.vue'
+import AiChatWidget from '../../components/Aichatwidget.vue';
 import { productsApi } from "../../api/products.api";
 import { useAuthStore } from "../../stores/auth";
 import { toast } from "../../ui/toast";
@@ -461,25 +347,11 @@ const tierProgressRef = ref(null);
 const spinExpiryBonuses = ref([]);
 const spinExpiryDismissed = ref(new Set());
 
-// [MỚI] Biến chứa danh sách sản phẩm bán chạy
 const topProducts = ref([]);
 
 function confettiStyle(i) {
-  const colors = [
-    "#f59e0b",
-    "#ef4444",
-    "#8b5cf6",
-    "#3b82f6",
-    "#10b981",
-    "#ec4899",
-    "#f97316",
-    "#06b6d4",
-  ];
-  return {
-    "--c": colors[i % colors.length],
-    "--delay": i * 0.13 + "s",
-    "--x": Math.sin(i * 1.2) * 60 + "px",
-  };
+  const colors = ["#f59e0b","#ef4444","#8b5cf6","#3b82f6","#10b981","#ec4899","#f97316","#06b6d4"];
+  return { "--c": colors[i % colors.length], "--delay": i * 0.13 + "s", "--x": Math.sin(i * 1.2) * 60 + "px" };
 }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
@@ -500,26 +372,18 @@ async function loadSpinExpiryBonuses() {
     const bonus = Number(data?.currentBonus ?? data?.spinDiscountBonus ?? 0);
     const expiresAt = data?.bonusExpiresAt ?? data?.spinBonusExpiresAt ?? null;
     if (bonus > 0 && expiresAt) {
-      const hoursLeft = Math.floor(
-        (new Date(expiresAt) - new Date()) / (1000 * 60 * 60),
-      );
-      spinExpiryBonuses.value =
-        hoursLeft > 0 && hoursLeft <= 24
-          ? [{ customerId, discountBonus: bonus, hoursLeft, expiresAt }]
-          : [];
+      const hoursLeft = Math.floor((new Date(expiresAt) - new Date()) / (1000 * 60 * 60));
+      spinExpiryBonuses.value = hoursLeft > 0 && hoursLeft <= 24
+        ? [{ customerId, discountBonus: bonus, hoursLeft, expiresAt }] : [];
     } else {
       spinExpiryBonuses.value = [];
     }
-  } catch {
-    spinExpiryBonuses.value = [];
-  }
+  } catch { spinExpiryBonuses.value = []; }
 }
 
 function dismissSpinExpiry(customerId) {
   spinExpiryDismissed.value.add(customerId);
-  spinExpiryBonuses.value = spinExpiryBonuses.value.filter(
-    (b) => b.customerId !== customerId,
-  );
+  spinExpiryBonuses.value = spinExpiryBonuses.value.filter(b => b.customerId !== customerId);
 }
 
 function handleSpinExpiryUseNow(bonus) {
@@ -538,48 +402,32 @@ function getSpinProgressWidth(hoursLeft) {
 }
 
 function normalizeProducts(list) {
-  return (list || [])
-    .map((p, idx) => {
-      const id = p?.id ?? p?.productId ?? idx + 1;
-      const price = p?.finalPrice ?? p?.price ?? p?.minPrice ?? null;
-      
-      const stockCount = p.totalStock !== undefined ? p.totalStock : 1; 
-      
-      const isOutOfStock = p.inStock === false || stockCount <= 0 || p.isVisible === false;
-
-      return {
-        id,
-        name: p?.name ?? p?.title ?? `Product ${id}`,
-        description: p.description || "",
-        imageUrl: fixImageUrl(p.imageUrl || p.thumbnailUrl),
-        priceText:
-          typeof price === "number"
-            ? new Intl.NumberFormat("vi-VN", {
-                style: "currency",
-                currency: "VND",
-              }).format(price)
-            : price != null
-              ? String(price)
-              : "—",
-        defaultVariantId:
-          p?.defaultVariantId ?? p?.variantId ?? p?.variants?.[0]?.id ?? null,
-        isNew: p.isNew,
-        isOutOfStock: isOutOfStock,
-        raw: p,
-      };
-    }); 
+  return (list || []).map((p, idx) => {
+    const id = p?.id ?? p?.productId ?? idx + 1;
+    const price = p?.finalPrice ?? p?.price ?? p?.minPrice ?? null;
+    const stockCount = p.totalStock !== undefined ? p.totalStock : 1;
+    const isOutOfStock = p.inStock === false || stockCount <= 0 || p.isVisible === false;
+    return {
+      id,
+      name: p?.name ?? p?.title ?? `Product ${id}`,
+      description: p.description || "",
+      imageUrl: fixImageUrl(p.imageUrl || p.thumbnailUrl),
+      priceText: typeof price === "number"
+        ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+        : price != null ? String(price) : "—",
+      defaultVariantId: p?.defaultVariantId ?? p?.variantId ?? p?.variants?.[0]?.id ?? null,
+      isNew: p.isNew,
+      isOutOfStock,
+      raw: p,
+    };
+  });
 }
 
 function normalizeCategories(list) {
-  const unique = [],
-    names = new Set();
-  (list || []).forEach((c) => {
+  const unique = [], names = new Set();
+  (list || []).forEach(c => {
     if (!names.has(c.name)) {
-      unique.push({
-        id: c?.id ?? unique.length + 1,
-        name: c?.name ?? `Category ${unique.length + 1}`,
-        raw: c,
-      });
+      unique.push({ id: c?.id ?? unique.length + 1, name: c?.name ?? `Category ${unique.length + 1}`, raw: c });
       names.add(c.name);
     }
   });
@@ -588,47 +436,29 @@ function normalizeCategories(list) {
 
 const titleText = computed(() => {
   if (!categoryId.value) return "Tất cả sản phẩm";
-  return (
-    categories.value.find((x) => String(x.id) === String(categoryId.value))
-      ?.name || `Danh mục #${categoryId.value}`
-  );
+  return categories.value.find(x => String(x.id) === String(categoryId.value))?.name || `Danh mục #${categoryId.value}`;
 });
 
 async function reloadCategories() {
   try {
     const res = await categoriesApi.list(activeOnly.value);
     const root = res.data?.data || res.data || [];
-    categories.value = normalizeCategories(
-      Array.isArray(root) ? root : root.content,
-    ).filter(c => c.id !== 6);
-  } catch {
-    categories.value = [];
-  }
+    categories.value = normalizeCategories(Array.isArray(root) ? root : root.content).filter(c => c.id !== 6);
+  } catch { categories.value = []; }
 }
 
 async function loadTopProducts() {
   try {
-    // Gọi 10 sản phẩm bán chạy nhất từ Backend
     const res = await productsApi.list({ sortBy: 'best_selling', page: 0, size: 10 });
     const data = res.data?.data || res.data;
-    
-    // Normalize sẽ tự động vứt bỏ các máy Hết Hàng. Sau đó ta .slice(0, 5) để lấy đúng 5 máy còn hàng hiển thị.
-    topProducts.value = normalizeProducts(data.content || []).slice(0, 5);
-  } catch (e) {
-    console.error("Lỗi tải Top Bán Chạy", e);
-  }
+    topProducts.value = normalizeProducts(data.content || []).slice(0, 7);
+  } catch (e) { console.error("Lỗi tải Top Bán Chạy", e); }
 }
 
 async function reloadProducts() {
   loading.value = true;
   try {
-    const params = {
-      page: page.value,
-      categoryIds: categoryId.value ? String(categoryId.value) : undefined,
-      keyword: searchTerm.value || undefined,
-      isFaulty: false,
-      sortBy: sortBy.value, 
-    };
+    const params = { page: page.value, categoryIds: categoryId.value ? String(categoryId.value) : undefined, keyword: searchTerm.value || undefined, isFaulty: false, sortBy: sortBy.value };
     const res = await productsApi.list(params);
     const data = res.data?.data || res.data;
     products.value = normalizeProducts(data.content || []);
@@ -636,16 +466,14 @@ async function reloadProducts() {
   } catch {
     products.value = [];
     toast("Failed to load products.", "error");
-  } finally {
-    loading.value = false;
-  }
+  } finally { loading.value = false; }
 }
 
 async function reloadAll() {
   page.value = 0;
   await reloadCategories();
   await reloadProducts();
-  await loadTopProducts(); // Load thêm Top bán chạy
+  await loadTopProducts();
 }
 
 function onSelectCategory(key) {
@@ -672,30 +500,18 @@ async function goOrder(p) {
     await cartStore.addToCart(p.defaultVariantId, 1);
     toast("Đã thêm vào giỏ hàng", "success");
     if (tierProgressRef.value) tierProgressRef.value.refresh();
-  } catch {
-    toast("Không thể thêm vào giỏ hàng", "error");
-  }
+  } catch { toast("Không thể thêm vào giỏ hàng", "error"); }
 }
 
 async function loadNotifications() {
   if (!isCustomer.value) return;
   try {
-    const unreadRes = await http.get(
-      "/api/auth/notifications/my?unreadOnly=true",
-    );
+    const unreadRes = await http.get("/api/auth/notifications/my?unreadOnly=true");
     const unreadNotifs = unreadRes.data || [];
-    welcomeNotifications.value = unreadNotifs.filter(
-      (n) => n.type === "WELCOME",
-    );
-    birthdayNotifications.value = unreadNotifs.filter(
-      (n) => n.type === "BIRTHDAY",
-    );
-    reminderNotifications.value = unreadNotifs.filter((n) =>
-      ["PURCHASE_REMINDER", "WINBACK"].includes(n.type),
-    );
-  } catch (e) {
-    console.error(e);
-  }
+    welcomeNotifications.value  = unreadNotifs.filter(n => n.type === "WELCOME");
+    birthdayNotifications.value = unreadNotifs.filter(n => n.type === "BIRTHDAY");
+    reminderNotifications.value = unreadNotifs.filter(n => ["PURCHASE_REMINDER", "WINBACK"].includes(n.type));
+  } catch (e) { console.error(e); }
 }
 
 function openNotificationsPanel() {
@@ -707,9 +523,7 @@ async function markNotificationAsRead(id) {
     await http.put(`/api/auth/notifications/${id}/read`);
     await loadNotifications();
     window.dispatchEvent(new CustomEvent("notifications:updated"));
-  } catch {
-    toast("Không thể đánh dấu đã đọc", "error");
-  }
+  } catch { toast("Không thể đánh dấu đã đọc", "error"); }
 }
 
 async function handleReminderClick(id) {
@@ -719,18 +533,11 @@ async function handleReminderClick(id) {
 
 async function handleWelcomeShop(id) {
   await markNotificationAsRead(id);
-  document
-    .querySelector(".ch-main")
-    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector(".ch-main")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function formatMessage(msg) {
-  return msg ? msg.replace(/\n/g, "<br>") : "";
-}
-
-function formatDate(d) {
-  return new Date(d).toLocaleDateString("vi-VN");
-}
+function formatMessage(msg) { return msg ? msg.replace(/\n/g, "<br>") : ""; }
+function formatDate(d) { return new Date(d).toLocaleDateString("vi-VN"); }
 
 onMounted(async () => {
   window.addEventListener("products:search", (e) => {
@@ -750,1489 +557,123 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
-
-/* ══════════════════════════════════════════════
-   [MỚI] THÊM CSS CHO NHÃN HẾT HÀNG VÀ TOP BÁN CHẠY
-══════════════════════════════════════════════ */
-.top-selling-section {
-  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
-  border: 1px solid #fecdd3;
-  border-radius: 24px;
-  padding: 32px 36px 40px;
-  box-shadow: 0 12px 32px rgba(225, 29, 72, 0.08);
-  position: relative;
-  overflow: hidden;
-  margin-top: 10px;
-}
-
-/* Họa tiết chấm bi mờ mờ ở background */
-.top-selling-section::before {
-  content: "";
-  position: absolute;
-  top: 0; right: 0; left: 0; bottom: 0;
-  background-image: radial-gradient(#fda4af 1.5px, transparent 1.5px);
-  background-size: 24px 24px;
-  opacity: 0.25;
-  pointer-events: none;
-}
-
-.top-selling-header {
-  text-align: center;
-  margin-bottom: 30px;
-  position: relative;
-  z-index: 1;
-}
-
-.top-selling-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 30px;
-  font-weight: 900;
-  color: #e11d48;
-  margin: 0 0 8px;
-  letter-spacing: -0.5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.top-selling-subtitle {
-  font-size: 15px;
-  color: #9f1239;
-  font-weight: 500;
-  margin: 0;
-}
-
-/* Hiệu ứng nhịp đập cho icon ngọn lửa */
-.fire-icon {
-  font-size: 36px;
-  display: inline-block;
-  animation: fire-pulse 1.5s ease-in-out infinite alternate;
-}
-
-@keyframes fire-pulse {
-  from { 
-    transform: scale(1); 
-    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4)); 
-  }
-  to { 
-    transform: scale(1.15); 
-    filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.8)); 
-  }
-}
-
-.top-selling-grid {
-  position: relative;
-  z-index: 1;
-}
-
-/* Nhấn mạnh Card sản phẩm trong khu vực Bán Chạy */
-.top-product-card {
-  border: none !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-}
-
-.top-product-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 16px 40px rgba(225, 29, 72, 0.15);
-}
-.out-of-stock-badge {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.75);
-  color: white;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  padding: 8px 16px;
-  border-radius: 6px;
-  z-index: 10;
-  backdrop-filter: blur(4px);
-  pointer-events: none;
-}
-
-.is-out-of-stock .product-card__img {
-  filter: grayscale(80%) opacity(0.8);
-}
-
-.is-out-of-stock .product-card__quick-add {
-  background: #cbd5e1 !important;
-  color: #64748b !important;
-  cursor: not-allowed !important;
-}
-
-/* ══════════════════════════════════════════════
-   ROOT & BG
-══════════════════════════════════════════════ */
-.ch-root {
-  min-height: 100vh;
-  font-family: "Inter", sans-serif;
-  color: #0f172a;
-  position: relative;
-}
-
-.ch-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.ch-bg__noise {
-  position: absolute;
-  inset: 0;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  background-size: 200px;
-}
-
-.ch-bg__orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.12;
-}
-
-.ch-bg__orb--1 {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, #f59e0b, transparent 65%);
-  top: -200px;
-  right: -100px;
-  animation: orb-drift 20s ease-in-out infinite alternate;
-}
-
-.ch-bg__orb--2 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, #ec4899, transparent 65%);
-  bottom: -150px;
-  left: -80px;
-  animation: orb-drift 25s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes orb-drift {
-  from {
-    transform: translate(0, 0);
-  }
-  to {
-    transform: translate(30px, 40px);
-  }
-}
-
-/* ══════════════════════════════════════════════
-   WRAP & TIER
-══════════════════════════════════════════════ */
+/* ── Wrap ──────────────────────────────────────────── */
 .ch-wrap {
-  position: relative;
-  z-index: 1;
   max-width: 1400px;
   margin: 0 auto;
   padding: 28px 24px 60px;
 }
 
-.ch-tier {
-  margin-bottom: 20px;
-}
-
-/* ══════════════════════════════════════════════
-   BANNERS COMMON
-══════════════════════════════════════════════ */
-.ch-banners {
+/* ── Top Selling Horizontal Scroll ─────────────────── */
+.top-scroll {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.banner-list-enter-active {
-  transition: all 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-.banner-list-leave-active {
-  transition: all 0.3s ease;
-}
-.banner-list-enter-from {
-  opacity: 0;
-  transform: translateY(-12px);
-}
-.banner-list-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-/* ── Welcome Banner ── */
-.wb-card {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #1e1635 0%, #2d1f5e 50%, #1a1530 100%);
-  border: 1px solid rgba(167, 139, 250, 0.2);
-  border-radius: 20px;
-  padding: 22px 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
-}
-
-.wb-card__glow {
-  position: absolute;
-  top: -60px;
-  left: -60px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(
-    circle,
-    rgba(167, 139, 250, 0.25),
-    transparent 65%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.wb-card__left {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.wb-card__emoji {
-  font-size: 44px;
-  display: block;
-  filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.7));
-  animation: emoji-bounce 2.5s ease-in-out infinite;
-}
-
-.wb-card__pulse {
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 2px solid rgba(251, 191, 36, 0.3);
-  animation: pulse-ring 2.5s ease-in-out infinite;
-}
-
-@keyframes emoji-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes pulse-ring {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0;
-  }
-}
-
-.wb-card__body {
-  flex: 1;
-  min-width: 0;
-  color: #fff;
-}
-
-.wb-card__eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(251, 191, 36, 0.85);
-  margin-bottom: 5px;
-}
-
-.wb-card__title {
-  font-family: "Inter", sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-.wb-card__msg {
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.65);
-  line-height: 1.5;
-}
-
-.wb-card__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.wb-card__close {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.wb-card__close:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* ── Birthday Banner ── */
-.bday-card {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #fff5f7, #ffe8ed);
-  border: 1px solid rgba(217, 79, 110, 0.2);
-  border-radius: 20px;
-  padding: 22px 24px;
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  box-shadow: 0 4px 24px rgba(217, 79, 110, 0.1);
-}
-
-.confetti-dot {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: var(--c);
-  border-radius: 2px;
-  top: 10px;
-  left: 20%;
-  animation: confetti-fall 2s ease-out var(--delay) forwards;
-  opacity: 0;
-}
-
-@keyframes confetti-fall {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--x), 60px) rotate(360deg);
-  }
-}
-
-.bday-card__icon {
-  font-size: 40px;
-  flex-shrink: 0;
-  animation: emoji-bounce 3s ease-in-out infinite;
-}
-
-.bday-card__title {
-  font-family: "Inter", sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #d94f6e;
-  margin-bottom: 6px;
-}
-
-.bday-card__msg {
-  font-size: 13.5px;
-  color: #6b3a4b;
-  line-height: 1.5;
-  margin-bottom: 14px;
-}
-.bday-card__actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* ── Reminder Banner ── */
-.remind-card {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
-  border: 1px solid rgba(217, 119, 6, 0.2);
-  border-radius: 20px;
-  padding: 18px 22px;
-  display: flex;
-  align-items: flex-start;
   gap: 16px;
-  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.08);
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color) transparent;
 }
 
-.remind-card__icon {
-  font-size: 32px;
-  flex-shrink: 0;
-}
-.remind-card__title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #92400e;
-  margin-bottom: 4px;
-}
-.remind-card__msg {
-  font-size: 13px;
-  color: #a16207;
-  margin-bottom: 12px;
-}
-.remind-card__actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* ── Spin Expiry Banner ── */
-.spin-card {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.12);
-}
-
-.spin-card--critical {
-  border-color: rgba(239, 68, 68, 0.35);
-}
-.spin-card--warning {
-  border-color: rgba(251, 191, 36, 0.35);
-}
-
-.spin-card__inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 22px;
-  flex-wrap: wrap;
-}
-
-.spin-card__wheel {
-  font-size: 32px;
-  animation: spin-slow 6s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin-slow {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spin-card__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-.spin-card__sub {
-  font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 3px;
-}
-.spin-card__sub strong {
-  color: #fbbf24;
-}
-
-.spin-card__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-}
-
-.spin-card__close {
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+.top-card {
+  flex: 0 0 200px;
   cursor: pointer;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
+  transition: box-shadow 0.2s;
 }
+.top-card:hover { box-shadow: var(--el-box-shadow-light); }
 
-.spin-card__close:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.spin-card__track {
-  height: 3px;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.spin-card__fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-  transition: width 0.5s ease;
-}
-
-.spin-card--critical .spin-card__fill {
-  background: linear-gradient(90deg, #ef4444, #f87171);
-}
-.spin-card--warning .spin-card__fill {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
-}
-
-/* ── Shared close button ── */
-.card-close-btn {
-  flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.06);
-  border: none;
-  color: rgba(0, 0, 0, 0.35);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.card-close-btn:hover {
-  background: rgba(0, 0, 0, 0.12);
-}
-
-/* ══════════════════════════════════════════════
-   PILL BUTTONS
-══════════════════════════════════════════════ */
-.btn-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  border-radius: 100px;
-  border: none;
-  font-family: "Inter", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s,
-    opacity 0.15s;
-  white-space: nowrap;
-}
-
-.btn-pill:hover {
-  transform: translateY(-1px);
-}
-.btn-pill:active {
-  transform: translateY(0);
-}
-
-.btn-pill--gold {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
-}
-.btn-pill--ghost {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-}
-.btn-pill--primary {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25);
-}
-.btn-pill--rose {
-  background: linear-gradient(135deg, #d94f6e, #be185d);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(217, 79, 110, 0.25);
-}
-.btn-pill--amber {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
-}
-.btn-pill--spin {
-  background: linear-gradient(135deg, #6366f1, #7c3aed);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
-}
-.btn-pill--ghost-light {
-  background: rgba(0, 0, 0, 0.06);
-  color: #0f172a;
-}
-
-/* ══════════════════════════════════════════════
-   LAYOUT
-══════════════════════════════════════════════ */
+/* ── Layout ────────────────────────────────────────── */
 .ch-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 240px 1fr;
   gap: 24px;
   align-items: start;
 }
 
 @media (max-width: 900px) {
-  .ch-layout {
-    grid-template-columns: 1fr;
-  }
-  .ch-sidebar {
-    display: none;
-  }
+  .ch-layout { grid-template-columns: 1fr; }
+  .ch-sidebar { display: none; }
 }
 
-/* ══════════════════════════════════════════════
-   SIDEBAR
-══════════════════════════════════════════════ */
-.sidebar-card {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow:
-    0 2px 16px rgba(0, 0, 0, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 24px;
-}
-
-.sidebar-card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.sidebar-head__label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-/* Toggle switch */
-.toggle-switch {
-  position: relative;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-.toggle-switch input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.toggle-switch__track {
-  width: 34px;
-  height: 18px;
-  background: rgba(15, 23, 42, 0.08);
-  border-radius: 100px;
-  transition: background 0.2s;
-  position: relative;
-}
-.toggle-switch__track::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s;
-}
-.toggle-switch input:checked ~ .toggle-switch__track {
-  background: #3b82f6;
-}
-.toggle-switch input:checked ~ .toggle-switch__track::after {
-  transform: translateX(16px);
-}
-
-/* Category nav */
-.cat-nav {
-  padding: 10px 0;
-}
-
-.cat-nav__item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  background: none;
-  border: none;
-  font-family: "Inter", sans-serif;
-  font-size: 13.5px;
-  color: #64748b;
-  cursor: pointer;
-  text-align: left;
-  transition:
-    background 0.15s,
-    color 0.15s;
-  border-radius: 0;
-}
-
-.cat-nav__item:hover {
-  background: rgba(59, 130, 246, 0.06);
-  color: #0f172a;
-}
-
-.cat-nav__item.active {
-  background: #eff6ff;
-  color: #3b82f6;
-  font-weight: 600;
-}
-
-.cat-nav__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-  opacity: 0.4;
-  transition: opacity 0.15s;
-}
-
-.cat-nav__item.active .cat-nav__dot {
-  opacity: 1;
-}
-
-.cat-nav__arrow {
-  margin-left: auto;
-  font-size: 16px;
-  opacity: 0;
-  transition:
-    opacity 0.15s,
-    transform 0.15s;
-}
-
-.cat-nav__item:hover .cat-nav__arrow,
-.cat-nav__item.active .cat-nav__arrow {
-  opacity: 1;
-  transform: translateX(2px);
-}
-
-/* ══════════════════════════════════════════════
-   TOOLBAR
-══════════════════════════════════════════════ */
-.ch-toolbar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.ch-toolbar__eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #64748b;
-  margin-bottom: 4px;
-}
-
-.ch-toolbar__title {
-  font-family: "Inter", sans-serif;
-  font-size: 26px;
-  font-weight: 800;
-  margin: 0 0 3px;
-  line-height: 1.2;
-}
-
-.ch-toolbar__meta {
-  font-size: 12.5px;
-  color: #64748b;
-}
-.ch-toolbar__meta em {
-  font-style: italic;
-  color: #3b82f6;
-}
-
-.ch-toolbar__right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* Icon btn */
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.icon-btn:hover {
-  color: #0f172a;
-  border-color: rgba(15, 23, 42, 0.15);
-}
-.icon-btn.spinning svg {
-  animation: spin-icon 0.7s linear infinite;
-}
-@keyframes spin-icon {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ── Divider ── */
-.ch-divider {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #e5e7eb 20%,
-    #e5e7eb 80%,
-    transparent
-  );
-  margin: 20px 0;
-}
-
-/* ══════════════════════════════════════════════
-   SKELETON
-══════════════════════════════════════════════ */
-.product-skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-}
-
-.skeleton-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.skeleton-img {
-  width: 100%;
-  height: 170px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 10px;
-  margin-bottom: 14px;
-}
-
-.skeleton-line {
-  height: 12px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 6px;
-  margin-bottom: 8px;
-}
-
-.skeleton-line--long {
-  width: 75%;
-}
-.skeleton-line--short {
-  width: 50%;
-}
-.skeleton-line--price {
-  width: 40%;
-  margin-top: 12px;
-  height: 16px;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* ══════════════════════════════════════════════
-   EMPTY STATE
-══════════════════════════════════════════════ */
-.ch-empty {
-  padding: 60px 20px;
-  text-align: center;
-  color: #64748b;
-}
-
-.ch-empty__icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.5;
-}
-.ch-empty__title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: #0f172a;
-}
-.ch-empty__sub {
-  font-size: 13px;
-}
-
-/* ══════════════════════════════════════════════
-   PRODUCT GRID
-══════════════════════════════════════════════ */
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-}
-
-.product-card {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow:
-    0 2px 16px rgba(0, 0, 0, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  transition:
-    transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1),
-    box-shadow 0.25s;
-  animation: card-in 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) both;
-  animation-delay: var(--delay, 0s);
-}
-
-@keyframes card-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.product-card__img-wrap {
+/* ── Product Image ─────────────────────────────────── */
+.product-img-wrap {
   position: relative;
   overflow: hidden;
-  background: #f1f5f9;
 }
 
-.product-card__img {
+.product-img {
   width: 100%;
-  height: 185px;
+  height: 180px;
   object-fit: cover;
   display: block;
-  transition: transform 0.4s ease;
+  transition: transform 0.25s ease;
 }
 
-.product-card:hover .product-card__img {
+.product-card:hover .product-img,
+.top-card:hover .product-img {
   transform: scale(1.04);
 }
 
-.product-card__new-badge {
+.is-out-of-stock .product-img { filter: grayscale(80%) opacity(0.75); }
+
+.badge-center {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  padding: 3px 8px;
-  border-radius: 100px;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
 }
 
-.product-card__quick-add {
+.badge-tl {
   position: absolute;
-  bottom: -44px;
-  left: 0;
-  right: 0;
-  background: rgba(15, 23, 42, 0.88);
-  color: white;
-  border: none;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-family: "Inter", sans-serif;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: bottom 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
-  backdrop-filter: blur(4px);
+  top: 10px; left: 10px;
 }
 
-.product-card:hover .product-card__quick-add {
-  bottom: 0;
-}
-.product-card__quick-add:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.product-card__body {
-  padding: 14px 16px 16px;
+/* ── Product Body ──────────────────────────────────── */
+.product-body {
+  padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.product-card__name {
-  font-size: 14px;
+.product-name {
+  font-size: 13.5px;
   font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 5px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   line-height: 1.4;
-}
-
-.product-card__desc {
-  font-size: 12px;
-  color: #64748b;
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.5;
-  flex: 1;
-}
-
-.product-card__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.product-card__price {
-  font-size: 14px;
-  font-weight: 700;
-  color: #3b82f6;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ══════════════════════════════════════════════
-   PAGINATION
-══════════════════════════════════════════════ */
-.ch-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 40px;
-}
-
-.page-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  font-size: 18px;
-  color: #0f172a;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    transform 0.1s;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: #eff6ff;
-  border-color: #3b82f6;
-  transform: scale(1.05);
-}
-.page-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: 13px;
-  font-weight: 600;
-  color: #64748b;
-  min-width: 60px;
-  text-align: center;
-}
-
-/* ══════════════════════════════════════════════
-   NOTIFICATION MODAL
-══════════════════════════════════════════════ */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(6px);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.modal-fade-enter-active {
-  transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
-}
-.modal-fade-leave-active {
-  transition: all 0.2s ease;
-}
-.modal-fade-enter-from {
-  opacity: 0;
-}
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.notif-modal {
-  background: #ffffff;
-  border-radius: 24px;
-  width: 100%;
-  max-width: 560px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
-  overflow: hidden;
-  animation: modal-in 0.3s cubic-bezier(0.34, 1.3, 0.64, 1);
-}
-
-@keyframes modal-in {
-  from {
-    transform: scale(0.95) translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
-}
-
-.notif-modal__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.notif-modal__title {
-  font-family: "Inter", sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.notif-modal__close {
-  width: 32px;
-  height: 32px;
-  background: rgba(0, 0, 0, 0.06);
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 13px;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-}
-
-.notif-modal__close:hover {
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.notif-modal__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 24px;
-}
-
-.notif-empty {
-  padding: 40px;
-  text-align: center;
-  color: #64748b;
-}
-
-.notif-empty__icon {
-  font-size: 40px;
-  margin-bottom: 10px;
-  opacity: 0.4;
-}
-
-.notif-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.notif-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 14px 12px;
-  border-radius: 12px;
-  transition: background 0.15s;
-}
-
-.notif-item:hover {
-  background: #f8fafc;
-}
-
-.notif-item--unread {
-  background: #eff6ff;
-}
-.notif-item--unread:hover {
-  background: #dbeafe;
-}
-
-.notif-item__icon {
-  font-size: 24px;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.notif-item__title {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 3px;
-  color: #0f172a;
-}
-.notif-item__msg {
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.5;
   margin-bottom: 4px;
 }
-.notif-item__time {
-  font-size: 11.5px;
-  color: rgba(100, 116, 139, 0.6);
+
+.product-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
 }
 
-.notif-item__read-btn {
-  flex-shrink: 0;
-  margin-left: auto;
-  width: 28px;
-  height: 28px;
-  background: white;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 50%;
-  font-size: 13px;
-  color: #16a34a;
+/* ── Product Grid ──────────────────────────────────── */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.product-card {
   cursor: pointer;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
+  flex-direction: column;
+  transition: box-shadow 0.2s;
 }
 
-.notif-item__read-btn:hover {
-  background: #16a34a;
-  color: white;
-  border-color: #16a34a;
-}
+.product-card:hover { box-shadow: var(--el-box-shadow-light); }
 
-.notif-modal__foot {
+.product-card :deep(.el-card__body) {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.notif-modal__foot .btn-pill--ghost {
-  background: rgba(0, 0, 0, 0.06);
-  color: #0f172a;
-}
-
-.ch-banners:empty {
-  display: none;
-  margin: 0;
-}
-
-/* ── Wrapper pill ────────────────────────────────── */
-.sort-wrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.sort-wrapper:focus-within {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-}
-
-/* ── Label trái ──────────────────────────────────── */
-.sort-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: "Inter", sans-serif;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #64748b;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  user-select: none;
-  padding: 0 12px 0 14px;
-  border-right: 1.5px solid #e2e8f0;
-  height: 38px;
-  background: #f8fafc;
-}
-
-.sort-label svg {
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
-/* ── El-Select ───────────────────────────────────── */
-.sort-select {
-  width: 156px !important;
-}
-
-.sort-select :deep(.el-input__wrapper) {
-  border-radius: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  padding: 0 10px 0 12px;
-  height: 38px;
-}
-
-.sort-select :deep(.el-input__wrapper:hover),
-.sort-select :deep(.el-input__wrapper.is-focus) {
-  box-shadow: none !important;
-  border: none !important;
-}
-
-.sort-select :deep(.el-input) {
-  --el-input-border-radius: 0px;
-}
-
-.sort-select :deep(.el-input__inner) {
-  font-family: "Inter", sans-serif;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #1e293b;
-  cursor: pointer;
-  height: 38px;
-}
-
-.sort-select :deep(.el-input__suffix-inner) {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.sort-select :deep(.el-select__caret) {
-  transition: transform 0.2s ease;
-  color: #94a3b8 !important;
-}
-
-/* ── Dropdown Popper ─────────────────────────────── */
-:global(.sort-dropdown-popper.el-select__popper) {
-  border: 1.5px solid #e2e8f0 !important;
-  border-radius: 14px !important;
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.05) !important;
-  padding: 6px !important;
-  overflow: hidden;
-}
-
-:global(.sort-dropdown-popper .el-select-dropdown__list) {
-  padding: 0 !important;
-}
-
-:global(.sort-dropdown-popper .el-select-dropdown__item) {
-  font-family: "Inter", sans-serif !important;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #374151;
-  border-radius: 8px;
-  padding: 0 8px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  margin: 1px 0;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-
-:global(.sort-dropdown-popper .el-select-dropdown__item:hover) {
-  background: #f0f7ff !important;
-  color: #2563eb !important;
-}
-
-:global(.sort-dropdown-popper .el-select-dropdown__item.selected) {
-  background: #eff6ff !important;
-  color: #2563eb !important;
-  font-weight: 700 !important;
-}
-
-/* ── Option inner ────────────────────────────────── */
-:global(.sort-dropdown-popper .option-inner) {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-:global(.sort-dropdown-popper .option-icon) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: #f1f5f9;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #64748b;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-:global(.sort-dropdown-popper .el-select-dropdown__item.selected .option-icon),
-:global(.sort-dropdown-popper .el-select-dropdown__item:hover .option-icon) {
-  background: #dbeafe;
-  color: #2563eb;
+  flex-direction: column;
+  height: 100%;
 }
 </style>
