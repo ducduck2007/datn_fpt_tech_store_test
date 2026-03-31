@@ -423,7 +423,7 @@
               </div>
             </div>
 
-            <!-- Optional section
+            Optional section
             <div class="form-section-label optional-label">
               Thông tin bổ sung
               <button class="toggle-optional" @click="showOptional = !showOptional">
@@ -472,7 +472,7 @@
                   </div>
                 </div>
               </div>
-            </transition> -->
+            </transition>
 
             <!-- Notice -->
             <div class="form-notice">

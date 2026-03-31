@@ -75,7 +75,7 @@
                 Đã nhận hàng
               </button>
 
-              <button
+              <!-- <button
                 v-if="detail?.status === 'DELIVERED' && !isReturned(detail?.status)"
                 class="glass-btn warning"
                 :class="{ 'btn-disabled': !isReturnWindowOpen }"
@@ -88,7 +88,7 @@
                   <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
                 </svg>
                 Yêu cầu trả hàng
-              </button>
+              </button> -->
             </div>
           </div>
 
@@ -541,7 +541,7 @@
     <!-- ================================================================ -->
     <!-- RETURN DIALOG                                                     -->
     <!-- ================================================================ -->
-    <transition name="modal-fade">
+    <!-- <transition name="modal-fade">
       <div v-if="showReturnDialog" class="modal-backdrop" @click.self="showReturnDialog = false">
         <div class="glass-modal">
           <div class="modal-header">
@@ -555,7 +555,6 @@
           <div class="modal-body">
             <div class="form-field">
               <label>Chọn sản phẩm</label>
-              <!-- ✅ FIX 1: dùng item.id thay vì item.productId -->
               <select v-model="returnForm.orderItemId" class="glass-select">
                 <option value="" disabled>Chọn sản phẩm muốn trả</option>
                 <option v-for="item in detail?.items" :key="item.id" :value="item.id">
@@ -585,7 +584,7 @@
           </div>
         </div>
       </div>
-    </transition>
+    </transition> -->
 
     <!-- ================================================================ -->
     <!-- DELIVERED CONFIRM DIALOG                                          -->
