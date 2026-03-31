@@ -1,10 +1,12 @@
 package com.retailmanagement.controller;
 
+import com.retailmanagement.dto.request.UserLoginFilterRequest;
 import com.retailmanagement.dto.response.UserLoginResponse;
 import com.retailmanagement.entity.UserLogin;
 import com.retailmanagement.service.UserLoginLogService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -25,41 +27,38 @@ public class UserLoginController {
         return userLoginLogService.getAllUserLogins();
     }
 
-    @GetMapping("export")
-    public void exportUserLogin(
-            @RequestParam(required = false) LocalDate from,
-            @RequestParam(required = false) LocalDate to,
-            HttpServletResponse response
-    ) throws IOException {
-        response.setContentType("text/csv; charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=login_logs.csv");
-
-        List<UserLogin> logs = userLoginLogService.getByDateRange(from,to);
-
-        PrintWriter writer = response.getWriter();
-
-        writer.println("id,user_id,username,success,ip_address,user_agent,create_at,update_at");
-
-        for (UserLogin log: logs) {
-            writer.printf(
-                    "%d,%s,%s,%s,%s,%s,%s,%s%n",
-                    log.getId(),
-                    safe(log.getUser() != null ? log.getUser().getId() : ""),
-                    safe(log.getUser() != null ? log.getUser().getUsername() : ""),
-                    log.getSuccess(),
-                    log.getIpAddress(),
-                    safe(log.getUserAgent()),
-                    log.getCreatedAt(),
-                    log.getUpdatedAt()
-            );
-        }
-        writer.flush();
+    @PostMapping("/filter")
+    public Page<UserLoginResponse> filter(
+            @RequestBody UserLoginFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir
+    ) {
+        return userLoginLogService.filterUserLogins(
+                request,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
     }
 
+    @PostMapping("/export")
+    public void exportUserLogin(
+            @RequestBody UserLoginFilterRequest request,
+            HttpServletResponse response
+    ) throws IOException {
 
-    private String safe(Object value) {
-        if (value == null) return "";
-        String s = value.toString().replace("\"", "\"\"");
-        return "\"" + s + "\"";
+        response.setContentType("text/csv; charset=UTF-8");
+
+        String fileName = "login_logs_" + LocalDate.now() + ".csv";
+
+        response.setHeader(
+                "Content-Disposition",
+                "attachment; filename=" + fileName
+        );
+
+        userLoginLogService.exportCsv(request, response.getWriter());
     }
 }

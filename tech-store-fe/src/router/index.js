@@ -43,6 +43,7 @@ import AuditLog from "../pages/audit/AuditLog.vue";
 import AuditReportDashboard from "../pages/audit/AuditReportDashboard.vue";
 import SecurityLog from "../pages/audit/SecurityLog.vue";
 import AuditDashboard from "../pages/audit/AuditDashboard.vue";
+import UserLoginLog from "../pages/audit/UserLoginLog.vue";
 
 // ===== Inventory =====
 import InventoryShell from "../pages/inventory/InventoryShell.vue";
@@ -313,6 +314,14 @@ const routes = [
         component: AuditDashboard,
         meta: { title: "Audit-dashboard" },
       },
+
+      // ===== UserLogin log =====
+      {
+    path: "user-login-logs",
+    name: "system-user-login-logs",
+    component: UserLoginLog,
+    meta: { title: "User Login Logs" },
+    },
     ],
   },
 

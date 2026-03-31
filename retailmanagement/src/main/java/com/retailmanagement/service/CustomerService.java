@@ -8,6 +8,9 @@ import com.retailmanagement.dto.request.CustomerRequest;
 import com.retailmanagement.dto.response.CustomerResponse;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
+import com.retailmanagement.security.log.ActionType;
+import com.retailmanagement.security.log.SensitiveOperation;
+import com.retailmanagement.security.log.SeverityLevel;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
@@ -43,6 +46,12 @@ public class CustomerService {
     @Lazy
     private final CustomerEventNotificationService eventNotificationService; // ✅ THÊM
 
+    @SensitiveOperation(
+            action = ActionType.UPDATE_OPERATION,
+            entity = "CUSTOMER",
+            description = "Save loyalty ledger",
+            severity = SeverityLevel.LOW
+    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.UPDATE,
@@ -99,6 +108,12 @@ public class CustomerService {
         };
     }
 
+    @SensitiveOperation(
+            action = ActionType.CREATE_OPERATION,
+            entity = "CUSTOMER",
+            description = "Create new customer",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(module = AuditModule.CUSTOMER, action = AuditAction.CREATE, targetType = TargetType.CUSTOMER)
     @Transactional
     public CustomerResponse create(CustomerRequest customerRequest) {
@@ -314,6 +329,12 @@ public class CustomerService {
                 .map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    @SensitiveOperation(
+            action = ActionType.DELETE_OPERATION,
+            entity = "CUSTOMER",
+            description = "Delete Customer",
+            severity = SeverityLevel.MEDIUM
+    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.DELETE,
@@ -325,6 +346,12 @@ public class CustomerService {
         customRes.save(customer);
     }
 
+    @SensitiveOperation(
+            action = ActionType.UPDATE_OPERATION,
+            entity = "CUSTOMER",
+            description = "Update Customer",
+            severity = SeverityLevel.LOW
+    )
     @Audit(
             module = AuditModule.CUSTOMER,
             action = AuditAction.UPDATE,

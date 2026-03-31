@@ -189,6 +189,7 @@
           </template>
           <el-menu-item index="/system/audit-dashboard">Audit Dashboard</el-menu-item>
           <el-menu-item index="/system/audit-logs">Audit Logs</el-menu-item>
+          <el-menu-item index="/system/user-login-logs">User Login Logs</el-menu-item>
           <el-menu-item index="/system/audit-report">Audit Report</el-menu-item>
           <el-menu-item index="/system/security-logs">Security Logs</el-menu-item>
         </el-sub-menu>

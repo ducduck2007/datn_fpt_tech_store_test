@@ -255,7 +255,7 @@ import { auditApi } from "../../api/audit.api";
 const logs = ref([]);
 const total = ref(0);
 const page = ref(1);
-const size = ref(5);
+const size = ref(10);
 const loading = ref(false);
 
 const sortBy = ref("createdAt");

@@ -1,5 +1,7 @@
 package com.retailmanagement.service;
 
+import com.retailmanagement.audit.UserLoginSpecification;
+import com.retailmanagement.dto.request.UserLoginFilterRequest;
 import com.retailmanagement.dto.response.UserLoginResponse;
 import com.retailmanagement.entity.User;
 import com.retailmanagement.entity.UserLogin;
@@ -12,11 +14,17 @@ import com.retailmanagement.util.IpUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.PrintWriter;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -141,6 +149,73 @@ public class UserLoginLogService {
                 .toList();
     }
 
+    public Page<UserLoginResponse> filterUserLogins(
+            UserLoginFilterRequest request,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
+
+        Sort sort = sortDir.equalsIgnoreCase("ASC")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<UserLogin> result = userLoginRepository.findAll(
+                UserLoginSpecification.filter(request),
+                pageable
+        );
+
+        return result.map(this::toResponse);
+    }
+
+    public void exportCsv(UserLoginFilterRequest request,
+                          PrintWriter writer) {
+
+        writer.write('\uFEFF'); // fix Excel UTF8
+
+        writer.println(
+                "ID,User ID,Username,Status,IP Address,User Agent,Login Time"
+        );
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        .withZone(ZoneId.systemDefault());
+
+        int page = 0;
+        int size = 1000;
+
+        Page<UserLogin> result;
+
+        do {
+            result = userLoginRepository.findAll(
+                    UserLoginSpecification.filter(request),
+                    PageRequest.of(page, size)
+            );
+
+            for (UserLogin log : result.getContent()) {
+
+                writer.printf(
+                        "%s,%s,%s,%s,%s,%s,%s%n",
+                        log.getId(),
+                        safe(log.getUser() != null ? log.getUser().getId() : ""),
+                        safeCsv(safe(log.getUser() != null ? log.getUser().getUsername() : "")),
+                        log.getSuccess() ? "SUCCESS" : "FAILED",
+                        safe(log.getIpAddress()),
+                        escapeCsv(log.getUserAgent()),
+                        formatter.format(log.getCreatedAt())
+                );
+            }
+
+            page++;
+
+        } while (result.hasNext());
+
+        writer.flush();
+    }
+
     public List<UserLogin> getByDateRange (LocalDate from, LocalDate to) {
         if(from == null && to == null){
             to = LocalDate.now();
@@ -177,5 +252,34 @@ public class UserLoginLogService {
                 .createdAt(userLogin.getCreatedAt())
                 .updatedAt(userLogin.getUpdatedAt())
                 .build();
+    }
+
+    private String safe(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private String safeCsv(String value) {
+        if (value == null) return "";
+
+        if (value.startsWith("=") ||
+                value.startsWith("+") ||
+                value.startsWith("-") ||
+                value.startsWith("@")) {
+            return "'" + value;
+        }
+
+        return value;
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+
+        String result = value.replace("\"", "\"\"");
+
+        if (result.contains(",") || result.contains("\"")) {
+            result = "\"" + result + "\"";
+        }
+
+        return result;
     }
 }
