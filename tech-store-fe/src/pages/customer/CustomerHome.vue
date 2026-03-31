@@ -600,7 +600,7 @@ async function reloadCategories() {
     const root = res.data?.data || res.data || [];
     categories.value = normalizeCategories(
       Array.isArray(root) ? root : root.content,
-    );
+    ).filter(c => c.id !== 6);
   } catch {
     categories.value = [];
   }

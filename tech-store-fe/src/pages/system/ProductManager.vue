@@ -76,7 +76,7 @@
       </div>
 
       <div class="pm-filter-body">
-        <!-- Row 1: Tìm kiếm / Danh mục / Thẻ / Sắp xếp -->
+    
         <div class="pm-filter-row">
           <div class="pm-ff pm-ff--lg">
             <span class="pm-fl">Tìm kiếm</span>
@@ -96,8 +96,8 @@
           <div class="pm-ff">
             <span class="pm-fl">Danh mục</span>
             <select v-model="categoryIds" multiple class="pm-select pm-select--multi" @change="onFilter">
-              <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
+  <option v-for="c in categories.filter(c => c.id !== 6)" :key="c.id" :value="c.id">{{ c.name }}</option>
+</select>
           </div>
 
           <div class="pm-ff">
