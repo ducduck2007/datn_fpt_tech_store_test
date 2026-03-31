@@ -1,14 +1,3 @@
-<!-- FILE: src/pages/system/SystemLogin.vue -->
-<!--
-  ╔══════════════════════════════════════════════════════════╗
-  ║  FONT FIX:                                               ║
-  ║  Thêm 3 dòng này vào <head> của index.html:              ║
-  ║                                                          ║
-  ║  <link rel="preconnect" href="https://fonts.googleapis.com"> ║
-  ║  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> ║
-  ║  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"> ║
-  ╚══════════════════════════════════════════════════════════╝
--->
 <template>
   <div class="login-root">
     <!-- Background -->

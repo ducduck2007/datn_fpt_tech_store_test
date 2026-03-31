@@ -3796,6 +3796,98 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
+/* ── SIMPLE NEUTRAL UI OVERRIDES ─────────────────────────────────────────── */
+.profile-container .profile-avatar {
+  background: #e2e8f0 !important;
+  color: #1f2937 !important;
+  box-shadow: none !important;
+}
+.profile-container .kpi-card,
+.profile-container .vip-journey-card,
+.profile-container .spin-dash-card,
+.profile-container .stats-card,
+.profile-container .recent-item,
+.profile-container .promo-dash-item,
+.profile-container .history-card,
+.profile-container .tier-history-card,
+.profile-container .promo-history-card,
+.profile-container .bill-meta,
+.profile-container .bill-items-header,
+.profile-container .bill-item-row,
+.profile-container .bill-totals,
+.profile-container .bill-notes {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: none !important;
+}
+.profile-container .discount-card {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+.profile-container .vip-hero,
+.profile-container .spin-bonus-banner,
+.profile-container .spin-status-item,
+.profile-container .avg-order-section,
+.profile-container .last-order-section,
+.profile-container .promo-dash-item {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+.profile-container .kpi-icon,
+.profile-container .recent-item-icon,
+.profile-container .promo-dash-icon,
+.profile-container .stats-icon,
+.profile-container .history-icon-wrapper,
+.profile-container .tier-icon,
+.profile-container .spin-bonus-icon,
+.profile-container .vip-max-badge el-icon,
+.profile-container .spin-next-time el-icon,
+.profile-container .spin-empty-note el-icon,
+.profile-container h3 .el-icon,
+.profile-container h4 .el-icon,
+.profile-container .d-flex.align-items-center.gap-2 .el-icon,
+.profile-container .order-bill-btn el-icon,
+.profile-container .bill-notes-label el-icon {
+  display: none !important;
+}
+.profile-container .kpi-value,
+.profile-container .stats-value,
+.profile-container .points-display,
+.profile-container .promo-dash-discount,
+.profile-container .promo-dash-name,
+.profile-container .recent-item-title {
+  color: #111827 !important;
+}
+.profile-container .kpi-label,
+.profile-container .avg-label,
+.profile-container .spin-status-key,
+.profile-container .recent-item-sub,
+.profile-container .promo-dash-unit,
+.profile-container .muted {
+  color: #6b7280 !important;
+}
+.profile-container .kpi-card:hover,
+.profile-container .stats-card:hover,
+.profile-container .promo-dash-item:hover,
+.profile-container .history-card:hover,
+.profile-container .tier-history-card:hover,
+.profile-container .promo-history-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+.profile-container :deep(.el-tag) {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: none !important;
+}
+.profile-container :deep(.el-button) {
+  border-radius: 6px !important;
+}
+.profile-container :deep(.el-button--primary) {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
 /* ══════════════════════════════════════════════
    SUMMARY BARS
 ══════════════════════════════════════════════ */
