@@ -580,6 +580,7 @@ async function doSearch() {
             const p = vFound ? (vFound.price ?? vFound.salePrice ?? vFound.sellingPrice ?? 0) : 0;
             if (vFound) {
               variant.price = p;
+              if (!variant.id) variant.id = vFound.id;
             }
           }
         } catch { /* giữ giá 0 nếu lỗi */ }
@@ -719,6 +720,14 @@ async function confirmPayment() {
   snapshotTotal.value = totalAmount.value;
   // cashIn = 0 nghĩa là khách đưa đúng số tiền (option 1)
   if (cashIn.value === 0) cashIn.value = snapshotTotal.value;
+  // ── VALIDATE variantId ──────────────────────────────────────────
+  const invalidItem = cart.value.find((i) => !i.variantId);
+  if (invalidItem) {
+    payError.value = `Không tìm được mã variant cho "${invalidItem.variantName}". Vui lòng xóa và thêm lại sản phẩm.`;
+    payLoading.value = false;
+    return;
+  }
+  // ───────────────────────────────────────────────────────────────
   try {
     // 1. Tạo đơn hàng (PENDING)
     const oRes = await ordersApi.create({
