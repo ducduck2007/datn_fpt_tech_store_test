@@ -354,136 +354,113 @@
           </div>
 
           <!-- Modal body -->
-          <div class="modal-body">
+        <!-- Modal body -->
+<div class="modal-body">
 
-            <!-- Error -->
-            <transition name="fade-slide">
-              <div v-if="formError" class="form-error-bar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round"/>
-                  <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke-width="1"/>
-                </svg>
-                {{ formError }}
-              </div>
-            </transition>
+  <!-- Error -->
+  <transition name="fade-slide">
+    <div v-if="formError" class="form-error-bar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round"/>
+        <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke-width="1"/>
+      </svg>
+      {{ formError }}
+    </div>
+  </transition>
 
-            <!-- Required section -->
-            <div class="form-section-label">Thông tin bắt buộc</div>
+  <!-- Required section -->
+  <div class="form-section-label">Thông tin bắt buộc</div>
 
-            <div class="form-row">
-              <div class="form-group form-group--full">
-                <label class="form-label">Họ và tên <span class="req">*</span></label>
-                <input
-                  v-model="form.fullName"
-                  class="form-input"
-                  :class="{ 'form-input--error': v.fullName }"
-                  placeholder="Nguyễn Văn A"
-                  @input="v.fullName = ''"
-                />
-                <span v-if="v.fullName" class="form-hint form-hint--err">{{ v.fullName }}</span>
-              </div>
-            </div>
+  <div class="form-row">
+    <div class="form-group form-group--full">
+      <label class="form-label">Họ và tên <span class="req">*</span></label>
+      <input
+        v-model="form.fullName"
+        class="form-input"
+        :class="{ 'form-input--error': v.fullName }"
+        placeholder="Nguyễn Văn A"
+        @input="v.fullName = ''"
+      />
+      <span v-if="v.fullName" class="form-hint form-hint--err">{{ v.fullName }}</span>
+    </div>
+  </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Số điện thoại <span class="req">*</span></label>
-                <input
-                  v-model="form.phone"
-                  class="form-input"
-                  :class="{ 'form-input--error': v.phone }"
-                  placeholder="09xxxxxxxx"
-                  type="tel"
-                  @input="v.phone = ''"
-                />
-                <span v-if="v.phone" class="form-hint form-hint--err">{{ v.phone }}</span>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Mật khẩu <span class="req">*</span></label>
-                <div class="pw-wrap">
-                  <input
-                    v-model="form.password"
-                    class="form-input"
-                    :class="{ 'form-input--error': v.password }"
-                    :type="showPw ? 'text' : 'password'"
-                    placeholder="Tối thiểu 6 ký tự"
-                    @input="v.password = ''"
-                  />
-                  <button class="pw-eye" type="button" @click="showPw = !showPw" tabindex="-1">
-                    <svg v-if="!showPw" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  </button>
-                </div>
-                <span v-if="v.password" class="form-hint form-hint--err">{{ v.password }}</span>
-              </div>
-            </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">Số điện thoại <span class="req">*</span></label>
+      <input
+        v-model="form.phone"
+        class="form-input"
+        :class="{ 'form-input--error': v.phone }"
+        placeholder="09xxxxxxxx"
+        type="tel"
+        @input="v.phone = ''"
+      />
+      <span v-if="v.phone" class="form-hint form-hint--err">{{ v.phone }}</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email <span class="req">*</span></label>
+      <input
+        v-model="form.email"
+        class="form-input"
+        :class="{ 'form-input--error': v.email }"
+        placeholder="example@email.com"
+        type="email"
+        @input="v.email = ''"
+      />
+      <span v-if="v.email" class="form-hint form-hint--err">{{ v.email }}</span>
+    </div>
+  </div>
 
-            Optional section
-            <div class="form-section-label optional-label">
-              Thông tin bổ sung
-              <button class="toggle-optional" @click="showOptional = !showOptional">
-                {{ showOptional ? 'Thu gọn' : 'Mở rộng' }}
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="{ transform: showOptional ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-            </div>
+  <!-- Optional section -->
+  <div class="form-section-label optional-label">
+    Thông tin bổ sung
+    <button class="toggle-optional" @click="showOptional = !showOptional">
+      {{ showOptional ? 'Thu gọn' : 'Mở rộng' }}
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           :style="{ transform: showOptional ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+  </div>
 
-            <transition name="expand">
-              <div v-if="showOptional" class="optional-fields">
-                <div class="form-row">
-                  <div class="form-group form-group--full">
-                    <label class="form-label">Email</label>
-                    <input
-                      v-model="form.email"
-                      class="form-input"
-                      :class="{ 'form-input--error': v.email }"
-                      placeholder="example@email.com"
-                      type="email"
-                      @input="v.email = ''"
-                    />
-                    <span v-if="v.email" class="form-hint form-hint--err">{{ v.email }}</span>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Ngày sinh</label>
-                    <input v-model="form.dateOfBirth" class="form-input" type="date"/>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Giới tính</label>
-                    <select v-model="form.gender" class="form-input form-select">
-                      <option value="">Không xác định</option>
-                      <option value="MALE">Nam</option>
-                      <option value="FEMALE">Nữ</option>
-                      <option value="OTHER">Khác</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group form-group--full">
-                    <label class="form-label">Địa chỉ</label>
-                    <input v-model="form.address" class="form-input" placeholder="Số nhà, đường, phường/xã, quận/huyện..."/>
-                  </div>
-                </div>
-              </div>
-            </transition>
+  <transition name="expand">
+    <div v-if="showOptional" class="optional-fields">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ngày sinh</label>
+          <input v-model="form.dateOfBirth" class="form-input" type="date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Giới tính</label>
+          <select v-model="form.gender" class="form-input form-select">
+            <option value="">Không xác định</option>
+            <option value="MALE">Nam</option>
+            <option value="FEMALE">Nữ</option>
+            <option value="OTHER">Khác</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group form-group--full">
+          <label class="form-label">Địa chỉ</label>
+          <input v-model="form.address" class="form-input" placeholder="Số nhà, đường, phường/xã, quận/huyện..."/>
+        </div>
+      </div>
+    </div>
+  </transition>
 
-            <!-- Notice -->
-            <div class="form-notice">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round"/>
-                <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke-width="1"/>
-              </svg>
-              Tài khoản sẽ được tạo với vai trò <strong>Khách hàng</strong>. Khách có thể đăng nhập và xem lịch sử mua hàng sau khi đăng ký.
-            </div>
-          </div>
+  <!-- Notice -->
+  <div class="form-notice">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round"/>
+      <circle cx="12" cy="16" r="0.5" fill="currentColor" stroke-width="1"/>
+    </svg>
+    Mật khẩu mặc định sẽ là <strong>số điện thoại</strong>. Thông tin đăng nhập sẽ được gửi qua email cho khách hàng.
+  </div>
+</div>
 
           <!-- Modal footer -->
           <div class="modal-foot">
@@ -534,12 +511,12 @@ const formError     = ref("");
 const posLinking    = ref(false);
 
 const form = reactive({
-  fullName: "", phone: "", password: "",
-  email: "", dateOfBirth: "", gender: "", address: "",
+  fullName: "", phone: "", email: "",
+  dateOfBirth: "", gender: "", address: "",
 });
 
 const v = reactive({
-  fullName: "", phone: "", password: "", email: "",
+  fullName: "", phone: "", email: "",
 });
 
 // ── Helpers ───────────────────────────────────────
@@ -622,22 +599,20 @@ function openCreateModal(prefill = "") {
 function closeModal() { if (createLoading.value) return; showModal.value = false; }
 
 function resetForm() {
-  Object.assign(form, { fullName: "", phone: "", password: "", email: "", dateOfBirth: "", gender: "", address: "" });
-  Object.assign(v,    { fullName: "", phone: "", password: "", email: "" });
-  formError.value = ""; showPw.value = false; showOptional.value = false;
+  Object.assign(form, { fullName: "", phone: "", email: "", dateOfBirth: "", gender: "", address: "" });
+  Object.assign(v,    { fullName: "", phone: "", email: "" });
+  formError.value = ""; showOptional.value = false;
 }
 
 function validateForm() {
   let ok = true;
-  if (!form.fullName.trim())                                            { v.fullName  = "Họ tên không được để trống"; ok = false; }
-  if (!form.phone.trim())                                               { v.phone     = "Số điện thoại không được để trống"; ok = false; }
-  else if (!/^[0-9+\s-]{7,15}$/.test(form.phone.trim()))               { v.phone     = "Số điện thoại không hợp lệ"; ok = false; }
-  if (!form.password)                                                    { v.password  = "Mật khẩu không được để trống"; ok = false; }
-  else if (form.password.length < 6)                                    { v.password  = "Mật khẩu tối thiểu 6 ký tự"; ok = false; }
-  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))   { v.email     = "Email không hợp lệ"; ok = false; }
+  if (!form.fullName.trim())                                          { v.fullName = "Họ tên không được để trống"; ok = false; }
+  if (!form.phone.trim())                                             { v.phone    = "Số điện thoại không được để trống"; ok = false; }
+  else if (!/^[0-9+\s-]{7,15}$/.test(form.phone.trim()))             { v.phone    = "Số điện thoại không hợp lệ"; ok = false; }
+  if (!form.email.trim())                                             { v.email    = "Email không được để trống"; ok = false; }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))          { v.email    = "Email không hợp lệ"; ok = false; }
   return ok;
 }
-
 async function doCreate() {
   formError.value = "";
   if (!validateForm()) return;
@@ -646,9 +621,9 @@ async function doCreate() {
     const payload = {
       fullName: form.fullName.trim(),
       phone:    form.phone.trim(),
-      password: form.password,
+      email:    form.email.trim(),
+      password: form.phone.trim(), // backend encode SĐT làm password mặc định
       role:     "CUSTOMER",
-      ...(form.email       && { email:       form.email.trim() }),
       ...(form.dateOfBirth && { dateOfBirth: form.dateOfBirth }),
       ...(form.gender      && { gender:      form.gender }),
       ...(form.address     && { address:     form.address.trim() }),
@@ -665,14 +640,6 @@ async function doCreate() {
     createLoading.value = false;
   }
 }
-
-// ── Actions ───────────────────────────────────────
-
-/**
- * Gán khách hàng đang chọn cho phiên POS, sau đó chuyển sang trang POS.
- * Trang POS sẽ tự đọc "pos_customer" từ sessionStorage trong onMounted.
- * Điều chỉnh route '/sales/pos' cho khớp với cấu hình router của dự án.
- */
 async function linkToPos() {
   if (!selected.value) return;
   posLinking.value = true;
