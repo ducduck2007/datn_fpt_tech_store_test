@@ -385,4 +385,168 @@ public class EmailService {
                 totalAmount
         );
     }
+    @Async
+    public void sendWelcomePasswordEmail(String toEmail, String fullName, String phone, String rawPassword) {
+        try {
+            if (toEmail == null || toEmail.isBlank()) return;
+
+            Resend resend = new Resend(apiKey);
+
+            String html = buildWelcomeEmail(fullName, phone, rawPassword);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(toEmail)
+                    .subject("🎉 Chào mừng bạn đến với TechStore — Thông tin đăng nhập")
+                    .html(html)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String buildWelcomeEmail(String fullName, String phone, String rawPassword) {
+        String safeName = (fullName != null && !fullName.isBlank()) ? fullName : "Khách hàng";
+        String safePhone = (phone != null && !phone.isBlank()) ? phone : "—";
+
+        return """
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+      <title>Chào mừng đến TechStore</title>
+    </head>
+    <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+      <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:40px 0;">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0"
+                 style="max-width:600px;width:100%%;background:#fff;border-radius:16px;
+                        overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+            <!-- HEADER -->
+            <tr>
+              <td style="background:linear-gradient(135deg,#0f172a 0%%,#1e3a5f 60%%,#0ea5e9 100%%);
+                          padding:40px 48px;text-align:center;">
+                <p style="margin:0 0 12px;font-size:13px;letter-spacing:4px;text-transform:uppercase;
+                           color:#7dd3fc;font-weight:600;">TECHSTORE</p>
+                <h1 style="margin:0;font-size:26px;font-weight:700;color:#fff;line-height:1.2;">
+                  Chào mừng bạn! 🎉
+                </h1>
+                <p style="margin:10px 0 0;font-size:14px;color:#94a3b8;">
+                  Tài khoản của bạn đã được tạo thành công
+                </p>
+              </td>
+            </tr>
+
+            <!-- GREETING -->
+            <tr>
+              <td style="padding:32px 48px 0;">
+                <p style="margin:0;font-size:16px;color:#334155;line-height:1.6;">
+                  Xin chào <strong style="color:#0f172a;">%s</strong>,
+                </p>
+                <p style="margin:10px 0 0;font-size:15px;color:#475569;line-height:1.7;">
+                  Nhân viên TechStore vừa tạo tài khoản cho bạn. Dưới đây là thông tin đăng nhập của bạn.
+                  Vui lòng <strong>đổi mật khẩu</strong> sau khi đăng nhập lần đầu để bảo mật tài khoản.
+                </p>
+              </td>
+            </tr>
+
+            <!-- CREDENTIALS BOX -->
+            <tr>
+              <td style="padding:28px 48px 0;">
+                <table width="100%%" cellpadding="0" cellspacing="0"
+                       style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                  <tr>
+                    <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;">
+                      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:2px;
+                                 text-transform:uppercase;color:#94a3b8;">THÔNG TIN ĐĂNG NHẬP</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 20px 16px;">
+                      <table width="100%%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:10px 0;font-size:13px;color:#64748b;border-bottom:1px solid #f1f5f9;">
+                            Tên đăng nhập
+                          </td>
+                          <td style="padding:10px 0;font-size:15px;font-weight:700;color:#0f172a;
+                                      text-align:right;border-bottom:1px solid #f1f5f9;letter-spacing:0.5px;">
+                            %s
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:10px 0;font-size:13px;color:#64748b;">
+                            Mật khẩu tạm thời
+                          </td>
+                          <td style="padding:10px 0;text-align:right;">
+                            <span style="font-size:17px;font-weight:800;color:#0f172a;
+                                          font-family:monospace;letter-spacing:2px;
+                                          background:#fef9c3;padding:4px 12px;border-radius:6px;
+                                          border:1px solid #fde68a;">
+                              %s
+                            </span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- WARNING -->
+            <tr>
+              <td style="padding:20px 48px 0;">
+                <table width="100%%" cellpadding="0" cellspacing="0"
+                       style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;">
+                  <tr>
+                    <td style="padding:14px 18px;">
+                      <p style="margin:0;font-size:13px;color:#c2410c;line-height:1.6;">
+                        ⚠️ <strong>Lưu ý bảo mật:</strong> Đây là mật khẩu tạm thời do nhân viên tạo.
+                        Vui lòng đăng nhập và đổi mật khẩu ngay để bảo vệ tài khoản của bạn.
+                        Không chia sẻ thông tin này với bất kỳ ai.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- DIVIDER -->
+            <tr>
+              <td style="padding:32px 48px 0;">
+                <hr style="border:none;border-top:1px solid #e2e8f0;margin:0;"/>
+              </td>
+            </tr>
+
+            <!-- FOOTER -->
+            <tr>
+              <td style="padding:24px 48px 36px;text-align:center;">
+                <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#475569;">
+                  TechStore — Nơi công nghệ gặp gỡ niềm tin
+                </p>
+                <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.8;">
+                  Nếu bạn có thắc mắc, hãy liên hệ
+                  <a href="mailto:support@nguyenduc.me" style="color:#0ea5e9;text-decoration:none;">
+                    support@nguyenduc.me
+                  </a><br/>
+                  Email này được gửi tự động, vui lòng không trả lời trực tiếp.
+                </p>
+                <p style="margin:16px 0 0;font-size:11px;color:#cbd5e1;">
+                  © 2025 TechStore. All rights reserved.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td></tr>
+      </table>
+    </body>
+    </html>
+    """.formatted(safeName, safePhone, rawPassword);
+    }
 }

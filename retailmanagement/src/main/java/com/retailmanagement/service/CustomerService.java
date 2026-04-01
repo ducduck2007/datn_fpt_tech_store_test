@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CustomerService {
     private static final Logger log = LoggerFactory.getLogger(CustomerService.class);
-
+private final EmailService emailService;
     private final CustomRes customRes;
     private final LoyaltyLedgerRepository loyaltyLedgerRepository;
     private final UserRepository userRepository;
@@ -117,6 +117,7 @@ public class CustomerService {
     @Audit(module = AuditModule.CUSTOMER, action = AuditAction.CREATE, targetType = TargetType.CUSTOMER)
     @Transactional
     public CustomerResponse create(CustomerRequest customerRequest) {
+
         // Validate trùng email/phone
         if (customRes.findByEmail(customerRequest.getEmail()).isPresent()) {
             throw new RuntimeException("Email đã tồn tại trong hệ thống");
@@ -124,6 +125,7 @@ public class CustomerService {
         if (customRes.findByPhone(customerRequest.getPhone()).isPresent()) {
             throw new RuntimeException("Số điện thoại đã tồn tại trong hệ thống");
         }
+
 
         // ✅ TỰ ĐỘNG TẠO USER với username = email, password = SĐT
         User user = null;
@@ -164,6 +166,14 @@ public class CustomerService {
 
         Customer saved = customRes.save(customer);
         eventNotificationService.onCustomerRegistered(saved);
+        if (saved.getEmail() != null && !saved.getEmail().isBlank()) {
+            emailService.sendWelcomePasswordEmail(
+                    saved.getEmail(),
+                    saved.getName(),
+                    saved.getEmail(),
+                    customerRequest.getPhone()
+            );
+        }
         return mapToResponse(saved);
     }
 
