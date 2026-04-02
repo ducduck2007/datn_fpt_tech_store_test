@@ -17,6 +17,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,7 +27,8 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
-@Transactional
+
+    @Transactional
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getProducts(
             @RequestParam(defaultValue = "0") int page,
@@ -38,9 +40,12 @@ public class ProductController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) Boolean isNew,
-            @RequestParam(required = false) Boolean isFaulty) {
+            @RequestParam(required = false) Boolean isFaulty,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
 
-        return ResponseEntity.ok(productService.getProducts(page, categoryIds, keyword, sortBy, inStockOnly, tagId, startDate, endDate, isNew, isFaulty));
+        return ResponseEntity.ok(productService.getProducts(page, categoryIds, keyword, sortBy, inStockOnly, tagId, startDate, endDate, isNew, isFaulty, brand, minPrice, maxPrice));
     }
 
     @GetMapping("/{id}")
@@ -132,7 +137,6 @@ public class ProductController {
         return ResponseEntity.ok(logs);
     }
 
-
     @Autowired
     private OrderItemRepository orderItemRepository;
     @Autowired
@@ -147,7 +151,6 @@ public class ProductController {
         com.retailmanagement.dto.response.DashboardStatsResponse stats = new com.retailmanagement.dto.response.DashboardStatsResponse();
 
         // 1. Lấy Top 10 sản phẩm bán chạy nhất
-        // Dùng PageRequest để giới hạn kết quả lấy ra đúng 10 sản phẩm đầu tiên
         Pageable top10 = PageRequest.of(0, 10);
         stats.setTopSellingProducts(orderItemRepository.getTopSellingProducts(top10));
 
@@ -160,5 +163,15 @@ public class ProductController {
         stats.setTotalSerialsFaulty(serialRepository.countByStatus("FAULTY"));
 
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/brands")
+    public ResponseEntity<List<String>> getBrands() {
+        return ResponseEntity.ok(productRepository.findAll().stream()
+                .map(com.retailmanagement.entity.Product::getBrand)
+                .filter(b -> b != null && !b.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .toList());
     }
 }

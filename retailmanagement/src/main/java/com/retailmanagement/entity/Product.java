@@ -56,4 +56,7 @@ public class Product {
 
     @Column(name = "is_faulty")
     private Boolean isFaulty = false;
+
+    @Column(name = "brand", length = 100)
+    private String brand;
 }

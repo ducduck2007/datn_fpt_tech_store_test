@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,15 +25,15 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
             nativeQuery = true
     )
     Page<Product> findByCategoryId(@Param("categoryId") Integer categoryId, Pageable pageable);
+
     boolean existsBySku(String sku);
-    // Tìm kiếm Nâng cao: Tên, SKU, Thuộc tính, Lọc nhiều danh mục
     @Query(value = """
         SELECT p.*, 
                (SELECT MIN(pv.price) FROM product_variants pv 
                 WHERE pv.product_id = p.id AND pv.is_active = 1) as min_price
         FROM products p 
         WHERE 
-        (:keyword IS NULL OR :keyword = '' OR p.name LIKE %:keyword% OR p.sku LIKE %:keyword%) 
+        (:keyword IS NULL OR :keyword = '' OR p.name LIKE %:keyword% OR p.sku LIKE %:keyword% OR p.brand LIKE %:keyword%) 
         AND (:hasCategory = 0 OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id IN (:categoryIds))) 
         AND (:isVisible IS NULL OR p.is_visible = :isVisible)
         AND (:startDate IS NULL OR p.created_at >= :startDate)
@@ -41,11 +42,14 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
         AND (:isFaulty IS NULL OR p.is_faulty = :isFaulty)
         AND (:tagId = -1 OR EXISTS (SELECT 1 FROM product_tags pt WHERE pt.product_id = p.id AND pt.tag_id = :tagId))
         AND (:inStockOnly = 0 OR (SELECT COALESCE(SUM(v.stock_quantity), 0) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) > 0)
+        AND (:brand IS NULL OR p.brand = :brand)
+        AND (:minPrice IS NULL OR (SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1) >= :minPrice)
+        AND (:maxPrice IS NULL OR (SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1) <= :maxPrice)
         """,
             countQuery = """
         SELECT count(*) FROM products p 
         WHERE 
-        (:keyword IS NULL OR :keyword = '' OR p.name LIKE %:keyword% OR p.sku LIKE %:keyword%) 
+        (:keyword IS NULL OR :keyword = '' OR p.name LIKE %:keyword% OR p.sku LIKE %:keyword% OR p.brand LIKE %:keyword%) 
         AND (:hasCategory = 0 OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id IN (:categoryIds))) 
         AND (:isVisible IS NULL OR p.is_visible = :isVisible)
         AND (:startDate IS NULL OR p.created_at >= :startDate)
@@ -54,6 +58,9 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
         AND (:isFaulty IS NULL OR p.is_faulty = :isFaulty)
         AND (:tagId = -1 OR EXISTS (SELECT 1 FROM product_tags pt WHERE pt.product_id = p.id AND pt.tag_id = :tagId))
         AND (:inStockOnly = 0 OR (SELECT COALESCE(SUM(v.stock_quantity), 0) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) > 0)
+        AND (:brand IS NULL OR p.brand = :brand)
+        AND (:minPrice IS NULL OR (SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1) >= :minPrice)
+        AND (:maxPrice IS NULL OR (SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1) <= :maxPrice)
         """,
             nativeQuery = true)
     Page<Product> searchProducts(
@@ -67,6 +74,9 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
             @Param("isFaulty") Boolean isFaulty,
             @Param("inStockOnly") boolean inStockOnly,
             @Param("tagId") Integer tagId,
+            @Param("brand") String brand,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
             Pageable pageable);
 
     // Tìm danh sách sản phẩm trong thùng rác (đã xóa mềm)

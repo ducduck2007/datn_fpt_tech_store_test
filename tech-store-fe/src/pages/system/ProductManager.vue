@@ -1,7 +1,6 @@
 <template>
   <div style="background:#f6f7f9; min-height:100vh; padding:32px 40px 60px;">
 
-    <!-- Header -->
     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
         <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
@@ -11,7 +10,6 @@
         <div style="font-size:13px; color:var(--el-text-color-secondary);">Hỗ trợ: Biến thể · Tồn kho · Đa danh mục · Sắp xếp · Thùng rác · Thẻ</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
-        <!-- View toggle -->
         <el-radio-group v-model="viewMode" size="small" @change="load">
           <el-radio-button value="active"><el-icon><Check /></el-icon> Hoạt động</el-radio-button>
           <el-radio-button value="trash"><el-icon><Delete /></el-icon> Thùng rác</el-radio-button>
@@ -22,7 +20,6 @@
       </div>
     </div>
 
-    <!-- Filter Panel -->
     <el-card v-if="viewMode==='active'" shadow="never" style="margin-bottom:16px;" :body-style="{ padding:0 }">
       <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--el-border-color-lighter);">
         <el-space :size="8">
@@ -35,11 +32,10 @@
         </el-button>
       </div>
 
-      <!-- Row 1 -->
       <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; border-bottom:1px solid var(--el-border-color-lighter);">
         <div style="padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
           <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:6px;">Tìm kiếm</div>
-          <el-input v-model="keyword" placeholder="Tên sản phẩm / SKU…" clearable size="small" @keyup.enter="onFilter" @clear="onFilter">
+          <el-input v-model="keyword" placeholder="Tên sản phẩm / SKU / Thương hiệu…" clearable size="small" @keyup.enter="onFilter" @clear="onFilter">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
         </div>
@@ -72,7 +68,6 @@
         </div>
       </div>
 
-      <!-- Row 2 -->
       <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr;">
         <div style="padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
           <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:6px;">Ngày nhập kho</div>
@@ -103,7 +98,6 @@
       </div>
     </el-card>
 
-    <!-- Batch action bar -->
     <transition name="el-fade-in">
       <el-card v-if="selectedIds.length>0 && viewMode==='active'" shadow="never" style="margin-bottom:16px; border-color:var(--el-color-primary-light-5); background:var(--el-color-primary-light-9);" :body-style="{ padding:'10px 16px' }">
         <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -123,7 +117,6 @@
       </el-card>
     </transition>
 
-    <!-- Table Card -->
     <el-card shadow="never" :body-style="{ padding:0 }">
       <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--el-border-color-lighter); background:var(--el-fill-color-light);">
         <el-space :size="8">
@@ -159,8 +152,10 @@
               <el-tag v-if="row.isFaulty" type="danger" size="small" effect="plain">LỖI</el-tag>
             </div>
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-              <el-text size="small" type="info">SKU</el-text>
+              <el-text size="small" type="info">SKU:</el-text>
               <span style="font-family:monospace; font-size:11px; color:var(--el-text-color-secondary);">{{ row.sku }}</span>
+              <el-text v-if="row.brand" size="small" type="info" style="margin-left:8px;">Hãng:</el-text>
+              <span v-if="row.brand" style="font-size:11px; font-weight:600; color:var(--el-color-primary);">{{ row.brand }}</span>
             </div>
             <el-space v-if="row.tags?.length" wrap :size="4" style="margin-bottom:4px;">
               <el-tag v-for="(tagName, idx) in row.tags" :key="idx" type="warning" size="small" effect="plain">{{ tagName }}</el-tag>
@@ -220,7 +215,6 @@
       </div>
     </el-card>
 
-    <!-- ══ DIALOG: Delete ══ -->
     <el-dialog v-model="deleteDlg.open" :title="deleteDlg.isFaulty ? 'Xóa vĩnh viễn?' : 'Xóa sản phẩm?'" width="420px" :close-on-click-modal="false">
       <el-alert :type="deleteDlg.isFaulty?'error':'warning'" :closable="false" style="margin-bottom:12px;">
         {{ deleteDlg.isFaulty ? 'Không thể hoàn tác sau khi xác nhận.' : 'Có thể khôi phục từ thùng rác.' }}
@@ -232,7 +226,6 @@
       </template>
     </el-dialog>
 
-    <!-- ══ DIALOG: Batch Delete ══ -->
     <el-dialog v-model="batchDeleteDlg" title="Xóa hàng loạt" width="420px" :close-on-click-modal="false">
       <el-alert type="warning" title="Có thể khôi phục từng sản phẩm từ thùng rác." :closable="false" style="margin-bottom:12px;" />
       <el-text>Tất cả <strong>{{ selectedIds.length }}</strong> sản phẩm đã chọn sẽ được chuyển vào thùng rác.</el-text>
@@ -242,7 +235,6 @@
       </template>
     </el-dialog>
 
-    <!-- ══ DIALOG: Batch Update ══ -->
     <el-dialog v-model="batchDlg.open" title="Cập nhật hàng loạt" width="480px" :close-on-click-modal="false">
       <el-alert type="info" title="Chỉ những trường có giá trị mới được áp dụng." :closable="false" style="margin-bottom:16px;" />
       <el-form label-position="top" style="display:flex; flex-direction:column; gap:0;">
@@ -273,7 +265,6 @@
       </template>
     </el-dialog>
 
-    <!-- ══ DRAWER: Biến thể ══ -->
     <el-drawer v-model="vr.open" :title="vr.productName" size="560px" direction="rtl">
       <template #header>
         <div>
@@ -282,7 +273,6 @@
         </div>
       </template>
 
-      <!-- Existing variants -->
       <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--el-text-color-secondary); margin-bottom:10px;">Các biến thể hiện có</div>
       <el-table :data="vr.variants" v-loading="vr.loading" size="small" stripe style="margin-bottom:20px;">
         <el-table-column label="Tên biến thể" min-width="120">
@@ -309,7 +299,6 @@
         <template #empty><el-empty description="Chưa có biến thể" :image-size="48" /></template>
       </el-table>
 
-      <!-- Add/edit variant form -->
       <el-divider>{{ vr.isEdit ? 'Cập nhật biến thể' : 'Thêm biến thể mới' }}</el-divider>
       <el-form label-position="top">
         <el-row :gutter="12">
@@ -354,7 +343,6 @@
       </el-form>
     </el-drawer>
 
-    <!-- ══ DIALOG: Serial Numbers ══ -->
     <el-dialog v-model="serialDlg.open" :title="`Quản lý Seri — ${serialDlg.variantName}`" width="620px" :close-on-click-modal="false">
       <div style="display:flex; align-items:flex-end; gap:12px; margin-bottom:16px;">
         <el-form-item label="Số lượng nhập kho" style="margin-bottom:0;">
@@ -390,7 +378,6 @@
       </template>
     </el-dialog>
 
-    <!-- ══ DIALOG: Create/Edit Product ══ -->
     <el-dialog v-model="dlg.open" :title="dlg.isEdit ? 'Thông tin sản phẩm' : 'Thêm sản phẩm mới'" width="680px" :close-on-click-modal="false">
       <el-alert v-if="dlg.alert" type="error" :title="dlg.alert" show-icon :closable="false" style="margin-bottom:12px;" />
 
@@ -411,6 +398,12 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="SKU chính *"><el-input v-model="dlg.form.sku" /></el-form-item>
+            </el-col>
+            
+            <el-col :span="12">
+              <el-form-item label="Thương hiệu">
+                <el-input v-model="dlg.form.brand" placeholder="Nhập hãng sản xuất (Apple, Asus...)" clearable />
+              </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="Danh mục">
@@ -435,19 +428,19 @@
                 <el-switch v-model="dlg.form.isNew" active-text="Mới" inactive-text="Thường" />
               </div>
             </el-col>
-            <el-col :span="12">
+            
+            <el-col :span="12" v-if="dlg.isEdit">
               <div style="display:flex; align-items:center; gap:12px;">
                 <el-text size="small">Đánh dấu Lỗi (Ẩn)</el-text>
                 <el-switch v-model="dlg.form.isFaulty" active-text="Lỗi" inactive-text="Tốt" />
               </div>
             </el-col>
-          </el-row>
+            </el-row>
 
           <el-form-item label="Mô tả">
             <el-input v-model="dlg.form.description" type="textarea" :rows="3" />
           </el-form-item>
 
-          <!-- Attributes -->
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
             <el-text size="small" style="font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary);">Thông số kỹ thuật</el-text>
             <el-button link type="primary" size="small" @click="addAttribute"><el-icon><Plus /></el-icon> Thêm</el-button>
@@ -458,7 +451,6 @@
             <el-button circle plain size="small" type="danger" @click="removeAttribute(i)"><el-icon><Close /></el-icon></el-button>
           </div>
 
-          <!-- Image gallery -->
           <div v-if="dlg.isEdit && dlg.existingImages.length>0" style="margin-top:14px;">
             <el-text size="small" tag="div" style="font-weight:700; margin-bottom:10px;">Thư viện ảnh</el-text>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -814,7 +806,8 @@ async function setPrimaryImage(imgId) {
 const dlg = reactive({
   open: false, isEdit: false, loading: false, alert: "", editId: null, attributesList: [], existingImages: [], idsToDelete: [],
   activeTab: 'info', history: [], historyLoading: false,
-  form: { name: "", sku: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [], isNew: true, isFaulty: false },
+  
+  form: { name: "", sku: "", brand: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [], isNew: true, isFaulty: false },
 });
 
 function getLogType(severity) {
@@ -825,7 +818,8 @@ function getLogType(severity) {
 function openCreateDialog() {
   dlg.isEdit = false; dlg.editId = null; dlg.attributesList = [{ name: "", value: "" }];
   dlg.existingImages = []; dlg.idsToDelete = []; dlg.activeTab = 'info';
-  dlg.form = { name: "", sku: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [], isNew: true, isFaulty: false };
+  
+  dlg.form = { name: "", sku: "", brand: "", description: "", isVisible: true, categoryIds: [], galleryImages: [], tagIds: [], isNew: true, isFaulty: false };
   dlg.alert = ""; dlg.open = true;
 }
 async function onEdit(row) {
@@ -838,7 +832,9 @@ async function onEdit(row) {
     ]);
     const data = detailRes.data?.data || detailRes.data;
     dlg.form = {
-      name: data.name, sku: data.sku, description: data.description, isVisible: data.isVisible,
+      name: data.name, sku: data.sku, 
+      brand: data.brand || "", 
+      description: data.description, isVisible: data.isVisible,
       categoryIds: data.categoryId ? [data.categoryId] : [], galleryImages: [], tagIds: [],
       isNew: data.isNew, isFaulty: data.isFaulty
     };
@@ -869,10 +865,15 @@ async function submitForm() {
     const formData = new FormData();
     formData.append("name", String(dlg.form.name || ""));
     formData.append("sku", String(dlg.form.sku || ""));
+    
+    formData.append("brand", String(dlg.form.brand || ""));
+    
     formData.append("description", String(dlg.form.description || ""));
     formData.append("isVisible", String(dlg.form.isVisible));
     formData.append("isNew", String(dlg.form.isNew));
+    
     formData.append("isFaulty", String(dlg.form.isFaulty));
+    
     if (Array.isArray(dlg.form.categoryIds) && dlg.form.categoryIds.length > 0)
       dlg.form.categoryIds.forEach(id => formData.append("categoryIds", id));
     if (Array.isArray(dlg.form.tagIds) && dlg.form.tagIds.length > 0)
@@ -886,8 +887,10 @@ async function submitForm() {
       }
     const validAttrs = dlg.attributesList.filter(a => a.name?.trim() && a.value?.trim());
     if (validAttrs.length > 0) formData.append("attributes", JSON.stringify(validAttrs));
+    
     if (dlg.isEdit) await productsApi.update(dlg.editId, formData);
     else await productsApi.create(formData);
+    
     dlg.open = false; await load(); toast("Thành công", "success");
   } catch (e) {
     console.error("LỖI GỬI LÊN:", e);

@@ -2,9 +2,7 @@
   <div class="ch-wrap">
     <TierProgressBar v-if="isCustomer" ref="tierProgressRef" style="margin-bottom: 20px;" />
 
-    <!-- ── Notification Banners ─────────────────────── -->
     <div class="ch-banners">
-      <!-- Welcome -->
       <transition-group name="banner-list" tag="div">
         <el-card
           v-for="notif in welcomeNotifications"
@@ -30,7 +28,6 @@
         </el-card>
       </transition-group>
 
-      <!-- Birthday -->
       <transition-group name="banner-list" tag="div">
         <el-card
           v-for="notif in birthdayNotifications"
@@ -55,7 +52,6 @@
         </el-card>
       </transition-group>
 
-      <!-- Reminder -->
       <transition-group name="banner-list" tag="div">
         <el-card
           v-for="notif in reminderNotifications"
@@ -80,7 +76,6 @@
         </el-card>
       </transition-group>
 
-      <!-- Spin Expiry -->
       <transition-group name="banner-list" tag="div">
         <el-card
           v-for="bonus in spinExpiryBonuses"
@@ -115,12 +110,10 @@
       </transition-group>
     </div>
 
-    <!-- ── Top Selling: Horizontal Scroll ──────────── -->
     <div v-if="topProducts.length > 0" style="margin-bottom: 32px;">
       <el-row align="middle" justify="space-between" style="margin-bottom: 14px;">
         <el-space :size="8" align="center">
           <el-text tag="b" style="font-size: 15px; letter-spacing: -0.01em;">🔥 Bán chạy nhất</el-text>
-          <!-- <el-tag type="danger" effect="plain" size="small">Top 5</el-tag> -->
         </el-space>
         <el-text size="small" type="info">Được yêu thích nhiều nhất</el-text>
       </el-row>
@@ -166,38 +159,63 @@
       </div>
     </div>
 
-    <!-- ── Main Layout: Sidebar + Product Grid ──────── -->
     <div class="ch-layout">
 
-      <!-- Sidebar -->
       <aside class="ch-sidebar">
-        <el-card shadow="never" style="position: sticky; top: 24px; overflow: hidden;">
-          <template #header>
-            <el-row justify="space-between" align="middle">
-              <el-text size="small" style="text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Danh mục</el-text>
-              <el-tooltip content="Chỉ hiện active" placement="top">
-                <el-switch v-model="activeOnly" size="small" @change="reloadAll" />
-              </el-tooltip>
-            </el-row>
-          </template>
-          <el-menu
-            :default-active="String(activeKey)"
-            style="border: none;"
-            @select="onSelectCategory"
-          >
-            <el-menu-item index="all">Tất cả</el-menu-item>
-            <el-menu-item
-              v-for="c in categories"
-              :key="c.id"
-              :index="String(c.id)"
-            >{{ c.name }}</el-menu-item>
-          </el-menu>
-        </el-card>
+        <div style="position: sticky; top: 24px; display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 48px); overflow-y: auto; padding-bottom: 20px;">
+          
+          <el-button v-if="hasActiveFilters" type="danger" plain size="small" @click="resetFilters">
+            Xóa tất cả bộ lọc
+          </el-button>
+
+          <el-card shadow="never">
+            <template #header>
+              <el-row justify="space-between" align="middle">
+                <el-text size="small" style="text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Danh mục</el-text>
+                <el-tooltip content="Chỉ hiện active" placement="top">
+                  <el-switch v-model="activeOnly" size="small" @change="reloadAll" />
+                </el-tooltip>
+              </el-row>
+            </template>
+            <el-menu
+              :default-active="String(activeKey)"
+              style="border: none;"
+              @select="onSelectCategory"
+            >
+              <el-menu-item index="all">Tất cả</el-menu-item>
+              <el-menu-item
+                v-for="c in categories"
+                :key="c.id"
+                :index="String(c.id)"
+              >{{ c.name }}</el-menu-item>
+            </el-menu>
+          </el-card>
+
+          <el-card shadow="never">
+            <template #header>
+              <el-text size="small" style="text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Thương hiệu</el-text>
+            </template>
+            <el-radio-group v-model="selectedBrand" style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;" @change="onSelectBrand">
+              <el-radio value="all">Tất cả hãng</el-radio>
+              <el-radio v-for="b in brands" :key="b" :value="b">{{ b }}</el-radio>
+            </el-radio-group>
+          </el-card>
+
+          <el-card shadow="never">
+            <template #header>
+              <el-text size="small" style="text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Khoảng giá</el-text>
+            </template>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <el-input-number v-model="minPrice" :min="0" :step="1000000" placeholder="Từ (VNĐ)" size="small" style="width: 100%;" :controls="false" />
+              <el-input-number v-model="maxPrice" :min="0" :step="1000000" placeholder="Đến (VNĐ)" size="small" style="width: 100%;" :controls="false" />
+              <el-button type="primary" plain size="small" style="width: 100%;" @click="applyPriceFilter">Áp dụng giá</el-button>
+            </div>
+          </el-card>
+
+        </div>
       </aside>
 
-      <!-- Main content -->
       <main class="ch-main">
-        <!-- Toolbar -->
         <el-row justify="space-between" align="bottom" style="margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
           <el-space direction="vertical" :size="2">
             <el-text size="small" type="info" style="text-transform: uppercase; letter-spacing: 0.1em;">Sản phẩm</el-text>
@@ -226,7 +244,6 @@
         </el-row>
         <el-divider style="margin: 0 0 20px;" />
 
-        <!-- Skeleton -->
         <div v-if="loading" class="product-grid">
           <el-card v-for="i in 6" :key="i" shadow="never" :body-style="{ padding: 0 }">
             <el-skeleton animated>
@@ -245,10 +262,12 @@
         <template v-else>
           <el-empty
             v-if="products.length === 0"
-            description="Không có sản phẩm nào"
+            description="Không có sản phẩm nào phù hợp"
             :image-size="80"
           >
-            <el-text type="info">Thử đổi danh mục hoặc từ khóa khác</el-text>
+            <el-text type="info">Thử điều chỉnh lại bộ lọc giá, thương hiệu hoặc danh mục.</el-text>
+            <br/>
+            <el-button v-if="hasActiveFilters" type="primary" plain style="margin-top: 10px;" @click="resetFilters">Xóa bộ lọc</el-button>
           </el-empty>
 
           <div v-else class="product-grid">
@@ -331,6 +350,11 @@ const products = ref([]);
 const activeKey = ref("all");
 const categoryId = ref(null);
 
+const brands = ref([]);
+const selectedBrand = ref("all");
+const minPrice = ref(null);
+const maxPrice = ref(null);
+
 const sortBy = ref("newest_arrival");
 
 const page = ref(0);
@@ -339,6 +363,13 @@ const searchTerm = ref("");
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(totalElements.value / 20)),
 );
+
+const hasActiveFilters = computed(() => {
+  return (selectedBrand.value && selectedBrand.value !== "all") 
+      || minPrice.value != null 
+      || maxPrice.value != null
+      || categoryId.value != null;
+});
 
 const welcomeNotifications = ref([]);
 const birthdayNotifications = ref([]);
@@ -447,6 +478,15 @@ async function reloadCategories() {
   } catch { categories.value = []; }
 }
 
+async function loadBrands() {
+  try {
+    const res = await http.get('/api/products/brands');
+    brands.value = res.data || [];
+  } catch (e) {
+    console.error("Không lấy được danh sách hãng", e);
+  }
+}
+
 async function loadTopProducts() {
   try {
     const res = await productsApi.list({ sortBy: 'best_selling', page: 0, size: 10 });
@@ -458,7 +498,17 @@ async function loadTopProducts() {
 async function reloadProducts() {
   loading.value = true;
   try {
-    const params = { page: page.value, categoryIds: categoryId.value ? String(categoryId.value) : undefined, keyword: searchTerm.value || undefined, isFaulty: false, sortBy: sortBy.value };
+    const params = { 
+      page: page.value, 
+      categoryIds: categoryId.value ? String(categoryId.value) : undefined, 
+      keyword: searchTerm.value || undefined, 
+      isFaulty: false, 
+      sortBy: sortBy.value,
+      brand: (selectedBrand.value && selectedBrand.value !== "all") ? selectedBrand.value : undefined,
+      minPrice: minPrice.value != null ? minPrice.value : undefined,
+      maxPrice: maxPrice.value != null ? maxPrice.value : undefined
+    };
+    
     const res = await productsApi.list(params);
     const data = res.data?.data || res.data;
     products.value = normalizeProducts(data.content || []);
@@ -472,6 +522,7 @@ async function reloadProducts() {
 async function reloadAll() {
   page.value = 0;
   await reloadCategories();
+  await loadBrands();
   await reloadProducts();
   await loadTopProducts();
 }
@@ -479,6 +530,31 @@ async function reloadAll() {
 function onSelectCategory(key) {
   activeKey.value = key;
   categoryId.value = key === "all" ? null : Number(key);
+  page.value = 0;
+  reloadProducts();
+}
+
+function onSelectBrand(val) {
+  page.value = 0;
+  reloadProducts();
+}
+
+function applyPriceFilter() {
+  if (minPrice.value != null && maxPrice.value != null && minPrice.value > maxPrice.value) {
+    toast("Giá tối thiểu không thể lớn hơn giá tối đa", "warning");
+    return;
+  }
+  page.value = 0;
+  reloadProducts();
+}
+
+function resetFilters() {
+  selectedBrand.value = "all";
+  minPrice.value = null;
+  maxPrice.value = null;
+  activeKey.value = "all";
+  categoryId.value = null;
+  searchTerm.value = "";
   page.value = 0;
   reloadProducts();
 }
@@ -675,5 +751,10 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.el-radio {
+  margin-right: 0 !important;
+  margin-bottom: 4px;
 }
 </style>

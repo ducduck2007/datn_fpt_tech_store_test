@@ -29,4 +29,6 @@ public class ProductRequest {
 
     private Boolean isNew;
     private Boolean isFaulty;
+
+    private String brand;
 }

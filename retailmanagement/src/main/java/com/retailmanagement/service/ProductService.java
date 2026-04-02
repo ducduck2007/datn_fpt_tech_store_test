@@ -50,7 +50,6 @@ public class ProductService {
     private final ProductSerialRepository productSerialRepository;
     private final CloudinaryService cloudinaryService;
 
-
     private final String UPLOAD_DIR = "uploads/";
 
     @SensitiveOperation(
@@ -77,6 +76,10 @@ public class ProductService {
         product.setIsNew(request.getIsNew() != null ? request.getIsNew() : true);
         product.setIsFaulty(false);
 
+        if (request.getBrand() != null && !request.getBrand().trim().isEmpty()) {
+            product.setBrand(request.getBrand().trim());
+        }
+
         String finalDescription = request.getDescription();
 
         if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
@@ -94,7 +97,7 @@ public class ProductService {
                 ProductCategoryId pcId = new ProductCategoryId(savedProduct.getId(), catId);
                 pc.setId(pcId);
                 pc.setCategory(categoryRepository.getReferenceById(catId));
-                pc.setIsPrimary(first);  // ← category đầu tiên là primary
+                pc.setIsPrimary(first);
                 pc.setCreatedAt(Instant.now());
                 productCategoryRepository.save(pc);
                 first = false;
@@ -105,10 +108,10 @@ public class ProductService {
             int sortOrder = 0;
             for (MultipartFile file : request.getGalleryImages()) {
                 if (!file.isEmpty()) {
-                    String url = cloudinaryService.uploadFile(file); // ← đổi
+                    String url = cloudinaryService.uploadFile(file);
                     Image image = new Image();
                     image.setProduct(savedProduct);
-                    image.setUrl(url); // ← URL Cloudinary luôn
+                    image.setUrl(url);
                     image.setIsPrimary(sortOrder == 0);
                     image.setSortOrder(sortOrder++);
                     image.setCreatedAt(Instant.now());
@@ -157,6 +160,8 @@ public class ProductService {
         if (request.getIsNew() != null) product.setIsNew(request.getIsNew());
         if (request.getIsFaulty() != null) product.setIsFaulty(request.getIsFaulty());
 
+        if (request.getBrand() != null) product.setBrand(request.getBrand().trim());
+
         String finalDescription = request.getDescription();
         if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
         }
@@ -170,10 +175,10 @@ public class ProductService {
         if (request.getGalleryImages() != null) {
             for (MultipartFile file : request.getGalleryImages()) {
                 if (!file.isEmpty()) {
-                    String url = cloudinaryService.uploadFile(file); // ← đổi
+                    String url = cloudinaryService.uploadFile(file);
                     Image image = new Image();
                     image.setProduct(product);
-                    image.setUrl(url); // ← URL Cloudinary luôn
+                    image.setUrl(url);
                     image.setIsPrimary(false);
                     image.setSortOrder(1);
                     image.setCreatedAt(Instant.now());
@@ -191,7 +196,7 @@ public class ProductService {
                 ProductCategoryId pcId = new ProductCategoryId(product.getId(), catId);
                 pc.setId(pcId);
                 pc.setCategory(categoryRepository.getReferenceById(catId));
-                pc.setIsPrimary(first);  // ← category đầu tiên là primary
+                pc.setIsPrimary(first);
                 pc.setCreatedAt(Instant.now());
                 productCategoryRepository.save(pc);
                 first = false;
@@ -216,8 +221,9 @@ public class ProductService {
 
         productRepository.save(product);
     }
-@Transactional
-    public Page<ProductResponse> getProducts(int page, List<Integer> categoryIds, String keyword, String sortBy, boolean inStockOnly, Integer tagId, LocalDateTime startDate, LocalDateTime endDate, Boolean isNew, Boolean isFaulty) {
+
+    @Transactional
+    public Page<ProductResponse> getProducts(int page, List<Integer> categoryIds, String keyword, String sortBy, boolean inStockOnly, Integer tagId, LocalDateTime startDate, LocalDateTime endDate, Boolean isNew, Boolean isFaulty, String brand, BigDecimal minPrice, BigDecimal maxPrice) {
         Sort sortObj = Sort.by(Sort.Direction.DESC, "id");
         if (sortBy != null) {
             switch (sortBy) {
@@ -248,7 +254,7 @@ public class ProductService {
         boolean hasCategory = (categoryIds != null && !categoryIds.isEmpty());
         List<Integer> filterIds = hasCategory ? categoryIds : List.of(-1);
         Integer finalTagId = (tagId != null) ? tagId : -1;
-        Page<Product> productPage = productRepository.searchProducts(searchKey, filterIds, hasCategory, true, startDate, endDate, isNew, isFaulty, inStockOnly, tagId != null ? tagId : -1, pageable);
+        Page<Product> productPage = productRepository.searchProducts(searchKey, filterIds, hasCategory, true, startDate, endDate, isNew, isFaulty, inStockOnly, tagId != null ? tagId : -1, brand, minPrice, maxPrice,pageable);
 
         List<ProductResponse> content = productPage.getContent().stream()
                 .map(this::mapToResponse)
@@ -262,7 +268,8 @@ public class ProductService {
 
         return new PageImpl<>(content, pageable, productPage.getTotalElements());
     }
-@Transactional
+
+    @Transactional
     public ProductResponse getProductById(Integer id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm với ID: " + id));
@@ -317,6 +324,7 @@ public class ProductService {
         dto.setAttributes(product.getAttributesJson());
         dto.setIsNew(product.getIsNew());
         dto.setIsFaulty(product.getIsFaulty());
+        dto.setBrand(product.getBrand());
 
         List<Image> images = imageRepository.findByProductId(product.getId());
         if (images != null) {
@@ -369,7 +377,7 @@ public class ProductService {
                     int actualStock = productSerialRepository.countByVariantIdAndStatus(v.getId(), "IN_STOCK");
                     if (v.getStockQuantity() == null || v.getStockQuantity() != actualStock) {
                         v.setStockQuantity(actualStock);
-                        productVariantRepository.save(v);  // ← GHI DỮ LIỆU bên trong method không có @Transactional!
+                        productVariantRepository.save(v);
                     }
                     return actualStock;
                 })
@@ -466,5 +474,4 @@ public class ProductService {
         }
         productRepository.saveAll(products);
     }
-
 }

@@ -38,4 +38,6 @@ public class ProductResponse {
 
     private Boolean isNew;
     private Boolean isFaulty;
+
+    private String brand;
 }
