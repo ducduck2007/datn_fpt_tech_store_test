@@ -108,14 +108,14 @@
               <el-menu-item index="/system/orders/filter">Order Filter</el-menu-item>
             </el-sub-menu>
 
-            <el-sub-menu index="returns">
+            <!-- <el-sub-menu index="returns">
               <template #title>
                 <el-icon><RefreshLeft /></el-icon>
                 <span>Returns</span>
               </template>
               <el-menu-item index="/system/returns/pending">Pending</el-menu-item>
               <el-menu-item index="/system/returns/all">All Returns</el-menu-item>
-            </el-sub-menu>
+            </el-sub-menu> -->
           </el-menu-item-group>
 
           <!-- Báo cáo & Tài chính -->
@@ -170,10 +170,6 @@
         :size="6"
         style="padding: 10px 14px 14px; border-top: 1px solid rgba(255,255,255,0.06);"
       >
-        <el-button type="primary" plain @click="go('/')" style="width: 100%;">
-          <el-icon><User /></el-icon>
-          Customer View
-        </el-button>
         <el-button type="danger" plain @click="logout" style="width: 100%;">
           <el-icon><SwitchButton /></el-icon>
           Đăng xuất

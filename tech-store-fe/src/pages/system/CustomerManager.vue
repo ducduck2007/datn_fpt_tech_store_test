@@ -1,1056 +1,876 @@
 <template>
-  <div class="crm2-page">
-    <div class="crm2-inner">
+  <div style="background:#f6f7f9; min-height:100vh; padding:32px 40px 60px;">
+    <div style="max-width:1440px; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
 
-      <!-- ── Header ── -->
-      <header class="crm2-header">
-        <div class="crm2-header__left">
-          <div class="crm2-eyebrow">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            Quản lý Quan hệ Khách hàng
+      <!-- Header -->
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+        <div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><User /></el-icon> Quản lý Quan hệ Khách hàng
           </div>
-          <h1 class="crm2-title">Quản lý <span class="crm2-title__accent">Khách hàng</span></h1>
-          <p class="crm2-subtitle">{{ rows.length }} tài khoản đã đăng ký</p>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">
+            Quản lý <span style="color:var(--el-color-primary);">Khách hàng</span>
+          </div>
+          <div style="font-size:13.5px; color:var(--el-text-color-secondary);">{{ rows.length }} tài khoản đã đăng ký</div>
         </div>
-        <div class="crm2-header__actions">
-          <button class="crm2-btn crm2-btn--outline" :class="{'crm2-btn--loading': loading}" @click="reloadCurrentTab" :disabled="loading">
-            <svg v-if="!loading" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-              <path d="M21 3v5h-5"/>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-              <path d="M8 16H3v5"/>
-            </svg>
-            <span v-if="!loading">Tải lại</span>
-            <span v-else class="crm2-spinner"></span>
-          </button>
-          <button v-if="mainTab === 'customers'" class="crm2-btn crm2-btn--primary" @click="openCreate">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Thêm khách hàng
-          </button>
-          <button v-if="mainTab === 'customers'" class="crm2-btn crm2-btn--outline" @click="openSummaryDialog">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            Tổng điểm
-          </button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; padding-top:6px;">
+          <el-button plain :loading="loading" @click="reloadCurrentTab">
+            <el-icon><Refresh /></el-icon> Tải lại
+          </el-button>
+          <el-button v-if="mainTab === 'customers'" type="primary" @click="openCreate">
+            <el-icon><Plus /></el-icon> Thêm khách hàng
+          </el-button>
+          <el-button v-if="mainTab === 'customers'" plain @click="openSummaryDialog">
+            <el-icon><TrendCharts /></el-icon> Tổng điểm
+          </el-button>
         </div>
-      </header>
-
-      <!-- ── Tab bar ── -->
-      <div class="crm2-tabbar">
-        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'customers'}" @click="mainTab = 'customers'">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-          Khách hàng &amp; Thành viên
-        </button>
-        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'birthdays'}" @click="mainTab = 'birthdays'; loadBirthdayData()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><rect x="8" y="2" width="8" height="5" rx="1"/><path d="M12 7v5"/></svg>
-          Sinh nhật
-        </button>
-        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'inactive'}" @click="mainTab = 'inactive'; loadInactiveAll()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Không hoạt động
-        </button>
-        <button class="crm2-tab" :class="{'crm2-tab--active': mainTab === 'zeroorder'}" @click="mainTab = 'zeroorder'; loadZeroOrderData(); loadZeroOrderStats()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-          Chưa mua hàng
-        </button>
       </div>
+
+      <!-- Tab bar -->
+      <el-tabs v-model="mainTab" class="crm2-main-tabs" @tab-click="onTabClick">
+        <el-tab-pane name="customers">
+          <template #label><el-space :size="6"><el-icon><User /></el-icon>Khách hàng &amp; Thành viên</el-space></template>
+        </el-tab-pane>
+        <el-tab-pane name="birthdays">
+          <template #label><el-space :size="6"><el-icon><Present /></el-icon>Sinh nhật</el-space></template>
+        </el-tab-pane>
+        <el-tab-pane name="inactive">
+          <template #label><el-space :size="6"><el-icon><Clock /></el-icon>Không hoạt động</el-space></template>
+        </el-tab-pane>
+        <el-tab-pane name="zeroorder">
+          <template #label><el-space :size="6"><el-icon><ShoppingCart /></el-icon>Chưa mua hàng</el-space></template>
+        </el-tab-pane>
+      </el-tabs>
 
       <!-- ══ TAB 1: CUSTOMERS ══ -->
       <template v-if="mainTab === 'customers'">
-
-        <!-- Stat cards -->
-        <div class="crm2-stats4">
-          <div class="crm2-stat crm2-stat--blue">
-            <div class="crm2-stat__num">{{ rows.length }}</div>
-            <div class="crm2-stat__label">Tổng khách hàng</div>
-          </div>
-          <div class="crm2-stat crm2-stat--orange">
-            <div class="crm2-stat__num">{{ vipCount }}</div>
-            <div class="crm2-stat__label">Thành viên VIP</div>
-          </div>
-          <div class="crm2-stat crm2-stat--green">
-            <div class="crm2-stat__num">{{ totalPoints.toLocaleString() }}</div>
-            <div class="crm2-stat__label">Tổng điểm</div>
-          </div>
-          <div class="crm2-stat crm2-stat--dim">
-            <div class="crm2-stat__num">{{ avgPoints.toLocaleString() }}</div>
-            <div class="crm2-stat__label">Điểm TB</div>
-          </div>
-          <div class="crm2-stat crm2-stat--purple" v-if="hasActiveFilters">
-            <div class="crm2-stat__num">{{ filtered.length }}</div>
-            <div class="crm2-stat__label">Đã lọc</div>
-          </div>
-        </div>
+        <!-- Stats -->
+        <el-row :gutter="14">
+          <el-col :xs="12" :sm="6" v-for="st in custStats" :key="st.label">
+            <el-card shadow="never" :body-style="{ padding:'16px' }" :style="`border-top:3px solid ${st.color};`">
+              <div :style="`font-size:24px; font-weight:800; letter-spacing:-0.03em; color:${st.color}; margin-bottom:4px;`">{{ st.value }}</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary);">{{ st.label }}</div>
+            </el-card>
+          </el-col>
+          <el-col :xs="12" :sm="6" v-if="hasActiveFilters">
+            <el-card shadow="never" :body-style="{ padding:'16px' }" style="border-top:3px solid #7c3aed;">
+              <div style="font-size:24px; font-weight:800; letter-spacing:-0.03em; color:#7c3aed; margin-bottom:4px;">{{ filtered.length }}</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary);">Đã lọc</div>
+            </el-card>
+          </el-col>
+        </el-row>
 
         <!-- Filter panel -->
-        <div class="crm2-filter-panel">
-          <div class="crm2-filter-panel__head">
-            <div class="crm2-filter-panel__title">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Bộ lọc
-              <span v-if="hasActiveFilters" class="crm2-filter-badge">{{ [typeFilter,vipTierFilter,activityFilter,isPointsFilterApplied].filter(Boolean).length }} đang áp dụng</span>
-            </div>
-            <button class="crm2-filter-clear" @click="clearAllFilters" :disabled="!hasActiveFilters">Xóa tất cả</button>
+        <el-card shadow="never" :body-style="{ padding:0 }">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--el-border-color-lighter);">
+            <el-space :size="8">
+              <el-icon><Filter /></el-icon>
+              <el-text style="font-size:13px; font-weight:500;">Bộ lọc</el-text>
+              <el-tag v-if="hasActiveFilters" type="primary" size="small" effect="plain">
+                {{ [typeFilter,vipTierFilter,activityFilter,isPointsFilterApplied].filter(Boolean).length }} đang áp dụng
+              </el-tag>
+            </el-space>
+            <el-button link type="danger" @click="clearAllFilters" :disabled="!hasActiveFilters">Xóa tất cả</el-button>
           </div>
-          <div class="crm2-filter-fields">
-            <div class="crm2-filter-field">
-              <span class="crm2-filter-field__label">Tìm kiếm</span>
-              <input v-model="q" class="crm2-input" placeholder="Tên / Email / SĐT…" />
-            </div>
-            <div class="crm2-filter-field">
-              <span class="crm2-filter-field__label">Loại</span>
-              <select v-model="typeFilter" class="crm2-input crm2-select" @change="handleFilterChange">
-                <option value="">Tất cả</option>
-                <option value="REGULAR">Thường</option>
-                <option value="VIP">VIP</option>
-              </select>
-            </div>
-            <div class="crm2-filter-field">
-              <span class="crm2-filter-field__label">Cấp VIP</span>
-              <select v-model="vipTierFilter" class="crm2-input crm2-select" @change="handleFilterChange">
-                <option value="">Tất cả cấp</option>
-                <option value="BRONZE">Đồng</option>
-                <option value="SILVER">Bạc</option>
-                <option value="GOLD">Vàng</option>
-                <option value="PLATINUM">Bạch kim</option>
-                <option value="DIAMOND">Kim cương</option>
-              </select>
-            </div>
-            <div class="crm2-filter-field">
-              <span class="crm2-filter-field__label">Hoạt động</span>
-              <select v-model="activityFilter" class="crm2-input crm2-select" @change="handleFilterChange">
-                <option value="">Tất cả</option>
-                <option value="ACTIVE_30">Hoạt động (30 ngày)</option>
-              </select>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--el-border-color-lighter);">
+            <div v-for="ff in filterFields" :key="ff.label" style="padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:6px;">{{ ff.label }}</div>
+              <el-input v-if="ff.type==='text'" v-model="q" placeholder="Tên / Email / SĐT…" size="small" clearable />
+              <el-select v-else v-model="ff.model.value" size="small" style="width:100%;" @change="handleFilterChange">
+                <el-option v-for="o in ff.options" :key="o.value" :value="o.value" :label="o.label" />
+              </el-select>
             </div>
           </div>
-          <div class="crm2-filter-divider"></div>
-          <div class="crm2-filter-points">
-            <div class="crm2-filter-field">
-              <span class="crm2-filter-field__label">Điểm tối thiểu</span>
-              <input v-model.number="pointsMin" type="number" class="crm2-input" placeholder="0" min="0" />
+          <!-- Points filter -->
+          <div style="display:grid; grid-template-columns:1fr 1fr auto; border-bottom:1px solid var(--el-border-color-lighter);">
+            <div style="padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:6px;">Điểm tối thiểu</div>
+              <el-input-number v-model="pointsMin" :min="0" size="small" style="width:100%;" placeholder="0" />
             </div>
-            <div class="crm2-filter-field">
-              <span class="crm2-filter-field__label">Điểm tối đa</span>
-              <input v-model.number="pointsMax" type="number" class="crm2-input" placeholder="999999" min="0" />
+            <div style="padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:6px;">Điểm tối đa</div>
+              <el-input-number v-model="pointsMax" :min="0" size="small" style="width:100%;" placeholder="999999" />
             </div>
-            <div class="crm2-filter-field crm2-filter-field--actions">
-              <button class="crm2-btn crm2-btn--primary" @click="applyPointsFilter" :disabled="!canApplyPointsFilter">Áp dụng</button>
-              <button class="crm2-btn crm2-btn--ghost" @click="clearPointsFilter" :disabled="!isPointsFilterApplied">Reset</button>
+            <div style="padding:12px 16px; display:flex; align-items:flex-end; gap:8px;">
+              <el-button type="primary" plain size="small" @click="applyPointsFilter" :disabled="!canApplyPointsFilter">Áp dụng</el-button>
+              <el-button plain size="small" @click="clearPointsFilter" :disabled="!isPointsFilterApplied">Reset</el-button>
             </div>
           </div>
-          <div class="crm2-active-filters" v-if="hasActiveFilters">
-            <span class="crm2-af-label">Đang hoạt động:</span>
-            <span class="crm2-filter-chip" v-if="typeFilter">Loại: {{ typeFilter }}<button @click="typeFilter = ''; handleFilterChange()" class="crm2-chip-remove">×</button></span>
-            <span class="crm2-filter-chip" v-if="vipTierFilter">Cấp: {{ vipTierFilter }}<button @click="vipTierFilter = ''; handleFilterChange()" class="crm2-chip-remove">×</button></span>
-            <span class="crm2-filter-chip" v-if="activityFilter === 'ACTIVE_30'">HD 30 ngày<button @click="activityFilter = ''; handleFilterChange()" class="crm2-chip-remove">×</button></span>
-            <span class="crm2-filter-chip" v-if="isPointsFilterApplied">Điểm: {{ appliedPointsMin }}–{{ appliedPointsMax === 999999 ? '∞' : appliedPointsMax }}<button @click="clearPointsFilter" class="crm2-chip-remove">×</button></span>
+          <!-- Active chips -->
+          <div v-if="hasActiveFilters" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px;">
+            <el-text size="small" type="info" style="text-transform:uppercase; letter-spacing:0.07em; font-weight:700; font-size:10px;">Đang hoạt động:</el-text>
+            <el-tag v-if="typeFilter" size="small" closable @close="typeFilter=''; handleFilterChange()">Loại: {{ typeFilter }}</el-tag>
+            <el-tag v-if="vipTierFilter" size="small" closable @close="vipTierFilter=''; handleFilterChange()">Cấp: {{ vipTierFilter }}</el-tag>
+            <el-tag v-if="activityFilter === 'ACTIVE_30'" size="small" closable @close="activityFilter=''; handleFilterChange()">HD 30 ngày</el-tag>
+            <el-tag v-if="isPointsFilterApplied" size="small" closable @close="clearPointsFilter">Điểm: {{ appliedPointsMin }}–{{ appliedPointsMax === 999999 ? '∞' : appliedPointsMax }}</el-tag>
           </div>
-        </div>
+        </el-card>
 
         <!-- Table -->
-        <div class="crm2-card">
-          <div class="crm2-toolbar">
-            <div class="crm2-toolbar__left">
-              <span class="crm2-count"><span class="crm2-count__num">{{ filtered.length }}</span><span class="crm2-count__label">/ {{ rows.length }} khách</span></span>
+        <el-card shadow="never" :body-style="{ padding:0 }">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--el-border-color-lighter); background:var(--el-fill-color-light);">
+            <div style="display:flex; align-items:baseline; gap:4px;">
+              <span style="font-size:18px; font-weight:800;">{{ filtered.length }}</span>
+              <span style="font-size:12px; color:var(--el-text-color-placeholder); font-weight:600;">/ {{ rows.length }} khách</span>
             </div>
           </div>
-          <div class="crm2-table-wrap" :class="{'crm2-table-wrap--loading': loading}">
-            <div v-if="loading" class="crm2-loader-overlay"><div class="crm2-loader-ring"></div></div>
-            <table class="crm2-table">
-              <thead>
-                <tr>
-                  <th style="width:70px">STT</th>
-                  <th style="min-width:180px">Khách hàng</th>
-                  <th style="min-width:160px">Liên hệ</th>
-                  <th style="width:100px">Loại</th>
-                  <th style="width:110px">Cấp</th>
-                  <th style="width:130px">Điểm</th>
-                  <th style="width:110px">Chi tiêu</th>
-                  <th style="min-width:160px">Ghi chú VIP</th>
-                  <th style="min-width:140px">Ghi chú</th>
-                  <th style="width:180px;text-align:center">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="paged.length === 0 && !loading">
-                  <td colspan="10" class="crm2-empty">
-                    <div class="crm2-empty__inner">
-                      <div class="crm2-empty__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
-                      <p>Không tìm thấy khách hàng</p>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-for="row in paged" :key="row.id" class="crm2-row">
-                  <td><span class="crm2-mono-id">{{ row.id }}</span></td>
-                  <td>
-                    <div class="crm2-customer-cell">
-                      <div class="crm2-avatar" :style="{ background: getAvatarColor(row.fullName) }">{{ getInitials(row.fullName) }}</div>
-                      <div class="crm2-cust-info">
-                        <span class="crm2-cust-name">{{ row.fullName }}</span>
-                        <span class="crm2-cust-dob crm2-mono" v-if="row.birthDate">{{ row.birthDate }}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="crm2-contact-cell">
-                      <span class="crm2-contact-email">{{ row.email }}</span>
-                      <span class="crm2-contact-phone crm2-mono" v-if="row.phone">{{ row.phone }}</span>
-                    </div>
-                  </td>
-                  <td><span class="crm2-tag" :class="row.customerType === 'VIP' ? 'crm2-tag--orange' : 'crm2-tag--gray'">{{ row.customerType || 'REGULAR' }}</span></td>
-                  <td>
-                    <span v-if="row.raw.vipTier" class="crm2-tier-tag" :class="'crm2-tier--' + row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
-                    <span v-else class="crm2-text--muted">—</span>
-                  </td>
-                  <td>
-                    <div class="crm2-points-cell">
-                      <span class="crm2-points-num crm2-mono">{{ (row.loyaltyPoints || 0).toLocaleString() }}</span>
-                      <div class="crm2-points-track" v-if="row.raw.vipTier">
-                        <div class="crm2-points-fill" :style="{ width: getPointsProgress(row.raw) + '%', background: getTierColor(row.raw.vipTier) }"></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td><span class="crm2-mono crm2-text--muted">{{ formatCurrencyShort(row.raw.totalSpent) }}</span></td>
-                  <td>
-                    <template v-if="row.raw.vipTier">
-                      <div v-if="row.raw.vipNote" class="crm2-vipnote-cell" @click="openVipNoteEdit(row)">
-                        <span class="crm2-vipnote-text">{{ row.raw.vipNote.substring(0, 28) }}{{ row.raw.vipNote.length > 28 ? '…' : '' }}</span>
-                      </div>
-                      <button v-else class="crm2-btn-ghost-sm" @click="openVipNoteEdit(row)">+ Thêm ghi chú</button>
-                    </template>
-                    <span v-else class="crm2-text--muted">—</span>
-                  </td>
-                  <td>
-                    <span class="crm2-note-text" v-if="row.notes" :title="row.notes">{{ row.notes.substring(0, 22) }}{{ row.notes.length > 22 ? '…' : '' }}</span>
-                    <span v-else class="crm2-text--muted">—</span>
-                  </td>
-                  <td>
-                    <div class="crm2-actions">
-                      <button class="crm2-action-btn crm2-action-btn--blue" @click="viewDetails(row)">Xem</button>
-                      <button class="crm2-action-btn crm2-action-btn--edit" @click="openEdit(row)">Sửa</button>
-                      <button v-if="row.raw.vipTier" class="crm2-action-btn crm2-action-btn--gold" @click="openVipNoteEdit(row)">VIP</button>
-                      <button class="crm2-action-btn crm2-action-btn--delete" @click="remove(row)">Xóa</button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="crm2-pagination">
-            <span class="crm2-pagination__info">Hiển thị {{ Math.min((page-1)*pageSize+1, filtered.length) }}–{{ Math.min(page*pageSize, filtered.length) }} của {{ filtered.length }}</span>
-            <div class="crm2-pagination__controls">
-              <button class="crm2-page-btn" :disabled="page===1" @click="page--">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-              </button>
-              <template v-for="p in pageCount" :key="p">
-                <button v-show="Math.abs(p-page)<=2 || p===1 || p===pageCount" class="crm2-page-btn" :class="{'crm2-page-btn--active': p===page}" @click="page=p">{{ p }}</button>
+
+          <el-table :data="paged" v-loading="loading" stripe size="small">
+            <el-table-column label="STT" width="70" align="center">
+              <template #default="{ row }">
+                <el-tag type="primary" effect="plain" size="small" style="font-family:monospace;">{{ row.id }}</el-tag>
               </template>
-              <button class="crm2-page-btn" :disabled="page===pageCount" @click="page++">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-            </div>
+            </el-table-column>
+            <el-table-column label="Khách hàng" min-width="180">
+              <template #default="{ row }">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <el-avatar :size="32" :style="`background:${getAvatarColor(row.fullName)};color:#fff;font-size:11px;font-weight:700;border-radius:8px;`">{{ getInitials(row.fullName) }}</el-avatar>
+                  <div>
+                    <div style="font-weight:600; font-size:13px;">{{ row.fullName }}</div>
+                    <div style="font-size:11px; color:var(--el-text-color-secondary); font-family:monospace;" v-if="row.birthDate">{{ row.birthDate }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Liên hệ" min-width="160">
+              <template #default="{ row }">
+                <div style="font-size:12.5px; color:var(--el-text-color-secondary);">{{ row.email }}</div>
+                <div style="font-size:11.5px; color:var(--el-text-color-secondary); font-family:monospace;" v-if="row.phone">{{ row.phone }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Loại" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.customerType==='VIP'?'warning':'info'" effect="plain" size="small">{{ row.customerType||'REGULAR' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Cấp" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="row.raw.vipTier" size="small" effect="plain">{{ row.raw.vipTier }}</el-tag>
+                <span v-else style="color:var(--el-text-color-placeholder);">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Điểm" width="130">
+              <template #default="{ row }">
+                <div style="font-family:monospace; font-size:12.5px; font-weight:700; color:var(--el-color-primary); margin-bottom:4px;">{{ (row.loyaltyPoints||0).toLocaleString() }}</div>
+                <el-progress v-if="row.raw.vipTier" :percentage="getPointsProgress(row.raw)" :stroke-width="3" :show-text="false" :color="getTierColor(row.raw.vipTier)" />
+              </template>
+            </el-table-column>
+            <el-table-column label="Chi tiêu" width="110">
+              <template #default="{ row }">
+                <el-text type="info" size="small" style="font-family:monospace;">{{ formatCurrencyShort(row.raw.totalSpent) }}</el-text>
+              </template>
+            </el-table-column>
+            <el-table-column label="Ghi chú VIP" min-width="160">
+              <template #default="{ row }">
+                <template v-if="row.raw.vipTier">
+                  <div v-if="row.raw.vipNote" @click="openVipNoteEdit(row)"
+                    style="cursor:pointer; padding:4px 8px; border-radius:6px; background:#fffbeb; border:1px solid #fde68a; max-width:180px;">
+                    <el-text size="small" style="color:#d97706; line-height:1.4; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      {{ row.raw.vipNote.substring(0,28) }}{{ row.raw.vipNote.length > 28 ? '…' : '' }}
+                    </el-text>
+                  </div>
+                  <el-button v-else link type="warning" size="small" @click="openVipNoteEdit(row)">+ Thêm ghi chú</el-button>
+                </template>
+                <span v-else style="color:var(--el-text-color-placeholder);">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Ghi chú" min-width="140">
+              <template #default="{ row }">
+                <el-text size="small" type="info" v-if="row.notes" :title="row.notes" style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">
+                  {{ row.notes.substring(0,22) }}{{ row.notes.length > 22 ? '…' : '' }}
+                </el-text>
+                <span v-else style="color:var(--el-text-color-placeholder);">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Thao tác" width="180" align="center">
+              <template #default="{ row }">
+                <el-space :size="4">
+                  <el-button size="small" plain type="primary" @click="viewDetails(row)">Xem</el-button>
+                  <el-button size="small" plain @click="openEdit(row)">Sửa</el-button>
+                  <el-button v-if="row.raw.vipTier" size="small" plain type="warning" @click="openVipNoteEdit(row)">VIP</el-button>
+                  <el-button size="small" plain type="danger" @click="remove(row)">Xóa</el-button>
+                </el-space>
+              </template>
+            </el-table-column>
+            <template #empty><el-empty description="Không tìm thấy khách hàng" :image-size="70" /></template>
+          </el-table>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:1px solid var(--el-border-color-lighter); background:var(--el-fill-color-light); flex-wrap:wrap; gap:10px;">
+            <el-text size="small" type="info">Hiển thị {{ Math.min((page-1)*pageSize+1, filtered.length) }}–{{ Math.min(page*pageSize, filtered.length) }} của {{ filtered.length }}</el-text>
+            <el-pagination v-model:current-page="page" :page-size="pageSize" :total="filtered.length" layout="prev, pager, next" background small />
           </div>
-        </div>
+        </el-card>
       </template>
 
       <!-- ══ TAB 2: BIRTHDAYS ══ -->
       <template v-if="mainTab === 'birthdays'">
-        <div class="crm2-sub-tabs">
-          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='today'}" @click="birthdayTab='today'">Hôm nay</button>
-          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='monthly'}" @click="birthdayTab='monthly'; loadMonthlyBirthdays()">Tháng này</button>
-          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='statistics'}" @click="birthdayTab='statistics'">Thống kê</button>
-          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='upcoming'}" @click="birthdayTab='upcoming'">Sắp tới</button>
-          <button class="crm2-sub-tab" :class="{'crm2-sub-tab--active': birthdayTab==='history'}" @click="birthdayTab='history'; loadNotificationHistory()">Lịch sử</button>
-        </div>
+        <el-tabs v-model="birthdayTab" @tab-click="(t) => { if(t.paneName==='monthly') loadMonthlyBirthdays(); if(t.paneName==='history') loadNotificationHistory(); }">
+          <el-tab-pane label="Hôm nay" name="today" />
+          <el-tab-pane label="Tháng này" name="monthly" />
+          <el-tab-pane label="Thống kê" name="statistics" />
+          <el-tab-pane label="Sắp tới" name="upcoming" />
+          <el-tab-pane label="Lịch sử" name="history" />
+        </el-tabs>
 
-        <div class="crm2-card">
-          <div v-if="loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
-
+        <el-card shadow="never" :body-style="{ padding:0 }" v-loading="loading">
           <!-- Today -->
           <template v-if="!loading && birthdayTab==='today'">
-            <div class="crm2-bd-banner" :class="todayBirthdays.length>0 ? 'crm2-bd-banner--green' : 'crm2-bd-banner--blue'">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <el-alert :type="todayBirthdays.length>0?'success':'info'" :closable="false" style="border-radius:0;">
+              <el-icon><Calendar /></el-icon>
               {{ todayBirthdays.length>0 ? `${todayBirthdays.length} sinh nhật hôm nay` : 'Không có sinh nhật nào hôm nay' }}
-            </div>
-            <div class="crm2-table-wrap">
-              <table class="crm2-table">
-                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Tuổi</th><th>Loại</th><th>Cấp</th><th style="text-align:center">Thao tác</th></tr></thead>
-                <tbody>
-                  <tr v-if="todayBirthdays.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Không có sinh nhật nào hôm nay</p></div></td></tr>
-                  <tr v-for="row in todayBirthdays" :key="row.id" class="crm2-row">
-                    <td><strong>{{ row.name }}</strong></td>
-                    <td><span class="crm2-text--muted">{{ row.email }}</span></td>
-                    <td><span class="crm2-mono crm2-text--muted">{{ row.phone }}</span></td>
-                    <td><span class="crm2-mono">{{ row.age }}</span></td>
-                    <td><span class="crm2-tag" :class="row.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ row.customerType }}</span></td>
-                    <td><span v-if="row.vipTier" class="crm2-tier-tag" :class="'crm2-tier--'+row.vipTier.toLowerCase()">{{ row.vipTier }}</span><span v-else class="crm2-text--muted">—</span></td>
-                    <td style="text-align:center"><button class="crm2-btn crm2-btn--primary" style="padding:6px 14px;font-size:12px" @click="sendGreeting(row)">Gửi lời chúc</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            </el-alert>
+            <el-table :data="todayBirthdays" stripe size="small">
+              <el-table-column label="Khách hàng" min-width="160"><template #default="{ row }"><strong>{{ row.name }}</strong></template></el-table-column>
+              <el-table-column label="Email"><template #default="{ row }"><el-text type="info" size="small">{{ row.email }}</el-text></template></el-table-column>
+              <el-table-column label="SĐT" width="130"><template #default="{ row }"><el-text type="info" size="small" style="font-family:monospace;">{{ row.phone }}</el-text></template></el-table-column>
+              <el-table-column label="Tuổi" width="70" align="center"><template #default="{ row }"><span style="font-family:monospace;">{{ row.age }}</span></template></el-table-column>
+              <el-table-column label="Loại" width="90" align="center"><template #default="{ row }"><el-tag :type="row.customerType==='VIP'?'warning':'info'" size="small" effect="plain">{{ row.customerType }}</el-tag></template></el-table-column>
+              <el-table-column label="Cấp" width="90" align="center"><template #default="{ row }"><el-tag v-if="row.vipTier" size="small" effect="plain">{{ row.vipTier }}</el-tag><span v-else style="color:var(--el-text-color-placeholder);">—</span></template></el-table-column>
+              <el-table-column label="Thao tác" width="130" align="center">
+                <template #default="{ row }"><el-button type="primary" plain size="small" @click="sendGreeting(row)">Gửi lời chúc</el-button></template>
+              </el-table-column>
+              <template #empty><el-empty description="Không có sinh nhật nào hôm nay" :image-size="60" /></template>
+            </el-table>
           </template>
 
           <!-- Monthly -->
           <template v-if="!loading && birthdayTab==='monthly'">
-            <div class="crm2-bd-controls">
-              <select v-model="selectedMonth" @change="loadMonthlyBirthdays" class="crm2-input crm2-select" style="min-width:150px">
-                <option v-for="m in monthOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
-              </select>
-              <div class="crm2-bd-banner crm2-bd-banner--blue" style="flex:1;margin:0" v-if="monthlyBirthdays.length>0">
-                <strong>{{ monthlyBirthdays.length }}</strong> khách hàng tháng này
-              </div>
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--el-border-color-lighter);">
+              <el-select v-model="selectedMonth" @change="loadMonthlyBirthdays" style="width:160px;" size="small">
+                <el-option v-for="m in monthOptions" :key="m.value" :value="m.value" :label="m.label" />
+              </el-select>
+              <el-tag v-if="monthlyBirthdays.length>0" effect="plain">{{ monthlyBirthdays.length }} khách hàng tháng này</el-tag>
             </div>
-            <div class="crm2-table-wrap">
-              <table class="crm2-table">
-                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Ngày</th><th>Tuổi</th><th>Loại</th><th style="text-align:center">Thao tác</th></tr></thead>
-                <tbody>
-                  <tr v-if="monthlyBirthdays.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Không có sinh nhật nào trong tháng</p></div></td></tr>
-                  <tr v-for="row in monthlyBirthdays" :key="row.id" class="crm2-row">
-                    <td><strong>{{ row.name }}</strong></td>
-                    <td><span class="crm2-text--muted">{{ row.email }}</span></td>
-                    <td><span class="crm2-mono crm2-text--muted">{{ row.phone }}</span></td>
-                    <td>{{ formatBirthdayDate(row) }}</td>
-                    <td><span class="crm2-mono">{{ row.age }}</span></td>
-                    <td><span class="crm2-tag" :class="row.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ row.customerType }}</span></td>
-                    <td style="text-align:center"><button class="crm2-btn crm2-btn--primary" style="padding:6px 14px;font-size:12px" @click="sendGreeting(row)">Send</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <el-table :data="monthlyBirthdays" stripe size="small">
+              <el-table-column label="Khách hàng" min-width="160"><template #default="{ row }"><strong>{{ row.name }}</strong></template></el-table-column>
+              <el-table-column label="Email"><template #default="{ row }"><el-text type="info" size="small">{{ row.email }}</el-text></template></el-table-column>
+              <el-table-column label="SĐT" width="130"><template #default="{ row }"><el-text type="info" size="small" style="font-family:monospace;">{{ row.phone }}</el-text></template></el-table-column>
+              <el-table-column label="Ngày" width="120"><template #default="{ row }">{{ formatBirthdayDate(row) }}</template></el-table-column>
+              <el-table-column label="Tuổi" width="70" align="center"><template #default="{ row }"><span style="font-family:monospace;">{{ row.age }}</span></template></el-table-column>
+              <el-table-column label="Loại" width="90" align="center"><template #default="{ row }"><el-tag :type="row.customerType==='VIP'?'warning':'info'" size="small" effect="plain">{{ row.customerType }}</el-tag></template></el-table-column>
+              <el-table-column label="Thao tác" width="100" align="center">
+                <template #default="{ row }"><el-button type="primary" plain size="small" @click="sendGreeting(row)">Send</el-button></template>
+              </el-table-column>
+              <template #empty><el-empty description="Không có sinh nhật nào trong tháng" :image-size="60" /></template>
+            </el-table>
           </template>
 
           <!-- Statistics -->
           <template v-if="!loading && birthdayTab==='statistics'">
-            <div class="crm2-table-wrap">
-              <table class="crm2-table">
-                <thead><tr><th>Tháng</th><th>Số lượng</th><th style="min-width:200px">Phân bổ</th><th style="text-align:center">Thao tác</th></tr></thead>
-                <tbody>
-                  <tr v-for="row in statsTableData" :key="row.month" class="crm2-row">
-                    <td><strong>{{ row.monthLabel }}</strong></td>
-                    <td><span class="crm2-tag" :class="row.count>0?'crm2-tag--blue':'crm2-tag--gray'">{{ row.count }}</span></td>
-                    <td>
-                      <div class="crm2-bar-wrap"><div class="crm2-bar crm2-bar--blue" :style="{ width: getBdBarPct(row.count)+'%' }"></div></div>
-                    </td>
-                    <td style="text-align:center"><button v-if="row.count>0" class="crm2-btn-ghost-sm" @click="viewMonthDetail(row.month)">Chi tiết</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <el-table :data="statsTableData" stripe size="small">
+              <el-table-column label="Tháng" min-width="120"><template #default="{ row }"><strong>{{ row.monthLabel }}</strong></template></el-table-column>
+              <el-table-column label="Số lượng" width="100" align="center"><template #default="{ row }"><el-tag :type="row.count>0?'primary':'info'" size="small" effect="plain">{{ row.count }}</el-tag></template></el-table-column>
+              <el-table-column label="Phân bổ" min-width="200">
+                <template #default="{ row }"><el-progress :percentage="getBdBarPct(row.count)" :stroke-width="8" :show-text="false" /></template>
+              </el-table-column>
+              <el-table-column label="Thao tác" width="120" align="center">
+                <template #default="{ row }"><el-button v-if="row.count>0" link size="small" @click="viewMonthDetail(row.month)">Chi tiết</el-button></template>
+              </el-table-column>
+            </el-table>
           </template>
 
           <!-- Upcoming -->
           <template v-if="!loading && birthdayTab==='upcoming'">
-            <div class="crm2-bd-banner" :class="upcomingBirthdays.length>0?'crm2-bd-banner--orange':'crm2-bd-banner--blue'">
+            <el-alert :type="upcomingBirthdays.length>0?'warning':'info'" :closable="false" style="border-radius:0;">
               {{ upcomingBirthdays.length>0 ? `${upcomingBirthdays.length} sắp tới trong 7 ngày` : 'Không có sinh nhật sắp tới' }}
-            </div>
-            <div class="crm2-table-wrap">
-              <table class="crm2-table">
-                <thead><tr><th>Khách hàng</th><th>Email</th><th>SĐT</th><th>Ngày</th><th>Còn lại</th><th>Loại</th><th style="text-align:center">Thao tác</th></tr></thead>
-                <tbody>
-                  <tr v-if="upcomingBirthdays.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Không có sinh nhật sắp tới</p></div></td></tr>
-                  <tr v-for="row in upcomingBirthdays" :key="row.id" class="crm2-row">
-                    <td><strong>{{ row.name }}</strong></td>
-                    <td><span class="crm2-text--muted">{{ row.email }}</span></td>
-                    <td><span class="crm2-mono crm2-text--muted">{{ row.phone }}</span></td>
-                    <td>{{ formatBirthdayDate(row) }}</td>
-                    <td><span class="crm2-tag" :class="row.daysUntilBirthday<=3?'crm2-tag--red':'crm2-tag--orange'">{{ row.daysUntilBirthday }} ngày</span></td>
-                    <td><span class="crm2-tag" :class="row.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ row.customerType }}</span></td>
-                    <td style="text-align:center"><button class="crm2-btn crm2-btn--primary" style="padding:6px 14px;font-size:12px" @click="sendGreeting(row)">Send</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            </el-alert>
+            <el-table :data="upcomingBirthdays" stripe size="small">
+              <el-table-column label="Khách hàng" min-width="160"><template #default="{ row }"><strong>{{ row.name }}</strong></template></el-table-column>
+              <el-table-column label="Email"><template #default="{ row }"><el-text type="info" size="small">{{ row.email }}</el-text></template></el-table-column>
+              <el-table-column label="SĐT" width="130"><template #default="{ row }"><el-text type="info" size="small" style="font-family:monospace;">{{ row.phone }}</el-text></template></el-table-column>
+              <el-table-column label="Ngày" width="120"><template #default="{ row }">{{ formatBirthdayDate(row) }}</template></el-table-column>
+              <el-table-column label="Còn lại" width="100" align="center"><template #default="{ row }"><el-tag :type="row.daysUntilBirthday<=3?'danger':'warning'" size="small" effect="plain">{{ row.daysUntilBirthday }} ngày</el-tag></template></el-table-column>
+              <el-table-column label="Loại" width="90" align="center"><template #default="{ row }"><el-tag :type="row.customerType==='VIP'?'warning':'info'" size="small" effect="plain">{{ row.customerType }}</el-tag></template></el-table-column>
+              <el-table-column label="Thao tác" width="100" align="center">
+                <template #default="{ row }"><el-button type="primary" plain size="small" @click="sendGreeting(row)">Send</el-button></template>
+              </el-table-column>
+              <template #empty><el-empty description="Không có sinh nhật sắp tới" :image-size="60" /></template>
+            </el-table>
           </template>
 
           <!-- History -->
           <template v-if="birthdayTab==='history'">
-            <div class="crm2-bd-controls" style="justify-content:space-between">
-              <span class="crm2-bd-banner crm2-bd-banner--blue" style="margin:0;flex:1" v-if="notificationHistory.length>0"><strong>{{ notificationHistory.length }}</strong> thông báo đã gửi</span>
-              <button class="crm2-btn-ghost-sm" @click="loadNotificationHistory" :disabled="historyLoading">
-                <span v-if="historyLoading" class="crm2-spinner" style="width:12px;height:12px"></span>
-                Tải lại
-              </button>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--el-border-color-lighter);">
+              <el-tag v-if="notificationHistory.length>0" effect="plain">{{ notificationHistory.length }} thông báo đã gửi</el-tag>
+              <el-button plain size="small" :loading="historyLoading" @click="loadNotificationHistory">Tải lại</el-button>
             </div>
-            <div v-if="historyLoading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
-            <div class="crm2-table-wrap" v-else>
-              <table class="crm2-table">
-                <thead><tr><th>Khách hàng</th><th>Email</th><th>Tiêu đề</th><th>Nội dung</th><th>Trạng thái</th><th>Gửi lúc</th><th>Đọc lúc</th></tr></thead>
-                <tbody>
-                  <tr v-if="notificationHistory.length===0"><td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>Chưa có thông báo nào</p></div></td></tr>
-                  <tr v-for="row in notificationHistory" :key="row.id" class="crm2-row">
-                    <td><strong>{{ row.customerName }}</strong></td>
-                    <td><span class="crm2-text--muted">{{ row.customerEmail }}</span></td>
-                    <td>{{ row.title }}</td>
-                    <td class="crm2-td-truncate" :title="row.message">{{ row.message }}</td>
-                    <td><span class="crm2-tag" :class="row.isRead?'crm2-tag--green':'crm2-tag--orange'">{{ row.isRead ? 'Đã đọc' : 'Chưa đọc' }}</span></td>
-                    <td><span class="crm2-mono crm2-text--muted" style="font-size:12px">{{ formatDateTime(row.createdAt) }}</span></td>
-                    <td><span class="crm2-mono crm2-text--muted" style="font-size:12px">{{ row.readAt ? formatDateTime(row.readAt) : '—' }}</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <el-skeleton v-if="historyLoading" :rows="4" animated style="padding:16px;" />
+            <el-table v-else :data="notificationHistory" stripe size="small">
+              <el-table-column label="Khách hàng" min-width="140"><template #default="{ row }"><strong>{{ row.customerName }}</strong></template></el-table-column>
+              <el-table-column label="Email"><template #default="{ row }"><el-text type="info" size="small">{{ row.customerEmail }}</el-text></template></el-table-column>
+              <el-table-column label="Tiêu đề" min-width="160"><template #default="{ row }">{{ row.title }}</template></el-table-column>
+              <el-table-column label="Nội dung" min-width="200" show-overflow-tooltip><template #default="{ row }">{{ row.message }}</template></el-table-column>
+              <el-table-column label="Trạng thái" width="100" align="center"><template #default="{ row }"><el-tag :type="row.isRead?'success':'warning'" size="small" effect="plain">{{ row.isRead ? 'Đã đọc' : 'Chưa đọc' }}</el-tag></template></el-table-column>
+              <el-table-column label="Gửi lúc" width="140"><template #default="{ row }"><el-text size="small" type="info" style="font-family:monospace;">{{ formatDateTime(row.createdAt) }}</el-text></template></el-table-column>
+              <el-table-column label="Đọc lúc" width="140"><template #default="{ row }"><el-text size="small" type="info" style="font-family:monospace;">{{ row.readAt ? formatDateTime(row.readAt) : '—' }}</el-text></template></el-table-column>
+              <template #empty><el-empty description="Chưa có thông báo nào" :image-size="60" /></template>
+            </el-table>
           </template>
-        </div>
+        </el-card>
       </template>
 
       <!-- ══ TAB 3: INACTIVE ══ -->
       <template v-if="mainTab === 'inactive'">
-        <div class="crm2-seg-tabs">
-          <button v-for="tab in inactiveTabs" :key="tab.days"
-            class="crm2-seg-btn" :class="{'crm2-seg-btn--active': activeInactiveTab===tab.days}"
-            @click="switchInactiveTab(tab.days)">
-            <span class="crm2-seg-label">{{ tab.label }}</span>
-            <span class="crm2-seg-count" :class="{'crm2-seg-count--loaded': inactiveCounts[tab.days]!==null}">
-              {{ inactiveCounts[tab.days]!==null ? inactiveCounts[tab.days] : '—' }}
-            </span>
-          </button>
-        </div>
+        <!-- Segment tabs -->
+        <el-card shadow="never" :body-style="{ padding:'12px 16px' }">
+          <el-space :size="8">
+            <el-button
+              v-for="tab in inactiveTabs" :key="tab.days"
+              :type="activeInactiveTab===tab.days ? 'primary' : ''"
+              :plain="activeInactiveTab!==tab.days"
+              size="small"
+              @click="switchInactiveTab(tab.days)"
+            >
+              {{ tab.label }}
+              <el-tag v-if="inactiveCounts[tab.days]!==null" size="small" :effect="activeInactiveTab===tab.days?'dark':'plain'" style="margin-left:4px;">{{ inactiveCounts[tab.days] }}</el-tag>
+            </el-button>
+          </el-space>
+        </el-card>
 
-        <div class="crm2-stats4" v-if="!loading && currentInactive.length>0">
-          <div class="crm2-stat crm2-stat--blue">
-            <div class="crm2-stat__num">{{ currentInactive.length }}</div>
-            <div class="crm2-stat__label">Khách hàng</div>
-          </div>
-          <div class="crm2-stat crm2-stat--orange">
-            <div class="crm2-stat__num">{{ inactiveTotalPoints }}</div>
-            <div class="crm2-stat__label">Tổng điểm</div>
-          </div>
-          <div class="crm2-stat crm2-stat--green">
-            <div class="crm2-stat__num">{{ formatMoneyShort(inactiveTotalSpent) }}</div>
-            <div class="crm2-stat__label">Tổng chi tiêu</div>
-          </div>
-          <div class="crm2-stat crm2-stat--purple">
-            <div class="crm2-stat__num">{{ inactiveTopTier }}</div>
-            <div class="crm2-stat__label">Cấp cao nhất</div>
-          </div>
-        </div>
+        <!-- Stats -->
+        <el-row v-if="!loading && currentInactive.length>0" :gutter="14">
+          <el-col :xs="12" :sm="6" v-for="ist in inactiveStats" :key="ist.label">
+            <el-card shadow="never" :body-style="{ padding:'16px' }" :style="`border-top:3px solid ${ist.color};`">
+              <div :style="`font-size:22px; font-weight:800; color:${ist.color}; margin-bottom:3px;`">{{ ist.value }}</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary);">{{ ist.label }}</div>
+            </el-card>
+          </el-col>
+        </el-row>
 
-        <div class="crm2-filter-bar" v-if="!loading">
-          <input v-model="inactiveQ" placeholder="Tìm tên, email, SĐT…" class="crm2-input" style="flex:1" />
-          <select v-model="inactiveTierFilter" class="crm2-input crm2-select" style="max-width:160px">
-            <option value="">Tất cả cấp</option>
-            <option v-for="t in tiers" :key="t" :value="t">{{ t }}</option>
-          </select>
-          <select v-model="inactiveSortBy" class="crm2-input crm2-select" style="max-width:200px">
-            <option value="spent">Chi tiêu nhiều nhất</option>
-            <option value="points">Điểm nhiều nhất</option>
-            <option value="name">Tên A→Z</option>
-          </select>
-        </div>
+        <!-- Filter bar -->
+        <el-card shadow="never" v-if="!loading">
+          <el-row :gutter="12" align="middle">
+            <el-col :xs="24" :sm="10">
+              <el-input v-model="inactiveQ" placeholder="Tìm tên, email, SĐT…" clearable size="small">
+                <template #prefix><el-icon><Search /></el-icon></template>
+              </el-input>
+            </el-col>
+            <el-col :xs="12" :sm="7">
+              <el-select v-model="inactiveTierFilter" clearable placeholder="Tất cả cấp" size="small" style="width:100%;">
+                <el-option v-for="t in tiers" :key="t" :value="t" :label="t" />
+              </el-select>
+            </el-col>
+            <el-col :xs="12" :sm="7">
+              <el-select v-model="inactiveSortBy" size="small" style="width:100%;">
+                <el-option value="spent" label="Chi tiêu nhiều nhất" />
+                <el-option value="points" label="Điểm nhiều nhất" />
+                <el-option value="name" label="Tên A→Z" />
+              </el-select>
+            </el-col>
+          </el-row>
+        </el-card>
 
-        <div v-if="loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
+        <el-skeleton v-if="loading" :rows="4" animated />
 
-        <div class="crm2-empty" v-if="!loading && inactiveFiltered.length===0" style="padding:80px 20px">
-          <div class="crm2-empty__inner">
-            <div class="crm2-empty__icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <p style="font-size:16px;font-weight:700;color:var(--c-text)">Tốt cả</p>
-            <p>Tất cả khách hàng đều hoạt động trong {{ activeInactiveTab }} ngày qua.</p>
-          </div>
-        </div>
+        <el-empty v-else-if="inactiveFiltered.length===0" :image-size="80">
+          <template #description><div style="font-size:16px; font-weight:700;">Tốt cả! Tất cả khách hàng đều hoạt động trong {{ activeInactiveTab }} ngày qua.</div></template>
+        </el-empty>
 
-        <div class="crm2-cards-grid" v-if="!loading && inactivePaged.length>0">
-          <div class="crm2-cust-card" v-for="(row, idx) in inactivePaged" :key="row.id" :style="{ animationDelay: idx*0.04+'s' }">
-            <div class="crm2-card-tier-bar" :class="'crm2-tier-bar--'+(row.raw?.vipTier||'none').toLowerCase()"></div>
-            <div class="crm2-card-head">
-              <div class="crm2-avatar" :style="{ background: getAvatarColor(row.fullName) }">{{ getInitials(row.fullName) }}</div>
-              <div class="crm2-card-info">
-                <div class="crm2-card-name">{{ row.fullName }}</div>
-                <div class="crm2-card-email crm2-text--muted">{{ row.email }}</div>
+        <!-- Cards grid -->
+        <div v-if="!loading && inactivePaged.length>0" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:14px;">
+          <el-card v-for="row in inactivePaged" :key="row.id" shadow="never" :body-style="{ padding:0 }">
+            <div :style="`height:4px; background:${getTierColor(row.raw?.vipTier||'none')};`"></div>
+            <div style="padding:16px;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <el-avatar :size="36" :style="`background:${getAvatarColor(row.fullName)};color:#fff;font-size:13px;font-weight:700;`">{{ getInitials(row.fullName) }}</el-avatar>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ row.fullName }}</div>
+                  <div style="font-size:12px; color:var(--el-text-color-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ row.email }}</div>
+                </div>
+                <el-tag v-if="row.raw?.vipTier" size="small" effect="plain">{{ row.raw.vipTier }}</el-tag>
               </div>
-              <span v-if="row.raw?.vipTier" class="crm2-tier-tag crm2-tier-tag--sm" :class="'crm2-tier--'+row.raw.vipTier.toLowerCase()">{{ row.raw.vipTier }}</span>
+              <el-divider style="margin:10px 0;" />
+              <div style="display:flex; justify-content:space-around; margin-bottom:12px;">
+                <div style="text-align:center;">
+                  <div style="font-family:monospace; font-weight:800; font-size:15px;">{{ (row.loyaltyPoints||0).toLocaleString() }}</div>
+                  <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-top:2px;">Điểm</div>
+                </div>
+                <el-divider direction="vertical" style="height:auto;" />
+                <div style="text-align:center;">
+                  <div style="font-family:monospace; font-weight:800; font-size:15px;">{{ formatMoneyShort(row.raw?.totalSpent) }}</div>
+                  <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-top:2px;">Chi tiêu</div>
+                </div>
+                <el-divider direction="vertical" style="height:auto;" />
+                <div style="text-align:center;">
+                  <div style="font-family:monospace; font-weight:800; font-size:15px;">{{ row.phone || '—' }}</div>
+                  <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-top:2px;">SĐT</div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <el-text size="small" :type="row.raw?.lastOrderAt ? 'warning' : 'danger'">
+                  {{ row.raw?.lastOrderAt ? 'Đơn cuối: '+relativeDate(row.raw.lastOrderAt) : 'Chưa có đơn hàng' }}
+                </el-text>
+                <el-button type="primary" plain size="small" @click="openInactiveDetail(row)">Xem</el-button>
+              </div>
             </div>
-            <div class="crm2-card-divider"></div>
-            <div class="crm2-card-metrics">
-              <div class="crm2-cm"><div class="crm2-cm__val crm2-mono">{{ (row.loyaltyPoints||0).toLocaleString() }}</div><div class="crm2-cm__label">Điểm</div></div>
-              <div class="crm2-cm-divider"></div>
-              <div class="crm2-cm"><div class="crm2-cm__val crm2-mono">{{ formatMoneyShort(row.raw?.totalSpent) }}</div><div class="crm2-cm__label">Chi tiêu</div></div>
-              <div class="crm2-cm-divider"></div>
-              <div class="crm2-cm"><div class="crm2-cm__val crm2-mono" style="font-size:11px">{{ row.phone || '—' }}</div><div class="crm2-cm__label">SĐT</div></div>
-            </div>
-            <div class="crm2-card-foot">
-              <span class="crm2-last-order" :class="{'crm2-last-order--none': !row.raw?.lastOrderAt}">
-                {{ row.raw?.lastOrderAt ? 'Đơn cuối: '+relativeDate(row.raw.lastOrderAt) : 'Chưa có đơn hàng' }}
-              </span>
-              <button class="crm2-action-btn crm2-action-btn--blue" @click="openInactiveDetail(row)">Xem</button>
-            </div>
-          </div>
+          </el-card>
         </div>
 
-        <div class="crm2-pagination" v-if="!loading && inactiveFiltered.length>inactivePageSize">
-          <span class="crm2-pagination__info">{{ (inactivePage-1)*inactivePageSize+1 }}–{{ Math.min(inactivePage*inactivePageSize, inactiveFiltered.length) }} / {{ inactiveFiltered.length }}</span>
-          <div class="crm2-pagination__controls">
-            <button class="crm2-page-btn" :disabled="inactivePage===1" @click="inactivePage--">‹</button>
-            <button v-for="p in inactiveTotalPages" :key="p" class="crm2-page-btn" :class="{'crm2-page-btn--active':p===inactivePage}" @click="inactivePage=p">{{ p }}</button>
-            <button class="crm2-page-btn" :disabled="inactivePage===inactiveTotalPages" @click="inactivePage++">›</button>
-          </div>
+        <div v-if="!loading && inactiveFiltered.length>inactivePageSize" style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; flex-wrap:wrap; gap:10px;">
+          <el-text size="small" type="info">{{ (inactivePage-1)*inactivePageSize+1 }}–{{ Math.min(inactivePage*inactivePageSize, inactiveFiltered.length) }} / {{ inactiveFiltered.length }}</el-text>
+          <el-pagination v-model:current-page="inactivePage" :page-size="inactivePageSize" :total="inactiveFiltered.length" layout="prev, pager, next" background small />
         </div>
       </template>
 
       <!-- ══ TAB 4: ZERO ORDER ══ -->
       <template v-if="mainTab === 'zeroorder'">
-
         <!-- Stats -->
-        <div class="crm2-stats4">
-          <div class="crm2-stat crm2-stat--dim">
-            <div class="crm2-stat__num">{{ zeroOrderStats.registeredOver3Days ?? '—' }}</div>
-            <div class="crm2-stat__label">Đăng ký ≥ 3 ngày</div>
-          </div>
-          <div class="crm2-stat crm2-stat--orange">
-            <div class="crm2-stat__num">{{ zeroOrderStats.registeredOver7Days ?? '—' }}</div>
-            <div class="crm2-stat__label">Đăng ký ≥ 7 ngày</div>
-          </div>
-          <div class="crm2-stat crm2-stat--red">
-            <div class="crm2-stat__num">{{ zeroOrderStats.registeredOver30Days ?? '—' }}</div>
-            <div class="crm2-stat__label">Đăng ký ≥ 30 ngày</div>
-          </div>
-          <div class="crm2-stat crm2-stat--blue">
-            <div class="crm2-stat__num">{{ zoSelected.length }}</div>
-            <div class="crm2-stat__label">Đang chọn</div>
-          </div>
-        </div>
+        <el-row :gutter="14">
+          <el-col :xs="12" :sm="6" v-for="zs in zeroStats" :key="zs.label">
+            <el-card shadow="never" :body-style="{ padding:'16px' }" :style="`border-top:3px solid ${zs.color};`">
+              <div :style="`font-size:22px; font-weight:800; color:${zs.color}; margin-bottom:3px;`">{{ zs.value }}</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary);">{{ zs.label }}</div>
+            </el-card>
+          </el-col>
+        </el-row>
 
         <!-- Filter + actions -->
-        <div class="crm2-filter-panel" style="margin-bottom:16px">
-          <div class="crm2-filter-panel__head">
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-              <span class="crm2-filter-panel__title">Đăng ký tối thiểu</span>
-              <div style="display:flex;gap:6px">
-                <button v-for="opt in zoDayOptions" :key="opt.value" class="crm2-page-btn" :class="{'crm2-page-btn--active': zoSelectedDays === opt.value}" @click="zoSelectDays(opt.value)">{{ opt.label }}</button>
-              </div>
+        <el-card shadow="never">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <el-text size="small" type="info">Đăng ký tối thiểu</el-text>
+              <el-button v-for="opt in zoDayOptions" :key="opt.value" size="small"
+                :type="zoSelectedDays===opt.value?'primary':''"
+                :plain="zoSelectedDays!==opt.value"
+                @click="zoSelectDays(opt.value)">{{ opt.label }}</el-button>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="crm2-btn crm2-btn--outline" @click="zoSelectAll">{{ zoIsAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}</button>
-              <button class="crm2-btn crm2-btn--primary" :disabled="zoSelected.length === 0 || zoSending" @click="openZoSendDialog">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <el-space :size="8">
+              <el-button plain size="small" @click="zoSelectAll">{{ zoIsAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}</el-button>
+              <el-button type="primary" :disabled="zoSelected.length===0||zoSending" @click="openZoSendDialog">
+                <el-icon><Promotion /></el-icon>
                 Gửi thông báo
-                <span v-if="zoSelected.length > 0" class="crm2-count-badge">{{ zoSelected.length }}</span>
-              </button>
-            </div>
+                <el-badge v-if="zoSelected.length>0" :value="zoSelected.length" style="margin-left:4px;" />
+              </el-button>
+            </el-space>
           </div>
-          <div style="padding:12px 16px 16px">
-            <span class="crm2-filter-field__label" style="display:block;margin-bottom:6px">Tìm kiếm</span>
-            <input v-model="zoSearch" class="crm2-input" placeholder="Tên / Email / SĐT…" @input="zoPage=1" style="max-width:400px" />
-          </div>
-        </div>
+          <el-input v-model="zoSearch" placeholder="Tên / Email / SĐT…" clearable size="small" style="max-width:400px;" @input="zoPage=1">
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+        </el-card>
 
-        <!-- Table -->
-        <div class="crm2-card">
-          <div v-if="loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
-          <div class="crm2-table-wrap" v-else>
-            <table class="crm2-table">
-              <thead>
-                <tr>
-                  <th style="width:44px;text-align:center"><input type="checkbox" :checked="zoIsAllSelected" @change="zoSelectAll" /></th>
-                  <th>Khách hàng</th>
-                  <th>Loại</th>
-                  <th>Đăng ký lúc</th>
-                  <th>Ngày chờ</th>
-                  <th>Trạng thái</th>
-                  <th style="text-align:center">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="zoFiltered.length === 0">
-                  <td colspan="7" class="crm2-empty"><div class="crm2-empty__inner"><p>🎉 Tất cả khách đều đã mua hàng trong khoảng này!</p></div></td>
-                </tr>
-                <tr v-for="c in zoPaged" :key="c.id" class="crm2-row" :class="{'crm2-row--selected': zoSelected.includes(c.id)}">
-                  <td style="text-align:center"><input type="checkbox" :value="c.id" v-model="zoSelected" /></td>
-                  <td>
-                    <div class="crm2-customer-cell">
-                      <div class="crm2-avatar" :style="{ background: getAvatarColor(c.name) }">{{ getInitials(c.name) }}</div>
-                      <div class="crm2-cust-info">
-                        <span class="crm2-cust-name">{{ c.name }}</span>
-                        <span class="crm2-contact-email">{{ c.email }}</span>
-                        <span class="crm2-contact-phone crm2-mono" v-if="c.phone">{{ c.phone }}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td><span class="crm2-tag" :class="c.customerType === 'VIP' ? 'crm2-tag--orange' : 'crm2-tag--gray'">{{ c.customerType || 'REGULAR' }}</span></td>
-                  <td>
-                    <div class="crm2-mono" style="font-size:12px">{{ formatDate(c.createdAt) }}</div>
-                    <div class="crm2-text--muted" style="font-size:11px">{{ relativeDate(c.createdAt) }}</div>
-                  </td>
-                  <td>
-                    <span class="crm2-tag" :class="zoDaysSince(c.createdAt) >= 30 ? 'crm2-tag--red' : zoDaysSince(c.createdAt) >= 7 ? 'crm2-tag--orange' : 'crm2-tag--gray'">
-                      {{ zoDaysSince(c.createdAt) }} ngày
-                    </span>
-                  </td>
-                  <td><span class="crm2-text--muted" style="font-size:12.5px">{{ zoStatusLabel(c) }}</span></td>
-                  <td style="text-align:center">
-                    <button class="crm2-action-btn crm2-action-btn--blue" :disabled="zoSendingIds.has(c.id)" @click="zoSendSingle(c)">
-                      <span v-if="zoSendingIds.has(c.id)" class="crm2-spinner" style="width:12px;height:12px;border-top-color:#fff"></span>
-                      {{ zoSendingIds.has(c.id) ? '…' : '📨 Gửi' }}
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="crm2-pagination">
-            <span class="crm2-pagination__info">
+        <el-card shadow="never" :body-style="{ padding:0 }">
+          <el-skeleton v-if="loading" :rows="5" animated style="padding:16px;" />
+          <el-table v-else :data="zoPaged" stripe size="small">
+            <el-table-column width="44" align="center">
+              <template #header><el-checkbox :model-value="zoIsAllSelected" @change="zoSelectAll" /></template>
+              <template #default="{ row }"><el-checkbox :value="row.id" v-model="zoSelected" /></template>
+            </el-table-column>
+            <el-table-column label="Khách hàng" min-width="200">
+              <template #default="{ row }">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <el-avatar :size="30" :style="`background:${getAvatarColor(row.name)};color:#fff;font-size:11px;font-weight:700;`">{{ getInitials(row.name) }}</el-avatar>
+                  <div>
+                    <div style="font-weight:600; font-size:13px;">{{ row.name }}</div>
+                    <div style="font-size:11px; color:var(--el-text-color-secondary);">{{ row.email }}</div>
+                    <div v-if="row.phone" style="font-size:11px; color:var(--el-text-color-secondary); font-family:monospace;">{{ row.phone }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Loại" width="90" align="center">
+              <template #default="{ row }"><el-tag :type="row.customerType==='VIP'?'warning':'info'" size="small" effect="plain">{{ row.customerType||'REGULAR' }}</el-tag></template>
+            </el-table-column>
+            <el-table-column label="Đăng ký lúc" width="160">
+              <template #default="{ row }">
+                <div style="font-size:12px; font-family:monospace;">{{ formatDate(row.createdAt) }}</div>
+                <div style="font-size:11px; color:var(--el-text-color-secondary);">{{ relativeDate(row.createdAt) }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Ngày chờ" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag :type="zoDaysSince(row.createdAt)>=30?'danger':zoDaysSince(row.createdAt)>=7?'warning':'info'" size="small" effect="plain">{{ zoDaysSince(row.createdAt) }} ngày</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Trạng thái" min-width="130">
+              <template #default="{ row }"><el-text size="small" type="info">{{ zoStatusLabel(row) }}</el-text></template>
+            </el-table-column>
+            <el-table-column label="Thao tác" width="90" align="center">
+              <template #default="{ row }">
+                <el-button size="small" plain type="primary" :loading="zoSendingIds.has(row.id)" @click="zoSendSingle(row)">
+                  {{ zoSendingIds.has(row.id) ? '…' : '📨 Gửi' }}
+                </el-button>
+              </template>
+            </el-table-column>
+            <template #empty><el-empty description="🎉 Tất cả khách đều đã mua hàng trong khoảng này!" :image-size="60" /></template>
+          </el-table>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:1px solid var(--el-border-color-lighter); background:var(--el-fill-color-light); flex-wrap:wrap; gap:10px;">
+            <el-text size="small" type="info">
               {{ zoFiltered.length > 0 ? `${Math.min((zoPage-1)*pageSize+1, zoFiltered.length)}–${Math.min(zoPage*pageSize, zoFiltered.length)} của ${zoFiltered.length}` : '0 khách' }}
-            </span>
-            <div class="crm2-pagination__controls" v-if="zoPageCount > 1">
-              <button class="crm2-page-btn" :disabled="zoPage===1" @click="zoPage--">‹</button>
-              <button v-for="p in zoPageCount" :key="p" class="crm2-page-btn" :class="{'crm2-page-btn--active': p===zoPage}" v-show="Math.abs(p-zoPage)<=2 || p===1 || p===zoPageCount" @click="zoPage=p">{{ p }}</button>
-              <button class="crm2-page-btn" :disabled="zoPage===zoPageCount" @click="zoPage++">›</button>
-            </div>
+            </el-text>
+            <el-pagination v-if="zoPageCount>1" v-model:current-page="zoPage" :page-size="pageSize" :total="zoFiltered.length" layout="prev, pager, next" background small />
           </div>
-        </div>
+        </el-card>
       </template>
 
-    </div>
+    </div><!-- /inner -->
 
-    <!-- ══════════════════════════════════════
-         DIALOG: Create / Edit
-    ═══════════════════════════════════════ -->
-    <Teleport to="body">
-      <div class="crm2-overlay" v-if="dlg.open" @click.self="dlg.open=false">
-        <div class="crm2-dialog crm2-dialog--lg">
+    <!-- ══ DIALOG: Create / Edit ══ -->
+    <el-dialog v-model="dlg.open" :title="dlg.mode==='create' ? 'Thêm khách hàng' : 'Sửa khách hàng'" width="640px" :close-on-click-modal="false">
+      <el-alert v-if="dlg.alert" type="error" :title="dlg.alert" show-icon :closable="false" style="margin-bottom:16px;" />
+      <el-form label-position="top" style="display:flex; flex-direction:column; gap:0;">
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--el-text-color-secondary); margin-bottom:10px;">Thông tin cơ bản</div>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="Họ và tên *">
+              <el-input v-model="dlg.form.fullName" placeholder="Nguyen Van A" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Loại khách hàng">
+              <el-select v-model="dlg.form.customerType" style="width:100%;">
+                <el-option value="REGULAR" label="Thường" />
+                <el-option value="VIP" label="VIP" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Email *">
+              <el-input v-model="dlg.form.email" type="email" placeholder="email@example.com" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="SĐT *">
+              <el-input v-model="dlg.form.phone" placeholder="0912345678" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Ngày sinh">
+              <el-date-picker v-model="dlg.form.birthDate" type="date" placeholder="Chọn ngày" format="YYYY-MM-DD" value-format="YYYY-MM-DD" style="width:100%;" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Địa chỉ">
+              <el-input v-model="dlg.form.address" placeholder="123 Street, City" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="Ghi chú">
+              <el-input v-model="dlg.form.notes" type="textarea" :rows="2" placeholder="General notes…" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-          <div class="crm2-dialog__band" :class="dlg.mode==='create' ? 'crm2-dialog__band--blue' : 'crm2-dialog__band--orange'">
-            <div class="crm2-dialog__band-circles"><span class="crm2-band-circle crm2-band-circle--1"/><span class="crm2-band-circle crm2-band-circle--2"/><span class="crm2-band-circle crm2-band-circle--3"/></div>
-            <div class="crm2-dialog__icon-wrap"><div class="crm2-dialog__icon-ring">
-              <svg v-if="dlg.mode==='create'" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <svg v-else width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </div></div>
-          </div>
-
-          <div class="crm2-dialog__body">
-            <div class="crm2-dialog__badge" :class="dlg.mode==='create'?'crm2-dialog__badge--blue':'crm2-dialog__badge--orange'">{{ dlg.mode==='create' ? 'Khách hàng mới' : 'Chỉnh sửa' }}</div>
-            <div class="crm2-dialog__head-row">
-              <h2 class="crm2-dialog__title">{{ dlg.mode==='create' ? 'Thêm khách hàng' : 'Sửa khách hàng' }}</h2>
-              <button class="crm2-icon-btn" @click="dlg.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>
-
-            <div v-if="dlg.alert" class="crm2-dialog__notice crm2-dialog__notice--red">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {{ dlg.alert }}
-            </div>
-
-            <div class="crm2-dlg-section">Thông tin cơ bản</div>
-            <div class="crm2-row2">
-              <div class="crm2-field"><label class="crm2-field__label">Họ và tên <span class="crm2-required">*</span></label><input v-model="dlg.form.fullName" class="crm2-input" placeholder="Nguyen Van A" /></div>
-              <div class="crm2-field"><label class="crm2-field__label">Loại khách hàng</label>
-                <select v-model="dlg.form.customerType" class="crm2-input crm2-select">
-                  <option value="REGULAR">Thường</option>
-                  <option value="VIP">VIP</option>
-                </select>
-              </div>
-            </div>
-            <div class="crm2-row2">
-              <div class="crm2-field"><label class="crm2-field__label">Email <span class="crm2-required">*</span></label><input v-model="dlg.form.email" type="email" class="crm2-input" placeholder="email@example.com" /></div>
-              <div class="crm2-field"><label class="crm2-field__label">SĐT <span class="crm2-required">*</span></label><input v-model="dlg.form.phone" class="crm2-input" placeholder="0912345678" /></div>
-            </div>
-            <div class="crm2-row2">
-              <div class="crm2-field"><label class="crm2-field__label">Ngày sinh</label><input v-model="dlg.form.birthDate" type="date" class="crm2-input" /></div>
-              <div class="crm2-field"><label class="crm2-field__label">Địa chỉ</label><input v-model="dlg.form.address" class="crm2-input" placeholder="123 Street, City" /></div>
-            </div>
-            <div class="crm2-field"><label class="crm2-field__label">Ghi chú</label><textarea v-model="dlg.form.notes" class="crm2-input crm2-textarea" rows="2" placeholder="General notes…"></textarea></div>
-
-            <template v-if="dlg.mode==='edit' && dlg.form.vipTier">
-              <div class="crm2-dlg-section">Ghi chú VIP <span class="crm2-internal-tag">Nội bộ · Chỉ admin</span></div>
-              <div class="crm2-vip-note-block">
-                <div class="crm2-vip-note-head">
-                  <span class="crm2-tier-tag" :class="'crm2-tier--'+dlg.form.vipTier.toLowerCase()">{{ tierIcon(dlg.form.vipTier) }} {{ dlg.form.vipTier }}</span>
-                </div>
-                <textarea v-model="dlg.form.vipNote" class="crm2-input crm2-textarea crm2-vip-textarea" rows="3" placeholder="e.g. Prefers gaming laptops, no display units…" maxlength="500"></textarea>
-                <div class="crm2-vip-note-hint">Khách hàng không thể xem ghi chú này. <span class="crm2-mono" style="font-size:11px">{{ (dlg.form.vipNote||'').length }}/500</span></div>
-              </div>
-            </template>
-            <div v-if="dlg.mode==='create'" class="crm2-vip-unavail">Ghi chú VIP có sẵn khi khách hàng đạt cấp Đồng trở lên.</div>
-
-            <div class="crm2-dialog__actions">
-              <button class="crm2-btn crm2-btn--ghost" @click="dlg.open=false">Hủy bỏ</button>
-              <button class="crm2-btn" :class="[dlg.mode==='create'?'crm2-btn--confirm-blue':'crm2-btn--confirm-orange', {'crm2-btn--loading': dlg.loading}]" @click="save" :disabled="dlg.loading">
-                <span v-if="dlg.loading" class="crm2-spinner crm2-spinner--white"></span>
-                <svg v-else-if="dlg.mode==='create'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-                {{ dlg.mode==='create' ? 'Tạo mới' : 'Lưu thay đổi' }}
-              </button>
+        <template v-if="dlg.mode==='edit' && dlg.form.vipTier">
+          <el-divider />
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--el-text-color-secondary);">Ghi chú VIP</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <el-tag size="small" effect="plain">{{ tierIcon(dlg.form.vipTier) }} {{ dlg.form.vipTier }}</el-tag>
+              <el-tag size="small" type="danger" effect="plain">Nội bộ · Chỉ admin</el-tag>
             </div>
           </div>
-        </div>
-      </div>
-    </Teleport>
+          <el-input v-model="dlg.form.vipNote" type="textarea" :rows="3" placeholder="e.g. Prefers gaming laptops, no display units…" :maxlength="500" show-word-limit />
+          <el-text size="small" type="info" style="margin-top:4px;">Khách hàng không thể xem ghi chú này.</el-text>
+        </template>
+        <el-alert v-if="dlg.mode==='create'" type="info" title="Ghi chú VIP có sẵn khi khách hàng đạt cấp Đồng trở lên." :closable="false" style="margin-top:8px;" />
+      </el-form>
+      <template #footer>
+        <el-button @click="dlg.open=false">Hủy bỏ</el-button>
+        <el-button :type="dlg.mode==='create'?'primary':'warning'" :loading="dlg.loading" @click="save">
+          {{ dlg.mode==='create' ? 'Tạo mới' : 'Lưu thay đổi' }}
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- ══ DIALOG: Details ══ -->
-    <Teleport to="body">
-      <div class="crm2-overlay" v-if="detailsDialog.open" @click.self="detailsDialog.open=false">
-        <div class="crm2-dialog crm2-dialog--lg" v-if="detailsDialog.customer">
-          <div class="crm2-dialog__head-simple">
-            <div class="crm2-details-hd">
-              <div class="crm2-avatar crm2-avatar--lg" :style="{ background: getAvatarColor(detailsDialog.customer.fullName) }">{{ getInitials(detailsDialog.customer.fullName) }}</div>
-              <div>
-                <h2 class="crm2-dialog__title">{{ detailsDialog.customer.fullName }}</h2>
-                <p class="crm2-dialog__sub">#{{ detailsDialog.customer.id }} · {{ detailsDialog.customer.email }}</p>
-              </div>
-            </div>
-            <button class="crm2-icon-btn" @click="detailsDialog.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-          </div>
-          <div class="crm2-dialog__body" style="padding-top:0">
-            <div class="crm2-details-grid">
-              <div class="crm2-detail-block">
-                <div class="crm2-detail-block__head">Thông tin cá nhân</div>
-                <div class="crm2-detail-rows">
-                  <div class="crm2-detail-row"><span class="crm2-dk">Mã</span><span class="crm2-dv crm2-mono-id">#{{ detailsDialog.customer.id }}</span></div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">Tên</span><strong class="crm2-dv">{{ detailsDialog.customer.fullName }}</strong></div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">Email</span><span class="crm2-dv">{{ detailsDialog.customer.email }}</span></div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">SĐT</span><span class="crm2-dv crm2-mono">{{ detailsDialog.customer.phone||'—' }}</span></div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">Ngày sinh</span><span class="crm2-dv">{{ detailsDialog.customer.birthDate||'—' }}</span></div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">Địa chỉ</span><span class="crm2-dv">{{ detailsDialog.customer.address||'—' }}</span></div>
-                </div>
-              </div>
-              <div class="crm2-detail-block">
-                <div class="crm2-detail-block__head">Loyalty &amp; VIP</div>
-                <div class="crm2-detail-rows">
-                  <div class="crm2-detail-row"><span class="crm2-dk">Loại</span><span class="crm2-tag" :class="detailsDialog.customer.customerType==='VIP'?'crm2-tag--orange':'crm2-tag--gray'">{{ detailsDialog.customer.customerType }}</span></div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">Cấp</span>
-                    <span v-if="detailsDialog.customer.raw.vipTier" class="crm2-tier-tag" :class="'crm2-tier--'+detailsDialog.customer.raw.vipTier.toLowerCase()">{{ detailsDialog.customer.raw.vipTier }}</span>
-                    <span v-else class="crm2-text--muted">Chưa có cấp</span>
-                  </div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">Điểm</span><strong class="crm2-dv crm2-text--blue">{{ (detailsDialog.customer.loyaltyPoints||0).toLocaleString() }} điểm</strong></div>
-                  <div class="crm2-detail-row"><span class="crm2-dk">Tổng chi tiêu</span><strong class="crm2-dv crm2-text--green">{{ formatCurrency(detailsDialog.customer.raw.totalSpent) }}</strong></div>
-                </div>
-              </div>
-              <div class="crm2-detail-block" v-if="detailsDialog.customer.notes">
-                <div class="crm2-detail-block__head">Ghi chú</div>
-                <p class="crm2-detail-body-text">{{ detailsDialog.customer.notes }}</p>
-              </div>
-              <div class="crm2-detail-block crm2-vip-note-block" v-if="detailsDialog.customer.raw.vipTier">
-                <div class="crm2-detail-block__head">
-                  Ghi chú VIP <span class="crm2-internal-tag">Chỉ nội bộ</span>
-                  <button class="crm2-btn-ghost-sm" style="margin-left:auto" @click="openVipNoteEdit(detailsDialog.customer)">Sửa</button>
-                </div>
-                <p v-if="detailsDialog.customer.raw.vipNote" class="crm2-detail-body-text" style="color:var(--c-orange)">{{ detailsDialog.customer.raw.vipNote }}</p>
-                <p v-else class="crm2-detail-body-text crm2-text--muted" style="font-style:italic">Chưa có ghi chú VIP. <button class="crm2-btn-link" @click="openVipNoteEdit(detailsDialog.customer)">Thêm một →</button></p>
-              </div>
-            </div>
-            <div class="crm2-dialog__actions">
-              <button class="crm2-btn crm2-btn--ghost" @click="detailsDialog.open=false">Đóng</button>
-              <button class="crm2-btn crm2-btn--primary" @click="openEdit(detailsDialog.customer)">Sửa khách hàng</button>
-            </div>
+    <el-dialog v-model="detailsDialog.open" width="640px" :close-on-click-modal="false" title="">
+      <template v-if="detailsDialog.customer">
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
+          <el-avatar :size="52" :style="`background:${getAvatarColor(detailsDialog.customer.fullName)};color:#fff;font-size:18px;font-weight:700;`">{{ getInitials(detailsDialog.customer.fullName) }}</el-avatar>
+          <div>
+            <div style="font-size:20px; font-weight:800; letter-spacing:-0.02em;">{{ detailsDialog.customer.fullName }}</div>
+            <div style="color:var(--el-text-color-secondary); font-size:13px;">#{{ detailsDialog.customer.id }} · {{ detailsDialog.customer.email }}</div>
           </div>
         </div>
-      </div>
-    </Teleport>
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12">
+            <el-card shadow="never">
+              <template #header><el-text tag="b" size="small">Thông tin cá nhân</el-text></template>
+              <el-descriptions :column="1" size="small" border>
+                <el-descriptions-item label="Mã"><span style="font-family:monospace; color:var(--el-color-primary);">#{{ detailsDialog.customer.id }}</span></el-descriptions-item>
+                <el-descriptions-item label="Tên"><strong>{{ detailsDialog.customer.fullName }}</strong></el-descriptions-item>
+                <el-descriptions-item label="Email">{{ detailsDialog.customer.email }}</el-descriptions-item>
+                <el-descriptions-item label="SĐT"><span style="font-family:monospace;">{{ detailsDialog.customer.phone||'—' }}</span></el-descriptions-item>
+                <el-descriptions-item label="Ngày sinh">{{ detailsDialog.customer.birthDate||'—' }}</el-descriptions-item>
+                <el-descriptions-item label="Địa chỉ">{{ detailsDialog.customer.address||'—' }}</el-descriptions-item>
+              </el-descriptions>
+            </el-card>
+          </el-col>
+          <el-col :xs="24" :sm="12">
+            <el-card shadow="never">
+              <template #header><el-text tag="b" size="small">Loyalty &amp; VIP</el-text></template>
+              <el-descriptions :column="1" size="small" border>
+                <el-descriptions-item label="Loại"><el-tag :type="detailsDialog.customer.customerType==='VIP'?'warning':'info'" size="small" effect="plain">{{ detailsDialog.customer.customerType }}</el-tag></el-descriptions-item>
+                <el-descriptions-item label="Cấp">
+                  <el-tag v-if="detailsDialog.customer.raw.vipTier" size="small" effect="plain">{{ detailsDialog.customer.raw.vipTier }}</el-tag>
+                  <span v-else style="color:var(--el-text-color-placeholder);">Chưa có cấp</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="Điểm"><strong style="color:var(--el-color-primary);">{{ (detailsDialog.customer.loyaltyPoints||0).toLocaleString() }} điểm</strong></el-descriptions-item>
+                <el-descriptions-item label="Tổng chi tiêu"><strong style="color:var(--el-color-success);">{{ formatCurrency(detailsDialog.customer.raw.totalSpent) }}</strong></el-descriptions-item>
+              </el-descriptions>
+            </el-card>
+            <el-card shadow="never" style="margin-top:12px;" v-if="detailsDialog.customer.raw.vipTier">
+              <template #header>
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <el-text tag="b" size="small">Ghi chú VIP</el-text>
+                  <el-button link size="small" @click="openVipNoteEdit(detailsDialog.customer)">Sửa</el-button>
+                </div>
+              </template>
+              <el-text v-if="detailsDialog.customer.raw.vipNote" type="warning" size="small">{{ detailsDialog.customer.raw.vipNote }}</el-text>
+              <el-text v-else type="info" size="small" tag="i">Chưa có ghi chú VIP.</el-text>
+            </el-card>
+          </el-col>
+        </el-row>
+      </template>
+      <template #footer>
+        <el-button @click="detailsDialog.open=false">Đóng</el-button>
+        <el-button type="primary" @click="openEdit(detailsDialog.customer)">Sửa khách hàng</el-button>
+      </template>
+    </el-dialog>
 
     <!-- ══ DIALOG: VIP Note ══ -->
-    <Teleport to="body">
-      <div class="crm2-overlay" v-if="vipNoteDialog.open" @click.self="vipNoteDialog.open=false">
-        <div class="crm2-dialog crm2-dialog--sm crm2-vip-modal">
-          <div class="crm2-vip-band">
-            <div class="crm2-vip-band__deco crm2-vip-band__deco--1"/>
-            <div class="crm2-vip-band__deco crm2-vip-band__deco--2"/>
-            <div class="crm2-vip-band__content">
-              <div class="crm2-vip-band__top">
-                <span class="crm2-vip-eyebrow">VIP Internal Note</span>
-                <span class="crm2-vip-admin-badge">Admin only</span>
-              </div>
-              <div class="crm2-vip-band__title">Ghi chú VIP</div>
-              <div class="crm2-vip-band__customer" v-if="vipNoteDialog.customerName">
-                ♦ {{ vipNoteDialog.vipTier }} · {{ vipNoteDialog.customerName }}
-              </div>
-            </div>
-            <button class="crm2-vip-close-btn" @click="vipNoteDialog.open=false">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-
-          <div class="crm2-vip-notice">
-            🔒 Chỉ nội bộ — Khách hàng <strong>không thể xem</strong>. Chỉ Admin và Staff.
-          </div>
-
-          <div class="crm2-dialog__body">
-            <div v-if="!vipNoteDialog.note" class="crm2-vip-suggestions">
-              <p class="crm2-vip-suggestion-label">Gợi ý nhanh</p>
-              <div class="crm2-vip-chips">
-                <button v-for="s in vipSuggestions" :key="s" class="crm2-vip-chip" @click="vipNoteDialog.note = s">{{ s }}</button>
-              </div>
-            </div>
-            <div class="crm2-vip-textarea-wrap">
-              <textarea v-model="vipNoteDialog.note" class="crm2-vip-textarea" rows="5" placeholder="Ghi chú nội bộ về khách hàng VIP này…" maxlength="500" ref="vipNoteTextarea"></textarea>
-              <div class="crm2-vip-textarea-foot">
-                <button v-if="vipNoteDialog.note" class="crm2-btn-link" style="color:var(--c-red)" @click="vipNoteDialog.note = ''">Xóa nội dung</button>
-                <span class="crm2-mono" style="font-size:11px;color:var(--c-subtle);margin-left:auto" :style="{color:(vipNoteDialog.note||'').length>450?'var(--c-red)':(vipNoteDialog.note||'').length>350?'var(--c-orange)':'var(--c-subtle)'}">{{ (vipNoteDialog.note||'').length }}/500</span>
-              </div>
-            </div>
-            <div class="crm2-dialog__actions">
-              <button class="crm2-btn crm2-btn--ghost" @click="vipNoteDialog.open=false">Hủy bỏ</button>
-              <button class="crm2-btn crm2-btn--confirm-orange" :class="{'crm2-btn--loading': vipNoteDialog.loading}" @click="saveVipNote" :disabled="vipNoteDialog.loading">
-                <span v-if="vipNoteDialog.loading" class="crm2-spinner crm2-spinner--white"></span>
-                <span v-else>✦</span>
-                Lưu ghi chú VIP
-              </button>
-            </div>
-          </div>
-        </div>
+    <el-dialog v-model="vipNoteDialog.open" title="Ghi chú VIP" width="480px" :close-on-click-modal="false">
+      <el-alert type="warning" title="Chỉ nội bộ — Khách hàng không thể xem. Chỉ Admin và Staff." :closable="false" style="margin-bottom:16px;" />
+      <div v-if="vipNoteDialog.customerName" style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+        <el-tag effect="plain">♦ {{ vipNoteDialog.vipTier }}</el-tag>
+        <el-text style="font-weight:600;">{{ vipNoteDialog.customerName }}</el-text>
       </div>
-    </Teleport>
+      <div v-if="!vipNoteDialog.note" style="margin-bottom:12px;">
+        <el-text size="small" type="info" style="display:block; margin-bottom:6px;">Gợi ý nhanh</el-text>
+        <el-space wrap :size="6">
+          <el-button v-for="s in vipSuggestions" :key="s" size="small" plain @click="vipNoteDialog.note = s">{{ s }}</el-button>
+        </el-space>
+      </div>
+      <el-input v-model="vipNoteDialog.note" type="textarea" :rows="5" placeholder="Ghi chú nội bộ về khách hàng VIP này…" :maxlength="500" show-word-limit ref="vipNoteTextarea" />
+      <template #footer>
+        <el-button @click="vipNoteDialog.open=false">Hủy bỏ</el-button>
+        <el-button type="warning" :loading="vipNoteDialog.loading" @click="saveVipNote">Lưu ghi chú VIP</el-button>
+      </template>
+    </el-dialog>
 
     <!-- ══ DIALOG: Loyalty Summary ══ -->
-    <Teleport to="body">
-      <div class="crm2-overlay" v-if="summaryDlg.open" @click.self="summaryDlg.open=false">
-        <div class="crm2-dialog crm2-dialog--xl">
-          <div class="crm2-dialog__head-simple" style="border-bottom:1px solid var(--c-border-light)">
-            <div>
-              <h2 class="crm2-dialog__title">Tổng điểm</h2>
-              <p class="crm2-dialog__sub">Phân tích điểm khách hàng trên tất cả khách hàng</p>
-            </div>
-            <button class="crm2-icon-btn" @click="summaryDlg.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-          </div>
-
-          <!-- Controls -->
-          <div class="crm2-summary-controls">
-            <div class="crm2-sc-left">
-              <div class="crm2-ctrl-group">
-                <span class="crm2-ctrl-label">Kỳ</span>
-                <div class="crm2-toggle-set">
-                  <button :class="['crm2-tgl', summaryDlg.mode==='monthly'&&'crm2-tgl--on']" @click="summaryDlg.mode='monthly'; loadAdminSummary()">Tháng</button>
-                  <button :class="['crm2-tgl', summaryDlg.mode==='weekly'&&'crm2-tgl--on']" @click="summaryDlg.mode='weekly'; loadAdminSummary()">Tuần</button>
-                </div>
-              </div>
-              <div class="crm2-ctrl-group">
-                <span class="crm2-ctrl-label">{{ summaryDlg.mode==='weekly' ? 'Tuần' : 'Tháng' }}</span>
-                <select class="crm2-input crm2-select" style="width:80px" v-model="summaryDlg.range" @change="loadAdminSummary">
-                  <template v-if="summaryDlg.mode==='weekly'">
-                    <option :value="4">4w</option><option :value="8">8w</option><option :value="12">12w</option><option :value="26">26w</option>
-                  </template>
-                  <template v-else>
-                    <option :value="3">3m</option><option :value="6">6m</option><option :value="12">12m</option><option :value="24">24m</option>
-                  </template>
-                </select>
-              </div>
-              <div class="crm2-ctrl-group">
-                <span class="crm2-ctrl-label">Xem</span>
-                <div class="crm2-toggle-set">
-                  <button :class="['crm2-tgl', summaryDlg.view==='overview'&&'crm2-tgl--on']" @click="summaryDlg.view='overview'">Tổng quan</button>
-                  <button :class="['crm2-tgl', summaryDlg.view==='detail'&&'crm2-tgl--on']" @click="summaryDlg.view='detail'">Theo KH</button>
-                </div>
-              </div>
-            </div>
-            <button class="crm2-btn-ghost-sm" @click="loadAdminSummary" :disabled="summaryDlg.loading">
-              <span v-if="summaryDlg.loading" class="crm2-spinner" style="width:12px;height:12px"></span> Tải lại
-            </button>
-          </div>
-
-          <div class="crm2-dialog__body crm2-summary-body">
-            <div v-if="summaryDlg.loading" class="crm2-loading-center"><span class="crm2-spinner"></span> Đang tải…</div>
-            <div v-else-if="!summaryDlg.data.length" class="crm2-empty" style="padding:40px"><div class="crm2-empty__inner"><p>Không có dữ liệu trong kỳ này</p></div></div>
-            <template v-else>
-              <!-- KPI Row -->
-              <div class="crm2-kpi-row">
-                <div class="crm2-kpi crm2-kpi--green"><div class="crm2-kpi__val">+{{ adminSummaryTotals.earned.toLocaleString() }}</div><div class="crm2-kpi__label">Điểm kiếm được</div></div>
-                <div class="crm2-kpi crm2-kpi--orange"><div class="crm2-kpi__val">-{{ adminSummaryTotals.deducted.toLocaleString() }}</div><div class="crm2-kpi__label">Điểm đã dùng</div></div>
-                <div class="crm2-kpi" :class="adminSummaryTotals.net>=0?'crm2-kpi--blue':'crm2-kpi--red'"><div class="crm2-kpi__val">{{ adminSummaryTotals.net>=0?'+':'' }}{{ adminSummaryTotals.net.toLocaleString() }}</div><div class="crm2-kpi__label">Lý thuyết</div></div>
-                <div class="crm2-kpi crm2-kpi--purple"><div class="crm2-kpi__val">{{ adminSummaryTotals.transactions.toLocaleString() }}</div><div class="crm2-kpi__label">Giao dịch</div></div>
-              </div>
-
-              <template v-if="summaryDlg.view==='overview'">
-                <div class="crm2-period-list">
-                  <div v-for="period in summaryDlg.data" :key="period.period" class="crm2-period-row">
-                    <div class="crm2-period-meta">
-                      <div class="crm2-period-label">{{ period.periodLabel }}</div>
-                      <div class="crm2-period-dates crm2-mono crm2-text--muted">{{ formatAdminDate(period.periodStart) }} – {{ formatAdminDate(period.periodEnd) }}</div>
-                    </div>
-                    <div class="crm2-period-bars">
-                      <div class="crm2-bar-row">
-                        <span class="crm2-br-num crm2-text--green crm2-mono">+{{ period.totalPointsEarned.toLocaleString() }}</span>
-                        <div class="crm2-bar-bg"><div class="crm2-bar crm2-bar--green" :style="{width:getAdminBarWidth(period.totalPointsEarned,'earn')+'%'}"></div></div>
-                      </div>
-                      <div class="crm2-bar-row">
-                        <span class="crm2-br-num crm2-text--orange crm2-mono">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
-                        <div class="crm2-bar-bg"><div class="crm2-bar crm2-bar--orange" :style="{width:getAdminBarWidth(period.totalPointsDeducted,'deduct')+'%'}"></div></div>
-                      </div>
-                    </div>
-                    <div class="crm2-period-net">
-                      <span class="crm2-net-chip" :class="period.netPoints>=0?'crm2-net-chip--pos':'crm2-net-chip--neg'">{{ period.netPoints>=0?'+':'' }}{{ period.netPoints.toLocaleString() }}</span>
-                      <span class="crm2-mono crm2-text--muted" style="font-size:11px">{{ period.totalTransactions }} gd</span>
-                    </div>
-                  </div>
-                </div>
+    <el-dialog v-model="summaryDlg.open" title="Tổng điểm" width="780px" :close-on-click-modal="false">
+      <!-- Controls -->
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <el-space :size="12" wrap>
+          <el-space :size="6">
+            <el-text size="small" type="info">Kỳ</el-text>
+            <el-radio-group v-model="summaryDlg.mode" size="small" @change="loadAdminSummary">
+              <el-radio-button value="monthly">Tháng</el-radio-button>
+              <el-radio-button value="weekly">Tuần</el-radio-button>
+            </el-radio-group>
+          </el-space>
+          <el-space :size="6">
+            <el-text size="small" type="info">{{ summaryDlg.mode==='weekly' ? 'Tuần' : 'Tháng' }}</el-text>
+            <el-select v-model="summaryDlg.range" style="width:80px;" size="small" @change="loadAdminSummary">
+              <template v-if="summaryDlg.mode==='weekly'">
+                <el-option :value="4" label="4w" /><el-option :value="8" label="8w" /><el-option :value="12" label="12w" /><el-option :value="26" label="26w" />
               </template>
-
               <template v-else>
-                <div v-for="period in summaryDlg.data" :key="period.period" class="crm2-cust-period">
-                  <div class="crm2-cust-period__head">
-                    <span class="crm2-mono crm2-text--muted" style="font-weight:700">{{ period.periodLabel }}</span>
-                    <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-family:'JetBrains Mono',monospace">
-                      <span class="crm2-text--green">+{{ period.totalPointsEarned.toLocaleString() }}</span>
-                      <span class="crm2-text--muted">/</span>
-                      <span class="crm2-text--orange">-{{ period.totalPointsDeducted.toLocaleString() }}</span>
-                      <span class="crm2-text--muted">{{ period.totalTransactions }} txn</span>
-                    </div>
-                  </div>
-                  <table class="crm2-table" v-if="period.customerBreakdown?.length">
-                    <thead><tr><th>Khách hàng</th><th>Cấp</th><th style="text-align:right">Kiếm được</th><th style="text-align:right">Đã dùng</th><th style="text-align:right">Lý thuyết</th><th style="text-align:center">Gd</th></tr></thead>
-                    <tbody>
-                      <tr v-for="c in period.customerBreakdown" :key="c.customerId" class="crm2-row">
-                        <td><div style="font-size:12px;font-weight:600">{{ c.customerName }}</div><div class="crm2-text--muted" style="font-size:11px">{{ c.customerEmail }}</div></td>
-                        <td><span v-if="c.vipTier&&c.vipTier!=='Member'" class="crm2-tier-tag" :class="'crm2-tier--'+c.vipTier.toLowerCase()">{{ c.vipTier }}</span><span v-else class="crm2-text--muted">—</span></td>
-                        <td style="text-align:right" class="crm2-text--green crm2-mono">+{{ c.pointsEarned.toLocaleString() }}</td>
-                        <td style="text-align:right" class="crm2-text--orange crm2-mono">{{ c.pointsDeducted>0?'-':'' }}{{ c.pointsDeducted.toLocaleString() }}</td>
-                        <td style="text-align:right"><span class="crm2-mono" :style="{color:c.netPoints>=0?'var(--c-green)':'var(--c-red)',fontWeight:700}">{{ c.netPoints>=0?'+':'' }}{{ c.netPoints.toLocaleString() }}</span></td>
-                        <td style="text-align:center" class="crm2-text--muted crm2-mono">{{ c.transactionCount }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div v-else class="crm2-empty" style="padding:16px"><div class="crm2-empty__inner" style="gap:6px"><p>Không có giao dịch</p></div></div>
-                </div>
+                <el-option :value="3" label="3m" /><el-option :value="6" label="6m" /><el-option :value="12" label="12m" /><el-option :value="24" label="24m" />
               </template>
-            </template>
-          </div>
-          <div class="crm2-dialog__actions" style="padding:14px 24px;border-top:1px solid var(--c-border-light)">
-            <button class="crm2-btn crm2-btn--ghost" @click="summaryDlg.open=false">Đóng</button>
-          </div>
-        </div>
+            </el-select>
+          </el-space>
+          <el-radio-group v-model="summaryDlg.view" size="small">
+            <el-radio-button value="overview">Tổng quan</el-radio-button>
+            <el-radio-button value="detail">Theo KH</el-radio-button>
+          </el-radio-group>
+        </el-space>
+        <el-button plain size="small" :loading="summaryDlg.loading" @click="loadAdminSummary">Tải lại</el-button>
       </div>
-    </Teleport>
+
+      <el-skeleton v-if="summaryDlg.loading" :rows="6" animated />
+      <el-empty v-else-if="!summaryDlg.data.length" description="Không có dữ liệu trong kỳ này" :image-size="60" />
+      <template v-else>
+        <!-- KPI -->
+        <el-row :gutter="10" style="margin-bottom:16px;">
+          <el-col :span="6" v-for="sk in [
+            {val:'+'+adminSummaryTotals.earned.toLocaleString(), label:'Điểm kiếm được', type:'success'},
+            {val:'-'+adminSummaryTotals.deducted.toLocaleString(), label:'Điểm đã dùng', type:'warning'},
+            {val:(adminSummaryTotals.net>=0?'+':'')+adminSummaryTotals.net.toLocaleString(), label:'Lý thuyết', type:adminSummaryTotals.net>=0?'primary':'danger'},
+            {val:adminSummaryTotals.transactions.toLocaleString(), label:'Giao dịch', type:'info'},
+          ]" :key="sk.label">
+            <el-card shadow="never" :body-style="{ padding:'12px 14px' }">
+              <div :style="`font-size:16px; font-weight:800; font-family:monospace; color:var(--el-color-${sk.type}); margin-bottom:3px;`">{{ sk.val }}</div>
+              <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary);">{{ sk.label }}</div>
+            </el-card>
+          </el-col>
+        </el-row>
+        <!-- Overview -->
+        <template v-if="summaryDlg.view==='overview'">
+          <div v-for="period in summaryDlg.data" :key="period.period" style="padding:12px 0; border-bottom:1px solid var(--el-border-color-lighter);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-weight:700; font-size:13px;">{{ period.periodLabel }}</div>
+                <div style="font-size:11px; font-family:monospace; color:var(--el-text-color-secondary);">{{ period.periodStart }} – {{ period.periodEnd }}</div>
+              </div>
+              <el-tag :type="period.netPoints>=0?'primary':'danger'" effect="plain" size="small" style="font-family:monospace;">{{ period.netPoints>=0?'+':'' }}{{ period.netPoints.toLocaleString() }}</el-tag>
+            </div>
+            <el-row :gutter="8">
+              <el-col :span="12">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                  <el-text size="small" style="color:#16a34a;">+{{ period.totalPointsEarned.toLocaleString() }}</el-text>
+                </div>
+                <el-progress :percentage="getAdminBarWidth(period.totalPointsEarned,'earn')" :stroke-width="6" :show-text="false" color="#3b82f6" />
+              </el-col>
+              <el-col :span="12">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                  <el-text size="small" style="color:#dc2626;">-{{ period.totalPointsDeducted.toLocaleString() }}</el-text>
+                  <el-text size="small" type="info">{{ period.totalTransactions }} gd</el-text>
+                </div>
+                <el-progress :percentage="getAdminBarWidth(period.totalPointsDeducted,'deduct')" :stroke-width="6" :show-text="false" color="#ef4444" />
+              </el-col>
+            </el-row>
+          </div>
+        </template>
+        <!-- Detail by customer -->
+        <template v-else>
+          <div v-for="period in summaryDlg.data" :key="period.period" style="margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--el-border-color-lighter); margin-bottom:8px;">
+              <el-text style="font-weight:700; font-family:monospace;">{{ period.periodLabel }}</el-text>
+              <el-text size="small" style="color:#16a34a; font-family:monospace;">+{{ period.totalPointsEarned.toLocaleString() }}</el-text>
+              <el-text size="small" style="color:#dc2626; font-family:monospace;">-{{ period.totalPointsDeducted.toLocaleString() }}</el-text>
+              <el-text size="small" type="info" style="font-family:monospace;">{{ period.totalTransactions }} txn</el-text>
+            </div>
+            <el-table v-if="period.customerBreakdown?.length" :data="period.customerBreakdown" size="small" stripe>
+              <el-table-column label="Khách hàng" min-width="160">
+                <template #default="{ row }">
+                  <div style="font-size:12px; font-weight:600;">{{ row.customerName }}</div>
+                  <div style="font-size:10px; color:var(--el-text-color-secondary);">{{ row.customerEmail }}</div>
+                </template>
+              </el-table-column>
+              <el-table-column label="Cấp" width="80" align="center"><template #default="{ row }"><el-tag v-if="row.vipTier&&row.vipTier!=='Member'" size="small" effect="plain">{{ row.vipTier }}</el-tag><span v-else style="color:var(--el-text-color-placeholder);">—</span></template></el-table-column>
+              <el-table-column label="Kiếm được" align="right" width="90"><template #default="{ row }"><span style="color:#16a34a; font-family:monospace; font-size:12px;">+{{ row.pointsEarned.toLocaleString() }}</span></template></el-table-column>
+              <el-table-column label="Đã dùng" align="right" width="90"><template #default="{ row }"><span style="color:#dc2626; font-family:monospace; font-size:12px;">{{ row.pointsDeducted>0?'-':'' }}{{ row.pointsDeducted.toLocaleString() }}</span></template></el-table-column>
+              <el-table-column label="Lý thuyết" align="right" width="90"><template #default="{ row }"><span :style="`font-family:monospace; font-size:12px; font-weight:700; color:${row.netPoints>=0?'#2563eb':'#dc2626'};`">{{ row.netPoints>=0?'+':'' }}{{ row.netPoints.toLocaleString() }}</span></template></el-table-column>
+              <el-table-column label="Gd" align="center" width="50"><template #default="{ row }"><el-text size="small" type="info" style="font-family:monospace;">{{ row.transactionCount }}</el-text></template></el-table-column>
+            </el-table>
+            <el-empty v-else description="Không có giao dịch" :image-size="40" />
+          </div>
+        </template>
+      </template>
+      <template #footer>
+        <el-button @click="summaryDlg.open=false">Đóng</el-button>
+      </template>
+    </el-dialog>
 
     <!-- ══ DIALOG: Greeting ══ -->
-    <Teleport to="body">
-      <div class="crm2-overlay" v-if="greetingDialog.open" @click.self="greetingDialog.open=false">
-        <div class="crm2-dialog crm2-dialog--sm">
-          <div class="crm2-dialog__band crm2-dialog__band--green">
-            <div class="crm2-dialog__band-circles"><span class="crm2-band-circle crm2-band-circle--1"/><span class="crm2-band-circle crm2-band-circle--2"/><span class="crm2-band-circle crm2-band-circle--3"/></div>
-            <div class="crm2-dialog__icon-wrap"><div class="crm2-dialog__icon-ring">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            </div></div>
-          </div>
-          <div class="crm2-dialog__body">
-            <div class="crm2-dialog__badge crm2-dialog__badge--green">Lời chúc sinh nhật</div>
-            <div class="crm2-dialog__head-row">
-              <h2 class="crm2-dialog__title">Gửi lời chúc</h2>
-              <button class="crm2-icon-btn" @click="greetingDialog.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>
-            <div v-if="greetingDialog.customer" class="crm2-dialog__notice" style="background:var(--c-blue-bg);color:var(--c-blue);border-color:var(--c-blue-border)">
-              Gửi tới: <strong>{{ greetingDialog.customer.name }}</strong> ({{ greetingDialog.customer.email }})
-            </div>
-            <div class="crm2-field"><label class="crm2-field__label">Tin nhắn</label><textarea v-model="greetingDialog.form.message" class="crm2-input crm2-textarea" rows="8" placeholder="Viết lời chúc sinh nhật…"></textarea></div>
-            <div class="crm2-dialog__actions">
-              <button class="crm2-btn crm2-btn--ghost" @click="greetingDialog.open=false">Hủy bỏ</button>
-              <button class="crm2-btn crm2-btn--confirm-green" :class="{'crm2-btn--loading': greetingDialog.sending}" @click="confirmSendGreeting" :disabled="greetingDialog.sending">
-                <span v-if="greetingDialog.sending" class="crm2-spinner crm2-spinner--white"></span>
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Gửi lời chúc
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <el-dialog v-model="greetingDialog.open" title="Gửi lời chúc" width="460px" :close-on-click-modal="false">
+      <el-alert v-if="greetingDialog.customer" type="info" :closable="false" style="margin-bottom:16px;">
+        Gửi tới: <strong>{{ greetingDialog.customer.name }}</strong> ({{ greetingDialog.customer.email }})
+      </el-alert>
+      <el-form-item label="Tin nhắn">
+        <el-input v-model="greetingDialog.form.message" type="textarea" :rows="8" placeholder="Viết lời chúc sinh nhật…" />
+      </el-form-item>
+      <template #footer>
+        <el-button @click="greetingDialog.open=false">Hủy bỏ</el-button>
+        <el-button type="success" :loading="greetingDialog.sending" @click="confirmSendGreeting">
+          <el-icon><Promotion /></el-icon> Gửi lời chúc
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- ══ DIALOG: Inactive Detail ══ -->
-    <Teleport to="body">
-      <div class="crm2-overlay" v-if="inactiveDetail.open" @click.self="inactiveDetail.open=false">
-        <div class="crm2-dialog crm2-dialog--sm" v-if="inactiveDetail.customer" style="text-align:center">
-          <div class="crm2-dialog__body">
-            <div style="display:flex;justify-content:flex-end"><button class="crm2-icon-btn" @click="inactiveDetail.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-            <div class="crm2-avatar crm2-avatar--xl" style="margin:0 auto 12px" :style="{background:getAvatarColor(inactiveDetail.customer.fullName)}">{{ getInitials(inactiveDetail.customer.fullName) }}</div>
-            <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px">{{ inactiveDetail.customer.fullName }}</div>
-            <div class="crm2-text--muted" style="font-size:13px;margin-bottom:12px">{{ inactiveDetail.customer.email }}</div>
-            <span v-if="inactiveDetail.customer.raw?.vipTier" class="crm2-tier-tag" :class="'crm2-tier--'+inactiveDetail.customer.raw.vipTier.toLowerCase()" style="font-size:13px;padding:4px 14px">{{ inactiveDetail.customer.raw.vipTier }}</span>
-            <div class="crm2-stat-row">
-              <div class="crm2-stat-mini crm2-stat-mini--orange"><div class="crm2-stat-mini__val">{{ (inactiveDetail.customer.loyaltyPoints||0).toLocaleString() }}</div><div class="crm2-stat-mini__label">Điểm</div></div>
-              <div class="crm2-stat-mini crm2-stat-mini--green"><div class="crm2-stat-mini__val">{{ formatCurrency(inactiveDetail.customer.raw?.totalSpent) }}</div><div class="crm2-stat-mini__label">Chi tiêu</div></div>
-            </div>
-            <div class="crm2-detail-rows" style="margin-top:16px;text-align:left">
-              <div class="crm2-detail-row"><span class="crm2-dk">SĐT</span><span class="crm2-dv crm2-mono">{{ inactiveDetail.customer.phone||'—' }}</span></div>
-              <div class="crm2-detail-row"><span class="crm2-dk">Ngày sinh</span><span class="crm2-dv">{{ inactiveDetail.customer.birthDate||'—' }}</span></div>
-              <div class="crm2-detail-row"><span class="crm2-dk">Địa chỉ</span><span class="crm2-dv">{{ inactiveDetail.customer.raw?.address||'—' }}</span></div>
-              <div class="crm2-detail-row"><span class="crm2-dk">Đơn hàng cuối</span><span class="crm2-dv" style="color:var(--c-orange)">{{ relativeDate(inactiveDetail.customer.raw?.lastOrderAt) }}</span></div>
-              <div class="crm2-detail-row" v-if="inactiveDetail.customer.notes"><span class="crm2-dk">Ghi chú</span><span class="crm2-dv">{{ inactiveDetail.customer.notes }}</span></div>
-            </div>
-            <div class="crm2-dialog__notice crm2-dialog__notice--red" style="margin-top:14px;text-align:left">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              Không có giao dịch trong <strong>{{ activeInactiveTab }}+ ngày</strong>. Cân nhắc liên hệ lại.
-            </div>
-          </div>
+    <el-dialog v-model="inactiveDetail.open" width="400px" :close-on-click-modal="false" title="" align-center>
+      <template v-if="inactiveDetail.customer">
+        <div style="text-align:center; padding:12px 0;">
+          <el-avatar :size="64" :style="`background:${getAvatarColor(inactiveDetail.customer.fullName)};color:#fff;font-size:22px;font-weight:700;margin-bottom:12px;`">{{ getInitials(inactiveDetail.customer.fullName) }}</el-avatar>
+          <div style="font-size:20px; font-weight:800; letter-spacing:-0.02em; margin-bottom:4px;">{{ inactiveDetail.customer.fullName }}</div>
+          <div style="font-size:13px; color:var(--el-text-color-secondary); margin-bottom:12px;">{{ inactiveDetail.customer.email }}</div>
+          <el-tag v-if="inactiveDetail.customer.raw?.vipTier" size="large" effect="plain">{{ inactiveDetail.customer.raw.vipTier }}</el-tag>
         </div>
-      </div>
-    </Teleport>
+        <el-row :gutter="0" style="margin:16px 0; border:1px solid var(--el-border-color-light); border-radius:8px; overflow:hidden;">
+          <el-col :span="12" style="padding:12px; text-align:center; border-right:1px solid var(--el-border-color-light);">
+            <div style="font-family:monospace; font-weight:800; font-size:16px; color:var(--el-color-warning);">{{ (inactiveDetail.customer.loyaltyPoints||0).toLocaleString() }}</div>
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-top:3px;">Điểm</div>
+          </el-col>
+          <el-col :span="12" style="padding:12px; text-align:center;">
+            <div style="font-family:monospace; font-weight:800; font-size:16px; color:var(--el-color-success);">{{ formatCurrency(inactiveDetail.customer.raw?.totalSpent) }}</div>
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-top:3px;">Chi tiêu</div>
+          </el-col>
+        </el-row>
+        <el-descriptions :column="1" size="small" border style="margin-bottom:12px;">
+          <el-descriptions-item label="SĐT"><span style="font-family:monospace;">{{ inactiveDetail.customer.phone||'—' }}</span></el-descriptions-item>
+          <el-descriptions-item label="Ngày sinh">{{ inactiveDetail.customer.birthDate||'—' }}</el-descriptions-item>
+          <el-descriptions-item label="Địa chỉ">{{ inactiveDetail.customer.raw?.address||'—' }}</el-descriptions-item>
+          <el-descriptions-item label="Đơn hàng cuối"><span style="color:var(--el-color-warning);">{{ relativeDate(inactiveDetail.customer.raw?.lastOrderAt) }}</span></el-descriptions-item>
+          <el-descriptions-item v-if="inactiveDetail.customer.notes" label="Ghi chú">{{ inactiveDetail.customer.notes }}</el-descriptions-item>
+        </el-descriptions>
+        <el-alert type="warning" :closable="false">
+          Không có giao dịch trong <strong>{{ activeInactiveTab }}+ ngày</strong>. Cân nhắc liên hệ lại.
+        </el-alert>
+      </template>
+    </el-dialog>
 
     <!-- ══ DIALOG: Zero Order Send ══ -->
-    <Teleport to="body">
-      <div class="crm2-overlay" v-if="zoDlg.open" @click.self="zoDlg.open=false">
-        <div class="crm2-dialog crm2-dialog--lg">
-          <div class="crm2-dialog__band crm2-dialog__band--blue">
-            <div class="crm2-dialog__band-circles"><span class="crm2-band-circle crm2-band-circle--1"/><span class="crm2-band-circle crm2-band-circle--2"/><span class="crm2-band-circle crm2-band-circle--3"/></div>
-            <div class="crm2-dialog__icon-wrap"><div class="crm2-dialog__icon-ring">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </div></div>
-          </div>
-          <div class="crm2-dialog__body">
-            <div class="crm2-dialog__badge crm2-dialog__badge--blue">Gửi thông báo chào mừng</div>
-            <div class="crm2-dialog__head-row">
-              <h2 class="crm2-dialog__title">📨 Gửi thông báo<span class="crm2-tag crm2-tag--blue" style="font-size:12px;margin-left:10px">{{ zoSelected.length }} khách</span></h2>
-              <button class="crm2-icon-btn" @click="zoDlg.open=false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>
+    <el-dialog v-model="zoDlg.open" title="Gửi thông báo chào mừng" width="620px" :close-on-click-modal="false">
+      <el-descriptions :column="1" size="small" border style="margin-bottom:16px;">
+        <el-descriptions-item label="Số lượng">
+          <el-tag type="primary" effect="plain">{{ zoSelected.length }} khách</el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
 
-            <div class="crm2-field">
-              <label class="crm2-field__label">Mẫu thông báo</label>
-              <div class="crm2-zo-templates">
-                <div v-for="tpl in zoTemplates" :key="tpl.id" class="crm2-zo-tpl" :class="{'crm2-zo-tpl--active': zoDlg.form.templateId === tpl.id}" @click="zoSelectTemplate(tpl)">
-                  <div class="crm2-zo-tpl__icon">{{ tpl.icon }}</div>
-                  <div class="crm2-zo-tpl__name">{{ tpl.name }}</div>
-                  <div class="crm2-zo-tpl__desc">{{ tpl.desc }}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="crm2-field"><label class="crm2-field__label">Tiêu đề thông báo</label><input v-model="zoDlg.form.title" class="crm2-input" placeholder="Nhập tiêu đề…" /></div>
-            <div class="crm2-field">
-              <label class="crm2-field__label">Nội dung</label>
-              <textarea v-model="zoDlg.form.message" class="crm2-input crm2-textarea" rows="5" placeholder="Nhập nội dung…"></textarea>
-              <span style="font-size:11px;color:var(--c-muted);margin-top:4px;display:block">Dùng <code class="crm2-mono" style="background:var(--c-border-light);padding:1px 6px;border-radius:4px">{name}</code> để chèn tên khách</span>
-            </div>
-
-            <div class="crm2-zo-preview">
-              <div class="crm2-zo-preview__label">👁 Xem trước</div>
-              <div class="crm2-zo-preview__card">
-                <span style="font-size:22px;flex-shrink:0">{{ zoDlg.currentTpl?.icon || '📢' }}</span>
-                <div>
-                  <div style="font-size:13px;font-weight:700;color:var(--c-text);margin-bottom:4px">{{ zoDlg.form.title || '(Chưa có tiêu đề)' }}</div>
-                  <div style="font-size:12px;color:var(--c-muted);white-space:pre-line;line-height:1.5">{{ (zoDlg.form.message || '(Chưa có nội dung)').replace(/\{name\}/g, 'Nguyễn Văn A') }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Progress -->
-            <div v-if="zoSending" class="crm2-zo-progress">
-              <div class="crm2-zo-progress__fill" :style="{ width: `${Math.round((zoSentCount / zoSelected.length) * 100)}%` }"></div>
-            </div>
-
-            <div class="crm2-dialog__actions">
-              <button class="crm2-btn crm2-btn--ghost" @click="zoDlg.open=false" :disabled="zoSending">Hủy bỏ</button>
-              <button class="crm2-btn crm2-btn--confirm-blue" :class="{'crm2-btn--loading': zoSending}" :disabled="!zoDlg.form.title || !zoDlg.form.message || zoSending" @click="zoSendBulk">
-                <span v-if="zoSending" class="crm2-spinner crm2-spinner--white"></span>
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                {{ zoSending ? `Đang gửi (${zoSentCount}/${zoSelected.length})…` : `Gửi cho ${zoSelected.length} khách` }}
-              </button>
-            </div>
+      <el-form-item label="Mẫu thông báo">
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px;">
+          <div v-for="tpl in zoTemplates" :key="tpl.id"
+            @click="zoSelectTemplate(tpl)"
+            :style="`padding:10px 12px; border-radius:8px; border:2px solid ${zoDlg.form.templateId===tpl.id?'var(--el-color-primary)':'var(--el-border-color)'}; cursor:pointer; background:${zoDlg.form.templateId===tpl.id?'var(--el-color-primary-light-9)':'transparent'}; transition:all .15s;`">
+            <div style="font-size:18px; margin-bottom:4px;">{{ tpl.icon }}</div>
+            <div style="font-size:12px; font-weight:700;">{{ tpl.name }}</div>
+            <div style="font-size:11px; color:var(--el-text-color-secondary);">{{ tpl.desc }}</div>
           </div>
         </div>
-      </div>
-    </Teleport>
+      </el-form-item>
+
+      <el-form-item label="Tiêu đề thông báo">
+        <el-input v-model="zoDlg.form.title" placeholder="Nhập tiêu đề…" />
+      </el-form-item>
+      <el-form-item label="Nội dung">
+        <el-input v-model="zoDlg.form.message" type="textarea" :rows="5" placeholder="Nhập nội dung…" />
+        <el-text size="small" type="info" style="margin-top:4px;">Dùng <code style="background:var(--el-fill-color); padding:1px 6px; border-radius:4px; font-family:monospace;">{name}</code> để chèn tên khách</el-text>
+      </el-form-item>
+
+      <!-- Preview -->
+      <el-card shadow="never" :body-style="{ padding:'12px 14px', background:'var(--el-fill-color-light)' }">
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span style="font-size:22px; flex-shrink:0;">{{ zoDlg.currentTpl?.icon || '📢' }}</span>
+          <div>
+            <div style="font-size:13px; font-weight:700; margin-bottom:4px;">{{ zoDlg.form.title || '(Chưa có tiêu đề)' }}</div>
+            <div style="font-size:12px; color:var(--el-text-color-secondary); white-space:pre-line; line-height:1.5;">{{ (zoDlg.form.message || '(Chưa có nội dung)').replace(/\{name\}/g, 'Nguyễn Văn A') }}</div>
+          </div>
+        </div>
+      </el-card>
+
+      <el-progress v-if="zoSending" :percentage="Math.round((zoSentCount/zoSelected.length)*100)" style="margin-top:12px;" />
+
+      <template #footer>
+        <el-button @click="zoDlg.open=false" :disabled="zoSending">Hủy bỏ</el-button>
+        <el-button type="primary" :loading="zoSending" :disabled="!zoDlg.form.title||!zoDlg.form.message||zoSending" @click="zoSendBulk">
+          <el-icon><Promotion /></el-icon>
+          {{ zoSending ? `Đang gửi (${zoSentCount}/${zoSelected.length})…` : `Gửi cho ${zoSelected.length} khách` }}
+        </el-button>
+      </template>
+    </el-dialog>
 
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref } from "vue";
+import { Calendar, Check, Clock, Close, Filter, Plus, Present, Promotion, Refresh, Search, ShoppingCart, TrendCharts, User } from "@element-plus/icons-vue";
 import { customersApi } from "../../api/customers.api";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
 import http from "../../api/http";
 
 const mainTab = ref("customers");
+
+function onTabClick({ paneName }) {
+  if (paneName === 'birthdays')  { loadBirthdayData(); }
+  if (paneName === 'inactive')   { loadInactiveAll(); }
+  if (paneName === 'zeroorder')  { loadZeroOrderData(); loadZeroOrderStats(); }
+}
 
 function reloadCurrentTab() {
   if (mainTab.value === 'customers') load();
@@ -1108,7 +928,19 @@ const canApplyPointsFilter = computed(() => pointsMin.value !== null || pointsMa
 const vipCount = computed(() => rows.value.filter(r => r.customerType === 'VIP').length);
 const totalPoints = computed(() => rows.value.reduce((s, r) => s + (r.loyaltyPoints || 0), 0));
 const avgPoints = computed(() => !rows.value.length ? 0 : Math.round(totalPoints.value / rows.value.length));
-const filtered = computed(() => { const kw = (q.value || "").trim().toLowerCase(); if (!kw) return rows.value; return rows.value.filter(r => `${r.fullName} ${r.email} ${r.phone}`.toLowerCase().includes(kw)); });
+// Fix: filtered phải áp dụng tất cả filter client-side (keyword + type + tier + activity + points)
+// Các filter type/tier/activity đã gọi API riêng qua handleFilterChange → rows đã là kết quả đúng
+// filtered chỉ cần filter keyword và points range trên rows hiện tại
+const filtered = computed(() => {
+  let data = rows.value;
+  const kw = (q.value || "").trim().toLowerCase();
+  if (kw) data = data.filter(r => `${r.fullName} ${r.email} ${r.phone}`.toLowerCase().includes(kw));
+  if (isPointsFilterApplied.value) {
+    if (appliedPointsMin.value !== null) data = data.filter(r => (r.loyaltyPoints || 0) >= appliedPointsMin.value);
+    if (appliedPointsMax.value !== null) data = data.filter(r => (r.loyaltyPoints || 0) <= appliedPointsMax.value);
+  }
+  return data;
+});
 const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize)));
 const paged = computed(() => filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 
@@ -1412,512 +1244,37 @@ async function fetchInactiveFor(days) {
 async function loadInactiveAll() { loading.value = true; await Promise.all([fetchInactiveFor(30), fetchInactiveFor(60), fetchInactiveFor(90)]); loading.value = false; }
 function switchInactiveTab(days) { activeInactiveTab.value = days; inactivePage.value = 1; inactiveQ.value = ""; inactiveTierFilter.value = ""; }
 function openInactiveDetail(row) { inactiveDetail.customer = row; inactiveDetail.open = true; }
+
+// ── Extra computed for EP template ────────────────────────────────
+const custStats = computed(() => [
+  { label: 'Tổng khách hàng', value: rows.value.length, color: '#2563eb' },
+  { label: 'Thành viên VIP', value: vipCount.value, color: '#d97706' },
+  { label: 'Tổng điểm', value: totalPoints.value.toLocaleString(), color: '#16a34a' },
+  { label: 'Điểm TB', value: avgPoints.value.toLocaleString(), color: '#6b7280' },
+]);
+const inactiveStats = computed(() => [
+  { label: 'Khách hàng', value: currentInactive.value.length, color: '#2563eb' },
+  { label: 'Tổng điểm', value: inactiveTotalPoints.value, color: '#d97706' },
+  { label: 'Tổng chi tiêu', value: formatMoneyShort(inactiveTotalSpent.value), color: '#16a34a' },
+  { label: 'Cấp cao nhất', value: inactiveTopTier.value, color: '#7c3aed' },
+]);
+const zeroStats = computed(() => [
+  { label: 'Đăng ký ≥ 3 ngày', value: zeroOrderStats.registeredOver3Days ?? '—', color: '#6b7280' },
+  { label: 'Đăng ký ≥ 7 ngày', value: zeroOrderStats.registeredOver7Days ?? '—', color: '#d97706' },
+  { label: 'Đăng ký ≥ 30 ngày', value: zeroOrderStats.registeredOver30Days ?? '—', color: '#dc2626' },
+  { label: 'Đang chọn', value: zoSelected.value.length, color: '#2563eb' },
+]);
+const filterFields = computed(() => [
+  { label: 'Tìm kiếm', type: 'text' },
+  { label: 'Loại', type: 'select', model: typeFilter,
+    options: [{value:'',label:'Tất cả'},{value:'REGULAR',label:'Thường'},{value:'VIP',label:'VIP'}] },
+  { label: 'Cấp VIP', type: 'select', model: vipTierFilter,
+    options: [{value:'',label:'Tất cả cấp'},{value:'BRONZE',label:'Đồng'},{value:'SILVER',label:'Bạc'},{value:'GOLD',label:'Vàng'},{value:'PLATINUM',label:'Bạch kim'},{value:'DIAMOND',label:'Kim cương'}] },
+  { label: 'Hoạt động', type: 'select', model: activityFilter,
+    options: [{value:'',label:'Tất cả'},{value:'ACTIVE_30',label:'Hoạt động (30 ngày)'}] },
+]);
+
 onMounted(load);
 </script>
 
-<style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
-
-/*
-  HARDCODE MAP (không dùng var()):
-  bg:#f6f7f9  card:#ffffff  border:#e4e7ec  border-light:#f0f2f5
-  text:#0f1117  muted:#6b7280  subtle:#9ca3af
-  blue:#2563eb  blue-bg:#eff6ff  blue-border:#bfdbfe
-  green:#16a34a  green-bg:#f0fdf4  green-border:#bbf7d0
-  red:#dc2626    red-bg:#fff1f2   red-border:#fecdd3
-  orange:#d97706 orange-bg:#fffbeb orange-border:#fde68a
-  purple:#7c3aed purple-bg:#f5f3ff purple-border:#ddd6fe
-  gray-bg:#f3f4f6  gray-border:#e5e7eb
-  radius:12px  radius-sm:8px
-  shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04)
-  shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04)
-  shadow-lg: 0 24px 64px rgba(0,0,0,.14), 0 8px 24px rgba(0,0,0,.06)
-*/
-
-.crm2-page {
-  font-family: "Plus Jakarta Sans", sans-serif;
-  background: #f6f7f9;
-  min-height: 100vh;
-  padding: 32px 40px 60px;
-  color: #0f1117;
-  box-sizing: border-box;
-}
-.crm2-inner { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-
-/* ── Header ──────────────────────────────── */
-.crm2-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-.crm2-eyebrow { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
-.crm2-title { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 4px; line-height: 1.2; }
-.crm2-title__accent { color: #2563eb; }
-.crm2-subtitle { font-size: 13.5px; color: #6b7280; margin: 0; }
-.crm2-header__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 6px; }
-
-/* ── Tab bar ─────────────────────────────── */
-.crm2-tabbar {
-  display: flex; gap: 2px; background: #ffffff;
-  border: 1px solid #e4e7ec; border-radius: 12px; padding: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  overflow-x: auto;
-}
-.crm2-tab {
-  display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
-  font-size: 13px; font-weight: 600; border: none; border-radius: 8px;
-  background: transparent; color: #6b7280; cursor: pointer;
-  transition: all 0.15s; white-space: nowrap; font-family: "Plus Jakarta Sans", sans-serif;
-}
-.crm2-tab:hover { background: #f0f2f5; color: #0f1117; }
-.crm2-tab--active { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
-
-/* ── Stats grid ──────────────────────────── */
-.crm2-stats4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
-.crm2-stat {
-  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 8px; padding: 16px;
-  display: flex; flex-direction: column; gap: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  transition: transform 0.15s;
-}
-.crm2-stat:hover { transform: translateY(-1px); }
-.crm2-stat--blue   { border-top: 3px solid #2563eb; }
-.crm2-stat--green  { border-top: 3px solid #16a34a; }
-.crm2-stat--orange { border-top: 3px solid #d97706; }
-.crm2-stat--red    { border-top: 3px solid #dc2626; }
-.crm2-stat--purple { border-top: 3px solid #7c3aed; }
-.crm2-stat--dim    { border-top: 3px solid #e4e7ec; }
-.crm2-stat__num { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
-.crm2-stat--blue   .crm2-stat__num { color: #2563eb; }
-.crm2-stat--green  .crm2-stat__num { color: #16a34a; }
-.crm2-stat--orange .crm2-stat__num { color: #d97706; }
-.crm2-stat--red    .crm2-stat__num { color: #dc2626; }
-.crm2-stat--purple .crm2-stat__num { color: #7c3aed; }
-.crm2-stat__label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
-
-/* ── Filter panel ────────────────────────── */
-.crm2-filter-panel {
-  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 12px; overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-}
-.crm2-filter-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #f0f2f5; }
-.crm2-filter-panel__title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #0f1117; }
-.crm2-filter-badge { background: #eff6ff; color: #2563eb; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-.crm2-filter-clear { font-size: 12px; color: #6b7280; background: none; border: none; cursor: pointer; padding: 0; transition: color 0.15s; font-family: "Plus Jakarta Sans", sans-serif; }
-.crm2-filter-clear:hover { color: #dc2626; }
-.crm2-filter-clear:disabled { opacity: 0.4; pointer-events: none; }
-.crm2-filter-fields { display: grid; grid-template-columns: repeat(4, 1fr); }
-.crm2-filter-field { padding: 12px 16px; border-right: 1px solid #f0f2f5; display: flex; flex-direction: column; gap: 6px; }
-.crm2-filter-field--actions { flex-direction: row; align-items: flex-end; gap: 8px; }
-.crm2-filter-field__label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
-.crm2-filter-divider { height: 1px; background: #f0f2f5; }
-.crm2-filter-points { display: grid; grid-template-columns: 1fr 1fr auto; }
-.crm2-filter-bar { display: flex; gap: 10px; align-items: center; }
-.crm2-active-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid #f0f2f5; }
-.crm2-af-label { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; }
-.crm2-filter-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb;
-  padding: 3px 8px 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600;
-}
-.crm2-chip-remove { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; opacity: 0.6; }
-.crm2-chip-remove:hover { opacity: 1; }
-
-/* ── Card ────────────────────────────────── */
-.crm2-card {
-  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  overflow: hidden;
-}
-
-/* ── Toolbar ─────────────────────────────── */
-.crm2-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 13px 20px; border-bottom: 1px solid #f0f2f5; background: #fafbfc; }
-.crm2-toolbar__left { display: flex; align-items: center; gap: 10px; }
-.crm2-count { display: flex; align-items: baseline; gap: 4px; }
-.crm2-count__num { font-size: 18px; font-weight: 800; }
-.crm2-count__label { font-size: 12px; color: #9ca3af; font-weight: 600; }
-.crm2-count-badge { background: #fff; color: #2563eb; border-radius: 20px; padding: 1px 7px; font-size: 11px; font-weight: 800; margin-left: 4px; }
-
-/* ── Table ───────────────────────────────── */
-.crm2-table-wrap { overflow-x: auto; position: relative; min-height: 100px; }
-.crm2-table-wrap--loading { pointer-events: none; }
-.crm2-loader-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.75); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10; }
-.crm2-loader-ring { width: 36px; height: 36px; border: 3px solid #e4e7ec; border-top-color: #2563eb; border-radius: 50%; animation: crm2-spin 0.7s linear infinite; }
-.crm2-loading-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 48px; color: #6b7280; font-size: 13.5px; }
-
-.crm2-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.crm2-table thead tr { border-bottom: 2px solid #f0f2f5; }
-.crm2-table th { padding: 11px 14px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; background: #fafbfc; white-space: nowrap; }
-.crm2-table td { padding: 12px 14px; vertical-align: middle; border-bottom: 1px solid #f0f2f5; }
-.crm2-row { transition: background 0.12s; }
-.crm2-row:hover { background: #fafbfc; }
-.crm2-row:last-child td { border-bottom: none; }
-.crm2-row--selected { background: #eff6ff !important; }
-.crm2-td-truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Cell types */
-.crm2-mono-id { font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 2px 7px; border-radius: 5px; }
-.crm2-mono { font-family: "JetBrains Mono", monospace; font-size: 12px; }
-.crm2-text--muted  { color: #6b7280; }
-.crm2-text--blue   { color: #2563eb; }
-.crm2-text--green  { color: #16a34a; }
-.crm2-text--orange { color: #d97706; }
-.crm2-text--red    { color: #dc2626; }
-
-.crm2-customer-cell { display: flex; align-items: center; gap: 10px; }
-.crm2-avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.9); font-family: "Plus Jakarta Sans", sans-serif; font-weight: 700; font-size: 11px; flex-shrink: 0; }
-.crm2-avatar--lg { width: 44px; height: 44px; font-size: 15px; }
-.crm2-avatar--xl { width: 64px; height: 64px; font-size: 20px; }
-.crm2-cust-info { display: flex; flex-direction: column; gap: 1px; }
-.crm2-cust-name { font-weight: 600; font-size: 13px; }
-.crm2-cust-dob { font-size: 11px; color: #9ca3af; }
-.crm2-contact-cell { display: flex; flex-direction: column; gap: 2px; }
-.crm2-contact-email { font-size: 12.5px; color: #6b7280; }
-.crm2-contact-phone { font-size: 11.5px; color: #6b7280; }
-
-.crm2-points-cell { display: flex; flex-direction: column; gap: 4px; }
-.crm2-points-num { font-size: 12.5px; font-weight: 700; color: #2563eb; }
-.crm2-points-track { height: 3px; background: #e4e7ec; width: 70px; border-radius: 2px; overflow: hidden; }
-.crm2-points-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
-
-.crm2-vipnote-cell { cursor: pointer; padding: 4px 8px; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a; max-width: 180px; transition: all 0.12s; }
-.crm2-vipnote-cell:hover { background: #fef3c7; }
-.crm2-vipnote-text { font-size: 11.5px; color: #d97706; line-height: 1.4; word-break: break-word; }
-.crm2-note-text { font-size: 12.5px; color: #6b7280; }
-
-/* Tags */
-.crm2-tag { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
-.crm2-tag--blue   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
-.crm2-tag--green  { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
-.crm2-tag--red    { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
-.crm2-tag--orange { background: #fffbeb; color: #d97706; border-color: #fde68a; }
-.crm2-tag--purple { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
-.crm2-tag--gray   { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
-
-/* Tier tags */
-.crm2-tier-tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; border: 1px solid transparent; white-space: nowrap; text-transform: uppercase; }
-.crm2-tier-tag--sm { font-size: 10px; padding: 2px 8px; }
-.crm2-tier--bronze   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
-.crm2-tier--silver   { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
-.crm2-tier--gold     { background: #fef9c3; color: #a16207; border-color: #fde047; }
-.crm2-tier--platinum { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
-.crm2-tier--diamond  { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
-
-/* Action buttons */
-.crm2-actions { display: flex; gap: 4px; flex-wrap: wrap; }
-.crm2-action-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; border: 1.5px solid transparent; cursor: pointer; transition: all 0.15s ease; font-family: "Plus Jakarta Sans", sans-serif; white-space: nowrap; }
-.crm2-action-btn--edit   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
-.crm2-action-btn--edit:hover   { background: #2563eb; color: #fff; border-color: #2563eb; transform: translateY(-1px); }
-.crm2-action-btn--blue   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
-.crm2-action-btn--blue:hover   { background: #2563eb; color: #fff; border-color: #2563eb; transform: translateY(-1px); }
-.crm2-action-btn--gold   { background: #fffbeb; color: #d97706; border-color: #fde68a; }
-.crm2-action-btn--gold:hover   { background: #d97706; color: #fff; border-color: #d97706; transform: translateY(-1px); }
-.crm2-action-btn--delete { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
-.crm2-action-btn--delete:hover { background: #dc2626; color: #fff; border-color: #dc2626; transform: translateY(-1px); }
-.crm2-action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-
-/* Empty state */
-.crm2-empty { text-align: center; padding: 60px 20px !important; }
-.crm2-empty__inner { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.crm2-empty__icon { width: 56px; height: 56px; border-radius: 50%; background: #f0f2f5; display: flex; align-items: center; justify-content: center; color: #9ca3af; }
-.crm2-empty__inner p { color: #6b7280; font-size: 14px; margin: 0; }
-
-/* Pagination */
-.crm2-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #f0f2f5; background: #fafbfc; flex-wrap: wrap; gap: 10px; }
-.crm2-pagination__info { font-size: 12.5px; color: #6b7280; font-weight: 600; }
-.crm2-pagination__controls { display: flex; align-items: center; gap: 4px; }
-.crm2-page-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1.5px solid #e4e7ec; background: #ffffff; color: #6b7280; cursor: pointer; transition: all 0.15s; font-family: "Plus Jakarta Sans", sans-serif; }
-.crm2-page-btn:hover:not(:disabled) { border-color: #2563eb; color: #2563eb; }
-.crm2-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.crm2-page-btn--active { background: #2563eb; border-color: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
-
-/* Buttons */
-.crm2-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; transition: all 0.18s ease; font-family: "Plus Jakarta Sans", sans-serif; white-space: nowrap; }
-.crm2-btn--primary { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.22); }
-.crm2-btn--primary:hover { background: #1d4ed8; transform: translateY(-1px); }
-.crm2-btn--outline { background: #ffffff; color: #0f1117; border: 1.5px solid #e4e7ec; }
-.crm2-btn--outline:hover { border-color: #9ca3af; background: #f9fafb; }
-.crm2-btn--ghost { background: transparent; color: #6b7280; border: 1.5px solid #e4e7ec; }
-.crm2-btn--ghost:hover { background: #f0f2f5; color: #0f1117; }
-.crm2-btn--loading, .crm2-btn:disabled { opacity: 0.65; pointer-events: none; transform: none !important; }
-.crm2-btn--confirm-blue   { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,0.35); padding: 11px 22px; }
-.crm2-btn--confirm-blue:hover { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); transform: translateY(-1px); }
-.crm2-btn--confirm-orange { background: linear-gradient(135deg, #b45309, #d97706); color: #fff; box-shadow: 0 4px 14px rgba(217,119,6,0.35); padding: 11px 22px; }
-.crm2-btn--confirm-orange:hover { background: linear-gradient(135deg, #92400e, #b45309); transform: translateY(-1px); }
-.crm2-btn--confirm-green  { background: linear-gradient(135deg, #15803d, #16a34a); color: #fff; box-shadow: 0 4px 14px rgba(22,163,74,0.35); padding: 11px 22px; }
-.crm2-btn--confirm-green:hover { background: linear-gradient(135deg, #14532d, #15803d); transform: translateY(-1px); }
-
-.crm2-btn-ghost-sm { background: transparent; color: #6b7280; border: 1.5px solid #e4e7ec; padding: 5px 11px; border-radius: 8px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.12s; font-family: "Plus Jakarta Sans", sans-serif; display: inline-flex; align-items: center; gap: 5px; }
-.crm2-btn-ghost-sm:hover { border-color: #9ca3af; color: #0f1117; }
-.crm2-btn-ghost-sm:disabled { opacity: 0.4; cursor: not-allowed; }
-.crm2-btn-link { background: none; border: none; color: #2563eb; font-size: 12px; cursor: pointer; font-family: "Plus Jakarta Sans", sans-serif; text-decoration: underline; padding: 0; }
-
-.crm2-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: #f0f2f5; border-radius: 6px; cursor: pointer; color: #6b7280; flex-shrink: 0; transition: all 0.15s; }
-.crm2-icon-btn:hover { background: #fff1f2; color: #dc2626; }
-
-/* Input */
-.crm2-input { padding: 9px 12px; font-size: 13px; font-family: "Plus Jakarta Sans", sans-serif; border: 1.5px solid #e4e7ec; border-radius: 8px; background: #ffffff; color: #0f1117; outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; box-sizing: border-box; }
-.crm2-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
-.crm2-input::placeholder { color: #9ca3af; }
-.crm2-select { cursor: pointer; }
-.crm2-textarea { resize: vertical; line-height: 1.6; min-height: 80px; }
-
-/* ── Birthday section ────────────────────── */
-.crm2-sub-tabs {
-  display: flex; gap: 2px; background: #ffffff;
-  border: 1px solid #e4e7ec; border-radius: 12px; padding: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  overflow-x: auto;
-}
-.crm2-sub-tab { display: inline-flex; align-items: center; padding: 7px 14px; font-size: 12px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: #6b7280; cursor: pointer; transition: all 0.15s; font-family: "Plus Jakarta Sans", sans-serif; white-space: nowrap; }
-.crm2-sub-tab:hover { background: #f0f2f5; color: #0f1117; }
-.crm2-sub-tab--active { background: #2563eb; color: #fff; }
-
-.crm2-bd-banner { display: flex; align-items: center; gap: 9px; padding: 10px 20px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0f2f5; }
-.crm2-bd-banner--green  { background: #f0fdf4; color: #16a34a; border-bottom-color: #bbf7d0; }
-.crm2-bd-banner--blue   { background: #eff6ff; color: #2563eb; border-bottom-color: #bfdbfe; }
-.crm2-bd-banner--orange { background: #fffbeb; color: #d97706; border-bottom-color: #fde68a; }
-.crm2-bd-controls { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f0f2f5; }
-
-/* ── Bar ─────────────────────────────────── */
-.crm2-bar-wrap { height: 6px; background: #e4e7ec; border-radius: 999px; overflow: hidden; }
-.crm2-bar { height: 100%; border-radius: 999px; transition: width 0.4s ease; min-width: 4px; }
-.crm2-bar--blue   { background: #2563eb; }
-.crm2-bar--green  { background: #16a34a; }
-.crm2-bar--orange { background: #d97706; }
-
-/* ── Inactive segment tabs ───────────────── */
-.crm2-seg-tabs {
-  display: flex; gap: 2px; background: #ffffff;
-  border: 1px solid #e4e7ec; border-radius: 12px; padding: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  overflow-x: auto;
-}
-.crm2-seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: #6b7280; cursor: pointer; transition: all 0.15s; font-family: "Plus Jakarta Sans", sans-serif; }
-.crm2-seg-btn:hover { background: #f0f2f5; color: #0f1117; }
-.crm2-seg-btn--active { background: #ffffff; color: #0f1117; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.crm2-seg-label { font-size: 13px; }
-.crm2-seg-count { padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 700; background: #f0f2f5; color: #9ca3af; font-family: "JetBrains Mono", monospace; transition: all 0.2s; }
-.crm2-seg-count--loaded { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-
-/* ── Inactive cards ──────────────────────── */
-.crm2-cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-@media (max-width:1100px) { .crm2-cards-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width:700px)  { .crm2-cards-grid { grid-template-columns: 1fr; } }
-
-.crm2-cust-card {
-  background: #ffffff; border: 1px solid #e4e7ec; border-radius: 12px; overflow: hidden;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  animation: crm2-fadeUp 0.3s ease both;
-}
-.crm2-cust-card:hover {
-  border-color: #bfdbfe; transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-}
-@keyframes crm2-fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-.crm2-card-tier-bar { height: 3px; width: 100%; }
-.crm2-tier-bar--bronze   { background: #cd7f32; }
-.crm2-tier-bar--silver   { background: #94a3b8; }
-.crm2-tier-bar--gold     { background: #f0b429; }
-.crm2-tier-bar--platinum { background: #7c3aed; }
-.crm2-tier-bar--diamond  { background: #16a34a; }
-.crm2-tier-bar--none     { background: #e4e7ec; }
-
-.crm2-card-head { display: flex; align-items: center; gap: 10px; padding: 14px; }
-.crm2-card-info { flex: 1; min-width: 0; }
-.crm2-card-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.crm2-card-email { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-.crm2-card-divider { height: 1px; background: #f0f2f5; margin: 0 14px; }
-.crm2-card-metrics { display: flex; align-items: center; justify-content: space-around; padding: 12px 14px; }
-.crm2-cm { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.crm2-cm__val { font-size: 13px; font-weight: 600; color: #0f1117; }
-.crm2-cm__label { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
-.crm2-cm-divider { width: 1px; height: 28px; background: #f0f2f5; }
-.crm2-card-foot { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 14px; border-top: 1px solid #f0f2f5; }
-.crm2-last-order { font-size: 11.5px; color: #6b7280; }
-.crm2-last-order--none { color: #dc2626; }
-
-/* ── Zero Order templates ────────────────── */
-.crm2-zo-templates { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
-.crm2-zo-tpl { padding: 12px 14px; border: 1.5px solid #e4e7ec; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
-.crm2-zo-tpl:hover { border-color: #bfdbfe; background: #eff6ff; }
-.crm2-zo-tpl--active { border-color: #2563eb; background: #eff6ff; }
-.crm2-zo-tpl__icon { font-size: 20px; margin-bottom: 4px; }
-.crm2-zo-tpl__name { font-size: 12px; font-weight: 700; color: #0f1117; }
-.crm2-zo-tpl__desc { font-size: 11px; color: #6b7280; margin-top: 2px; }
-
-.crm2-zo-preview { background: #f0f2f5; border: 1px dashed #bfdbfe; border-radius: 8px; padding: 14px; }
-.crm2-zo-preview__label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; margin-bottom: 10px; }
-.crm2-zo-preview__card { background: #ffffff; border: 1px solid #e4e7ec; border-radius: 8px; padding: 12px; display: flex; gap: 12px; align-items: flex-start; }
-
-.crm2-zo-progress { height: 4px; background: #f0f2f5; overflow: hidden; margin: 0 -24px; }
-.crm2-zo-progress__fill { height: 100%; background: #2563eb; transition: width 0.4s ease; }
-
-/* ══════════════════════════════════════════
-   DIALOGS
-══════════════════════════════════════════ */
-.crm2-overlay { position: fixed; inset: 0; background: rgba(10,12,20,0.28); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; backdrop-filter: blur(2px); }
-.crm2-dialog {
-  background: #fff; border-radius: 20px; width: 100%;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.14), 0 8px 24px rgba(0,0,0,0.06);
-  overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;
-}
-.crm2-dialog--sm { max-width: 480px; }
-.crm2-dialog--lg { max-width: 760px; }
-.crm2-dialog--xl { max-width: 1000px; }
-
-/* Band */
-.crm2-dialog__band { position: relative; height: 100px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-.crm2-dialog__band--blue   { background: linear-gradient(135deg, #1d4ed8, #2563eb 60%, #60a5fa); }
-.crm2-dialog__band--orange { background: linear-gradient(135deg, #b45309, #d97706 60%, #fbbf24); }
-.crm2-dialog__band--green  { background: linear-gradient(135deg, #15803d, #16a34a 60%, #4ade80); }
-.crm2-dialog__band--purple { background: linear-gradient(135deg, #5b21b6, #7c3aed 60%, #a78bfa); }
-.crm2-dialog__band-circles { position: absolute; inset: 0; pointer-events: none; }
-.crm2-band-circle { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.1); }
-.crm2-band-circle--1 { width: 120px; height: 120px; top: -30px; right: -20px; }
-.crm2-band-circle--2 { width: 70px;  height: 70px;  bottom: -15px; left: 20px; }
-.crm2-band-circle--3 { width: 45px;  height: 45px;  top: 10px; left: 50%; margin-left: -22px; background: rgba(255,255,255,0.07); }
-.crm2-dialog__icon-wrap { position: relative; z-index: 1; }
-.crm2-dialog__icon-ring { width: 56px; height: 56px; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; backdrop-filter: blur(4px); box-shadow: 0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3); }
-
-/* Dialog body */
-.crm2-dialog__body { padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
-.crm2-dialog__head-simple { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; border-bottom: 1px solid #f0f2f5; gap: 12px; flex-shrink: 0; }
-.crm2-dialog__head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.crm2-details-hd { display: flex; align-items: center; gap: 12px; }
-.crm2-dialog__badge { display: inline-flex; align-self: flex-start; font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
-.crm2-dialog__badge--blue   { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-.crm2-dialog__badge--orange { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-.crm2-dialog__badge--green  { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.crm2-dialog__title { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.crm2-dialog__sub { font-size: 12px; color: #6b7280; margin: 3px 0 0; font-family: "JetBrains Mono", monospace; }
-.crm2-dialog__notice { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; line-height: 1.5; border: 1px solid transparent; }
-.crm2-dialog__notice--red { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
-.crm2-dialog__actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px; border-top: 1px solid #f0f2f5; margin-top: 4px; }
-
-/* Dialog form sections */
-.crm2-dlg-section { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; padding-bottom: 8px; border-bottom: 1px solid #f0f2f5; margin-top: 4px; }
-.crm2-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.crm2-field { display: flex; flex-direction: column; gap: 5px; }
-.crm2-field__label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
-.crm2-required { color: #dc2626; margin-left: 2px; }
-
-/* Details grid */
-.crm2-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.crm2-detail-block { border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; }
-.crm2-detail-block__head { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; background: #fafbfc; padding: 10px 14px; border-bottom: 1px solid #f0f2f5; }
-.crm2-detail-rows { padding: 4px 14px; }
-.crm2-detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 12.5px; }
-.crm2-detail-row:last-child { border-bottom: none; }
-.crm2-dk { color: #6b7280; font-weight: 600; }
-.crm2-dv { color: #0f1117; text-align: right; font-size: 12.5px; }
-.crm2-detail-body-text { padding: 12px 14px; font-size: 12.5px; color: #6b7280; line-height: 1.6; }
-
-/* VIP note block */
-.crm2-vip-note-block { border-color: #fde68a; }
-.crm2-vip-note-head { padding: 10px 14px; background: #fffbeb; border-bottom: 1px solid #fde68a; }
-.crm2-internal-tag { display: inline-block; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 1px 7px; border-radius: 20px; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-left: 6px; }
-.crm2-vip-textarea { border-color: #fde68a; background: #fffbeb; color: #92400e; }
-.crm2-vip-textarea:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.08); }
-.crm2-vip-note-hint { font-size: 10.5px; color: #6b7280; margin-top: 5px; display: flex; justify-content: space-between; }
-.crm2-vip-unavail { font-size: 11.5px; color: #6b7280; padding: 10px 14px; border: 1px solid #e4e7ec; border-radius: 8px; background: #f0f2f5; }
-
-/* VIP modal */
-.crm2-vip-modal { border: 1px solid #fde68a; }
-.crm2-vip-band { position: relative; background: linear-gradient(135deg, #451a03, #78350f 50%, #92400e); padding: 22px 24px 18px; overflow: hidden; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
-.crm2-vip-band__deco { position: absolute; border-radius: 50%; border: 1px solid rgba(205,127,50,0.15); background: rgba(205,127,50,0.06); pointer-events: none; }
-.crm2-vip-band__deco--1 { width: 120px; height: 120px; top: -20px; right: -20px; }
-.crm2-vip-band__deco--2 { width: 60px;  height: 60px;  top: 10px;  right: 30px; }
-.crm2-vip-band__content { flex: 1; position: relative; z-index: 1; }
-.crm2-vip-band__top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.crm2-vip-eyebrow { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: #d97706; font-weight: 500; }
-.crm2-vip-admin-badge { background: rgba(205,127,50,0.15); border: 1px solid rgba(205,127,50,0.3); color: #fbbf24; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
-.crm2-vip-band__title { font-size: 22px; color: #fef3c7; font-weight: 800; letter-spacing: -0.02em; }
-.crm2-vip-band__customer { margin-top: 6px; font-size: 12px; color: #d97706; letter-spacing: 0.3px; }
-.crm2-vip-close-btn { position: relative; z-index: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(205,127,50,0.25); color: #d97706; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
-.crm2-vip-close-btn:hover { background: rgba(205,127,50,0.2); color: #fbbf24; }
-
-.crm2-vip-notice { background: #fffbeb; border-bottom: 1px solid #fde68a; padding: 9px 24px; font-size: 12px; color: #92400e; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-
-.crm2-vip-suggestions { margin-bottom: 4px; }
-.crm2-vip-suggestion-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #9ca3af; font-weight: 700; margin-bottom: 8px; }
-.crm2-vip-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.crm2-vip-chip { background: #ffffff; border: 1.5px solid #e4e7ec; color: #6b7280; padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; font-family: "Plus Jakarta Sans", sans-serif; transition: all 0.15s; }
-.crm2-vip-chip:hover { border-color: #fde68a; color: #92400e; background: #fffbeb; }
-
-.crm2-vip-textarea-wrap { position: relative; }
-.crm2-vip-textarea { width: 100%; background: #fffdf7; border: 1.5px solid #fde68a; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #0f1117; font-family: "Plus Jakarta Sans", sans-serif; resize: vertical; min-height: 120px; box-sizing: border-box; outline: none; line-height: 1.6; transition: border-color 0.15s; }
-.crm2-vip-textarea:focus { border-color: #d97706; background: #fffcf0; }
-.crm2-vip-textarea::placeholder { color: #9ca3af; }
-.crm2-vip-textarea-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; min-height: 20px; }
-
-/* Summary controls */
-.crm2-summary-controls { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid #f0f2f5; background: #fafbfc; gap: 12px; flex-wrap: wrap; flex-shrink: 0; }
-.crm2-sc-left { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.crm2-ctrl-group { display: flex; align-items: center; gap: 8px; }
-.crm2-ctrl-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9ca3af; white-space: nowrap; }
-.crm2-toggle-set { display: flex; border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; }
-.crm2-tgl { padding: 6px 14px; font-size: 12px; font-weight: 600; border: none; background: #ffffff; cursor: pointer; font-family: "Plus Jakarta Sans", sans-serif; color: #6b7280; transition: all 0.12s; }
-.crm2-tgl:hover { background: #f0f2f5; }
-.crm2-tgl--on { background: #2563eb !important; color: #fff !important; }
-
-.crm2-summary-body { max-height: 60vh; overflow-y: auto; }
-
-/* KPI row */
-.crm2-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-.crm2-kpi { background: #f0f2f5; border: 1px solid #e4e7ec; border-radius: 8px; padding: 16px; }
-.crm2-kpi--green  { border-top: 3px solid #16a34a; }
-.crm2-kpi--orange { border-top: 3px solid #d97706; }
-.crm2-kpi--blue   { border-top: 3px solid #2563eb; }
-.crm2-kpi--red    { border-top: 3px solid #dc2626; }
-.crm2-kpi--purple { border-top: 3px solid #7c3aed; }
-.crm2-kpi__val { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
-.crm2-kpi--green  .crm2-kpi__val { color: #16a34a; }
-.crm2-kpi--orange .crm2-kpi__val { color: #d97706; }
-.crm2-kpi--blue   .crm2-kpi__val { color: #2563eb; }
-.crm2-kpi--red    .crm2-kpi__val { color: #dc2626; }
-.crm2-kpi--purple .crm2-kpi__val { color: #7c3aed; }
-.crm2-kpi__label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #9ca3af; margin-top: 6px; }
-
-/* Period list */
-.crm2-period-list { display: flex; flex-direction: column; gap: 6px; }
-.crm2-period-row { display: grid; grid-template-columns: 150px 1fr 110px; gap: 16px; align-items: center; background: #f0f2f5; border: 1px solid #e4e7ec; border-radius: 8px; padding: 12px 16px; transition: background 0.1s; }
-.crm2-period-row:hover { background: #ffffff; }
-.crm2-period-label { font-weight: 700; font-size: 13px; }
-.crm2-period-dates { font-size: 10.5px; margin-top: 2px; }
-.crm2-period-bars { display: flex; flex-direction: column; gap: 5px; }
-.crm2-bar-row { display: flex; align-items: center; gap: 8px; }
-.crm2-br-num { font-size: 11px; font-weight: 600; font-family: "JetBrains Mono", monospace; width: 80px; text-align: right; }
-.crm2-bar-bg { flex: 1; height: 6px; background: #e4e7ec; border-radius: 999px; overflow: hidden; }
-.crm2-period-net { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.crm2-net-chip { font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
-.crm2-net-chip--pos { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.crm2-net-chip--neg { background: #fff1f2; color: #dc2626; border: 1px solid #fecdd3; }
-
-.crm2-cust-period { margin-bottom: 16px; border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; }
-.crm2-cust-period__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #fafbfc; border-bottom: 1px solid #f0f2f5; }
-
-/* Inactive detail mini stats */
-.crm2-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
-.crm2-stat-mini { background: #f0f2f5; border: 1px solid #e4e7ec; border-radius: 8px; padding: 14px; text-align: center; }
-.crm2-stat-mini--orange { border-top: 3px solid #d97706; }
-.crm2-stat-mini--green  { border-top: 3px solid #16a34a; }
-.crm2-stat-mini__val   { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
-.crm2-stat-mini--orange .crm2-stat-mini__val { color: #d97706; }
-.crm2-stat-mini--green  .crm2-stat-mini__val { color: #16a34a; }
-.crm2-stat-mini__label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
-
-/* Spinner */
-.crm2-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.12); border-top-color: #6b7280; border-radius: 50%; animation: crm2-spin 0.6s linear infinite; flex-shrink: 0; }
-.crm2-spinner--white { border-color: rgba(255,255,255,0.25); border-top-color: #fff; }
-@keyframes crm2-spin { to { transform: rotate(360deg); } }
-
-/* Responsive */
-@media (max-width: 900px) {
-  .crm2-page { padding: 20px 16px 40px; }
-  .crm2-filter-fields { grid-template-columns: 1fr 1fr; }
-  .crm2-filter-points { grid-template-columns: 1fr 1fr; }
-  .crm2-row2 { grid-template-columns: 1fr; }
-  .crm2-details-grid { grid-template-columns: 1fr; }
-  .crm2-kpi-row { grid-template-columns: 1fr 1fr; }
-  .crm2-period-row { grid-template-columns: 1fr; }
-}
-</style>
+<style></style>

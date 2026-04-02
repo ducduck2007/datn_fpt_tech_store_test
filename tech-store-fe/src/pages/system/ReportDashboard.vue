@@ -1,593 +1,571 @@
 <template>
-  <div class="reports-root">
+  <div style="background: #f4f5f9; min-height: 100vh; padding: 28px 28px 56px;">
 
-    <!-- ── Page Header ───────────────────────────── -->
-    <header class="rp-header">
-      <div class="rp-header__left">
-        <h1 class="rp-header__title">Tổng quan kinh doanh</h1>
-        <p class="rp-header__sub">Doanh thu · Hiệu suất · Trạng thái đơn hàng</p>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--el-border-color-light);">
+      <div>
+        <div style="font-size:26px; font-weight:800; letter-spacing:-0.025em; color:#18192b; margin-bottom:4px;">Tổng quan kinh doanh</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Doanh thu · Hiệu suất · Trạng thái đơn hàng</div>
       </div>
-      <div class="rp-header__right">
-        <div class="rp-date-pill">
-          <svg class="rp-date-pill__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          {{ todayFormatted }}
-        </div>
-      </div>
-    </header>
-
-    <!-- ── KPI Strip ─────────────────────────────── -->
-    <div class="kpi-strip" v-if="channelData.length">
-      <div class="kpi-card kpi-card--primary">
-        <div class="kpi-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <div class="kpi-card__body">
-          <span class="kpi-card__label">Tổng doanh thu</span>
-          <span class="kpi-card__value">{{ formatMoney(totalRevenue) }}&thinsp;₫</span>
-          <span class="kpi-tag kpi-tag--green">↑ All channels</span>
-        </div>
-      </div>
-
-      <div class="kpi-card" v-for="ch in channelData" :key="ch.channel"
-        :class="ch.channel === 'ONLINE' ? 'kpi-card--online' : 'kpi-card--offline'">
-        <div class="kpi-card__icon">
-          <svg v-if="ch.channel === 'ONLINE'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
-        <div class="kpi-card__body">
-          <span class="kpi-card__label">{{ ch.channel }}</span>
-          <span class="kpi-card__value">{{ formatMoney(ch.revenue) }}&thinsp;₫</span>
-          <span class="kpi-tag" :class="ch.channel === 'ONLINE' ? 'kpi-tag--blue' : 'kpi-tag--purple'">
-            {{ ((ch.revenue / totalRevenue) * 100).toFixed(1) }}% tổng
-          </span>
-        </div>
-      </div>
-
-      <div class="kpi-card kpi-card--orders" v-if="staffData.length">
-        <div class="kpi-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <path d="M16 10a4 4 0 0 1-8 0"/>
-          </svg>
-        </div>
-        <div class="kpi-card__body">
-          <span class="kpi-card__label">Tổng đơn hàng</span>
-          <span class="kpi-card__value">{{ totalOrders }}</span>
-          <span class="kpi-tag kpi-tag--green">{{ staffData.length }} nhân viên</span>
-        </div>
-      </div>
+      <el-tag effect="plain" size="large" style="border-radius:99px;">{{ todayFormatted }}</el-tag>
     </div>
 
-    <!-- ── Row 1: Channel + Staff ─────────────────── -->
-    <div class="rp-grid rp-grid--2col">
+    <!-- KPI Strip -->
+    <el-row v-if="channelData.length" :gutter="14" style="margin-bottom:24px;">
+      <el-col :xs="12" :sm="6">
+        <el-card shadow="never" :body-style="{ padding:'16px 18px' }" style="border-left:3px solid var(--el-color-primary); margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <el-icon :size="28" style="color:var(--el-color-primary); flex-shrink:0;"><DataAnalysis /></el-icon>
+            <div>
+              <div style="font-size:12px; color:var(--el-text-color-secondary); margin-bottom:3px;">Tổng doanh thu</div>
+              <div style="font-size:16px; font-weight:900; white-space:nowrap;">{{ formatMoney(totalRevenue) }}&thinsp;₫</div>
+              <div style="font-size:11px; color:var(--el-color-success); margin-top:3px; font-weight:600;">↑ All channels</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="12" :sm="6" v-for="ch in channelData" :key="ch.channel">
+        <el-card shadow="never" :body-style="{ padding:'16px 18px' }"
+          :style="`border-left:3px solid ${ch.channel==='ONLINE'?'var(--el-color-primary)':'var(--el-color-warning)'}; margin-bottom:10px;`">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <el-icon :size="28" :style="`color:${ch.channel==='ONLINE'?'var(--el-color-primary)':'var(--el-color-warning)'}; flex-shrink:0;`">
+              <component :is="ch.channel==='ONLINE' ? 'ChromeFilled' : 'House'" />
+            </el-icon>
+            <div>
+              <div style="font-size:12px; color:var(--el-text-color-secondary); margin-bottom:3px;">{{ ch.channel }}</div>
+              <div style="font-size:16px; font-weight:900; white-space:nowrap;">{{ formatMoney(ch.revenue) }}&thinsp;₫</div>
+              <div :style="`font-size:11px; margin-top:3px; font-weight:600; color:${ch.channel==='ONLINE'?'var(--el-color-primary)':'var(--el-color-warning)'};`">
+                {{ ((ch.revenue/totalRevenue)*100).toFixed(1) }}% tổng
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="12" :sm="6" v-if="staffData.length">
+        <el-card shadow="never" :body-style="{ padding:'16px 18px' }" style="border-left:3px solid var(--el-color-success); margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <el-icon :size="28" style="color:var(--el-color-success); flex-shrink:0;"><ShoppingCart /></el-icon>
+            <div>
+              <div style="font-size:12px; color:var(--el-text-color-secondary); margin-bottom:3px;">Tổng đơn hàng</div>
+              <div style="font-size:16px; font-weight:900;">{{ totalOrders }}</div>
+              <div style="font-size:11px; color:var(--el-color-success); margin-top:3px; font-weight:600;">{{ staffData.length }} nhân viên</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- Row 1: Channel + Staff -->
+    <el-row :gutter="20" style="margin-bottom:20px;">
 
       <!-- Revenue by Channel -->
-      <section class="rp-card">
-        <div class="rp-card__header">
-          <div class="rp-card__title-group">
-            <span class="rp-icon rp-icon--orange">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-            </span>
-            <div>
-              <h3 class="rp-card__title">Doanh thu theo kênh</h3>
-              <p class="rp-card__desc">Revenue by Channel</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="channel-viz" v-if="channelData.length && totalRevenue">
-          <div class="channel-viz__row" v-for="ch in channelData" :key="ch.channel">
-            <div class="channel-viz__top">
-              <span class="channel-viz__label">
-                <span class="ch-dot" :class="ch.channel === 'ONLINE' ? 'ch-dot--online' : 'ch-dot--offline'"></span>
-                <span class="ch-badge" :class="ch.channel === 'ONLINE' ? 'ch-badge--online' : 'ch-badge--offline'">
-                  {{ ch.channel }}
-                </span>
-              </span>
-              <div class="channel-viz__nums">
-                <span class="channel-viz__amount">{{ formatMoney(ch.revenue) }}&thinsp;₫</span>
-                <span class="channel-viz__pct">{{ ((ch.revenue / totalRevenue) * 100).toFixed(1) }}%</span>
+      <el-col :xs="24" :lg="12">
+        <el-card shadow="never">
+          <template #header>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <el-avatar :size="32" style="background:var(--el-color-warning-light-8); flex-shrink:0;">
+                <el-icon style="color:var(--el-color-warning);"><TrendCharts /></el-icon>
+              </el-avatar>
+              <div>
+                <div style="font-weight:700; font-size:14px;">Doanh thu theo kênh</div>
+                <div style="font-size:12px; color:var(--el-text-color-secondary);">Revenue by Channel</div>
               </div>
             </div>
-            <div class="progress-track">
-              <div class="progress-fill"
-                :class="ch.channel === 'ONLINE' ? 'progress-fill--online' : 'progress-fill--offline'"
-                :style="{ width: (ch.revenue / totalRevenue) * 100 + '%' }">
-              </div>
-            </div>
-          </div>
-        </div>
+          </template>
 
-        <el-table :data="channelData" :show-header="true" class="rp-table">
-          <el-table-column prop="channel" label="Kênh bán hàng">
-            <template #default="{ row }">
-              <span class="ch-badge" :class="row.channel === 'ONLINE' ? 'ch-badge--online' : 'ch-badge--offline'">
-                {{ row.channel }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="revenue" label="Doanh thu" align="right">
-            <template #default="{ row }">
-              <span class="mono-val">{{ formatMoney(row.revenue) }}&thinsp;₫</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="Tỷ trọng" align="right" width="110">
-            <template #default="{ row }">
-              <span class="pct-val">{{ ((row.revenue / totalRevenue) * 100).toFixed(1) }}%</span>
-            </template>
-          </el-table-column>
-        </el-table>
-      </section>
-
-      <!-- Orders by Staff -->
-      <section class="rp-card">
-        <div class="rp-card__header">
-          <div class="rp-card__title-group">
-            <span class="rp-icon rp-icon--purple">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </span>
-            <div>
-              <h3 class="rp-card__title">Hiệu suất nhân viên</h3>
-              <p class="rp-card__desc">Orders by Staff</p>
-            </div>
-          </div>
-          <span class="rp-badge-count" v-if="staffData.length">{{ staffData.length }} nhân viên</span>
-        </div>
-
-        <div class="staff-list">
-          <div class="staff-item" v-for="(s, idx) in staffData" :key="s.staff">
-            <div class="staff-item__rank" :class="`rank-${Math.min(idx + 1, 3)}`">{{ idx + 1 }}</div>
-            <div class="staff-item__avatar">{{ getInitials(s.staff) }}</div>
-            <div class="staff-item__info">
-              <span class="staff-item__name">{{ s.staff }}</span>
-              <div class="staff-item__bar-wrap">
-                <div class="staff-bar-track">
-                  <div class="staff-bar-fill" :style="{ width: (s.orders / staffData[0].orders) * 100 + '%' }"></div>
+          <div v-if="channelData.length && totalRevenue" style="margin-bottom:16px;">
+            <div v-for="ch in channelData" :key="ch.channel" style="margin-bottom:14px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span :style="`width:8px;height:8px;border-radius:50%;background:${ch.channel==='ONLINE'?'var(--el-color-primary)':'var(--el-color-warning)'};display:inline-block;flex-shrink:0;`"></span>
+                  <el-tag :type="ch.channel==='ONLINE'?'primary':'warning'" effect="plain" size="small" round>{{ ch.channel }}</el-tag>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <span style="font-weight:700; font-family:monospace; font-size:13px;">{{ formatMoney(ch.revenue) }}&thinsp;₫</span>
+                  <span style="font-size:12px; color:var(--el-text-color-secondary);">{{ ((ch.revenue/totalRevenue)*100).toFixed(1) }}%</span>
                 </div>
               </div>
+              <el-progress :percentage="+(((ch.revenue/totalRevenue)*100).toFixed(1))" :stroke-width="8" :show-text="false"
+                :color="ch.channel==='ONLINE'?'var(--el-color-primary)':'var(--el-color-warning)'" />
             </div>
-            <span class="staff-item__count">{{ s.orders }}&thinsp;đơn</span>
           </div>
-        </div>
-      </section>
 
-    </div>
+          <el-table :data="channelData" stripe size="small">
+            <el-table-column prop="channel" label="Kênh bán hàng">
+              <template #default="{ row }">
+                <el-tag :type="row.channel==='ONLINE'?'primary':'warning'" effect="plain" size="small" round>{{ row.channel }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Doanh thu" align="right">
+              <template #default="{ row }">
+                <span style="font-weight:700; font-family:monospace;">{{ formatMoney(row.revenue) }}&thinsp;₫</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Tỷ trọng" align="right" width="110">
+              <template #default="{ row }">
+                <span style="font-weight:700; color:var(--el-color-primary);">{{ ((row.revenue/totalRevenue)*100).toFixed(1) }}%</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
 
-    <!-- ── Row 2: Revenue by Date ────────────────── -->
-    <section class="rp-card rp-card--full">
-      <div class="rp-card__header">
-        <div class="rp-card__title-group">
-          <span class="rp-icon rp-icon--blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </span>
-          <div>
-            <h3 class="rp-card__title">Doanh thu theo ngày</h3>
-            <p class="rp-card__desc">Revenue by Date</p>
-          </div>
-        </div>
-        <span class="rp-badge-count">{{ filteredDateData.length }} / {{ dateData.length }} bản ghi</span>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="filter-bar">
-        <div class="filter-bar__pickers">
-          <div class="filter-field">
-            <label class="filter-field__label">Từ ngày</label>
-            <el-date-picker
-              v-model="filterFrom"
-              type="date"
-              placeholder="Ngày bắt đầu"
-              format="DD/MM/YYYY"
-              value-format="YYYY-MM-DD"
-              size="small"
-              class="filter-picker"
-              clearable
-            />
-          </div>
-          <span class="filter-bar__arrow">→</span>
-          <div class="filter-field">
-            <label class="filter-field__label">Đến ngày</label>
-            <el-date-picker
-              v-model="filterTo"
-              type="date"
-              placeholder="Ngày kết thúc"
-              format="DD/MM/YYYY"
-              value-format="YYYY-MM-DD"
-              size="small"
-              class="filter-picker"
-              clearable
-            />
-          </div>
-        </div>
-
-        <div class="filter-bar__quick">
-          <button
-            v-for="q in quickRanges"
-            :key="q.label"
-            class="quick-btn"
-            :class="{ 'quick-btn--active': activeQuick === q.label }"
-            @click="applyQuick(q)"
-          >{{ q.label }}</button>
-        </div>
-
-        <button class="clear-btn" v-if="filterFrom || filterTo" @click="clearFilter">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-          Xoá lọc
-        </button>
-
-        <div class="filter-total" v-if="filterFrom || filterTo">
-          <span class="filter-total__label">Tổng khoảng chọn</span>
-          <span class="filter-total__value">{{ formatMoney(filteredTotal) }}&thinsp;₫</span>
-        </div>
-      </div>
-
-      <el-table :data="filteredDateData" class="rp-table" :max-height="440">
-        <el-table-column type="index" label="#" width="52"/>
-        <el-table-column prop="date" label="Ngày" min-width="180">
-          <template #default="{ row }">
-            <span class="mono-val mono-val--sm">{{ formatDate(row.date) }}</span>
+      <!-- Orders by Staff — fixed layout -->
+      <el-col :xs="24" :lg="12">
+        <el-card shadow="never">
+          <template #header>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <el-avatar :size="32" style="background:var(--el-color-primary-light-8); flex-shrink:0;">
+                  <el-icon style="color:var(--el-color-primary);"><User /></el-icon>
+                </el-avatar>
+                <div>
+                  <div style="font-weight:700; font-size:14px;">Hiệu suất nhân viên</div>
+                  <div style="font-size:12px; color:var(--el-text-color-secondary);">Orders by Staff</div>
+                </div>
+              </div>
+              <el-tag effect="plain" size="small">{{ staffData.length }} nhân viên</el-tag>
+            </div>
           </template>
+
+          <div v-if="!staffData.length" style="padding:32px 0; color:var(--el-text-color-secondary); font-size:13px;">
+            Chưa có dữ liệu nhân viên
+          </div>
+          <div v-else>
+            <div
+              v-for="(s, idx) in staffData" :key="s.staff"
+              style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--el-border-color-lighter);"
+            >
+              <!-- Rank badge -->
+              <div :style="`
+                width:26px; height:26px; border-radius:50%; flex-shrink:0;
+                background:${['#f59e0b','#94a3b8','#ea580c'][idx]||'var(--el-fill-color-dark)'};
+                color:#fff; font-size:11px; font-weight:800;
+                display:flex; align-items:center; justify-content:center;
+              `">{{ idx+1 }}</div>
+
+              <!-- Avatar -->
+              <el-avatar :size="36" style="flex-shrink:0; background:var(--el-fill-color); font-size:13px; font-weight:700; color:var(--el-text-color-regular);">
+                {{ getInitials(s.staff) }}
+              </el-avatar>
+
+              <!-- Name + progress bar -->
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ s.staff }}</div>
+                <el-progress
+                  :percentage="+(((s.orders/staffData[0].orders)*100).toFixed(0))"
+                  :stroke-width="6" :show-text="false"
+                  color="var(--el-color-primary)"
+                />
+              </div>
+
+              <!-- Order count -->
+              <div style="font-size:13px; font-weight:700; white-space:nowrap; flex-shrink:0; min-width:48px; text-align:right;">
+                {{ s.orders }}&thinsp;đơn
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- Revenue by Date -->
+    <el-card shadow="never" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <el-avatar :size="32" style="background:var(--el-color-primary-light-8); flex-shrink:0;">
+              <el-icon style="color:var(--el-color-primary);"><Calendar /></el-icon>
+            </el-avatar>
+            <div>
+              <div style="font-weight:700; font-size:14px;">Doanh thu theo ngày</div>
+              <div style="font-size:12px; color:var(--el-text-color-secondary);">Revenue by Date</div>
+            </div>
+          </div>
+          <el-tag effect="plain" size="small">{{ filteredDateData.length }} / {{ dateData.length }} bản ghi</el-tag>
+        </div>
+      </template>
+
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <el-date-picker v-model="dateRange" type="daterange" range-separator="→"
+          start-placeholder="Từ ngày" end-placeholder="Đến ngày"
+          format="DD/MM/YYYY" value-format="YYYY-MM-DD"
+          style="width:320px; max-width:100%;" @change="activeQuick = null" />
+        <el-radio-group v-model="activeQuick" size="small" @change="applyQuick">
+          <el-radio-button v-for="q in quickRanges" :key="q.label" :value="q.label">{{ q.label }}</el-radio-button>
+        </el-radio-group>
+      </div>
+
+      <el-alert v-if="dateRange && filteredTotal" type="info" :closable="false" style="margin-bottom:12px;">
+        Tổng khoảng chọn: <strong>{{ formatMoney(filteredTotal) }}&thinsp;₫</strong>
+      </el-alert>
+
+      <el-table :data="filteredDateData" :max-height="440" stripe size="small">
+        <el-table-column type="index" label="#" width="52" />
+        <el-table-column prop="date" label="Ngày" min-width="180">
+          <template #default="{ row }"><span style="font-family:monospace;">{{ formatDate(row.date) }}</span></template>
         </el-table-column>
-        <el-table-column prop="revenue" label="Doanh thu" align="right">
+        <el-table-column label="Doanh thu" align="right">
           <template #default="{ row }">
-            <span class="mono-val">{{ formatMoney(row.revenue) }}&thinsp;₫</span>
+            <span style="font-weight:700; font-family:monospace;">{{ formatMoney(row.revenue) }}&thinsp;₫</span>
           </template>
         </el-table-column>
         <el-table-column label="vs Trung bình" align="right" width="140">
           <template #default="{ row }">
-            <span class="vs-avg" :class="row.revenue >= avgRevenue ? 'vs-avg--up' : 'vs-avg--down'">
-              {{ row.revenue >= avgRevenue ? '▲' : '▼' }}
-              {{ Math.abs(((row.revenue - avgRevenue) / avgRevenue) * 100).toFixed(0) }}%
-            </span>
+            <el-tag :type="row.revenue>=avgRevenue?'success':'danger'" size="small" effect="plain" round>
+              {{ row.revenue>=avgRevenue?'▲':'▼' }} {{ Math.abs(((row.revenue-avgRevenue)/avgRevenue)*100).toFixed(0) }}%
+            </el-tag>
           </template>
         </el-table-column>
       </el-table>
-    </section>
+    </el-card>
 
-    <!-- ── Row 2b: Doanh thu theo Tuần / Tháng ───── -->
-    <section class="rp-card rp-card--full">
-      <div class="rp-card__header">
-        <div class="rp-card__title-group">
-          <span class="rp-icon rp-icon--blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-              <polyline points="17 6 23 6 23 12"/>
-            </svg>
-          </span>
-          <div>
-            <h3 class="rp-card__title">Tổng hợp doanh thu</h3>
-            <p class="rp-card__desc">Revenue Summary · Tuần / Tháng</p>
+    <!-- Revenue Summary Week/Month -->
+    <el-card shadow="never" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <el-avatar :size="32" style="background:var(--el-color-primary-light-8); flex-shrink:0;">
+              <el-icon style="color:var(--el-color-primary);"><TrendCharts /></el-icon>
+            </el-avatar>
+            <div>
+              <div style="font-weight:700; font-size:14px;">Tổng hợp doanh thu</div>
+              <div style="font-size:12px; color:var(--el-text-color-secondary);">Revenue Summary · Tuần / Tháng</div>
+            </div>
+          </div>
+          <el-radio-group v-model="activePeriod" size="small">
+            <el-radio-button value="week">Theo tuần</el-radio-button>
+            <el-radio-button value="month">Theo tháng</el-radio-button>
+          </el-radio-group>
+        </div>
+      </template>
+
+      <!-- KPI strip -->
+      <div v-if="activePeriodData.length" style="display:flex; border-bottom:1px solid var(--el-border-color-lighter); margin-bottom:20px;">
+        <div v-for="kpi in periodKpis" :key="kpi.label" style="flex:1; padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
+          <div style="font-size:12px; color:var(--el-text-color-secondary); margin-bottom:5px;">{{ kpi.label }}</div>
+          <div :style="`font-size:15px; font-weight:800; font-family:monospace; color:${kpi.color||'var(--el-text-color-primary)'};`">{{ kpi.value }}</div>
+        </div>
+      </div>
+
+      <!-- ── Bar chart — đã fix ── -->
+      <div v-if="activePeriodData.length" style="margin:0 16px 24px;">
+        <!--
+          Cách fix: container cao cố định, mỗi cột dùng
+          display:flex; flex-direction:column; justify-content:flex-end; height:100%
+          Bar dùng height:X% (%) — works vì parent có height tuyệt đối.
+        -->
+        <div style="display:flex; align-items:flex-end; height:160px; gap:6px; border-bottom:2px solid var(--el-border-color-light); overflow-x:auto; padding-bottom:0;">
+          <div
+            v-for="(row, idx) in activePeriodData" :key="idx"
+            :title="`${formatPeriodLabel(row)} — ${formatMoney(row.revenue)} ₫`"
+            style="flex:1; min-width:32px; max-width:72px; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-end; height:100%;"
+          >
+            <!-- Value above bar -->
+            <div style="font-size:9px; color:var(--el-text-color-secondary); font-family:monospace; white-space:nowrap; margin-bottom:3px; padding-left:2px;">
+              {{ formatMoneyShort(row.revenue) }}
+            </div>
+            <!-- Bar -->
+            <div :style="`
+              height:${maxPeriodRevenue > 0 ? Math.max(4, (Number(row.revenue)/maxPeriodRevenue)*140) : 4}px;
+              background:var(--el-color-primary);
+              border-radius:3px 3px 0 0;
+              opacity:${0.45 + (Number(row.revenue)/maxPeriodRevenue)*0.55};
+              transition:height 0.8s cubic-bezier(.4,0,.2,1);
+            `"></div>
           </div>
         </div>
-        <!-- Period toggle -->
-        <div class="period-toggle">
-          <button
-            v-for="p in periods"
-            :key="p.key"
-            class="period-btn"
-            :class="{ 'period-btn--active': activePeriod === p.key }"
-            @click="activePeriod = p.key"
-          >{{ p.label }}</button>
-        </div>
-      </div>
-
-      <!-- Summary KPI strip -->
-      <div class="period-kpi-row" v-if="activePeriodData.length">
-        <div class="period-kpi">
-          <span class="period-kpi__label">Tổng doanh thu</span>
-          <span class="period-kpi__val">{{ formatMoney(periodTotalRevenue) }}&thinsp;₫</span>
-        </div>
-        <div class="period-kpi">
-          <span class="period-kpi__label">Số kỳ</span>
-          <span class="period-kpi__val">{{ activePeriodData.length }}</span>
-        </div>
-        <div class="period-kpi">
-          <span class="period-kpi__label">TB / kỳ</span>
-          <span class="period-kpi__val">
-            {{ formatMoney(Math.round(periodTotalRevenue / activePeriodData.length)) }}&thinsp;₫
-          </span>
-        </div>
-        <div class="period-kpi">
-          <span class="period-kpi__label">Cao nhất</span>
-          <span class="period-kpi__val period-kpi__val--green">
-            {{ formatMoney(Math.max(...activePeriodData.map(r => Number(r.revenue)))) }}&thinsp;₫
-          </span>
-        </div>
-      </div>
-
-      <!-- Vertical bar chart -->
-      <div class="period-chart" v-if="activePeriodData.length">
-        <div
-          class="period-bar-col"
-          v-for="(row, idx) in activePeriodData"
-          :key="idx"
-          :title="`${formatPeriodLabel(row)} — ${formatMoney(row.revenue)} ₫`"
-        >
-          <span class="period-bar-val">{{ formatMoneyShort(row.revenue) }}</span>
-          <div class="period-bar-track">
-            <div
-              class="period-bar-fill"
-              :style="{
-                height: (Number(row.revenue) / Math.max(...activePeriodData.map(r => Number(r.revenue)))) * 100 + '%'
-              }"
-            ></div>
+        <!-- Period labels -->
+        <div style="display:flex; gap:6px; padding-top:6px; overflow-x:auto;">
+          <div
+            v-for="(row, idx) in activePeriodData" :key="idx"
+            style="flex:1; min-width:32px; max-width:72px;"
+          >
+            <div style="font-size:9px; color:var(--el-text-color-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:2px;">
+              {{ formatPeriodLabel(row) }}
+            </div>
           </div>
-          <span class="period-bar-label">{{ formatPeriodLabel(row) }}</span>
         </div>
       </div>
 
-      <!-- Table -->
-      <el-table :data="activePeriodData" class="rp-table" :max-height="360">
+      <el-table :data="activePeriodData" :max-height="360" stripe size="small">
         <el-table-column type="index" label="#" width="52"/>
         <el-table-column label="Kỳ" min-width="200">
-          <template #default="{ row }">
-            <span class="mono-val mono-val--sm">{{ formatPeriodLabel(row) }}</span>
-          </template>
+          <template #default="{ row }"><span style="font-family:monospace;">{{ formatPeriodLabel(row) }}</span></template>
         </el-table-column>
         <el-table-column label="Doanh thu" align="right">
           <template #default="{ row }">
-            <span class="mono-val">{{ formatMoney(row.revenue) }}&thinsp;₫</span>
+            <span style="font-weight:700; font-family:monospace;">{{ formatMoney(row.revenue) }}&thinsp;₫</span>
           </template>
         </el-table-column>
         <el-table-column label="vs Trung bình" align="right" width="150">
           <template #default="{ row }">
-            <span
-              class="vs-avg"
-              :class="Number(row.revenue) >= periodAvgRevenue ? 'vs-avg--up' : 'vs-avg--down'"
-            >
-              {{ Number(row.revenue) >= periodAvgRevenue ? '▲' : '▼' }}
-              {{ Math.abs(((Number(row.revenue) - periodAvgRevenue) / periodAvgRevenue) * 100).toFixed(0) }}%
-            </span>
+            <el-tag :type="Number(row.revenue)>=periodAvgRevenue?'success':'danger'" size="small" effect="plain" round>
+              {{ Number(row.revenue)>=periodAvgRevenue?'▲':'▼' }}
+              {{ Math.abs(((Number(row.revenue)-periodAvgRevenue)/periodAvgRevenue)*100).toFixed(0) }}%
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="% Tổng" align="right" width="110">
           <template #default="{ row }">
-            <span class="pct-val">
-              {{ ((Number(row.revenue) / periodTotalRevenue) * 100).toFixed(1) }}%
-            </span>
+            <span style="font-weight:700; color:var(--el-color-primary);">{{ ((Number(row.revenue)/periodTotalRevenue)*100).toFixed(1) }}%</span>
           </template>
         </el-table-column>
       </el-table>
-      <div v-if="!activePeriodData.length" class="empty-state">Chưa có dữ liệu</div>
-    </section>
+      <el-empty v-if="!activePeriodData.length" description="Chưa có dữ liệu" :image-size="60" />
+    </el-card>
 
-    <!-- ── Top sản phẩm bán chạy ─────────────────── -->
-    <section class="rp-card rp-card--full">
-      <div class="rp-card__header">
-        <div class="rp-card__title-group">
-          <span class="rp-icon rp-icon--orange">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-          </span>
-          <div>
-            <h3 class="rp-card__title">Top sản phẩm bán chạy</h3>
-            <p class="rp-card__desc">Best-selling Products · DELIVERED</p>
+    <!-- Top Products -->
+    <el-card shadow="never" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <el-avatar :size="32" style="background:var(--el-color-warning-light-8); flex-shrink:0;">
+              <el-icon style="color:var(--el-color-warning);"><TrendCharts /></el-icon>
+            </el-avatar>
+            <div>
+              <div style="font-weight:700; font-size:14px;">Top sản phẩm bán chạy</div>
+              <div style="font-size:12px; color:var(--el-text-color-secondary);">Best-selling Products · DELIVERED</div>
+            </div>
           </div>
+          <el-tag effect="plain" size="small">Top {{ topProducts.length }}</el-tag>
         </div>
-        <span class="rp-badge-count">Top {{ topProducts.length }}</span>
-      </div>
+      </template>
 
-      <!-- Horizontal bar visualization -->
-      <div class="top-product-list" v-if="topProducts.length">
-        <div class="top-product-row" v-for="(p, idx) in topProducts" :key="idx">
-          <div class="top-product-row__rank" :class="`rank-${Math.min(idx + 1, 3)}`">
-            {{ idx + 1 }}
-          </div>
-          <div class="top-product-row__info">
-            <div class="top-product-row__names">
-              <span class="top-product-row__name">{{ p.productName }}</span>
-              <span class="top-product-row__variant" v-if="p.variantName">{{ p.variantName }}</span>
-              <span class="top-product-row__sku" v-if="p.sku">{{ p.sku }}</span>
+      <div v-if="topProducts.length" style="border-bottom:1px solid var(--el-border-color-lighter); margin-bottom:4px;">
+        <div v-for="(p, idx) in topProducts" :key="idx"
+          style="display:flex; align-items:center; gap:12px; padding:10px 8px;">
+          <el-avatar :size="24"
+            :style="`background:${['#f59e0b','#94a3b8','#ea580c'][idx]||'var(--el-color-primary-light-5)'};color:#fff;font-size:11px;font-weight:800;flex-shrink:0;`"
+          >{{ idx+1 }}</el-avatar>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+              <span style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px;">{{ p.productName }}</span>
+              <span v-if="p.variantName" style="font-size:11px; color:var(--el-text-color-secondary);">{{ p.variantName }}</span>
+              <span v-if="p.sku" style="font-size:10px; color:var(--el-text-color-placeholder); font-family:monospace;">{{ p.sku }}</span>
             </div>
-            <div class="top-product-bar-track">
-              <div
-                class="top-product-bar-fill"
-                :class="idx < 3 ? `top-bar--rank${idx + 1}` : 'top-bar--default'"
-                :style="{ width: (Number(p.totalQty) / Number(topProducts[0].totalQty)) * 100 + '%' }"
-              ></div>
-            </div>
+            <el-progress
+              :percentage="+(((Number(p.totalQty)/Number(topProducts[0].totalQty))*100).toFixed(0))"
+              :stroke-width="5" :show-text="false"
+              :color="['#f59e0b','#94a3b8','#ea580c','var(--el-color-primary)'][idx]||'var(--el-color-primary)'"
+            />
           </div>
-          <div class="top-product-row__stats">
-            <span class="top-product-qty">{{ p.totalQty }}&thinsp;SP</span>
-            <span class="top-product-rev">{{ formatMoney(p.totalRevenue) }}&thinsp;₫</span>
+          <div style="text-align:right; flex-shrink:0;">
+            <div style="font-family:monospace; font-weight:700; font-size:13px;">{{ p.totalQty }}&thinsp;SP</div>
+            <div style="font-family:monospace; font-size:11px; color:var(--el-text-color-secondary);">{{ formatMoney(p.totalRevenue) }}&thinsp;₫</div>
           </div>
         </div>
       </div>
 
-      <!-- Detailed table -->
-      <el-table :data="topProducts" class="rp-table" :max-height="420" v-if="topProducts.length">
+      <el-table v-if="topProducts.length" :data="topProducts" :max-height="420" stripe size="small">
         <el-table-column type="index" label="#" width="52"/>
         <el-table-column label="Sản phẩm" min-width="220">
           <template #default="{ row }">
-            <div class="return-cell">
-              <span class="return-cell__name">{{ row.productName }}</span>
-              <span class="return-cell__variant" v-if="row.variantName">{{ row.variantName }}</span>
-              <span class="return-cell__sku" v-if="row.sku">{{ row.sku }}</span>
+            <div>
+              <div style="font-weight:600;">{{ row.productName }}</div>
+              <div v-if="row.variantName" style="font-size:11px; color:var(--el-text-color-secondary);">{{ row.variantName }}</div>
+              <div v-if="row.sku" style="font-size:10px; color:var(--el-text-color-placeholder); font-family:monospace;">{{ row.sku }}</div>
             </div>
           </template>
         </el-table-column>
         <el-table-column label="SL bán" align="right" width="100">
           <template #default="{ row }">
-            <span class="qty-badge">{{ row.totalQty }}</span>
+            <el-tag type="primary" effect="plain" size="small" style="font-family:monospace; font-weight:700;">{{ row.totalQty }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="Doanh thu" align="right" min-width="160">
           <template #default="{ row }">
-            <span class="mono-val">{{ formatMoney(row.totalRevenue) }}&thinsp;₫</span>
+            <span style="font-weight:700; font-family:monospace;">{{ formatMoney(row.totalRevenue) }}&thinsp;₫</span>
           </template>
         </el-table-column>
         <el-table-column label="% SL" align="right" width="100">
           <template #default="{ row }">
-            <span class="pct-val">
-              {{ totalTopQty ? ((Number(row.totalQty) / totalTopQty) * 100).toFixed(1) : 0 }}%
-            </span>
+            <span style="font-weight:700; color:var(--el-color-primary);">{{ totalTopQty ? ((Number(row.totalQty)/totalTopQty)*100).toFixed(1) : 0 }}%</span>
           </template>
         </el-table-column>
         <el-table-column label="% Doanh thu" align="right" width="120">
           <template #default="{ row }">
-            <span class="pct-val">
-              {{ totalTopRevenue ? ((Number(row.totalRevenue) / totalTopRevenue) * 100).toFixed(1) : 0 }}%
-            </span>
+            <span style="font-weight:700; color:var(--el-color-primary);">{{ totalTopRevenue ? ((Number(row.totalRevenue)/totalTopRevenue)*100).toFixed(1) : 0 }}%</span>
           </template>
         </el-table-column>
       </el-table>
-      <div v-else class="empty-state">Chưa có dữ liệu sản phẩm</div>
-    </section>
+      <el-empty v-else description="Chưa có dữ liệu sản phẩm" :image-size="60" />
+    </el-card>
 
-    <!-- ── Row 3: Status + Returns ───────────────── -->
-    <div class="rp-grid rp-grid--2col">
-
-      <!-- Revenue by Status -->
-      <section class="rp-card">
-        <div class="rp-card__header">
-          <div class="rp-card__title-group">
-            <span class="rp-icon rp-icon--amber">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-            </span>
-            <div>
-              <h3 class="rp-card__title">Trạng thái đơn hàng</h3>
-              <p class="rp-card__desc">Revenue by Order Status</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="status-bars" v-if="statusData.length">
-          <div class="status-bar-row" v-for="s in statusData" :key="s.status">
-            <div class="status-bar-row__meta">
-              <span class="status-chip" :class="`status-chip--${s.status.toLowerCase()}`">
-                {{ statusLabel(s.status) }}
-              </span>
-              <span class="status-bar-row__orders">{{ s.orderCount }} đơn</span>
-              <span class="status-bar-row__revenue">{{ formatMoney(s.totalRevenue) }}&thinsp;₫</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill status-fill"
-                :class="`status-fill--${s.status.toLowerCase()}`"
-                :style="{ width: totalStatusRevenue ? (s.totalRevenue / totalStatusRevenue) * 100 + '%' : '0%' }">
+    <!-- Status + Returns -->
+    <el-row :gutter="20" style="margin-bottom:20px;">
+      <el-col :xs="24" :lg="12">
+        <el-card shadow="never">
+          <template #header>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <el-avatar :size="32" style="background:var(--el-color-warning-light-8); flex-shrink:0;">
+                <el-icon style="color:var(--el-color-warning);"><Clock /></el-icon>
+              </el-avatar>
+              <div>
+                <div style="font-weight:700; font-size:14px;">Trạng thái đơn hàng</div>
+                <div style="font-size:12px; color:var(--el-text-color-secondary);">Revenue by Order Status</div>
               </div>
             </div>
-          </div>
-        </div>
+          </template>
 
-        <el-table :data="statusData" class="rp-table" v-if="statusData.length">
-          <el-table-column label="Trạng thái" min-width="150">
-            <template #default="{ row }">
-              <span class="status-chip" :class="`status-chip--${row.status.toLowerCase()}`">
-                {{ statusLabel(row.status) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="Số đơn" align="right" width="90">
-            <template #default="{ row }">
-              <span class="mono-val mono-val--sm">{{ row.orderCount }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="Doanh thu" align="right">
-            <template #default="{ row }">
-              <span class="mono-val">{{ formatMoney(row.totalRevenue) }}&thinsp;₫</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="Tỷ trọng" align="right" width="100">
-            <template #default="{ row }">
-              <span class="pct-val">
-                {{ totalStatusRevenue ? ((row.totalRevenue / totalStatusRevenue) * 100).toFixed(1) : 0 }}%
-              </span>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div v-else class="empty-state">Chưa có dữ liệu</div>
-      </section>
-
-      <!-- Returns by Product -->
-      <section class="rp-card">
-        <div class="rp-card__header">
-          <div class="rp-card__title-group">
-            <span class="rp-icon rp-icon--red">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="1 4 1 10 7 10"/>
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
-              </svg>
-            </span>
-            <div>
-              <h3 class="rp-card__title">Trả hàng theo sản phẩm</h3>
-              <p class="rp-card__desc">Returns by Product (excl. Rejected)</p>
+          <div v-if="statusData.length" style="margin-bottom:16px;">
+            <div v-for="s in statusData" :key="s.status" style="margin-bottom:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; flex-wrap:wrap; gap:4px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <el-tag :type="statusTagType(s.status)" size="small" effect="plain" round>{{ statusLabel(s.status) }}</el-tag>
+                  <span style="font-size:11px; color:var(--el-text-color-secondary);">{{ s.orderCount }} đơn</span>
+                </div>
+                <span style="font-family:monospace; font-weight:600; font-size:12.5px;">{{ formatMoney(s.totalRevenue) }}&thinsp;₫</span>
+              </div>
+              <el-progress :percentage="totalStatusRevenue ? +((s.totalRevenue/totalStatusRevenue)*100).toFixed(1) : 0"
+                :stroke-width="7" :show-text="false" :color="statusColor(s.status)" />
             </div>
           </div>
-          <span class="rp-badge-count">{{ returnsData.length }} sản phẩm</span>
-        </div>
 
-        <el-table :data="returnsData" class="rp-table" :max-height="440" v-if="returnsData.length">
-          <el-table-column type="index" label="#" width="48"/>
-          <el-table-column label="Sản phẩm" min-width="200">
-            <template #default="{ row }">
-              <div class="return-cell">
-                <span class="return-cell__name">{{ row.productName }}</span>
-                <span class="return-cell__variant" v-if="row.variantName">{{ row.variantName }}</span>
-                <span class="return-cell__sku" v-if="row.sku">{{ row.sku }}</span>
+          <el-table v-if="statusData.length" :data="statusData" stripe size="small">
+            <el-table-column label="Trạng thái" min-width="150">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.status)" size="small" effect="plain" round>{{ statusLabel(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Số đơn" align="right" width="90">
+              <template #default="{ row }"><span style="font-family:monospace;">{{ row.orderCount }}</span></template>
+            </el-table-column>
+            <el-table-column label="Doanh thu" align="right">
+              <template #default="{ row }">
+                <span style="font-weight:700; font-family:monospace;">{{ formatMoney(row.totalRevenue) }}&thinsp;₫</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Tỷ trọng" align="right" width="100">
+              <template #default="{ row }">
+                <span style="font-weight:700; color:var(--el-color-primary);">{{ totalStatusRevenue ? ((row.totalRevenue/totalStatusRevenue)*100).toFixed(1) : 0 }}%</span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-empty v-else description="Chưa có dữ liệu" :image-size="60" />
+        </el-card>
+      </el-col>
+
+      <el-col :xs="24" :lg="12">
+        <el-card shadow="never">
+          <template #header>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <el-avatar :size="32" style="background:var(--el-color-danger-light-8); flex-shrink:0;">
+                  <el-icon style="color:var(--el-color-danger);"><RefreshLeft /></el-icon>
+                </el-avatar>
+                <div>
+                  <div style="font-weight:700; font-size:14px;">Trả hàng theo sản phẩm</div>
+                  <div style="font-size:12px; color:var(--el-text-color-secondary);">Returns by Product (excl. Rejected)</div>
+                </div>
               </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="Lần trả" align="center" width="80">
-            <template #default="{ row }">
-              <span class="return-badge">{{ row.returnCount }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="Tổng SL" align="right" width="80">
-            <template #default="{ row }">
-              <span class="mono-val mono-val--sm">{{ row.totalQty }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="Hoàn tiền" align="right" min-width="140">
-            <template #default="{ row }">
-              <span class="return-refund">{{ formatMoney(row.totalRefund) }}&thinsp;₫</span>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div v-else class="empty-state">Không có dữ liệu trả hàng</div>
-      </section>
+              <el-tag effect="plain" size="small">{{ returnsData.length }} sản phẩm</el-tag>
+            </div>
+          </template>
 
-    </div>
+          <el-table v-if="returnsData.length" :data="returnsData" :max-height="440" stripe size="small">
+            <el-table-column type="index" label="#" width="48"/>
+            <el-table-column label="Sản phẩm" min-width="200">
+              <template #default="{ row }">
+                <div>
+                  <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px;">{{ row.productName }}</div>
+                  <div v-if="row.variantName" style="font-size:11px; color:var(--el-text-color-secondary);">{{ row.variantName }}</div>
+                  <div v-if="row.sku" style="font-size:10px; color:var(--el-text-color-placeholder); font-family:monospace;">{{ row.sku }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Lần trả" align="center" width="80">
+              <template #default="{ row }">
+                <el-avatar :size="26" style="background:var(--el-color-danger-light-8); color:var(--el-color-danger); font-size:12px; font-weight:700;">{{ row.returnCount }}</el-avatar>
+              </template>
+            </el-table-column>
+            <el-table-column label="Tổng SL" align="right" width="80">
+              <template #default="{ row }"><span style="font-family:monospace;">{{ row.totalQty }}</span></template>
+            </el-table-column>
+            <el-table-column label="Hoàn tiền" align="right" min-width="140">
+              <template #default="{ row }">
+                <span style="font-weight:600; font-family:monospace; color:var(--el-color-danger);">{{ formatMoney(row.totalRefund) }}&thinsp;₫</span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-empty v-else description="Không có dữ liệu trả hàng" :image-size="60" />
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- Revenue by Customer -->
+    <el-card shadow="never">
+      <template #header>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.07em; font-weight:700; color:var(--el-text-color-secondary); margin-bottom:5px;">Doanh thu theo khách hàng</div>
+            <div style="display:flex; align-items:baseline; gap:8px;">
+              <span style="font-size:18px; font-weight:800; letter-spacing:-0.02em;">{{ revenueByCustomer.length }}</span>
+              <span style="color:var(--el-text-color-secondary);">khách hàng</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.07em; font-weight:700; color:var(--el-text-color-secondary); margin-bottom:5px;">Tổng doanh thu</div>
+            <div style="font-size:20px; font-weight:800; font-family:monospace; color:var(--el-color-success);">{{ totalRevenueByCustomer.toLocaleString() }} đ</div>
+          </div>
+        </div>
+      </template>
+
+      <el-skeleton v-if="loadingRevenueByCustomer" :rows="6" animated />
+      <el-empty v-else-if="!revenueByCustomer.length" description="Không có dữ liệu doanh thu" :image-size="70" />
+
+      <el-table v-else :data="revenueByCustomer" stripe size="small"
+        :header-cell-style="{ background:'var(--el-fill-color-light)', color:'var(--el-text-color-secondary)', fontSize:'11px', fontWeight:'700', textTransform:'uppercase', letterSpacing:'0.07em' }">
+        <el-table-column type="index" label="#" width="52" align="center">
+          <template #default="{ $index }">
+            <el-tag :type="$index < 3 ? 'primary' : 'info'" effect="plain" size="small" style="font-family:monospace; min-width:28px;">{{ $index+1 }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="Khách hàng" min-width="200">
+          <template #default="{ row }">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <el-avatar :size="32" :style="`background:${getAvatarColor(row.customerName)};color:#fff;font-size:12px;font-weight:700;flex-shrink:0;border-radius:8px;`">
+                {{ (row.customerName||'?').charAt(0).toUpperCase() }}
+              </el-avatar>
+              <span style="font-weight:600; font-size:13.5px;">{{ row.customerName }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="Doanh thu" align="right" sortable prop="totalRevenue">
+          <template #default="{ row }">
+            <span style="font-family:monospace; font-weight:700; white-space:nowrap;">{{ row.totalRevenue?.toLocaleString() }} đ</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Tỷ trọng" align="right" width="110">
+          <template #default="{ row }">
+            <span style="font-weight:700; color:var(--el-color-primary); font-family:monospace;">
+              {{ totalRevenueByCustomer ? ((row.totalRevenue/totalRevenueByCustomer)*100).toFixed(1) : 0 }}%
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Tỷ lệ" width="200">
+          <template #default="{ row }">
+            <div style="padding-right:16px;">
+              <el-progress :percentage="totalRevenueByCustomer ? +((row.totalRevenue/totalRevenueByCustomer)*100).toFixed(1) : 0"
+                :stroke-width="6" :show-text="false" color="var(--el-color-primary)" />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
   </div>
 </template>
 
 <script setup>
+import {
+  Calendar, ChromeFilled, Clock, DataAnalysis,
+  House, RefreshLeft, ShoppingCart, TrendCharts, User,
+} from "@element-plus/icons-vue";
 import { ref, computed, onMounted } from "vue";
 import reportsApi from "../../api/report.api";
+import { ordersApi } from "../../api/orders.api";
 
-// ── State ──────────────────────────────────────────────────────────────────
 const channelData  = ref([]);
 const dateData     = ref([]);
 const staffData    = ref([]);
@@ -596,998 +574,123 @@ const returnsData  = ref([]);
 const weekData     = ref([]);
 const monthData    = ref([]);
 const topProducts  = ref([]);
+const revenueByCustomer        = ref([]);
+const loadingRevenueByCustomer = ref(false);
 
-// ── Filter (date table) ────────────────────────────────────────────────────
-const filterFrom  = ref(null);
-const filterTo    = ref(null);
+const dateRange   = ref(null);
 const activeQuick = ref(null);
-
-// ── Period toggle (week / month) ───────────────────────────────────────────
 const activePeriod = ref("week");
-const periods = [
-  { key: "week",  label: "Theo tuần"  },
-  { key: "month", label: "Theo tháng" },
-];
 
-// ── Static ─────────────────────────────────────────────────────────────────
 const todayFormatted = new Date().toLocaleDateString("vi-VN", {
   weekday: "long", year: "numeric", month: "long", day: "numeric",
 });
 
 const quickRanges = [
-  {
-    label: "Tháng này",
-    getDates: () => {
-      const n = new Date();
-      return {
-        from: `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`,
-        to: toYMD(n),
-      };
-    },
-  },
-  {
-    label: "Tháng trước",
-    getDates: () => {
-      const n = new Date();
-      const m = new Date(n.getFullYear(), n.getMonth() - 1, 1);
-      const last = new Date(n.getFullYear(), n.getMonth(), 0);
-      return { from: toYMD(m), to: toYMD(last) };
-    },
-  },
-  {
-    label: "30 ngày",
-    getDates: () => {
-      const n = new Date(), f = new Date(n);
-      f.setDate(f.getDate() - 29);
-      return { from: toYMD(f), to: toYMD(n) };
-    },
-  },
-  {
-    label: "7 ngày",
-    getDates: () => {
-      const n = new Date(), f = new Date(n);
-      f.setDate(f.getDate() - 6);
-      return { from: toYMD(f), to: toYMD(n) };
-    },
-  },
+  { label: "Tháng này",  getDates: () => { const n=new Date(); return { from:`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-01`, to:toYMD(n) }; } },
+  { label: "Tháng trước",getDates: () => { const n=new Date(), m=new Date(n.getFullYear(),n.getMonth()-1,1), l=new Date(n.getFullYear(),n.getMonth(),0); return { from:toYMD(m), to:toYMD(l) }; } },
+  { label: "30 ngày",    getDates: () => { const n=new Date(), f=new Date(n); f.setDate(f.getDate()-29); return { from:toYMD(f), to:toYMD(n) }; } },
+  { label: "7 ngày",     getDates: () => { const n=new Date(), f=new Date(n); f.setDate(f.getDate()-6);  return { from:toYMD(f), to:toYMD(n) }; } },
 ];
 
-// ── Computed ───────────────────────────────────────────────────────────────
-const totalRevenue = computed(() =>
-  channelData.value.reduce((s, r) => s + Number(r.revenue || 0), 0),
-);
-const totalOrders = computed(() =>
-  staffData.value.reduce((s, r) => s + Number(r.orders || 0), 0),
-);
-const avgRevenue = computed(() =>
-  dateData.value.length
-    ? dateData.value.reduce((s, r) => s + Number(r.revenue), 0) / dateData.value.length
-    : 0,
-);
+const totalRevenue = computed(() => channelData.value.reduce((s,r)=>s+Number(r.revenue||0),0));
+const totalOrders  = computed(() => staffData.value.reduce((s,r)=>s+Number(r.orders||0),0));
+const avgRevenue   = computed(() => dateData.value.length ? dateData.value.reduce((s,r)=>s+Number(r.revenue),0)/dateData.value.length : 0);
+
+const filterFrom = computed(() => dateRange.value?.[0]||null);
+const filterTo   = computed(() => dateRange.value?.[1]||null);
 const filteredDateData = computed(() => {
   let data = dateData.value;
-  if (filterFrom.value) data = data.filter(r => (r.date?.substring(0, 10) ?? "") >= filterFrom.value);
-  if (filterTo.value)   data = data.filter(r => (r.date?.substring(0, 10) ?? "") <= filterTo.value);
+  if (filterFrom.value) data = data.filter(r=>(r.date?.substring(0,10)??"")>=filterFrom.value);
+  if (filterTo.value)   data = data.filter(r=>(r.date?.substring(0,10)??"")<=filterTo.value);
   return data;
 });
-const filteredTotal = computed(() =>
-  filteredDateData.value.reduce((s, r) => s + Number(r.revenue || 0), 0),
-);
-const totalStatusRevenue = computed(() =>
-  statusData.value.reduce((s, r) => s + Number(r.totalRevenue || 0), 0),
-);
+const filteredTotal      = computed(() => filteredDateData.value.reduce((s,r)=>s+Number(r.revenue||0),0));
+const totalStatusRevenue = computed(() => statusData.value.reduce((s,r)=>s+Number(r.totalRevenue||0),0));
+const activePeriodData   = computed(() => activePeriod.value==="week" ? weekData.value : monthData.value);
+const periodTotalRevenue = computed(() => activePeriodData.value.reduce((s,r)=>s+Number(r.revenue||0),0));
+const periodAvgRevenue   = computed(() => activePeriodData.value.length ? periodTotalRevenue.value/activePeriodData.value.length : 0);
+const maxPeriodRevenue   = computed(() => activePeriodData.value.length ? Math.max(...activePeriodData.value.map(r=>Number(r.revenue))) : 1);
+const totalTopQty        = computed(() => topProducts.value.reduce((s,p)=>s+Number(p.totalQty||0),0));
+const totalTopRevenue    = computed(() => topProducts.value.reduce((s,p)=>s+Number(p.totalRevenue||0),0));
+const totalRevenueByCustomer = computed(() => revenueByCustomer.value.reduce((sum,i)=>sum+(i.totalRevenue||0),0));
+const periodKpis = computed(() => {
+  if (!activePeriodData.value.length) return [];
+  return [
+    { label:"Tổng doanh thu", value:`${formatMoney(periodTotalRevenue.value)} ₫` },
+    { label:"Số kỳ",          value:activePeriodData.value.length },
+    { label:"TB / kỳ",        value:`${formatMoney(Math.round(periodTotalRevenue.value/activePeriodData.value.length))} ₫` },
+    { label:"Cao nhất",       value:`${formatMoney(maxPeriodRevenue.value)} ₫`, color:"var(--el-color-success)" },
+  ];
+});
 
-// Period computed
-const activePeriodData = computed(() =>
-  activePeriod.value === "week" ? weekData.value : monthData.value,
-);
-const periodTotalRevenue = computed(() =>
-  activePeriodData.value.reduce((s, r) => s + Number(r.revenue || 0), 0),
-);
-const periodAvgRevenue = computed(() =>
-  activePeriodData.value.length ? periodTotalRevenue.value / activePeriodData.value.length : 0,
-);
-
-// Top products computed
-const totalTopQty = computed(() =>
-  topProducts.value.reduce((s, p) => s + Number(p.totalQty || 0), 0),
-);
-const totalTopRevenue = computed(() =>
-  topProducts.value.reduce((s, p) => s + Number(p.totalRevenue || 0), 0),
-);
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function toYMD(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function applyQuick(q) {
-  activeQuick.value = q.label;
+function toYMD(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function applyQuick(label) {
+  const q = quickRanges.find(r=>r.label===label);
+  if (!q) { dateRange.value=null; return; }
   const { from, to } = q.getDates();
-  filterFrom.value = from;
-  filterTo.value = to;
-}
-function clearFilter() {
-  filterFrom.value = null;
-  filterTo.value = null;
-  activeQuick.value = null;
+  dateRange.value = [from, to];
 }
 
-const STATUS_LABEL_MAP = {
-  PENDING: "Chờ xử lý", CONFIRMED: "Đã xác nhận", PROCESSING: "Đang xử lý",
-  PAID: "Đã thanh toán", SHIPPING: "Đang giao", DELIVERED: "Đã giao",
-  CANCELLED: "Đã hủy", RETURNED: "Đã trả hàng", PARTIALLY_RETURNED: "Trả một phần",
-};
-function statusLabel(s) { return STATUS_LABEL_MAP[s] || s; }
+const STATUS_LABEL_MAP = { PENDING:"Chờ xử lý",CONFIRMED:"Đã xác nhận",PROCESSING:"Đang xử lý",PAID:"Đã thanh toán",SHIPPING:"Đang giao",DELIVERED:"Đã giao",CANCELLED:"Đã hủy",RETURNED:"Đã trả hàng",PARTIALLY_RETURNED:"Trả một phần" };
+function statusLabel(s) { return STATUS_LABEL_MAP[s]||s; }
+function statusTagType(s) { return ({DELIVERED:"success",PAID:"primary",PENDING:"warning",PROCESSING:"primary",SHIPPING:"primary",CONFIRMED:"primary",CANCELLED:"danger",RETURNED:"warning",PARTIALLY_RETURNED:"warning"})[s]??"info"; }
+function statusColor(s)   { return ({DELIVERED:"#10b981",PAID:"#0ea5e9",PENDING:"#f59e0b",PROCESSING:"#8b5cf6",SHIPPING:"#0891b2",CONFIRMED:"#2563eb",CANCELLED:"#ef4444",RETURNED:"#ea580c",PARTIALLY_RETURNED:"#ea580c"})[s]??"var(--el-color-primary)"; }
 
-function formatMoney(v) {
-  return new Intl.NumberFormat("vi-VN").format(Number(v) || 0);
-}
+function formatMoney(v) { return new Intl.NumberFormat("vi-VN").format(Number(v)||0); }
 function formatMoneyShort(v) {
-  const n = Number(v) || 0;
-  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + "B";
-  if (n >= 1_000_000)     return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)         return (n / 1_000).toFixed(0) + "K";
+  const n=Number(v)||0;
+  if(n>=1_000_000_000) return (n/1_000_000_000).toFixed(1)+"B";
+  if(n>=1_000_000)     return (n/1_000_000).toFixed(1)+"M";
+  if(n>=1_000)         return (n/1_000).toFixed(0)+"K";
   return String(n);
 }
 function formatDate(d) {
-  if (!d) return d;
-  const date = new Date(d);
-  if (isNaN(date)) return d;
-  return date.toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" });
+  if(!d) return d;
+  const date=new Date(d);
+  if(isNaN(date)) return d;
+  return date.toLocaleDateString("vi-VN",{year:"numeric",month:"2-digit",day:"2-digit"});
 }
 function getInitials(name) {
-  if (!name) return "?";
-  return name.split(/[@.\s]/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join("");
+  if(!name) return "?";
+  return name.split(/[@.\s]/).filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join("");
 }
 function getWeekNumber(d) {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  date.setUTCDate(date.getUTCDate()+4-(date.getUTCDay()||7));
+  const yearStart=new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  return Math.ceil((((date-yearStart)/86400000)+1)/7);
 }
 function formatPeriodLabel(row) {
-  const raw = row.weekStart ?? row.monthStart;
-  if (!raw) return "";
-  const d = new Date(raw);
-  if (isNaN(d)) return String(raw).substring(0, 10);
-  if (activePeriod.value === "month") {
-    return d.toLocaleDateString("vi-VN", { year: "numeric", month: "long" });
-  }
-  const weekNum = getWeekNumber(d);
-  return `Tuần ${weekNum} · ${d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}`;
+  const raw=row.weekStart??row.monthStart;
+  if(!raw) return "";
+  const d=new Date(raw);
+  if(isNaN(d)) return String(raw).substring(0,10);
+  if(activePeriod.value==="month") return d.toLocaleDateString("vi-VN",{year:"numeric",month:"long"});
+  return `T${getWeekNumber(d)} · ${d.toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit"})}`;
 }
 
-// ── Lifecycle ──────────────────────────────────────────────────────────────
+const AVATAR_COLORS=["#2563eb","#16a34a","#d97706","#7c3aed","#0891b2","#db2777","#dc2626","#0f766e"];
+function getAvatarColor(name) { if(!name) return "#6b7280"; return AVATAR_COLORS[name.charCodeAt(0)%AVATAR_COLORS.length]; }
+
 onMounted(async () => {
-  const [ch, dt, st, sv, rt, wk, mo, tp] = await Promise.all([
-    reportsApi.revenueByChannel(),
-    reportsApi.revenueByDate(),
-    reportsApi.ordersByStaff(),
-    reportsApi.revenueByStatus(),
-    reportsApi.returnsByProduct(),
-    reportsApi.revenueByWeek(),
-    reportsApi.revenueByMonth(),
-    reportsApi.topSellingProducts(),
+  loadingRevenueByCustomer.value = true;
+  const results = await Promise.allSettled([
+    reportsApi.revenueByChannel(), reportsApi.revenueByDate(), reportsApi.ordersByStaff(),
+    reportsApi.revenueByStatus(), reportsApi.returnsByProduct(), reportsApi.revenueByWeek(),
+    reportsApi.revenueByMonth(), reportsApi.topSellingProducts(), ordersApi.getRevenueByCustomer(),
   ]);
-  channelData.value  = ch.data;
-  dateData.value     = dt.data;
-  staffData.value    = st.data;
-  statusData.value   = sv.data;
-  returnsData.value  = rt.data;
-  weekData.value     = wk.data;
-  monthData.value    = mo.data;
-  topProducts.value  = tp.data;
+  const [ch,dt,st,sv,rt,wk,mo,tp,rc] = results;
+  if(ch.status==="fulfilled") channelData.value  = ch.value.data;
+  if(dt.status==="fulfilled") dateData.value     = dt.value.data;
+  if(st.status==="fulfilled") staffData.value    = st.value.data;
+  if(sv.status==="fulfilled") statusData.value   = sv.value.data;
+  if(rt.status==="fulfilled") returnsData.value  = rt.value.data;
+  if(wk.status==="fulfilled") weekData.value     = wk.value.data;
+  if(mo.status==="fulfilled") monthData.value    = mo.value.data;
+  if(tp.status==="fulfilled") topProducts.value  = tp.value.data;
+  if(rc.status==="fulfilled") revenueByCustomer.value = rc.value.data||[];
+  loadingRevenueByCustomer.value = false;
 });
 </script>
 
-<style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
-
-/* ══════════════════════════════════════════════════
-   TOKENS
-══════════════════════════════════════════════════ */
-.reports-root {
-  --bg:         #f4f5f9;
-  --surface:    #ffffff;
-  --border:     #e9eaf0;
-  --border-lt:  #f1f2f7;
-  --text:       #18192b;
-  --muted:      #717585;
-  --muted-lt:   #a0a3b1;
-
-  --orange:     #f97316;
-  --orange-lt:  #fff7ed;
-  --orange-md:  #ffedd5;
-
-  --blue:       #0ea5e9;
-  --blue-lt:    #e0f2fe;
-
-  --purple:     #8b5cf6;
-  --purple-lt:  #ede9fe;
-
-  --green:      #10b981;
-  --green-lt:   #d1fae5;
-
-  --red:        #ef4444;
-  --red-lt:     #fee2e2;
-
-  --amber:      #f59e0b;
-  --amber-lt:   #fffbeb;
-
-  --sh-xs: 0 1px 2px rgba(0,0,0,.04);
-  --sh-sm: 0 1px 4px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
-  --sh-md: 0 4px 20px rgba(0,0,0,.08);
-  --r-sm: 8px;
-  --r:    12px;
-  --r-lg: 16px;
-
-  font-family: "Plus Jakarta Sans", sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  padding: 28px 28px 56px;
-  min-height: 100vh;
-}
-
-/* ══════════════════════════════════════════════════
-   HEADER
-══════════════════════════════════════════════════ */
-.rp-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-.rp-header__title {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -.025em;
-  color: var(--text);
-  margin: 0 0 4px;
-  line-height: 1.15;
-}
-.rp-header__sub {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin: 0;
-  font-weight: 500;
-}
-.rp-date-pill {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  padding: 8px 16px;
-  box-shadow: var(--sh-xs);
-  white-space: nowrap;
-}
-.rp-date-pill__icon {
-  width: 13px; height: 13px;
-  flex-shrink: 0;
-  color: var(--orange);
-}
-
-/* ══════════════════════════════════════════════════
-   KPI STRIP
-══════════════════════════════════════════════════ */
-.kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 24px;
-}
-.kpi-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 16px 18px 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: var(--sh-sm);
-  transition: box-shadow .2s, transform .2s;
-  position: relative;
-  overflow: hidden;
-  min-width: 0;
-}
-.kpi-card::before {
-  content: "";
-  position: absolute;
-  left: 0; top: 12px; bottom: 12px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--border);
-}
-.kpi-card--primary::before { background: var(--orange); }
-.kpi-card--online::before  { background: var(--blue); }
-.kpi-card--offline::before { background: var(--purple); }
-.kpi-card--orders::before  { background: var(--green); }
-.kpi-card:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
-
-.kpi-card__icon {
-  width: 42px; height: 42px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.kpi-card__icon svg { width: 19px; height: 19px; }
-.kpi-card--primary .kpi-card__icon { background: var(--orange-lt); color: var(--orange); }
-.kpi-card--online  .kpi-card__icon { background: var(--blue-lt);   color: var(--blue); }
-.kpi-card--offline .kpi-card__icon { background: var(--purple-lt); color: var(--purple); }
-.kpi-card--orders  .kpi-card__icon { background: var(--green-lt);  color: var(--green); }
-
-.kpi-card__body {
-  display: flex; flex-direction: column;
-  gap: 2px;
-  min-width: 0; flex: 1;
-  overflow: hidden;
-}
-.kpi-card__label {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .08em;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.kpi-card__value {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 15px; font-weight: 700;
-  color: var(--text);
-  letter-spacing: -.015em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
-}
-.kpi-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px; font-weight: 700;
-  border-radius: 99px;
-  padding: 2px 8px;
-  margin-top: 3px;
-  width: fit-content;
-  white-space: nowrap;
-}
-.kpi-tag--green  { background: var(--green-lt);  color: var(--green); }
-.kpi-tag--blue   { background: var(--blue-lt);   color: var(--blue); }
-.kpi-tag--purple { background: var(--purple-lt); color: var(--purple); }
-
-/* ══════════════════════════════════════════════════
-   LAYOUT
-══════════════════════════════════════════════════ */
-.rp-grid {
-  display: grid;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-.rp-grid--2col { grid-template-columns: 1fr 1fr; }
-
-/* ══════════════════════════════════════════════════
-   CARD SHELL
-══════════════════════════════════════════════════ */
-.rp-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  box-shadow: var(--sh-sm);
-}
-.rp-card--full { margin-bottom: 18px; }
-
-.rp-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 22px 15px;
-  border-bottom: 1px solid var(--border-lt);
-  background: var(--surface);
-}
-.rp-card__title-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.rp-card__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 2px;
-}
-.rp-card__desc {
-  font-size: 10.5px;
-  color: var(--muted-lt);
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  font-weight: 600;
-}
-.rp-icon {
-  width: 36px; height: 36px;
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.rp-icon svg { width: 16px; height: 16px; }
-.rp-icon--orange { background: var(--orange-lt); color: var(--orange); }
-.rp-icon--blue   { background: var(--blue-lt);   color: var(--blue); }
-.rp-icon--purple { background: var(--purple-lt); color: var(--purple); }
-.rp-icon--amber  { background: var(--amber-lt);  color: var(--amber); }
-.rp-icon--red    { background: var(--red-lt);    color: var(--red); }
-
-.rp-badge-count {
-  font-size: 11px; font-weight: 600;
-  color: var(--muted);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 10px;
-  white-space: nowrap;
-}
-
-/* ══════════════════════════════════════════════════
-   CHANNEL VIZ
-══════════════════════════════════════════════════ */
-.channel-viz {
-  padding: 18px 22px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.channel-viz__row { display: flex; flex-direction: column; gap: 7px; }
-.channel-viz__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.channel-viz__label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ch-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.ch-dot--online  { background: var(--blue); }
-.ch-dot--offline { background: var(--purple); }
-
-.ch-badge {
-  display: inline-block;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: .04em;
-  border-radius: 5px;
-  padding: 2px 8px;
-}
-.ch-badge--online  { background: var(--blue-lt);   color: var(--blue); }
-.ch-badge--offline { background: var(--purple-lt); color: var(--purple); }
-
-.channel-viz__nums { display: flex; align-items: center; gap: 12px; }
-.channel-viz__amount {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px; font-weight: 600; color: var(--text);
-}
-.channel-viz__pct {
-  font-size: 11.5px; font-weight: 700;
-  color: var(--muted);
-  min-width: 42px; text-align: right;
-}
-
-/* Progress bars */
-.progress-track {
-  height: 7px;
-  background: var(--bg);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width 1s cubic-bezier(.4,0,.2,1);
-}
-.progress-fill--online  { background: linear-gradient(90deg, var(--blue),   #38bdf8); }
-.progress-fill--offline { background: linear-gradient(90deg, var(--purple), #a78bfa); }
-
-/* ══════════════════════════════════════════════════
-   TABLES
-══════════════════════════════════════════════════ */
-.rp-table { font-family: "Plus Jakarta Sans", sans-serif !important; }
-
-.rp-table :deep(th.el-table__cell) {
-  background: #f8f9fc !important;
-  border-bottom: 1px solid var(--border) !important;
-  font-size: 10.5px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: .07em !important;
-  color: var(--muted) !important;
-  padding: 10px 16px !important;
-}
-.rp-table :deep(td.el-table__cell) {
-  border-bottom: 1px solid var(--border-lt) !important;
-  padding: 11px 16px !important;
-  font-size: 13px !important;
-}
-.rp-table :deep(tr:hover > td.el-table__cell) {
-  background: #fafbff !important;
-}
-.rp-table :deep(.el-table__body-wrapper) { overflow-y: auto; }
-
-.mono-val {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px; font-weight: 600; color: var(--text);
-}
-.mono-val--sm { font-size: 12px; }
-.pct-val { font-size: 12px; font-weight: 700; color: var(--muted); }
-.vs-avg {
-  font-size: 11.5px; font-weight: 700;
-  border-radius: 5px;
-  padding: 2px 7px;
-  display: inline-block;
-}
-.vs-avg--up   { background: var(--green-lt); color: var(--green); }
-.vs-avg--down { background: var(--red-lt);   color: var(--red); }
-
-/* ══════════════════════════════════════════════════
-   STAFF LIST
-══════════════════════════════════════════════════ */
-.staff-list {
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.staff-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 10px;
-  border-radius: 9px;
-  transition: background .15s;
-}
-.staff-item:hover { background: var(--bg); }
-.staff-item__rank {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  font-size: 11px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  background: var(--bg);
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
-.rank-1 { background: #fef9c3; color: #a16207; border-color: #fde68a; }
-.rank-2 { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
-.rank-3 { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
-
-.staff-item__avatar {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff;
-  font-size: 12px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.staff-item__info {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column; gap: 5px;
-}
-.staff-item__name {
-  font-size: 13px; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.staff-bar-track {
-  width: 100%; height: 4px;
-  background: var(--bg);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.staff-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--purple), #a78bfa);
-  border-radius: 99px;
-  transition: width 1s cubic-bezier(.4,0,.2,1);
-}
-.staff-item__count {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px; font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* ══════════════════════════════════════════════════
-   FILTER BAR
-══════════════════════════════════════════════════ */
-.filter-bar {
-  display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 12px 14px;
-  padding: 14px 22px;
-  background: #f8f9fc;
-  border-bottom: 1px solid var(--border);
-}
-.filter-bar__pickers { display: flex; align-items: flex-end; gap: 10px; }
-.filter-field { display: flex; flex-direction: column; gap: 5px; }
-.filter-field__label {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .07em;
-  color: var(--muted);
-}
-.filter-picker { width: 155px !important; }
-.filter-bar__arrow { font-size: 15px; color: var(--muted-lt); padding-bottom: 4px; }
-
-.filter-bar__quick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.quick-btn {
-  height: 30px; padding: 0 11px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  font-family: "Plus Jakarta Sans", sans-serif;
-  font-size: 11.5px; font-weight: 600;
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.quick-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
-.quick-btn--active { border-color: var(--blue); background: var(--blue); color: #fff; }
-
-.clear-btn {
-  display: flex; align-items: center; gap: 5px;
-  height: 30px; padding: 0 11px;
-  border-radius: 6px;
-  border: 1px solid var(--red);
-  background: var(--red-lt);
-  color: var(--red);
-  font-family: "Plus Jakarta Sans", sans-serif;
-  font-size: 11.5px; font-weight: 600;
-  cursor: pointer;
-  transition: all .15s;
-}
-.clear-btn:hover { background: var(--red); color: #fff; }
-
-.filter-total {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  background: var(--orange-md);
-  border: 1px solid #fed7aa;
-  border-radius: 7px;
-  padding: 5px 12px;
-}
-.filter-total__label { font-size: 11px; font-weight: 600; color: #9a3412; }
-.filter-total__value {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 14px; font-weight: 700;
-  color: var(--orange);
-}
-
-/* ══════════════════════════════════════════════════
-   PERIOD TOGGLE + KPI ROW
-══════════════════════════════════════════════════ */
-.period-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px;
-}
-.period-btn {
-  height: 28px;
-  padding: 0 14px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-family: "Plus Jakarta Sans", sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.period-btn:hover { color: var(--blue); }
-.period-btn--active {
-  background: var(--surface);
-  color: var(--blue);
-  box-shadow: var(--sh-xs);
-  border: 1px solid var(--border);
-}
-
-.period-kpi-row {
-  display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--border-lt);
-}
-.period-kpi {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 22px;
-  border-right: 1px solid var(--border-lt);
-}
-.period-kpi:last-child { border-right: none; }
-.period-kpi__label {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .08em;
-  color: var(--muted);
-}
-.period-kpi__val {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 16px; font-weight: 700;
-  color: var(--text);
-}
-.period-kpi__val--green { color: var(--green); }
-
-/* ══════════════════════════════════════════════════
-   PERIOD BAR CHART (vertical)
-══════════════════════════════════════════════════ */
-.period-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 20px 22px 16px;
-  overflow-x: auto;
-  min-height: 160px;
-  border-bottom: 1px solid var(--border-lt);
-}
-.period-bar-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  flex: 1;
-  min-width: 48px;
-  max-width: 90px;
-  cursor: default;
-}
-.period-bar-val {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 9px; font-weight: 600;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.period-bar-track {
-  width: 100%;
-  height: 100px;
-  background: var(--bg);
-  border-radius: 6px 6px 0 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  overflow: hidden;
-}
-.period-bar-fill {
-  width: 100%;
-  background: linear-gradient(180deg, var(--blue), #38bdf8);
-  border-radius: 4px 4px 0 0;
-  transition: height 1s cubic-bezier(.4,0,.2,1);
-  min-height: 3px;
-}
-.period-bar-col:hover .period-bar-fill {
-  background: linear-gradient(180deg, var(--orange), #fb923c);
-}
-.period-bar-label {
-  font-size: 9px; font-weight: 600;
-  color: var(--muted-lt);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-/* ══════════════════════════════════════════════════
-   TOP PRODUCTS
-══════════════════════════════════════════════════ */
-.top-product-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 16px 8px;
-  border-bottom: 1px solid var(--border-lt);
-}
-.top-product-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 8px;
-  border-radius: 9px;
-  transition: background .15s;
-}
-.top-product-row:hover { background: var(--bg); }
-
-.top-product-row__rank {
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  font-size: 11px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  background: var(--bg);
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
-
-.top-product-row__info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.top-product-row__names {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.top-product-row__name {
-  font-size: 13px; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 280px;
-}
-.top-product-row__variant { font-size: 11px; color: var(--muted); white-space: nowrap; }
-.top-product-row__sku {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px; color: #94a3b8; letter-spacing: .04em;
-}
-
-.top-product-bar-track {
-  width: 100%; height: 5px;
-  background: var(--bg);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.top-product-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width 1.2s cubic-bezier(.4,0,.2,1);
-}
-.top-bar--rank1   { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.top-bar--rank2   { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
-.top-bar--rank3   { background: linear-gradient(90deg, #ea580c, #fb923c); }
-.top-bar--default { background: linear-gradient(90deg, var(--blue), #38bdf8); }
-
-.top-product-row__stats {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  flex-shrink: 0;
-}
-.top-product-qty {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px; font-weight: 700; color: var(--text);
-  white-space: nowrap;
-}
-.top-product-rev {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 11px; font-weight: 500; color: var(--muted);
-  white-space: nowrap;
-}
-
-.qty-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--blue-lt);
-  color: var(--blue);
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px; font-weight: 700;
-}
-
-/* ══════════════════════════════════════════════════
-   STATUS BARS
-══════════════════════════════════════════════════ */
-.status-bars {
-  padding: 14px 22px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
-  border-bottom: 1px solid var(--border-lt);
-}
-.status-bar-row { display: flex; flex-direction: column; gap: 6px; }
-.status-bar-row__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.status-bar-row__orders { font-size: 11.5px; font-weight: 500; color: var(--muted); margin-left: auto; }
-.status-bar-row__revenue {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12.5px; font-weight: 600; color: var(--text);
-}
-
-.status-chip {
-  display: inline-block;
-  padding: 2px 9px;
-  border-radius: 99px;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: .03em;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
-.status-chip--pending            { background: #fffbeb; color: #92400e; border-color: #fde68a; }
-.status-chip--confirmed          { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-.status-chip--processing         { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
-.status-chip--paid               { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
-.status-chip--shipping           { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
-.status-chip--delivered          { background: #f0fdf4; color: #15803d; border-color: #86efac; }
-.status-chip--cancelled          { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
-.status-chip--returned           { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
-.status-chip--partially_returned { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
-
-.status-fill { transition: width 1s cubic-bezier(.4,0,.2,1); }
-.status-fill--delivered          { background: linear-gradient(90deg, #10b981, #34d399); }
-.status-fill--paid               { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
-.status-fill--pending            { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.status-fill--processing         { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
-.status-fill--shipping           { background: linear-gradient(90deg, #0891b2, #22d3ee); }
-.status-fill--confirmed          { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.status-fill--cancelled          { background: linear-gradient(90deg, #ef4444, #f87171); }
-.status-fill--returned           { background: linear-gradient(90deg, #ea580c, #fb923c); }
-.status-fill--partially_returned { background: linear-gradient(90deg, #ea580c, #fb923c); }
-
-/* ══════════════════════════════════════════════════
-   RETURNS TABLE
-══════════════════════════════════════════════════ */
-.return-cell { display: flex; flex-direction: column; gap: 2px; }
-.return-cell__name {
-  font-size: 13px; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 260px;
-}
-.return-cell__variant { font-size: 11px; color: var(--muted); }
-.return-cell__sku {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px; color: #94a3b8; letter-spacing: .04em;
-}
-.return-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: var(--red-lt); color: #b91c1c;
-  font-size: 12px; font-weight: 700;
-}
-.return-refund {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px; font-weight: 600;
-  color: var(--red);
-}
-
-/* ══════════════════════════════════════════════════
-   EMPTY STATE
-══════════════════════════════════════════════════ */
-.empty-state {
-  padding: 40px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted-lt);
-}
-
-/* ══════════════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════════════ */
-@media (max-width: 1100px) {
-  .rp-grid--2col { grid-template-columns: 1fr; }
-}
-@media (max-width: 640px) {
-  .reports-root { padding: 14px 14px 40px; }
-  .kpi-strip { grid-template-columns: 1fr 1fr; }
-  .kpi-card__value { font-size: 13px; }
-  .rp-header__right { display: none; }
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .filter-total { margin-left: 0; }
-  .period-kpi-row { flex-wrap: wrap; }
-  .period-kpi { min-width: 50%; border-bottom: 1px solid var(--border-lt); }
-}
-</style>
+<style></style>

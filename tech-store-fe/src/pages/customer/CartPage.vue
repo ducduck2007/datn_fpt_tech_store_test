@@ -153,13 +153,6 @@
             >
               <el-icon><Right /></el-icon> Thanh toán ngay
             </el-button>
-            <el-button
-              plain
-              style="width: 100%;"
-              @click="$router.push('/')"
-            >
-              Tiếp tục mua sắm
-            </el-button>
           </el-space>
         </el-card>
 

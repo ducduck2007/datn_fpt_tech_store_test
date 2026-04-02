@@ -1,136 +1,328 @@
 <template>
-  <div class="page">
+  <div style="max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px;">
 
     <!-- Header -->
-    <div class="page-header">
-      <div>
-        <div class="page-kicker">Admin</div>
-        <h1>Quản lý người dùng</h1>
-        <p class="page-sub">{{ rows.length }} tài khoản trong hệ thống</p>
-      </div>
-      <div class="header-actions">
-        <button class="btn-outline" :disabled="loading" @click="load">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-          Làm mới
-        </button>
-        <button class="btn-primary" @click="openCreate">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Thêm người dùng
-        </button>
-      </div>
-    </div>
+    <el-row align="bottom" justify="space-between" style="margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+      <el-space direction="vertical" :size="4">
+        <el-tag type="primary" effect="plain" size="small" round>Admin</el-tag>
+        <el-text tag="div" style="font-size: 22px; font-weight: 800; color: #111827;">Quản lý người dùng</el-text>
+        <el-text size="small" type="info">{{ filteredRows.length }} / {{ rows.length }} tài khoản</el-text>
+      </el-space>
+      <el-space :size="10">
+        <el-button plain :loading="loading" @click="load">
+          <el-icon><Refresh /></el-icon> Làm mới
+        </el-button>
+        <el-button type="primary" plain @click="openCreate">
+          <el-icon><Plus /></el-icon> Thêm người dùng
+        </el-button>
+      </el-space>
+    </el-row>
 
-    <!-- Table card -->
-    <div class="table-card">
-      <div v-if="loading" class="loading-wrap">
-        <div class="spinner" /> Đang tải...
-      </div>
+    <!-- Filters -->
+    <el-card shadow="never" style="margin-bottom: 16px;">
+      <el-row :gutter="12" align="middle" style="flex-wrap: wrap; gap: 8px 0;">
+        <el-col :xs="24" :sm="10" :md="8">
+          <el-input
+            v-model="search"
+            placeholder="Tìm theo username hoặc email..."
+            clearable
+            @input="currentPage = 1"
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+        </el-col>
+        <el-col :xs="12" :sm="6" :md="4">
+          <el-select
+            v-model="roleFilter"
+            placeholder="Vai trò"
+            clearable
+            style="width: 100%;"
+            @change="currentPage = 1"
+          >
+            <el-option label="ADMIN"     value="ADMIN" />
+            <el-option label="SALES"     value="SALES" />
+            <el-option label="INVENTORY" value="INVENTORY" />
+            <el-option label="CUSTOMER"  value="CUSTOMER" />
+          </el-select>
+        </el-col>
+        <el-col :xs="12" :sm="6" :md="4">
+          <el-select
+            v-model="activeFilter"
+            placeholder="Trạng thái"
+            clearable
+            style="width: 100%;"
+            @change="currentPage = 1"
+          >
+            <el-option label="Đang hoạt động" :value="true" />
+            <el-option label="Vô hiệu hóa"    :value="false" />
+          </el-select>
+        </el-col>
+        <el-col flex="auto">
+          <el-button
+            v-if="search || roleFilter !== null || activeFilter !== null"
+            text
+            type="info"
+            @click="clearFilters"
+          >
+            <el-icon><Close /></el-icon> Xóa bộ lọc
+          </el-button>
+        </el-col>
+      </el-row>
+    </el-card>
 
-      <div v-else-if="rows.length === 0" class="empty-state">
-        Không có người dùng nào
-      </div>
+    <!-- Table -->
+    <el-card shadow="never" :body-style="{ padding: 0 }">
+      <el-skeleton v-if="loading" :rows="6" animated style="padding: 20px;" />
 
-      <div v-else class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th style="width:60px">ID</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th style="width:130px">Vai trò</th>
-              <th style="width:140px;text-align:right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="row.id" class="data-row">
-              <td class="id-cell">#{{ row.id }}</td>
-              <td class="name-cell">
-                <div class="user-avatar">{{ row.username?.[0]?.toUpperCase() }}</div>
-                {{ row.username }}
-              </td>
-              <td class="email-cell">{{ row.email }}</td>
-              <td>
-                <span class="role-tag" :class="roleClass(row.role)">{{ row.role || "—" }}</span>
-              </td>
-              <td class="actions-cell">
-                <button class="btn-edit" @click="openEdit(row)">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  Sửa
-                </button>
-                <button class="btn-delete" @click="remove(row)">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <el-empty
+        v-else-if="filteredRows.length === 0"
+        :description="rows.length === 0 ? 'Không có người dùng nào' : 'Không tìm thấy kết quả phù hợp'"
+        :image-size="80"
+        style="padding: 48px 0;"
+      />
 
-    <!-- Dialog -->
-    <Teleport to="body">
-      <div v-if="dlg.open" class="modal-backdrop" @click.self="dlg.open = false">
-        <div class="modal-box">
-          <div class="modal-header">
-            <h3>{{ dlg.mode === 'create' ? '➕ Thêm người dùng' : '✏️ Cập nhật người dùng' }}</h3>
-            <button class="modal-close" @click="dlg.open = false">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
+      <el-table
+        v-else
+        :data="pagedRows"
+        stripe
+        style="width: 100%;"
+        :header-cell-style="{ background: 'var(--el-fill-color-light)', color: 'var(--el-text-color-secondary)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em' }"
+      >
+        <!-- ID -->
+        <el-table-column label="ID" width="70" align="center">
+          <template #default="{ row }">
+            <el-text size="small" type="info" style="font-weight: 700;">#{{ row.id }}</el-text>
+          </template>
+        </el-table-column>
 
-          <div v-if="dlg.alert" class="alert-box">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {{ dlg.alert }}
-          </div>
+        <!-- Username -->
+        <el-table-column label="Username" min-width="160">
+          <template #default="{ row }">
+            <el-space :size="10" align="center">
+              <el-avatar :size="30" style="background: #eff6ff; color: #2563eb; font-size: 12px; font-weight: 800; flex-shrink: 0;">
+                {{ row.username?.[0]?.toUpperCase() }}
+              </el-avatar>
+              <el-text style="font-weight: 600; color: #111827;">{{ row.username }}</el-text>
+            </el-space>
+          </template>
+        </el-table-column>
 
-          <div class="modal-body">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Username *</label>
-                <input class="field" v-model="dlg.form.username" placeholder="Nhập username..." />
-              </div>
-              <div class="form-group">
-                <label>Email *</label>
-                <input class="field" v-model="dlg.form.email" type="email" placeholder="Nhập email..." />
-              </div>
-              <div v-if="dlg.mode === 'create'" class="form-group">
-                <label>Mật khẩu *</label>
-                <input class="field" v-model="dlg.form.password" type="password" placeholder="Nhập mật khẩu..." />
-              </div>
-              <div class="form-group">
-                <label>Vai trò *</label>
-                <select class="field" v-model="dlg.form.role">
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="SALES">SALES</option>
-                  <option value="INVENTORY">INVENTORY</option>
-                </select>
-              </div>
-            </div>
-          </div>
+        <!-- Email -->
+        <el-table-column label="Email" min-width="200">
+          <template #default="{ row }">
+            <el-text type="info">{{ row.email }}</el-text>
+          </template>
+        </el-table-column>
 
-          <div class="modal-footer">
-            <button class="btn-outline" @click="dlg.open = false">Hủy</button>
-            <button class="btn-primary" :disabled="dlg.loading" @click="save">
-              <span v-if="dlg.loading" class="spinner-sm" />
-              {{ dlg.mode === 'create' ? 'Tạo tài khoản' : 'Lưu thay đổi' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+        <!-- Role -->
+        <el-table-column label="Vai trò" width="130">
+          <template #default="{ row }">
+            <el-tag :type="roleTagType(row.role)" effect="plain" size="small" round>
+              {{ row.role || '—' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <!-- Active -->
+        <el-table-column label="Trạng thái" width="140" align="center">
+          <template #default="{ row }">
+            <el-tag
+              :type="row.isActive ? 'success' : 'danger'"
+              effect="plain"
+              size="small"
+              round
+            >
+              <span :style="`display:inline-block;width:6px;height:6px;border-radius:50%;background:${row.isActive ? 'var(--el-color-success)' : 'var(--el-color-danger)'};margin-right:5px;vertical-align:middle;`"></span>
+              {{ row.isActive ? 'Hoạt động' : 'Vô hiệu hóa' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <!-- Created at -->
+        <el-table-column label="Ngày tạo" width="160">
+          <template #default="{ row }">
+            <el-space direction="vertical" :size="2">
+              <el-text size="small">{{ formatDate(row.createdAt) }}</el-text>
+              <el-text size="small" type="info">{{ formatTime(row.createdAt) }}</el-text>
+            </el-space>
+          </template>
+        </el-table-column>
+
+        <!-- Updated at -->
+        <el-table-column label="Cập nhật" width="160">
+          <template #default="{ row }">
+            <el-space direction="vertical" :size="2">
+              <el-text size="small">{{ formatDate(row.updatedAt) }}</el-text>
+              <el-text size="small" type="info">{{ formatTime(row.updatedAt) }}</el-text>
+            </el-space>
+          </template>
+        </el-table-column>
+
+        <!-- Actions -->
+        <el-table-column label="Thao tác" width="130" align="right" fixed="right">
+          <template #default="{ row }">
+            <el-space :size="6">
+              <el-tooltip content="Chỉnh sửa" placement="top">
+                <el-button
+                  size="small"
+                  plain
+                  @click="openEdit(row)"
+                >
+                  <el-icon><Edit /></el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="Xóa" placement="top">
+                <el-button size="small" type="danger" plain @click="remove(row)">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </el-space>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- Pagination -->
+      <el-row
+        v-if="filteredRows.length > pageSize"
+        justify="center"
+        style="padding: 20px 0;"
+      >
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="pageSize"
+          :total="filteredRows.length"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          background
+          @size-change="(s) => { pageSize = s; currentPage = 1; }"
+        />
+      </el-row>
+    </el-card>
+
+    <!-- Create/Edit Dialog -->
+    <el-dialog
+      v-model="dlg.open"
+      :title="dlg.mode === 'create' ? 'Thêm người dùng' : 'Cập nhật người dùng'"
+      width="520px"
+      align-center
+    >
+      <el-alert
+        v-if="dlg.alert"
+        type="error"
+        :title="dlg.alert"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 16px;"
+      />
+
+      <el-form label-position="top" @submit.prevent="save">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="Username *">
+              <el-input v-model="dlg.form.username" placeholder="Nhập username..." />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Email *">
+              <el-input v-model="dlg.form.email" type="email" placeholder="Nhập email..." />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="dlg.mode === 'create'">
+            <el-form-item label="Mật khẩu *">
+              <el-input v-model="dlg.form.password" type="password" show-password placeholder="Nhập mật khẩu..." />
+            </el-form-item>
+          </el-col>
+          <el-col :span="dlg.mode === 'create' ? 12 : 24">
+            <el-form-item label="Vai trò *">
+              <el-select v-model="dlg.form.role" style="width: 100%;">
+                <el-option label="ADMIN"     value="ADMIN" />
+                <el-option label="SALES"     value="SALES" />
+                <el-option label="INVENTORY" value="INVENTORY" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24" v-if="dlg.mode === 'edit'">
+            <el-form-item label="Trạng thái">
+              <el-switch
+                v-model="dlg.form.isActive"
+                :active-text="dlg.form.isActive ? 'Đang hoạt động' : 'Vô hiệu hóa'"
+                active-color="var(--el-color-success)"
+                inactive-color="var(--el-color-danger)"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <template #footer>
+        <el-space :size="10">
+          <el-button @click="dlg.open = false">Hủy</el-button>
+          <el-button type="primary" :loading="dlg.loading" @click="save">
+            {{ dlg.mode === 'create' ? 'Tạo tài khoản' : 'Lưu thay đổi' }}
+          </el-button>
+        </el-space>
+      </template>
+    </el-dialog>
 
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import {
+  CircleCheck, CircleClose, Close, Delete, Edit,
+  Plus, Refresh, Search,
+} from "@element-plus/icons-vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { usersApi } from "../../api/users.api";
 import { toast } from "../../ui/toast";
 import { confirmModal } from "../../ui/confirm";
 
 const loading = ref(false);
-const rows = ref([]);
+const rows    = ref([]);
 
+// ── Filters ──────────────────────────────────────────────────────────────────
+const search      = ref("");
+const roleFilter  = ref(null);
+const activeFilter = ref(null);
+const currentPage = ref(1);
+const pageSize    = ref(10);
+
+function clearFilters() {
+  search.value = "";
+  roleFilter.value = null;
+  activeFilter.value = null;
+  currentPage.value = 1;
+}
+
+const filteredRows = computed(() => {
+  let result = rows.value;
+
+  if (search.value.trim()) {
+    const q = search.value.trim().toLowerCase();
+    result = result.filter(
+      (r) =>
+        r.username?.toLowerCase().includes(q) ||
+        r.email?.toLowerCase().includes(q),
+    );
+  }
+
+  if (roleFilter.value) {
+    result = result.filter((r) => r.role === roleFilter.value);
+  }
+
+  if (activeFilter.value !== null) {
+    result = result.filter((r) => r.isActive === activeFilter.value);
+  }
+
+  return result;
+});
+
+const pagedRows = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredRows.value.slice(start, start + pageSize.value);
+});
+
+// ── Data helpers ──────────────────────────────────────────────────────────────
 function extractList(payload) {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
@@ -147,31 +339,46 @@ function normalize(list) {
   return (list || []).map((u) => {
     const rawRole = u?.role?.name ?? u?.role?.roleName ?? u?.role ?? "";
     return {
-      id: u?.id ?? u?.userId,
-      username: u?.username ?? u?.name ?? "",
-      email: u?.email ?? "",
-      role: String(rawRole).toUpperCase(),
-      raw: u,
+      id:        u?.id ?? u?.userId,
+      username:  u?.username ?? u?.name ?? "",
+      email:     u?.email ?? "",
+      role:      String(rawRole).toUpperCase(),
+      isActive:  u?.isActive ?? true,
+      createdAt: u?.createdAt ?? null,
+      updatedAt: u?.updatedAt ?? null,
+      raw:       u,
     };
   });
 }
 
-function roleClass(role) {
-  const map = {
-    ADMIN:     "admin",
-    SALES:     "sales",
-    INVENTORY: "inventory",
-    CUSTOMER:  "customer",
-  };
-  return map[String(role || "").toUpperCase()] ?? "unknown";
+function roleTagType(role) {
+  return (
+    { ADMIN: "danger", SALES: "success", INVENTORY: "primary", CUSTOMER: "warning" }[
+      String(role || "").toUpperCase()
+    ] ?? "info"
+  );
 }
 
+function formatDate(dt) {
+  if (!dt) return "—";
+  return new Date(dt).toLocaleDateString("vi-VN", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  });
+}
+function formatTime(dt) {
+  if (!dt) return "";
+  return new Date(dt).toLocaleTimeString("vi-VN", {
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+// ── Load ──────────────────────────────────────────────────────────────────────
 async function load() {
   loading.value = true;
   try {
     const res = await usersApi.list();
     rows.value = normalize(extractList(res?.data));
-  } catch (e) {
+  } catch {
     rows.value = [];
     toast("Không thể tải danh sách người dùng.", "error");
   } finally {
@@ -179,28 +386,23 @@ async function load() {
   }
 }
 
+// ── Dialog ────────────────────────────────────────────────────────────────────
 const dlg = reactive({
   open: false, mode: "create", loading: false, alert: "", id: null,
-  originalRole: "", // ✅ lưu role gốc để so sánh, tránh gọi API thừa
-  form: { username: "", email: "", password: "", role: "ADMIN" },
+  originalRole: "",
+  form: { username: "", email: "", password: "", role: "ADMIN", isActive: true },
 });
 
 function openCreate() {
   Object.assign(dlg, { open: true, mode: "create", alert: "", id: null, originalRole: "" });
-  dlg.form = { username: "", email: "", password: "", role: "ADMIN" };
+  dlg.form = { username: "", email: "", password: "", role: "ADMIN", isActive: true };
 }
 
 function openEdit(row) {
   const rawRole = row?.raw?.role?.name ?? row?.raw?.role?.roleName ?? row?.role ?? "ADMIN";
   const role = String(rawRole).toUpperCase();
-  // ✅ lưu originalRole để so sánh trong save()
   Object.assign(dlg, { open: true, mode: "edit", alert: "", id: row?.id, originalRole: role });
-  dlg.form = {
-    username: row?.username || "",
-    email: row?.email || "",
-    password: "",
-    role,
-  };
+  dlg.form = { username: row?.username || "", email: row?.email || "", password: "", role, isActive: row?.isActive ?? true };
 }
 
 async function save() {
@@ -217,34 +419,25 @@ async function save() {
   dlg.loading = true;
   try {
     if (dlg.mode === "create") {
-      // Tạo mới: role gửi trong body, backend xử lý 1 lần
       await usersApi.add({
         username: dlg.form.username,
-        email: dlg.form.email,
+        email:    dlg.form.email,
         password: dlg.form.password,
-        role: dlg.form.role,
+        role:     dlg.form.role,
       });
       toast("Tạo tài khoản thành công!", "success");
-
     } else {
-      // ✅ Bước 1: update username + email (endpoint /update)
       await usersApi.update(dlg.id, {
         username: dlg.form.username,
-        email: dlg.form.email,
+        email:    dlg.form.email,
       });
-
-      // ✅ Bước 2: update role — chỉ gọi khi role thay đổi
-      // (backend sẽ throw "Role không thay đổi" nếu giống nhau → tránh lỗi thừa)
       if (dlg.form.role !== dlg.originalRole) {
         await usersApi.updateRole(dlg.id, dlg.form.role);
       }
-
       toast("Cập nhật thành công!", "success");
     }
-
     dlg.open = false;
     await load();
-
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || "Lưu thất bại";
     dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg);
@@ -254,7 +447,7 @@ async function save() {
 }
 
 async function remove(row) {
-  const ok = await confirmModal(`Xóa người dùng #${row?.id}?`, "Xác nhận", "Xóa", true);
+  const ok = await confirmModal(`Xóa người dùng "${row?.username}" (#${row?.id})?`, "Xác nhận xóa", "Xóa", true);
   if (!ok) return;
   try {
     await usersApi.remove(row.id);
@@ -268,111 +461,4 @@ async function remove(row) {
 onMounted(load);
 </script>
 
-<style scoped>
-.page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 32px 24px 80px;
-  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
-}
-
-/* Header */
-.page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
-.page-kicker { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #2563eb; background: #eff6ff; padding: 2px 10px; border-radius: 50px; display: inline-block; margin-bottom: 6px; }
-.page-header h1 { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 4px; }
-.page-sub { font-size: 13px; color: #6b7280; margin: 0; }
-.header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-/* Buttons */
-.btn-primary {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; background: #111827; color: white;
-  border: none; border-radius: 50px; font-size: 13px; font-weight: 700;
-  font-family: inherit; cursor: pointer; transition: all .15s;
-}
-.btn-primary:hover:not(:disabled) { background: #2563eb; }
-.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-.btn-outline {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; background: white; color: #374151;
-  border: 1.5px solid #e5e7eb; border-radius: 50px; font-size: 13px; font-weight: 600;
-  font-family: inherit; cursor: pointer; transition: all .15s;
-}
-.btn-outline:hover:not(:disabled) { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
-.btn-outline:disabled { opacity: .5; cursor: not-allowed; }
-
-/* Table card */
-.table-card { background: white; border: 1.5px solid #f0f0f0; border-radius: 16px; overflow: hidden; }
-.loading-wrap { display: flex; align-items: center; gap: 10px; padding: 48px; justify-content: center; color: #9ca3af; font-size: 13px; }
-.spinner { width: 18px; height: 18px; border: 2px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
-.spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.empty-state { text-align: center; padding: 48px; font-size: 13px; color: #d1d5db; }
-.table-wrap { overflow-x: auto; }
-
-/* Table */
-.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.data-table thead tr { background: #f9fafb; }
-.data-table th { padding: 11px 16px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
-.data-row { border-bottom: 1px solid #f9fafb; transition: background .12s; }
-.data-row:last-child { border-bottom: none; }
-.data-row:hover { background: #f8faff; }
-.data-table td { padding: 12px 16px; }
-.id-cell { color: #d1d5db; font-weight: 700; font-size: 12px; }
-.name-cell { display: flex; align-items: center; gap: 10px; font-weight: 600; color: #111827; }
-.user-avatar {
-  width: 30px; height: 30px; border-radius: 50%; background: #eff6ff;
-  color: #2563eb; font-size: 12px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.email-cell { color: #6b7280; }
-
-/* Role tags */
-.role-tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 50px; }
-.role-tag.admin     { background: #fef2f2; color: #dc2626; }
-.role-tag.sales     { background: #dcfce7; color: #16a34a; }
-.role-tag.inventory { background: #eff6ff; color: #2563eb; }
-.role-tag.customer  { background: #fefce8; color: #ca8a04; }
-.role-tag.unknown   { background: #f3f4f6; color: #9ca3af; }
-
-.actions-cell { text-align: right; }
-.btn-edit {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px; background: #f9fafb; border: 1.5px solid #e5e7eb;
-  border-radius: 50px; font-size: 12px; font-weight: 600; color: #374151;
-  cursor: pointer; font-family: inherit; transition: all .12s; margin-right: 6px;
-}
-.btn-edit:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
-.btn-delete {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; background: #fef2f2; border: 1.5px solid #fecaca;
-  border-radius: 50%; color: #dc2626; cursor: pointer; transition: all .12s;
-}
-.btn-delete:hover { background: #fee2e2; border-color: #fca5a5; }
-
-/* Modal */
-.modal-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; }
-.modal-box { background: white; border-radius: 20px; width: min(540px, 92vw); box-shadow: 0 32px 80px rgba(0,0,0,.18); animation: popIn .22s cubic-bezier(.34,1.56,.64,1); }
-@keyframes popIn { from{transform:scale(.92);opacity:0} to{transform:scale(1);opacity:1} }
-.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 0; }
-.modal-header h3 { font-size: 17px; font-weight: 800; color: #111827; margin: 0; }
-.modal-close { background: #f3f4f6; border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280; transition: all .12s; }
-.modal-close:hover { background: #fee2e2; color: #dc2626; }
-.modal-body { padding: 20px 24px; }
-.modal-footer { padding: 0 24px 22px; display: flex; justify-content: flex-end; gap: 10px; }
-
-/* Form */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 12px; font-weight: 700; color: #374151; }
-.field {
-  width: 100%; padding: 9px 12px; border: 1.5px solid #e5e7eb;
-  border-radius: 10px; font-size: 13px; font-family: inherit; color: #111827;
-  background: white; transition: border-color .15s; box-sizing: border-box;
-}
-.field:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
-
-/* Alert */
-.alert-box { display: flex; align-items: center; gap: 8px; margin: 12px 24px 0; padding: 10px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; font-size: 13px; color: #dc2626; }
-</style>
+<style></style>
