@@ -22,8 +22,8 @@ import UserManager from "../pages/system/UserManager.vue";
 import CustomerManager from "../pages/system/CustomerManager.vue";
 import CategoryManager from "../pages/system/CategoryManager.vue";
 import ProductManager from "../pages/system/ProductManager.vue";
-import ReturnListPending from "../pages/system/ReturnListPending.vue";
-import ReturnListAll from "../pages/system/ReturnListAll.vue";
+import ReturnListPending from "../pages/sales/ReturnListPending.vue";
+import ReturnListAll from "../pages/sales/ReturnListAll.vue";
 import OrderFilter from "../pages/system/OrderFilter.vue";
 import SystemOrderDetail from "../pages/system/OrderDetail.vue";
 import PricingManager from "../pages/system/PricingManager.vue";
@@ -229,19 +229,6 @@ const routes = [
       },
 
       {
-        path: "returns/pending",
-        name: "system-returns-pending",
-        component: ReturnListPending,
-        meta: { title: "Returns (Pending)" },
-      },
-      {
-        path: "returns/all",
-        name: "system-returns-all",
-        component: ReturnListAll,
-        meta: { title: "All Returns" },
-      },
-
-      {
         path: "orders/filter",
         name: "order-filter",
         component: OrderFilter,
@@ -392,12 +379,18 @@ const routes = [
         component: SalesCustomerManager,
         meta: { title: "Khách hàng tại quầy" },
       },
-      // {
-      //   path: "history",
-      //   name: "sales-history",
-      //   component: SalesOrderHistory,
-      //   meta: { title: "Lịch sử đơn hàng" },
-      // },
+      {
+        path: "returns/pending",
+        name: "sales-returns-pending",
+        component: ReturnListPending,
+        meta: { title: "Đổi trả (Chờ duyệt)" },
+      },
+      {
+        path: "returns/all",
+        name: "sales-returns-all",
+        component: ReturnListAll,
+        meta: { title: "Lịch sử đổi trả" },
+      },
     ],
   },
 ];
