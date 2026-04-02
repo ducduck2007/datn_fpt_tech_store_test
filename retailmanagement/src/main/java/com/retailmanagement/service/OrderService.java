@@ -551,6 +551,12 @@ public class OrderService {
         orderRepository.delete(order);
     }
 
+    public OrderDetailResponse getOrderDetailByNumber(String orderNumber, CustomUserDetails user) {
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderNumber));
+        return getOrderDetail(order.getId(), user);
+    }
+
     public OrderDetailResponse getOrderDetail(Long orderId, CustomUserDetails user) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));

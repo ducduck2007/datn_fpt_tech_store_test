@@ -84,6 +84,12 @@ export const ordersApi = {
     return http.get(`/api/orders/${orderId}`);
   },
 
+  // Tìm đơn theo mã orderNumber (ORD-xxx)
+  // Backend cần có endpoint: GET /api/orders/number/{orderNumber}
+  getByOrderNumber(orderNumber) {
+    return http.get(`/api/orders/number/${orderNumber}`);
+  },
+
   // ✅ THÊM MỚI: validate mã giảm giá trước khi tạo đơn
   // Trả về: { valid, discount, minOrder, message }
   validatePromoCode(code, orderTotal) {

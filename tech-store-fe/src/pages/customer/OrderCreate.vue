@@ -47,18 +47,18 @@
             <el-text tag="b">Hình thức giao hàng</el-text>
           </el-space>
         </template>
-        <el-radio-group v-model="deliveryMethod" style="width: 100%;">
+        <el-radio-group v-model="form.channel" style="width: 100%;">
           <el-space direction="vertical" fill :size="10" style="width: 100%;">
             <el-card
               shadow="never"
               :body-style="{ padding: '14px 16px' }"
-              :style="deliveryMethod === 'STORE' ? 'border-color: var(--el-color-primary); background: var(--el-color-primary-light-9);' : ''"
+              :style="form.channel === 'OFFLINE' ? 'border-color: var(--el-color-primary); background: var(--el-color-primary-light-9);' : ''"
               style="cursor: pointer;"
-              @click="deliveryMethod = 'STORE'"
+              @click="form.channel = 'OFFLINE'"
             >
               <el-row align="middle" justify="space-between">
                 <el-space :size="12">
-                  <el-radio value="STORE" />
+                  <el-radio value="OFFLINE" />
                   <span style="font-size: 20px;">🏬</span>
                   <el-space direction="vertical" :size="2">
                     <el-text tag="b">Nhận tại cửa hàng</el-text>
@@ -72,13 +72,13 @@
             <el-card
               shadow="never"
               :body-style="{ padding: '14px 16px' }"
-              :style="deliveryMethod === 'HOME' ? 'border-color: var(--el-color-primary); background: var(--el-color-primary-light-9);' : ''"
+              :style="form.channel === 'ONLINE' ? 'border-color: var(--el-color-primary); background: var(--el-color-primary-light-9);' : ''"
               style="cursor: pointer;"
-              @click="deliveryMethod = 'HOME'"
+              @click="form.channel = 'ONLINE'"
             >
               <el-row align="middle" justify="space-between">
                 <el-space :size="12">
-                  <el-radio value="HOME" />
+                  <el-radio value="ONLINE" />
                   <span style="font-size: 20px;">🚚</span>
                   <el-space direction="vertical" :size="2">
                     <el-text tag="b">Giao tại nhà</el-text>
@@ -231,8 +231,8 @@
             <el-text type="danger" size="small" style="font-weight: 600;">−{{ formatMoney(promoResult.discountAmount) }}</el-text>
           </el-row>
           <el-row justify="space-between">
-            <el-text size="small">{{ deliveryMethod === 'HOME' ? '🚚 Phí vận chuyển' : '🏬 Nhận tại cửa hàng' }}</el-text>
-            <el-text v-if="deliveryMethod === 'HOME'" type="primary" size="small" style="font-weight: 600;">+{{ formatMoney(70000) }}</el-text>
+            <el-text size="small">{{ form.channel === 'ONLINE' ? '🚚 Phí vận chuyển' : '🏬 Nhận tại cửa hàng' }}</el-text>
+            <el-text v-if="form.channel === 'ONLINE'" type="primary" size="small" style="font-weight: 600;">+{{ formatMoney(70000) }}</el-text>
             <el-tag v-else type="success" effect="plain" size="small">Miễn phí</el-tag>
           </el-row>
         </el-space>
@@ -378,12 +378,11 @@ const cartStore = useCartStore();
 
 const loading = ref(false);
 const alert = ref("");
-const deliveryMethod = ref("STORE");
 
 const form = reactive({
   customerId: null,
   paymentMethod: "CASH",
-  channel: "ONLINE",
+  channel: "OFFLINE",   // OFFLINE = Nhận tại cửa hàng | ONLINE = Giao tại nhà
   notes: "",
   items: [],
 });
@@ -403,13 +402,14 @@ const ALL_PAYMENT_OPTIONS = [
 ];
 
 const paymentOptions = computed(() =>
-  deliveryMethod.value === "HOME"
+  form.channel === "ONLINE"
     ? ALL_PAYMENT_OPTIONS.filter((o) => o.value !== "CASH")
     : ALL_PAYMENT_OPTIONS,
 );
 
-watch(deliveryMethod, (val) => {
-  if (val === "HOME" && form.paymentMethod === "CASH") {
+watch(() => form.channel, (val) => {
+  // Khi chuyển sang Giao tại nhà (ONLINE): bắt buộc thanh toán online
+  if (val === "ONLINE" && form.paymentMethod === "CASH") {
     form.paymentMethod = "TRANSFER";
   }
 });
@@ -427,7 +427,7 @@ const promoDiscount = computed(() =>
     : 0,
 );
 
-const shippingFee = computed(() => deliveryMethod.value === "HOME" ? 70000 : 0);
+const shippingFee = computed(() => form.channel === "ONLINE" ? 70000 : 0);
 
 const totalAfterDiscount = computed(() =>
   Math.max(0, subtotal.value - promoDiscount.value + shippingFee.value),
@@ -519,7 +519,7 @@ function buildNotes() {
   if (form.notes?.trim()) parts.push(form.notes.trim());
   if (form.paymentMethod === "TRANSFER") parts.push("Thanh toán chuyển khoản");
   else if (form.paymentMethod === "CARD") parts.push("Thanh toán thẻ tín dụng");
-  parts.push(deliveryMethod.value === "HOME" ? "Giao tại nhà" : "Nhận tại cửa hàng");
+  parts.push(form.channel === "ONLINE" ? "Giao tại nhà" : "Nhận tại cửa hàng");
   return parts.join(" | ");
 }
 

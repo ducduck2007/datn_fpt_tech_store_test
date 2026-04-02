@@ -216,5 +216,14 @@ public class OrderController {
                 .body(pdf);
     }
 
+    @GetMapping("/number/{orderNumber}")
+    public ResponseEntity<OrderDetailResponse> getOrderDetailByNumber(
+            @PathVariable String orderNumber,
+            @AuthenticationPrincipal CustomUserDetails user) {
+
+        return ResponseEntity.ok(
+                orderService.getOrderDetailByNumber(orderNumber, user)
+        );
+    }
 
 }

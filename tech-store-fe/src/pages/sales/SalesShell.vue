@@ -98,15 +98,12 @@
               </template>
             </el-menu-item>
           </el-menu-item-group>
+
           <!-- Trả hàng -->
-          <el-menu-item-group title="ĐỔI TRẢ SẢN PHẨM">
-            <el-menu-item index="/sales/returns/pending">
+          <el-menu-item-group title="TRẢ HÀNG">
+            <el-menu-item index="/sales/returns">
               <el-icon><RefreshLeft /></el-icon>
-              <span>Chờ xử lý</span>
-            </el-menu-item>
-            <el-menu-item index="/sales/returns/all">
-              <el-icon><Files /></el-icon>
-              <span>Lịch sử đổi trả</span>
+              <span>Trả hàng tại quầy</span>
             </el-menu-item>
           </el-menu-item-group>
         </el-menu>
