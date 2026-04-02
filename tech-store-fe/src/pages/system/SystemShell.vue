@@ -108,14 +108,6 @@
               <el-menu-item index="/system/orders/filter">Order Filter</el-menu-item>
             </el-sub-menu>
 
-            <!-- <el-sub-menu index="returns">
-              <template #title>
-                <el-icon><RefreshLeft /></el-icon>
-                <span>Returns</span>
-              </template>
-              <el-menu-item index="/system/returns/pending">Pending</el-menu-item>
-              <el-menu-item index="/system/returns/all">All Returns</el-menu-item>
-            </el-sub-menu> -->
           </el-menu-item-group>
 
           <!-- Báo cáo & Tài chính -->

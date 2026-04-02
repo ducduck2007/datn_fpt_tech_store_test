@@ -94,9 +94,19 @@
               <template #title>
                 <el-space :size="6" style="width: 100%; justify-content: space-between;">
                   <span>Quản lý khách hàng</span>
-                  <el-tag size="small" type="warning" effect="plain" style="margin-left: auto; font-size: 8.5px; height: 18px; padding: 0 6px;">Mới</el-tag>
                 </el-space>
               </template>
+            </el-menu-item>
+          </el-menu-item-group>
+          <!-- Trả hàng -->
+          <el-menu-item-group title="ĐỔI TRẢ SẢN PHẨM">
+            <el-menu-item index="/sales/returns/pending">
+              <el-icon><RefreshLeft /></el-icon>
+              <span>Chờ xử lý</span>
+            </el-menu-item>
+            <el-menu-item index="/sales/returns/all">
+              <el-icon><Files /></el-icon>
+              <span>Lịch sử đổi trả</span>
             </el-menu-item>
           </el-menu-item-group>
         </el-menu>
@@ -127,7 +137,7 @@
 </template>
 
 <script setup>
-import { Box, Monitor, ShoppingBag, SwitchButton, UserFilled } from "@element-plus/icons-vue";
+import { Box, Files, Monitor, RefreshLeft, ShoppingBag, SwitchButton, UserFilled } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import { confirmModal } from "../../ui/confirm";

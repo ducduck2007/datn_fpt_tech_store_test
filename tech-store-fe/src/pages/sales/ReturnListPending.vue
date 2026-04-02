@@ -3,6 +3,10 @@
     <!-- Header -->
     <div class="rr-header">
       <div class="rr-header__left">
+        <div class="rr-header__eyebrow">
+          <div class="rr-status-dot"></div>
+          Bán hàng
+        </div>
         <h1 class="rr-header__title">Yêu cầu hoàn hàng</h1>
         <p class="rr-header__sub">
           Quản lý các yêu cầu hoàn hàng &amp; hoàn tiền đang chờ xử lý
