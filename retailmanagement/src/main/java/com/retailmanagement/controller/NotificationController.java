@@ -4,13 +4,16 @@ package com.retailmanagement.controller;
 import com.retailmanagement.dto.request.SendNotificationRequest;
 import com.retailmanagement.dto.response.NotificationResponse;
 import com.retailmanagement.entity.Notification;
+import com.retailmanagement.security.service.CustomUserDetails;
 import com.retailmanagement.service.CustomerService;
+
 import com.retailmanagement.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -154,10 +157,15 @@ public class NotificationController {
 
     private Integer getCurrentCustomerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        var customer = customerService.findByEmail(auth.getName());
-        if (customer == null)
-            throw new RuntimeException("Không tìm thấy khách hàng: " + auth.getName());
-        return customer.getId();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Chưa đăng nhập");
+        }
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Integer customerId = userDetails.getCustomerId();
+        if (customerId == null) {
+            throw new RuntimeException("Tài khoản này không phải customer");
+        }
+        return customerId;
     }
 
     private NotificationResponse mapToResponse(Notification notification) {

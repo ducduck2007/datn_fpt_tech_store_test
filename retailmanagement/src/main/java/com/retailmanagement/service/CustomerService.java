@@ -409,12 +409,11 @@ private final EmailService emailService;
     }
 
     public CustomerResponse findByEmail(String email) {
+        // 1. Tìm theo email trong bảng customers
         Optional<Customer> customerOpt = customRes.findByEmail(email.trim());
         if (customerOpt.isPresent()) return mapToResponse(customerOpt.get());
 
-        customerOpt = customRes.findByName(email.trim());
-        if (customerOpt.isPresent()) return mapToResponse(customerOpt.get());
-
+        // 2. Tìm qua bảng users (username = email)
         Optional<User> userOpt = userRepository.findByUsername(email.trim());
         if (userOpt.isPresent()) {
             customerOpt = customRes.findByUserId(userOpt.get().getId());
