@@ -144,8 +144,14 @@
               </el-col>
             </el-row>
             <div v-if="foundCustomer" class="selected-customer mt-5">
-              <el-tag closable @close="removeCustomer" effect="light" class="w-full-tag">
-                {{ foundCustomer.fullName || foundCustomer.name }} - {{ foundCustomer.phone }}
+              <el-tag closable @close="removeCustomer" effect="light" class="w-full-tag custom-customer-tag">
+                <div class="customer-info-box">
+                  <span class="customer-name font-bold">{{ foundCustomer.fullName || foundCustomer.name }}</span>
+                  <div class="customer-meta">
+                    <el-text size="small" type="info">{{ foundCustomer.phone }}</el-text>
+                    <el-tag v-if="customerTierName" size="small" effect="dark" type="warning" round class="tier-badge">{{ customerTierName }}</el-tag>
+                  </div>
+                </div>
               </el-tag>
             </div>
           </div>
@@ -170,10 +176,34 @@
               <span class="label">Tạm tính</span>
               <span class="value">{{ formatMoney(subtotal) }}</span>
             </div>
-            <div v-if="promoDiscount > 0" class="summary-line text-success">
-              <span class="label">Giảm giá</span>
+
+            <!-- VIP Discount -->
+            <div v-if="vipDiscountPct > 0" class="summary-line discount-line vip-line">
+              <span class="label">
+                <el-icon style="vertical-align:middle;margin-right:3px"><Medal /></el-icon>
+                VIP ({{ vipDiscountPct }}%)
+              </span>
+              <span class="value">-{{ formatMoney(vipDiscount) }}</span>
+            </div>
+
+            <!-- Spin Discount -->
+            <div v-if="spinDiscountPct > 0" class="summary-line discount-line spin-line">
+              <span class="label">
+                <el-icon style="vertical-align:middle;margin-right:3px"><Present /></el-icon>
+                Spin ({{ spinDiscountPct }}%)
+                <el-tooltip v-if="spinBonusExpiry" :content="'Hết hạn: ' + new Date(spinBonusExpiry).toLocaleDateString('vi-VN')" placement="top">
+                  <el-icon style="color:#e6a23c;margin-left:3px"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </span>
+              <span class="value">-{{ formatMoney(spinDiscount) }}</span>
+            </div>
+
+            <!-- Promo Code Discount -->
+            <div v-if="promoDiscount > 0" class="summary-line discount-line">
+              <span class="label">🏷️ Mã giảm giá</span>
               <span class="value">-{{ formatMoney(promoDiscount) }}</span>
             </div>
+
             <div class="summary-line total">
               <span class="label">TỔNG CỘNG</span>
               <span class="value">{{ formatMoney(totalAmount) }}</span>
@@ -252,12 +282,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { Monitor, Loading, ShoppingCart, Delete, Close, User, Wallet, InfoFilled } from "@element-plus/icons-vue";
+import { Monitor, Loading, ShoppingCart, Delete, Close, User, Wallet, InfoFilled, Medal, Present } from "@element-plus/icons-vue";
 import { productsApi } from "../../api/products.api";
 import { serialsApi } from "../../api/serials.api";
 import { ordersApi } from "../../api/orders.api";
 import { paymentsApi } from "../../api/payments";
 import { customersApi } from "../../api/customers.api";
+import { spinWheelApi } from "../../api/spinWheel.api";
 import { confirmModal } from "../../ui/confirm";
 import { toast } from "../../ui/toast";
 
@@ -284,6 +315,13 @@ const promoError = ref("");
 const appliedPromo = ref(null);
 const promoDiscount = ref(0);
 
+// ── VIP & Spin Discount ──
+const vipDiscountPct = ref(0);   // % giảm theo hạng VIP (vd: 5 = 5%)
+const spinDiscountPct = ref(0);  // % giảm từ spin wheel bonus (vd: 10 = 10%)
+const spinBonusExpiry = ref(null); // Thời điểm hết hạn spin bonus
+const customerTierName = ref(""); // Tên hạng VIP (ví dụ: Platinum, Diamond)
+const discountsLoading = ref(false);
+
 const showModal = ref(false);
 const payMethod = ref("CASH");
 const cashIn = ref(0);
@@ -299,7 +337,9 @@ const foundCustomerSnapshot = ref(null);
 
 // ── Computed ──
 const subtotal = computed(() => cart.value.reduce((s, i) => s + i.price, 0));
-const totalAmount = computed(() => Math.max(0, subtotal.value - promoDiscount.value));
+const vipDiscount = computed(() => Math.round(subtotal.value * vipDiscountPct.value / 100));
+const spinDiscount = computed(() => Math.round(subtotal.value * spinDiscountPct.value / 100));
+const totalAmount = computed(() => Math.max(0, subtotal.value - vipDiscount.value - spinDiscount.value - promoDiscount.value));
 const quickOptions = computed(() => {
   const t = totalAmount.value;
   const base = Math.ceil(t / 10000) * 10000;
@@ -443,6 +483,7 @@ async function lookupCustomer() {
     if (found) {
       foundCustomer.value = found;
       toast(`Chào khách hàng: ${found.fullName || found.name}`, "success");
+      fetchCustomerDiscounts(found.id);
     } else {
       cusError.value = "Không tìm thấy khách hàng. Vui lòng nhập đầy đủ SĐT hoặc Email.";
     }
@@ -450,7 +491,58 @@ async function lookupCustomer() {
     cusError.value = "Lỗi hệ thống khi tra cứu khách hàng.";
   } finally { cusLoading.value = false; }
 }
-const removeCustomer = () => { foundCustomer.value = null; cusQuery.value = ""; };
+
+/**
+ * Lấy % giảm VIP (tier discount) và % spin bonus của khách vừa tìm thấy.
+ */
+async function fetchCustomerDiscounts(customerId) {
+  discountsLoading.value = true;
+  vipDiscountPct.value = 0;
+  spinDiscountPct.value = 0;
+  spinBonusExpiry.value = null;
+  try {
+    // 1. VIP tier discount
+    const tierRes = await customersApi.getCustomerTierProgress(customerId);
+    const tierData = tierRes.data?.data ?? tierRes.data ?? {};
+    // Backend có thể trả `currentDiscountRate` là decimal (0.03)
+    const rate = Number(tierData.currentDiscountRate ?? tierData.discountPercentage ?? tierData.discount ?? tierData.vipDiscountPct ?? 0);
+    vipDiscountPct.value = (rate > 0 && rate < 1) ? rate * 100 : rate;
+    customerTierName.value = tierData.currentTierDisplay || tierData.currentTier || "";
+
+    // 2. Spin wheel bonus
+    const spinRes = await spinWheelApi.getStatus(customerId);
+    const spinData = spinRes.data?.data ?? spinRes.data ?? {};
+    // Đọc từ lastSpin nếu có và còn hạn
+    if (spinData.lastSpin && Number(spinData.lastSpin.discountBonus) > 0 && new Date(spinData.lastSpin.expiresAt) >= new Date()) {
+      spinDiscountPct.value = Number(spinData.lastSpin.discountBonus);
+      spinBonusExpiry.value = spinData.lastSpin.expiresAt;
+    } else {
+      const rawSpin = spinData.currentBonus ?? spinData.bonusPercent ?? spinData.bonus ?? 0;
+      spinDiscountPct.value = Number(rawSpin);
+      spinBonusExpiry.value = spinData.bonusExpiresAt ?? spinData.expiresAt ?? null;
+    }
+
+    if (vipDiscountPct.value > 0 || spinDiscountPct.value > 0) {
+      toast(
+        `Áp dụng: VIP ${vipDiscountPct.value}% + Spin ${spinDiscountPct.value}%`,
+        "success"
+      );
+    }
+  } catch (err) {
+    console.warn("Không lấy được thông tin ưu đãi:", err);
+  } finally {
+    discountsLoading.value = false;
+  }
+}
+
+const removeCustomer = () => {
+  foundCustomer.value = null;
+  cusQuery.value = "";
+  vipDiscountPct.value = 0;
+  spinDiscountPct.value = 0;
+  spinBonusExpiry.value = null;
+  customerTierName.value = "";
+};
 
 async function applyPromo() {
   const code = promoCode.value.trim().toUpperCase();
@@ -501,14 +593,19 @@ async function confirmPayment() {
       channel: "OFFLINE",
       notes: orderNotes.value,
       promotionCode: appliedPromo.value?.code,
+      // Truyền thêm discount VIP và Spin để backend ghi nhận
+      vipDiscountPercent: vipDiscountPct.value || undefined,
+      vipDiscountAmount: vipDiscount.value || undefined,
+      spinDiscountPercent: spinDiscountPct.value || undefined,
+      spinDiscountAmount: spinDiscount.value || undefined,
       items: cart.value.map(i => ({ variantId: i.variantId, serialId: i.serialId, quantity: 1 }))
     });
     const orderId = oRes.data?.data?.id || oRes.data?.id;
-    
+
     payStep.value = "Ghi nhận thanh toán...";
     await paymentsApi.create({ orderId, method: payMethod.value, amount: totalAmount.value, paymentStatus: "PAID" });
     await ordersApi.markAsDelivered(orderId);
-    
+
     payStep.value = "Cập nhật kho...";
     await Promise.allSettled(cart.value.map(i => serialsApi.updateStatus(i.serialId, "SOLD")));
 
@@ -517,7 +614,7 @@ async function confirmPayment() {
     orderDone.value = oRes.data?.data || oRes.data;
     showModal.value = false; showDone.value = true;
     toast("Thanh toán thành công!", "success");
-    resetAll(); // Clear local state but leave orderDone for the dialog
+    resetAll();
   } catch (e) { payError.value = e.response?.data?.message || "Lỗi thanh toán."; }
   finally { payLoading.value = false; }
 }
@@ -525,6 +622,7 @@ async function confirmPayment() {
 function resetAll() {
   cart.value = []; foundCustomer.value = null; cusQuery.value = "";
   orderNotes.value = ""; searchQuery.value = ""; clearPromo();
+  vipDiscountPct.value = 0; spinDiscountPct.value = 0; spinBonusExpiry.value = null; customerTierName.value = "";
   localStorage.removeItem("pos_draft_cart"); localStorage.removeItem("pos_draft_customer");
 }
 
@@ -562,12 +660,23 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .summary-line { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #606266; }
 .summary-line.total { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ebeef5; }
 .summary-line.total .value { font-size: 20px; color: #f56c6c; font-weight: bold; }
+.discount-line .value { color: #67c23a; font-weight: 600; }
+.vip-line .label { color: #8b5cf6; font-weight: 600; }
+.spin-line .label { color: #f59e0b; font-weight: 600; }
 .pay-btn { width: 100%; height: 50px; font-weight: bold; font-size: 16px; margin-top: 10px; }
 
 /* Effects */
 .blink-tag { animation: blink 1s infinite; }
 @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 .draft-tip { margin-bottom: 8px; text-align: center; }
+
+.custom-customer-tag { height: auto !important; padding: 6px 8px; }
+.custom-customer-tag :deep(.el-tag__content) { flex: 1; width: 100%; }
+.customer-info-box { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.3; }
+.customer-name { font-size: 13px; color: #303133; }
+.customer-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.tier-badge { height: 20px; font-weight: bold; font-size: 11px; padding: 0 6px; }
+
 .w-full-tag { width: 100%; display: flex; justify-content: space-between; align-items: center; }
 .mono { font-family: monospace; }
 .flex-row { display: flex; align-items: center; }
