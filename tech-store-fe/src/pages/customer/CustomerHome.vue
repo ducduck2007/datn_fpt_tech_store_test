@@ -177,28 +177,20 @@
                 </el-tooltip>
               </el-row>
             </template>
-            <el-menu
-              :default-active="String(activeKey)"
-              style="border: none;"
-              @select="onSelectCategory"
-            >
-              <el-menu-item index="all">Tất cả</el-menu-item>
-              <el-menu-item
-                v-for="c in categories"
-                :key="c.id"
-                :index="String(c.id)"
-              >{{ c.name }}</el-menu-item>
-            </el-menu>
+            <el-select v-model="activeKey" style="width: 100%;" @change="onSelectCategory" placeholder="Chọn danh mục">
+              <el-option label="Tất cả" value="all" />
+              <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="String(c.id)" />
+            </el-select>
           </el-card>
 
           <el-card shadow="never">
             <template #header>
               <el-text size="small" style="text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Thương hiệu</el-text>
             </template>
-            <el-radio-group v-model="selectedBrand" style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;" @change="onSelectBrand">
-              <el-radio value="all">Tất cả hãng</el-radio>
-              <el-radio v-for="b in brands" :key="b" :value="b">{{ b }}</el-radio>
-            </el-radio-group>
+            <el-select v-model="selectedBrand" style="width: 100%;" @change="onSelectBrand" placeholder="Chọn hãng">
+              <el-option label="Tất cả hãng" value="all" />
+              <el-option v-for="b in brands" :key="b" :label="b" :value="b" />
+            </el-select>
           </el-card>
 
           <el-card shadow="never">
