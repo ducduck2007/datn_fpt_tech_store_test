@@ -225,7 +225,7 @@ public class OrderController {
                 orderService.getOrderDetailByNumber(orderNumber, user)
         );
     }
-    @GetMapping("/by-serial/{serialNumber}")
+    @GetMapping("/by-serial/{serialNumber:.+}")
     public ResponseEntity<OrderDetailResponse> getOrderBySerial(
             @PathVariable String serialNumber,
             @AuthenticationPrincipal CustomUserDetails user) {
