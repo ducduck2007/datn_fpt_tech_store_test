@@ -412,7 +412,8 @@ async function doSearch() {
       const vName = serial.variantName || "Mặc định";
       if (!groupMap[pName]) groupMap[pName] = { name: pName, variants: {} };
       if (!groupMap[pName].variants[vName]) {
-        groupMap[pName].variants[vName] = { id: serial.variantId, name: vName, price: 0, remainingCount: 0, serials: [] };
+        const vId = serial.variantId || serial.productVariantId || serial.variant?.id || serial.productVariant?.id;
+        groupMap[pName].variants[vName] = { id: vId, name: vName, price: 0, remainingCount: 0, serials: [] };
       }
       groupMap[pName].variants[vName].serials.push(serial);
       groupMap[pName].variants[vName].remainingCount++;
@@ -433,8 +434,11 @@ async function doSearch() {
           const vRes = await productsApi.getVariants(product.id);
           const vList = vRes.data?.data || vRes.data || [];
           group.variants.forEach(v => {
-            const match = vList.find(vo => vo.id === v.id || vo.variantName === v.name);
-            if (match?.price) v.price = Number(match.price);
+            const match = vList.find(vo => vo.id === v.id || vo.variantName === v.name || vo.name === v.name);
+            if (match) {
+              if (!v.id) v.id = match.id;
+              if (match.price) v.price = Number(match.price);
+            }
           });
         }
       } catch (err) { console.warn("Bỏ qua lỗi lấy giá cho:", group.name); }
@@ -517,14 +521,21 @@ async function fetchCustomerDiscounts(customerId) {
     // 2. Spin wheel bonus
     const spinRes = await spinWheelApi.getStatus(customerId);
     const spinData = spinRes.data?.data ?? spinRes.data ?? {};
-    // Đọc từ lastSpin nếu có và còn hạn
-    if (spinData.lastSpin && Number(spinData.lastSpin.discountBonus) > 0 && new Date(spinData.lastSpin.expiresAt) >= new Date()) {
-      spinDiscountPct.value = Number(spinData.lastSpin.discountBonus);
-      spinBonusExpiry.value = spinData.lastSpin.expiresAt;
+    
+    // Dựa vào currentBonus do BackEnd tính toán. Nếu = 0 tức là đã dùng hoặc hết hạn.
+    const activeBonus = Number(spinData.currentBonus ?? spinData.bonusPercent ?? spinData.bonus ?? 0);
+    
+    if (activeBonus > 0) {
+      spinDiscountPct.value = activeBonus;
+      // Trích xuất thêm ngày hết hạn từ lastSpin (nếu khớp)
+      if (spinData.lastSpin && Number(spinData.lastSpin.discountBonus) === activeBonus) {
+        spinBonusExpiry.value = spinData.lastSpin.expiresAt;
+      } else {
+        spinBonusExpiry.value = spinData.bonusExpiresAt ?? spinData.expiresAt ?? null;
+      }
     } else {
-      const rawSpin = spinData.currentBonus ?? spinData.bonusPercent ?? spinData.bonus ?? 0;
-      spinDiscountPct.value = Number(rawSpin);
-      spinBonusExpiry.value = spinData.bonusExpiresAt ?? spinData.expiresAt ?? null;
+      spinDiscountPct.value = 0;
+      spinBonusExpiry.value = null;
     }
 
     if (vipDiscountPct.value > 0 || spinDiscountPct.value > 0) {
@@ -605,10 +616,25 @@ async function confirmPayment() {
       spinDiscountAmount: spinDiscount.value || undefined,
       items: cart.value.map(i => ({ variantId: i.variantId, serialId: i.serialId, quantity: 1 }))
     });
-    const orderId = oRes.data?.data?.id || oRes.data?.id;
+    const respData = oRes.data?.data || oRes.data || {};
+    const orderId = respData.orderId || respData.id || respData.order_id || respData;
+
+    if (!orderId || isNaN(Number(orderId))) {
+      throw new Error(`Lỗi phân tích ID đơn hàng từ hệ thống: ${JSON.stringify(respData).substring(0, 50)}`);
+    }
 
     payStep.value = "Ghi nhận thanh toán...";
-    await paymentsApi.create({ orderId, method: payMethod.value, amount: totalAmount.value, paymentStatus: "PAID" });
+    await paymentsApi.create({ 
+      orderId: Number(orderId), 
+      method: payMethod.value, 
+      amount: totalAmount.value, 
+      paymentStatus: "PAID",
+      transactionRef: `TXN-POS-${Date.now()}`
+    });
+
+    payStep.value = "Cập nhật trạng thái giao hàng...";
+    await ordersApi.markAsProcessing(orderId).catch(() => {});
+    await ordersApi.markAsShipping(orderId).catch(() => {});
     await ordersApi.markAsDelivered(orderId);
 
     payStep.value = "Cập nhật kho...";
