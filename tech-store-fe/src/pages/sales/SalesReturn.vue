@@ -161,7 +161,23 @@
               <el-table-column label="Đơn giá" width="120" align="right">
                 <template #default="{ row }">{{ formatMoney(row.price) }}</template>
               </el-table-column>
-
+<el-table-column label="Serial" min-width="160">
+  <template #default="{ row }">
+    <div v-if="row.serialNumbers && row.serialNumbers.length > 0">
+      <el-tag
+        v-for="sn in row.serialNumbers"
+        :key="sn"
+        size="small"
+        type="info"
+        effect="plain"
+        style="margin: 2px; font-family: monospace; font-size: 11px;"
+      >
+        {{ sn }}
+      </el-tag>
+    </div>
+    <el-text v-else type="info" size="small">—</el-text>
+  </template>
+</el-table-column>
               <!-- Quantity to return — only show when creating new return -->
               <el-table-column v-if="canCreateReturn" label="SL trả" width="120" align="center">
                 <template #default="{ row }">
