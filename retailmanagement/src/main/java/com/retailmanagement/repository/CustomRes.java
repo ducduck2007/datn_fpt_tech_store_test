@@ -23,7 +23,7 @@
         Optional<Customer> findByPhone(String phone);
         List<Customer> findAll();
         List<Customer> findByCustomerType(CustomerType type);
-        Optional<Customer> findByName(String name);
+        List<Customer> findByName(String name);
 
         Optional<Customer> findById(Integer id);
 
