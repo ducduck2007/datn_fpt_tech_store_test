@@ -12,6 +12,7 @@ import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +28,11 @@ public class ProductSerialController {
     private final ProductSerialService productSerialService;
     private final ProductVariantRepository variantRepository;
 
-    // 1. Lấy danh sách tất cả Seri của 1 Biến thể
     @GetMapping("/{variantId}/serials")
     public ResponseEntity<List<ProductSerial>> getSerialsByVariant(@PathVariable Integer variantId) {
         return ResponseEntity.ok(serialRepository.findByVariantId(variantId));
     }
 
-    // 2. Thêm mới một danh sách các Số Seri vào kho (Nhập kho)
     @PostMapping("/{variantId}/serials")
     @Transactional
     public ResponseEntity<String> addSerialsToVariant(
@@ -53,34 +52,47 @@ public class ProductSerialController {
         }
 
         try {
-            serialRepository.saveAll(newSerials);
+            serialRepository.saveAllAndFlush(newSerials);
+            ProductVariant variant = variantRepository.findById(variantId).orElse(null);
+            if (variant != null) {
+                int currentStock = serialRepository.countByVariantIdAndStatus(variantId, "IN_STOCK");
+                variant.setStockQuantity(currentStock);
+                variant.setIsActive(currentStock > 0);
+                variantRepository.save(variant);
+            }
             return ResponseEntity.ok("Đã thêm thành công " + newSerials.size() + " số Seri vào kho.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi: Có thể số Seri đã bị trùng lặp trong hệ thống.");
         }
     }
 
-    // 3. Xóa một số Seri cụ thể (Trường hợp nhập sai hoặc máy bị hỏng, trả về kho)
     @DeleteMapping("/serials/{serialId}")
     public ResponseEntity<String> deleteSerial(@PathVariable Long serialId) {
-        serialRepository.deleteById(serialId);
+        ProductSerial serial = serialRepository.findById(serialId).orElse(null);
+        if (serial != null) {
+            serialRepository.deleteById(serialId);
+            ProductVariant variant = variantRepository.findById(serial.getVariantId()).orElse(null);
+            if (variant != null) {
+                int currentStock = serialRepository.countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
+                variant.setStockQuantity(currentStock);
+                variant.setIsActive(currentStock > 0);
+                variantRepository.save(variant);
+            }
+        }
         return ResponseEntity.ok("Đã xóa số Seri thành công.");
     }
-    @PostMapping("/{variantId}/serials/generate")
-    public ResponseEntity<?> generateSerials(
+
+    // Endpoint mới để Import Excel
+    @PostMapping("/{variantId}/serials/import")
+    public ResponseEntity<?> importSerials(
             @PathVariable Integer variantId,
-            @RequestParam(defaultValue = "1") int quantity) {
+            @RequestParam("file") MultipartFile file) {
 
-        if (quantity < 1 || quantity > 500) {
-            return ResponseEntity.badRequest().body("Số lượng phải từ 1 đến 500");
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File trống."));
         }
-
-        List<ProductSerial> generated = productSerialService.generateAndSave(variantId, quantity);
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Đã gen thành công " + generated.size() + " serial",
-                "serials", generated.stream().map(ProductSerial::getSerialNumber).toList()
-        ));
+        Map<String, Object> result = productSerialService.importFromExcel(variantId, file);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/serials/all")
