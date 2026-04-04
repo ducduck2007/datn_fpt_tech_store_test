@@ -25,9 +25,9 @@ public class PromotionService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PromotionService(PromotionRepository promoRepo,
-            ProductVariantRepository variantRepo,
-            PromotionRedemptionRepository redemptionRepo,
-            PromotionCustomerUsageRepository customerUsageRepo) {
+                            ProductVariantRepository variantRepo,
+                            PromotionRedemptionRepository redemptionRepo,
+                            PromotionCustomerUsageRepository customerUsageRepo) {
         this.promoRepo = promoRepo;
         this.variantRepo = variantRepo;
         this.redemptionRepo = redemptionRepo;
@@ -197,32 +197,16 @@ public class PromotionService {
         return false;
     }
 
-    private void assertNoDuplicatePromotion(Promotion draft, Integer ignoreId) {
-        LocalDateTime s = draft.getStartDate();
-        LocalDateTime e = draft.getEndDate();
-
-        List<Promotion> candidates = (ignoreId == null)
-                ? promoRepo.findByIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(e, s)
-                : promoRepo.findByIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqualAndIdNot(e, s,
-                        ignoreId);
-
-        Applicability newApp = parseApplicability(draft.getApplicabilityJson());
-
-        List<String> conflicts = new ArrayList<>();
-        for (Promotion p : candidates) {
-            if (!dateOverlap(p.getStartDate(), p.getEndDate(), s, e))
-                continue;
-
-            Applicability oldApp = parseApplicability(p.getApplicabilityJson());
-            if (applicabilityOverlap(newApp, oldApp))
-                conflicts.add(p.getCode());
-        }
-
-        if (!conflicts.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Trùng khuyến mãi theo thời gian/phạm vi với: " + String.join(", ", conflicts));
-        }
-    }
+    // ──────────────────────────────────────────────────────────────────────
+    // assertNoDuplicatePromotion đã được BỎ.
+    //
+    // Lý do: Các sàn lớn (Shopee, Tiki, Lazada...) cho phép nhiều promotion
+    // cùng tồn tại song song. Xung đột chỉ là CẢNH BÁO (qua /conflicts)
+    // chứ không BLOCK tạo mới. Khi áp dụng, hệ thống sẽ chọn promotion
+    // tốt nhất qua findBestPromotionForVariant().
+    //
+    // Check duy nhất được giữ lại: trùng CODE (đã có trong create()).
+    // ──────────────────────────────────────────────────────────────────────
 
     @Transactional
     public Promotion create(PromotionRequest req, Integer createdBy) {
@@ -283,7 +267,8 @@ public class PromotionService {
         p.setCreatedBy(createdBy);
         p.setCreatedAt(LocalDateTime.now());
 
-        assertNoDuplicatePromotion(p, null);
+        // ✅ Không còn gọi assertNoDuplicatePromotion() — cho phép tạo tự do,
+        //    chỉ chặn trùng code (đã check ở trên).
 
         Promotion saved = promoRepo.save(p);
 
@@ -374,7 +359,7 @@ public class PromotionService {
             }
         }
 
-        assertNoDuplicatePromotion(p, p.getId());
+        // ✅ Không còn gọi assertNoDuplicatePromotion() — cho phép update tự do.
         return promoRepo.save(p);
     }
 

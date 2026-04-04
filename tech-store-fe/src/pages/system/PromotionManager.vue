@@ -36,15 +36,26 @@
 
     <!-- ── Validate bar ── -->
     <el-card shadow="never">
-      <el-space wrap align="center">
-        <el-icon><Search /></el-icon>
-        <span>Validate mã KM</span>
-        <el-input v-model="validateCode" placeholder="VD: GAMING10" style="width:160px">
-          <template #prepend>CODE</template>
-        </el-input>
-        <el-input v-model.number="validateTotal" placeholder="Tổng đơn" type="number" style="width:140px">
-          <template #prepend>₫</template>
-        </el-input>
+      <div class="validate-row">
+        <el-icon :size="16"><Search /></el-icon>
+        <span class="validate-label">Validate mã KM</span>
+        <div class="validate-field">
+          <label class="validate-field-tag">CODE</label>
+          <input
+            class="validate-input"
+            v-model="validateCode"
+            placeholder="VD: GAMING10"
+          />
+        </div>
+        <div class="validate-field">
+          <label class="validate-field-tag">₫</label>
+          <input
+            class="validate-input validate-input--num"
+            v-model.number="validateTotal"
+            placeholder="Tổng đơn hàng"
+            type="number"
+          />
+        </div>
         <el-button type="primary" :loading="validateLoading" @click="doValidate" :disabled="validateLoading">
           <template #icon><el-icon><Check /></el-icon></template>
           Kiểm tra
@@ -52,7 +63,7 @@
         <el-button v-if="validateResult" text @click="validateResult = null">
           <el-icon><Close /></el-icon>
         </el-button>
-      </el-space>
+      </div>
       <div v-if="validateResult" class="validate-result-wrap">
         <el-alert
           v-if="validateResult.valid"
@@ -203,23 +214,23 @@
         <div>
           <el-row justify="space-between">
             <el-text>Đang chạy</el-text>
-            <el-text type="success">{{ reportData?.total ? Math.round((reportData.activeCount / reportData.total) * 100) : 0 }}%</el-text>
+            <el-text type="success">{{ ratioPct('activeCount') }}%</el-text>
           </el-row>
-          <el-progress :percentage="reportData?.total ? Math.round((reportData.activeCount / reportData.total) * 100) : 0" :show-text="false" status="success" />
+          <el-progress :percentage="ratioPct('activeCount')" :show-text="false" status="success" />
         </div>
         <div>
           <el-row justify="space-between">
             <el-text>Combo</el-text>
-            <el-text type="warning">{{ reportData?.total ? Math.round(((reportData?.comboCount ?? 0) / reportData.total) * 100) : 0 }}%</el-text>
+            <el-text type="warning">{{ ratioPct('comboCount') }}%</el-text>
           </el-row>
-          <el-progress :percentage="reportData?.total ? Math.round(((reportData?.comboCount ?? 0) / reportData.total) * 100) : 0" :show-text="false" color="#f59e0b" />
+          <el-progress :percentage="ratioPct('comboCount')" :show-text="false" color="#f59e0b" />
         </div>
         <div>
           <el-row justify="space-between">
             <el-text>Giới hạn lượt</el-text>
-            <el-text type="primary">{{ reportData?.total ? Math.round(((reportData?.usageLimitedCount ?? 0) / reportData.total) * 100) : 0 }}%</el-text>
+            <el-text type="primary">{{ ratioPct('usageLimitedCount') }}%</el-text>
           </el-row>
-          <el-progress :percentage="reportData?.total ? Math.round(((reportData?.usageLimitedCount ?? 0) / reportData.total) * 100) : 0" :show-text="false" />
+          <el-progress :percentage="ratioPct('usageLimitedCount')" :show-text="false" />
         </div>
       </el-space>
     </el-card>
@@ -235,7 +246,7 @@
           <el-space>
             <span><el-switch v-model="showInactive" /></span>
             <el-text size="small" :type="showInactive ? '' : 'info'">
-              {{ showInactive ? 'Hiện tất cả' : 'Ẩn km ff' }}
+              {{ showInactive ? 'Hiện tất cả' : 'Ẩn km tắt' }}
             </el-text>
           </el-space>
         </el-row>
@@ -728,6 +739,13 @@ async function loadCombinedReport() {
   finally { reportLoading.value = summaryReportLoading.value = false; }
 }
 
+function ratioPct(key) {
+  const total = reportData.value?.total;
+  if (!total) return 0;
+  const val = reportData.value?.[key] ?? summaryReportData.value?.[key] ?? 0;
+  return Math.round((val / total) * 100);
+}
+
 // ── Preview ───────────────────────────────────────────────
 const previewPromo      = ref(null);
 const previewProductId  = ref(null);
@@ -882,6 +900,69 @@ onMounted(load);
 .mt-sm      { margin-top: 6px; }
 .ml-sm      { margin-left: 6px; }
 .mb-md      { margin-bottom: 12px; }
+
+/* ── Validate bar ── */
+.validate-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.validate-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  white-space: nowrap;
+}
+.validate-field {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 32px;
+  transition: border-color .2s;
+}
+.validate-field:focus-within {
+  border-color: #409eff;
+}
+.validate-field-tag {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: #f5f7fa;
+  border-right: 1px solid #dcdfe6;
+  font-size: 12px;
+  font-weight: 600;
+  color: #909399;
+  white-space: nowrap;
+  user-select: none;
+}
+.validate-input {
+  border: none;
+  outline: none;
+  padding: 0 11px;
+  font-size: 13px;
+  color: #303133;
+  background: #fff;
+  width: 150px;
+  height: 100%;
+  font-family: inherit;
+}
+.validate-input::placeholder {
+  color: #c0c4cc;
+}
+.validate-input--num {
+  width: 130px;
+}
+.validate-input[type="number"]::-webkit-inner-spin-button,
+.validate-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.validate-input[type="number"] {
+  -moz-appearance: textfield;
+}
 
 .validate-result-wrap { margin-top: 12px; }
 
