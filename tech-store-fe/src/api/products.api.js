@@ -50,6 +50,18 @@ export const productsApi = {
     });
   },
 
+  importVariantSerials(variantId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return http.post(`/api/products/variants/${variantId}/serials/import`, fd, {
+      transformRequest: [(data, headers) => {
+        if (headers.delete) headers.delete('Content-Type');
+        else delete headers['Content-Type'];
+        return data;
+      }]
+    });
+  },
+
   generateSerials(variantId, quantity = 1) {
     return http.post(
       `/api/products/variants/${variantId}/serials/generate`,

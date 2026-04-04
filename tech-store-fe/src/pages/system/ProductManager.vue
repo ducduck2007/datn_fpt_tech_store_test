@@ -344,13 +344,15 @@
     </el-drawer>
 
     <el-dialog v-model="serialDlg.open" :title="`Quản lý Seri — ${serialDlg.variantName}`" width="620px" :close-on-click-modal="false">
-      <div style="display:flex; align-items:flex-end; gap:12px; margin-bottom:16px;">
-        <el-form-item label="Số lượng nhập kho" style="margin-bottom:0;">
-          <el-input-number v-model="serialDlg.genQuantity" :min="1" :max="500" />
-        </el-form-item>
-        <el-button type="primary" plain :loading="serialDlg.adding" @click="generateSerials(serialDlg.genQuantity)">
-          <el-icon><VideoPlay /></el-icon> Gen Serial tự động
-        </el-button>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap: wrap;">
+        <el-upload action="#" :show-file-list="false" accept=".xlsx, .xls" :auto-upload="false" @change="importSerialsExcel">
+          <el-button type="primary" plain :loading="serialDlg.adding">
+            <el-icon><Upload /></el-icon> Nhập Excel
+          </el-button>
+        </el-upload>
+        <el-divider direction="vertical" />
+        <el-input v-model="serialDlg.inputText" placeholder="Nhập 1 số Seri..." style="width: 200px;" @keyup.enter="addManualSerial" clearable />
+        <el-button type="success" :loading="serialDlg.addingManual" @click="addManualSerial">Thêm</el-button>
       </div>
       <el-text tag="div" style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:8px;">Danh sách máy trong kho</el-text>
       <el-table :data="serialDlg.list" v-loading="serialDlg.loading" :max-height="320" stripe size="small">
@@ -613,7 +615,7 @@ async function loadTags() {
 }
 
 const serialDlg = reactive({
-  open: false, variantId: null, variantName: "", list: [], inputText: "", genQuantity: 1, loading: false, adding: false
+  open: false, variantId: null, variantName: "", list: [], inputText: "", genQuantity: 1, loading: false, adding: false, addingManual: false
 });
 
 async function load() {
@@ -774,12 +776,40 @@ async function deleteSerial(serialId) {
     await loadSerials(); await loadVariants(); await load();
   } catch (e) { toast("Xóa thất bại", "error"); }
 }
-async function generateSerials(quantity = 1) {
+async function importSerialsExcel(fileObj) {
+  serialDlg.adding = true;
   try {
-    const res = await http.post(`/api/products/variants/${serialDlg.variantId}/serials/generate`, null, { params: { quantity } });
-    toast(`Đã gen ${res.data?.serials?.length || quantity} serial thành công`, "success");
-    await loadSerials(); await loadVariants(); await load();
-  } catch (e) { toast("Gen serial thất bại", "error"); }
+    const res = await productsApi.importVariantSerials(serialDlg.variantId, fileObj.raw);
+    const data = res.data;
+    if (data.errors && data.errors.length > 0) {
+      console.warn("Lỗi import:", data.errors);
+    }
+    toast(`Nhập thành công ${data.successCount} serial.`, "success");
+    await loadSerials(); 
+    await loadVariants(); 
+    await load();
+  } catch (e) {
+    toast(e.response?.data?.error || "Lỗi import file Excel", "error");
+  } finally {
+    serialDlg.adding = false;
+  }
+}
+async function addManualSerial() {
+  const val = serialDlg.inputText?.trim();
+  if (!val) return;
+  serialDlg.addingManual = true;
+  try {
+    await productsApi.addSerials(serialDlg.variantId, [val]);
+    toast("Thêm thủ công thành công", "success");
+    serialDlg.inputText = "";
+    await loadSerials();
+    await loadVariants();
+    await load();
+  } catch (e) {
+    toast(typeof e.response?.data === 'string' ? e.response.data : "Lỗi hoặc Seri đã tồn tại", "error");
+  } finally {
+    serialDlg.addingManual = false;
+  }
 }
 async function onRestore(id) {
   try { await axios.put(`${BASE_URL_API}/api/products/${id}/restore`); toast("Khôi phục thành công!", "success"); load(); }

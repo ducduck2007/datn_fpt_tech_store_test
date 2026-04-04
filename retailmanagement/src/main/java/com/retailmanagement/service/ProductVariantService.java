@@ -51,11 +51,11 @@ public class ProductVariantService {
         ProductVariant savedVariant = productVariantRepository.save(variant);
 
         // ← Gen serial ngay khi tạo nếu có stock
-        int initStock = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
-        if (initStock > 0) {
-            productSerialService.generateAndSave(savedVariant.getId(), initStock);
-            System.out.println("✅ Gen " + initStock + " serial cho variant mới: " + savedVariant.getId());
-        }
+//        int initStock = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
+//        if (initStock > 0) {
+//            productSerialService.generateAndSave(savedVariant.getId(), initStock);
+//            System.out.println("✅ Gen " + initStock + " serial cho variant mới: " + savedVariant.getId());
+//        }
 
         return mapToResponse(savedVariant);
     }
@@ -76,10 +76,10 @@ public class ProductVariantService {
         ProductVariant updatedVariant = productVariantRepository.save(variant);
 
         // ← Nếu tăng số lượng → gen thêm serial
-        if (diff > 0) {
-            productSerialService.generateAndSave(variant.getId(), diff);
-            System.out.println("✅ Gen thêm " + diff + " serial cho variant: " + variant.getId());
-        }
+//        if (diff > 0) {
+//            productSerialService.generateAndSave(variant.getId(), diff);
+//            System.out.println("✅ Gen thêm " + diff + " serial cho variant: " + variant.getId());
+//        }
 
         return mapToResponse(updatedVariant);
     }
