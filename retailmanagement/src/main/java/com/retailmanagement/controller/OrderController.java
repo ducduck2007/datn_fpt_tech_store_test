@@ -34,9 +34,13 @@ public class OrderController {
             @RequestBody CreateOrderRequest request,
             @AuthenticationPrincipal CustomUserDetails user) {
 
-        CreateOrderResponse response =
-                orderService.createOrder(request, user.getUserId());
+        System.out.println("=== CREATE ORDER DEBUG ===");
+        System.out.println("user: " + user);
+        System.out.println("userId: " + (user != null ? user.getUserId() : "NULL"));
+        System.out.println("customerId from request: " + request.getCustomerId());
+        System.out.println("==========================");
 
+        CreateOrderResponse response = orderService.createOrder(request, user.getUserId());
         return ResponseEntity.ok(response);
     }
 

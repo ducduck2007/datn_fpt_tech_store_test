@@ -75,14 +75,14 @@ public class CustomUserDetails implements UserDetails {
 
     private Collection<? extends GrantedAuthority> buildAuthorities() {
         List<GrantedAuthority> auths = new ArrayList<>();
-
-        // ROLE
         auths.add(new SimpleGrantedAuthority("ROLE_" + role));
+        permissions.forEach(p -> auths.add(new SimpleGrantedAuthority(p.name())));
 
-        // PERMISSIONS
-        permissions.forEach(p ->
-                auths.add(new SimpleGrantedAuthority(p.name()))
-        );
+        System.out.println("=== buildAuthorities ===");
+        System.out.println("role: " + role);
+        System.out.println("permissions: " + permissions);
+        System.out.println("auths: " + auths);
+        System.out.println("=======================");
 
         return auths;
     }

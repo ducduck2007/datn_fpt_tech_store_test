@@ -232,6 +232,7 @@ private final OrderItemSerialRepository orderItemSerialRepository;
         order.setUpdatedAt(Instant.now());
 
         order = orderRepository.save(order);
+        System.out.println(">>> STEP 1: order saved, id=" + order.getId());
 
         BigDecimal shippingFee = request.getShippingFee() != null
                 ? request.getShippingFee()
@@ -342,6 +343,7 @@ private final OrderItemSerialRepository orderItemSerialRepository;
             item.setLineTotal(lineTotal);
             item.setCreatedAt(Instant.now());
             orderItemRepository.save(item);
+            System.out.println(">>> STEP 2: item saved, id=" + item.getId());
 
             // OFFLINE: đánh dấu serial cụ thể nhân viên chọn → SOLD ngay
             // OFFLINE: đánh dấu serial cụ thể nhân viên chọn → SOLD ngay
@@ -375,6 +377,7 @@ private final OrderItemSerialRepository orderItemSerialRepository;
             st.setCreatedBy(user);
             st.setCreatedAt(Instant.now());
             stockTransactionRepository.save(st);
+            System.out.println(">>> STEP 3: stock transaction saved");
             List<String> savedSerials = orderItemSerialRepository
                     .findByOrderItem(item)
                     .stream()
@@ -449,6 +452,16 @@ private final OrderItemSerialRepository orderItemSerialRepository;
         order.setNotes(notes.toString());
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
+        System.out.println(">>> STEP 4: order updated");
+
+        if (discountCalc.isHasSpinBonus()) {
+            System.out.println(">>> STEP 5: calling useBonus");
+            spinWheelService.useBonus(customer.getId(), order.getId(), request.getSpinHistoryId());
+            System.out.println(">>> STEP 5: useBonus done");
+        }
+
+        System.out.println(">>> STEP 6: building response");
+
 
         if (discountCalc.isHasSpinBonus()) {
             spinWheelService.useBonus(
