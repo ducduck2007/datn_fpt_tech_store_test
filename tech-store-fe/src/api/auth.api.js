@@ -12,5 +12,11 @@ export const authApi = {
   },
    changePassword(payload) {
     return http.post("/api/auth/change-password", payload);
+  },
+  forgotPassword(email) {
+    return http.post("/api/auth/forgot-password", { email });
+  },
+  resetPassword(email, otp, newPassword) {
+    return http.post("/api/auth/reset-password", { email, otp, newPassword });
   }
 };

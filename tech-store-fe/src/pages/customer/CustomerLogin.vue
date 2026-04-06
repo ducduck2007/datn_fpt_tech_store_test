@@ -79,6 +79,10 @@
           <el-text size="small" type="info">Bạn chưa có tài khoản?&nbsp;</el-text>
           <el-link type="primary" @click="router.push('/register')">Tạo tài khoản</el-link>
         </el-row>
+        <el-row justify="center" align="middle">
+  <el-text size="small" type="info">Quên mật khẩu?&nbsp;</el-text>
+  <el-link type="primary" @click="router.push('/forgot-password')">Đặt lại ngay</el-link>
+</el-row>
         <el-divider style="margin: 0;">hoặc</el-divider>
         <el-row justify="center">
           <el-link type="info" @click="router.push('/system/login')">

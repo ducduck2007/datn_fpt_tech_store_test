@@ -6,16 +6,20 @@ import com.retailmanagement.dto.request.RegisterRequest;
 import com.retailmanagement.dto.response.ApiResponse;
 import com.retailmanagement.dto.response.AuthResponse;
 import com.retailmanagement.service.AuthService;
+import com.retailmanagement.service.OtpService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {
-
+    private final OtpService otpService;
     private final AuthService authService;
 
     @PostMapping("/register")
@@ -40,4 +44,20 @@ public class AuthController {
         authService.changePassword(request);
         return ApiResponse.success("Đổi mật khẩu thành công", null);
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        otpService.sendOtp(body.get("email"));
+        return ResponseEntity.ok(Map.of("message", "OTP đã gửi về email"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        otpService.resetPassword(
+                body.get("email"),
+                body.get("otp"),
+                body.get("newPassword")
+        );
+        return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công"));
+    }
 }
+

@@ -549,4 +549,65 @@ public class EmailService {
     </html>
     """.formatted(safeName, safePhone, rawPassword);
     }
+    public void sendOtpEmail(String toEmail, String otp) {
+        try {
+            Resend resend = new Resend(apiKey);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(toEmail)
+                    .subject("🔐 Mã OTP đặt lại mật khẩu TechStore")
+                    .html(buildOtpEmail(otp))
+                    .build();
+
+            resend.emails().send(params);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String buildOtpEmail(String otp) {
+        return """
+        <!DOCTYPE html>
+        <html lang="vi">
+        <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+          <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:40px 0;">
+            <tr><td align="center">
+              <table width="600" cellpadding="0" cellspacing="0"
+                     style="max-width:600px;width:100%%;background:#fff;border-radius:16px;
+                            overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#0f172a 0%%,#1e3a5f 60%%,#0ea5e9 100%%);
+                              padding:40px 48px;text-align:center;">
+                    <p style="margin:0 0 12px;font-size:13px;letter-spacing:4px;color:#7dd3fc;font-weight:600;">TECHSTORE</p>
+                    <h1 style="margin:0;font-size:24px;font-weight:700;color:#fff;">Đặt lại mật khẩu 🔐</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:40px 48px;text-align:center;">
+                    <p style="font-size:15px;color:#475569;">Mã OTP của bạn là:</p>
+                    <div style="display:inline-block;background:#f8fafc;border:2px dashed #0ea5e9;
+                                border-radius:12px;padding:20px 48px;margin:16px 0;">
+                      <span style="font-size:36px;font-weight:800;letter-spacing:10px;color:#0f172a;
+                                   font-family:monospace;">%s</span>
+                    </div>
+                    <p style="font-size:13px;color:#94a3b8;margin-top:16px;">
+                      Mã có hiệu lực trong <strong>5 phút</strong>. Không chia sẻ mã này với ai.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:0 48px 36px;text-align:center;border-top:1px solid #e2e8f0;">
+                    <p style="font-size:12px;color:#94a3b8;margin-top:24px;">
+                      © 2025 TechStore. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+        </body>
+        </html>
+    """.formatted(otp);
+    }
 }
