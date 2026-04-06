@@ -13,7 +13,7 @@ import CustomerOrders from "../pages/customer/CustomerOrders.vue";
 import PaymentSuccess from "../pages/customer/PaymentSuccess.vue";
 import Spinwheel from "../pages/customer/Spinwheel.vue";
 import ProductDetail from "../pages/customer/ProductDetail.vue";
-
+import ForgotPassword from "../pages/customer/Forgotpassword.vue";
 // ===== System (Admin) =====
 import SystemLogin from "../pages/system/SystemLogin.vue";
 import SystemShell from "../pages/system/SystemShell.vue";
@@ -125,6 +125,13 @@ const routes = [
     component: CartPage,
     meta: { portal: "customer", requiresAuth: true },
   },
+  {
+  path: "/forgot-password",
+  name: "forgot-password",
+  component: ForgotPassword,
+  meta: { portal: "customer", hideHeader: true },
+},
+  
   {
     path: "/my-orders",
     name: "my orders",
@@ -393,7 +400,7 @@ const routes = [
         component: SalesCustomerManager,
         meta: { title: "Khách hàng tại quầy" },
       },
-      {
+        {
         path: "returns",
         name: "sales-returns",
         component: SalesReturn,
