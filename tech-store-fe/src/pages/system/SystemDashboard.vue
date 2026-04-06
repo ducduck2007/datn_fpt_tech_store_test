@@ -252,18 +252,18 @@ const yearEndChips = [
 ];
 
 const cards = [
-  { title: "Users",               desc: "Quản lý tài khoản & phân quyền",   to: "/system/users",               icon: "User", color: "#2563eb" },
-  { title: "Customers",           desc: "Khách hàng & hạng thành viên",      to: "/system/customers",           icon: "Avatar", color: "#16a34a" },
-  { title: "Categories",          desc: "Danh mục sản phẩm",                 to: "/system/categories",          icon: "Collection", color: "#d97706" },
-  { title: "Products",            desc: "Tạo & quản lý sản phẩm",           to: "/system/products",            icon: "Box", color: "#7c3aed" },
-  { title: "Orders — New",        desc: "Đơn hàng mới cần xử lý",           to: "/system/orders/new",          icon: "ShoppingCart", color: "#0891b2" },
-  { title: "Orders — Processing", desc: "Hàng đợi đang xử lý",              to: "/system/orders/processing",   icon: "Operation", color: "#ea580c" },
-  { title: "Loyalty Summary",     desc: "Tổng hợp điểm thưởng",             to: "/system/Loyaltysummaryadmin", icon: "Star", color: "#ca8a04" },
-  { title: "Pricing",             desc: "Giá biến thể & lịch sử",           to: "/system/pricing",             icon: "Money", color: "#16a34a" },
-  { title: "Promotions",          desc: "Mã giảm giá & chiến dịch",         to: "/system/promotions",          icon: "Present", color: "#db2777" },
-  { title: "Payment History",     desc: "Tất cả giao dịch thanh toán",       to: "/system/payments",            icon: "Tickets", color: "#2563eb" },
-  { title: "Customer Spending",   desc: "Chi tiêu theo khách hàng",          to: "/system/customer-spending",   icon: "PieChart", color: "#0891b2" },
-  { title: "Settings",            desc: "Đơn vị tiền tệ mặc định",          to: "/system/settings/currency",   icon: "Setting", color: "#6b7280" },
+  { title: "Users",               desc: "Quản lý tài khoản & phân quyền",   to: "/system/users",               icon: User, color: "#2563eb" },
+  { title: "Customers",           desc: "Khách hàng & hạng thành viên",      to: "/system/customers",           icon: Avatar, color: "#16a34a" },
+  { title: "Categories",          desc: "Danh mục sản phẩm",                 to: "/system/categories",          icon: Collection, color: "#d97706" },
+  { title: "Products",            desc: "Tạo & quản lý sản phẩm",           to: "/system/products",            icon: Box, color: "#7c3aed" },
+  { title: "Orders — New",        desc: "Đơn hàng mới cần xử lý",           to: "/system/orders/new",          icon: ShoppingCart, color: "#0891b2" },
+  { title: "Orders — Processing", desc: "Hàng đợi đang xử lý",              to: "/system/orders/processing",   icon: Operation, color: "#ea580c" },
+  { title: "Loyalty Summary",     desc: "Tổng hợp điểm thưởng",             to: "/system/Loyaltysummaryadmin", icon: Star, color: "#ca8a04" },
+  { title: "Pricing",             desc: "Giá biến thể & lịch sử",           to: "/system/pricing",             icon: Money, color: "#16a34a" },
+  { title: "Promotions",          desc: "Mã giảm giá & chiến dịch",         to: "/system/promotions",          icon: Present, color: "#db2777" },
+  { title: "Payment History",     desc: "Tất cả giao dịch thanh toán",       to: "/system/payments",            icon: Tickets, color: "#2563eb" },
+  { title: "Customer Spending",   desc: "Chi tiêu theo khách hàng",          to: "/system/customer-spending",   icon: PieChart, color: "#0891b2" },
+  { title: "Settings",            desc: "Đơn vị tiền tệ mặc định",          to: "/system/settings/currency",   icon: Setting, color: "#6b7280" },
 ];
 </script>
 
