@@ -7,9 +7,15 @@
           <div class="order-kicker">Đơn hàng</div>
           <div class="order-id">{{ detail?.orderNumber || `#${orderId}` }}</div>
           <el-space wrap class="mt-2">
-            <el-tag :type="statusType" size="large">{{ detail?.status }}</el-tag>
-            <el-tag :type="paymentStatusType" size="large">{{ detail?.paymentStatus }}</el-tag>
-            <el-tag v-if="isReturned(detail?.status)" type="warning" size="large">Hoàn trả</el-tag>
+            <el-tag :type="statusType" size="large">
+              {{ formatOrderStatus(detail?.status) }}
+            </el-tag>
+            <el-tag :type="paymentStatusType" size="large">
+              {{ formatPaymentStatus(detail?.paymentStatus) }}
+            </el-tag>
+            <el-tag v-if="isReturned(detail?.status)" type="warning" size="large">
+              Hoàn trả
+            </el-tag>
           </el-space>
         </el-col>
         <el-col :span="6" style="text-align: right">
@@ -264,6 +270,7 @@ import { toast } from "../../ui/toast";
 import {
   Refresh, User, Van, Present, Star, Trophy, Opportunity,
   Ticket, Box, Wallet,
+  CircleCheck, CircleClose, Timer, InfoFilled, RefreshLeft,
 } from "@element-plus/icons-vue";
 
 const route = useRoute();
@@ -288,6 +295,11 @@ const paymentStatusType = computed(() => {
   if (ps === "PARTIAL") return "warning";
   return "info";
 });
+
+function orderStatusIcon(s) { return { DELIVERED: "CircleCheck", SHIPPING: "Van", CANCELLED: "CircleClose", PENDING: "Timer", PAID: "CircleCheck", RETURNED: "RefreshLeft", PARTIALLY_RETURNED: "RefreshLeft" }[s] || "InfoFilled"; }
+function formatOrderStatus(s) { return { DELIVERED: "Đã giao hàng", SHIPPING: "Đang vận chuyển", CANCELLED: "Đã hủy", PENDING: "Chờ xử lý", PAID: "Đã thanh toán", RETURNED: "Trả hàng", PARTIALLY_RETURNED: "Trả hàng một phần" }[s] || s; }
+function paymentStatusIcon(s) { return { PAID: "CircleCheck", PARTIAL: "Warning", PENDING: "Timer" }[s] || "InfoFilled"; }
+function formatPaymentStatus(s) { return { PAID: "Đã thanh toán", PARTIAL: "Thanh toán một phần", PENDING: "Chờ thanh toán" }[s] || s; }
 
 const vipPercentAmount = computed(() => {
   const total = detail.value?.vipDiscount || 0;
@@ -424,8 +436,18 @@ onMounted(() => reload());
 </script>
 
 <style scoped>
+.order-page :deep(.el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: normal;
+  vertical-align: middle;
+}
+.order-page :deep(.el-tag .el-icon) {
+  display: none;
+}
 .order-page {
-  padding: 28px 16px;
+  padding: 0;
   min-height: 100vh;
   font-size: 16px;
 }

@@ -115,7 +115,7 @@
     <!-- ═══════════════════════════════════
          MAIN CONTENT
     ═══════════════════════════════════ -->
-    <el-main style="margin-left: 256px; height: 100vh; overflow-y: auto; padding: 24px;">
+    <el-main style="margin-left: 256px; height: 100vh; overflow-y: auto; padding: 32px 40px 60px;">
       <router-view />
     </el-main>
 
@@ -132,11 +132,16 @@ import { clearLastAuthResponse, clearSession } from "../../stores/auth";
 const router = useRouter();
 
 async function logout() {
-  const ok = await confirmModal("Do you want to log out?", "Confirm", "Log out", true);
+  const ok = await confirmModal(
+    "Bạn có chắc chắn muốn đăng xuất khỏi cổng kho hàng?",
+    "Xác nhận",
+    "Đăng xuất",
+    true
+  );
   if (!ok) return;
   clearSession();
   clearLastAuthResponse();
-  toast("Logged out.", "success");
+  toast("Đã đăng xuất.", "success");
   router.push("/system/login");
 }
 </script>

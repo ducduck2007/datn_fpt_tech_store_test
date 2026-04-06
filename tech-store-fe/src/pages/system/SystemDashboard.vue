@@ -1,5 +1,5 @@
 <template>
-  <div style="background: #f6f7f9; min-height: 100vh; padding: 32px 40px 60px;">
+  <div style="background: #f6f7f9; min-height: 100vh;">
     <div style="max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
 
       <!-- Header -->
@@ -144,9 +144,12 @@ import {
   Refresh,
   Warning,
   User,
+  UserFilled,
   Avatar,
   Collection,
   Box,
+  Postcard,
+  DataAnalysis,
   ShoppingCart,
   Operation,
   Star,
@@ -156,7 +159,16 @@ import {
   PieChart,
   Setting,
   Calendar,
-  Aim
+  Aim,
+  List,
+  Filter,
+  DataLine,
+  CreditCard,
+  Discount,
+  RefreshLeft,
+  Lock,
+  Memo,
+  Clock
 } from "@element-plus/icons-vue";
 import { onUnmounted } from "vue";
 import { ref } from "vue";
@@ -252,18 +264,30 @@ const yearEndChips = [
 ];
 
 const cards = [
-  { title: "Users",               desc: "Quản lý tài khoản & phân quyền",   to: "/system/users",               icon: User, color: "#2563eb" },
-  { title: "Customers",           desc: "Khách hàng & hạng thành viên",      to: "/system/customers",           icon: Avatar, color: "#16a34a" },
-  { title: "Categories",          desc: "Danh mục sản phẩm",                 to: "/system/categories",          icon: Collection, color: "#d97706" },
-  { title: "Products",            desc: "Tạo & quản lý sản phẩm",           to: "/system/products",            icon: Box, color: "#7c3aed" },
-  { title: "Orders — New",        desc: "Đơn hàng mới cần xử lý",           to: "/system/orders/new",          icon: ShoppingCart, color: "#0891b2" },
-  { title: "Orders — Processing", desc: "Hàng đợi đang xử lý",              to: "/system/orders/processing",   icon: Operation, color: "#ea580c" },
-  { title: "Loyalty Summary",     desc: "Tổng hợp điểm thưởng",             to: "/system/Loyaltysummaryadmin", icon: Star, color: "#ca8a04" },
-  { title: "Pricing",             desc: "Giá biến thể & lịch sử",           to: "/system/pricing",             icon: Money, color: "#16a34a" },
-  { title: "Promotions",          desc: "Mã giảm giá & chiến dịch",         to: "/system/promotions",          icon: Present, color: "#db2777" },
-  { title: "Payment History",     desc: "Tất cả giao dịch thanh toán",       to: "/system/payments",            icon: Tickets, color: "#2563eb" },
-  { title: "Customer Spending",   desc: "Chi tiêu theo khách hàng",          to: "/system/customer-spending",   icon: PieChart, color: "#0891b2" },
-  { title: "Settings",            desc: "Đơn vị tiền tệ mặc định",          to: "/system/settings/currency",   icon: Setting, color: "#6b7280" },
+  // QUẢN LÝ
+  { title: "Tài khoản",           desc: "Quản lý nhân viên & phân quyền",     to: "/system/users",               icon: UserFilled,    color: "#2563eb" },
+  { title: "Khách hàng",         desc: "Danh sách & hạng thành viên",       to: "/system/customers",           icon: Avatar,        color: "#16a34a" },
+  { title: "Top Khách hàng",      desc: "Khách hàng thân thiết nhất",         to: "/system/Toployalcustomers",   icon: Star,          color: "#ca8a04" },
+  { title: "Tổng kết KH",         desc: "Báo cáo tổng hợp khách hàng",       to: "/system/Loyaltysummaryadmin", icon: DataAnalysis,  color: "#d97706" },
+  { title: "Danh mục",           desc: "Cấu trúc danh mục sản phẩm",        to: "/system/categories",          icon: Collection,    color: "#4f46e5" },
+  { title: "Sản phẩm",           desc: "Quản lý thông tin & kho hàng",      to: "/system/products",            icon: Box,           color: "#7c3aed" },
+  { title: "Số Serial",          desc: "Quản lý mã serial sản phẩm",        to: "/system/serials",             icon: Postcard,      color: "#0891b2" },
+  { title: "Báo cáo SP",         desc: "Thống kê hiệu quả sản phẩm",        to: "/system/dashboard-products",  icon: PieChart,      color: "#ea580c" },
+
+  // ĐƠN HÀNG
+  { title: "Tổng quan Đơn",      desc: "Dashboard thống kê đơn hàng",       to: "/system/order-dashboard",     icon: ShoppingCart,  color: "#0891b2" },
+  { title: "Bộ lọc Đơn hàng",     desc: "Tra cứu đơn hàng nâng cao",         to: "/system/orders/filter",       icon: Filter,        color: "#6366f1" },
+
+  // BÁO CÁO & TÀI CHÍNH
+  { title: "Báo cáo Doanh thu",   desc: "Thống kê tài chính & bán hàng",      to: "/system/reports",             icon: DataLine,      color: "#16a34a" },
+  { title: "Quản lý Giá",        desc: "Thiết lập & lịch sử giá",           to: "/system/pricing",             icon: Money,         color: "#10b981" },
+  { title: "Thanh toán",         desc: "Lịch sử giao dịch chi tiết",        to: "/system/payments",            icon: CreditCard,    color: "#2563eb" },
+  { title: "Khuyến mãi",         desc: "Mã giảm giá & chiến dịch",         to: "/system/promotions",          icon: Discount,      color: "#db2777" },
+  { title: "Trả hàng",           desc: "Quản lý yêu cầu hoàn trả",          to: "/system/return-manager",      icon: RefreshLeft,   color: "#ef4444" },
+
+  // BẢO MẬT
+  { title: "Tổng quan Bảo mật",   desc: "Dashboard an toàn hệ thống",        to: "/system/audit-dashboard",     icon: Lock,          color: "#4b5563" },
+  { title: "Nhật ký Hệ thống",    desc: "Xem logs & lịch sử đăng nhập",      to: "/system/audit-logs",          icon: Memo,          color: "#6b7280" },
 ];
 </script>
 

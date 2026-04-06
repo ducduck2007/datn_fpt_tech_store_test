@@ -14,23 +14,8 @@
                 {{ rows.length }} đơn
               </el-tag>
               <el-button plain :loading="loading" @click="load">
-                <template #icon>
-                  <svg
-                    v-if="!loading"
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <polyline points="23 4 23 10 17 10" />
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                  </svg>
-                </template>
-                Reload
+                <el-icon><Refresh /></el-icon>
+                Làm mới
               </el-button>
             </el-space>
           </el-row>
@@ -81,7 +66,7 @@
         <el-table-column label="Thanh toán" width="160">
           <template #default="{ row }">
             <el-space :size="6">
-              <span>{{ paymentIcon(row.paymentMethod) }}</span>
+              <el-icon><component :is="paymentIcon(row.paymentMethod)" /></el-icon>
               <span>{{ formatPayment(row.paymentMethod) }}</span>
             </el-space>
           </template>
@@ -94,7 +79,7 @@
               effect="plain"
               size="small"
             >
-              {{ row.channel === "ONLINE" ? "🌐 Online" : "🏪 Offline" }}
+              {{ row.channel === "ONLINE" ? "Online" : "Offline" }}
             </el-tag>
           </template>
         </el-table-column>
@@ -162,6 +147,23 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { 
+  Refresh, 
+  Wallet, 
+  CreditCard, 
+  Postcard, 
+  Box, 
+  Money, 
+  ChromeFilled, 
+  House,
+  Timer,
+  Loading,
+  Van,
+  CircleCheck,
+  CircleClose,
+  RefreshLeft,
+  Check
+} from "@element-plus/icons-vue";
 import { toast } from "../../ui/toast";
 
 const props = defineProps({
@@ -200,12 +202,13 @@ function onPageChange(val) {
 
 // ── Status config ──────────────────────────────────────
 const statusMap = {
-  PENDING: { label: "Chờ xử lý", type: "warning" },
-  PROCESSING: { label: "Đang xử lý", type: "" },
-  SHIPPING: { label: "Đang giao", type: "primary" },
-  DELIVERED: { label: "Đã giao", type: "success" },
-  PAID: { label: "Đã thanh toán", type: "success" },
-  CANCELLED: { label: "Đã huỷ", type: "danger" },
+  PENDING:    { label: "Chờ xử lý", type: "warning", icon: "Timer" },
+  PROCESSING: { label: "Đang xử lý", type: "",        icon: "Loading" },
+  SHIPPING:   { label: "Đang giao",  type: "warning", icon: "Van" },
+  DELIVERED:  { label: "Đã giao",   type: "success", icon: "CircleCheck" },
+  PAID:       { label: "Đã T.Toán", type: "success", icon: "Check" },
+  CANCELLED:  { label: "Đã hủy",    type: "danger",  icon: "CircleClose" },
+  RETURNED:   { label: "Trả hàng",  type: "info",    icon: "RefreshLeft" },
 };
 
 // ── Format helpers ─────────────────────────────────────
@@ -255,8 +258,8 @@ function formatPayment(val) {
 }
 
 function paymentIcon(val) {
-  const map = { CASH: "💵", CARD: "💳", TRANSFER: "🏦", COD: "📦" };
-  return map[val] ?? "💰";
+  const map = { CASH: Wallet, CARD: CreditCard, TRANSFER: Postcard, COD: Box };
+  return map[val] ?? Money;
 }
 
 // ── Data helpers ───────────────────────────────────────
@@ -319,6 +322,17 @@ onMounted(load);
 </script>
 
 <style scoped>
+:deep(.el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: normal;
+  height: 28px;
+  vertical-align: middle;
+}
+:deep(.el-tag .el-icon) {
+  display: none;
+}
 .kicker {
   text-transform: uppercase;
   letter-spacing: 0.8px;

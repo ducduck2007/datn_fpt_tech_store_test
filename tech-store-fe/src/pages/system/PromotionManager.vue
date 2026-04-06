@@ -13,7 +13,7 @@
       <el-space wrap class="mt-sm">
         <el-button plain :loading="conflictLoading"     @click="loadConflicts"      :disabled="conflictLoading">
           <template #icon><el-icon><Warning /></el-icon></template>
-          Conflicts
+          Xung đột
         </el-button>
         <el-button plain :loading="expiringLoading"     @click="loadExpiring"       :disabled="expiringLoading">
           <template #icon><el-icon><Clock /></el-icon></template>
@@ -21,7 +21,7 @@
         </el-button>
         <el-button plain :loading="activeReportLoading" @click="loadActiveReport"   :disabled="activeReportLoading">
           <template #icon><el-icon><Document /></el-icon></template>
-          KM Active
+          Đang hoạt động
         </el-button>
         <el-button plain :loading="reportLoading || summaryReportLoading" @click="loadCombinedReport" :disabled="reportLoading || summaryReportLoading">
           <template #icon><el-icon><DataAnalysis /></el-icon></template>
@@ -156,7 +156,9 @@
         <el-table-column prop="name" label="Tên" />
         <el-table-column label="Loại giảm" width="120">
           <template #default="{ row }">
-            <el-tag type="primary" effect="plain" size="small">{{ row.discountType }}</el-tag>
+            <el-tag type="primary" effect="plain" size="small">
+              {{ row.discountType === 'PERCENT' ? '% Giảm' : 'Số tiền' }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="Hết hạn" width="120">
@@ -269,7 +271,7 @@
             </template>
             <template v-else>
               <strong>{{ row.discountValue }}{{ row.discountType === 'PERCENT' ? '%' : ' ₫' }}</strong>
-              <div><el-text type="info" size="small">{{ row.discountType }}</el-text></div>
+              <div><el-text type="info" size="small"><el-icon><component :is="row.discountType === 'PERCENT' ? 'Opportunity' : 'Money'" /></el-icon> {{ row.discountType === 'PERCENT' ? '% Giảm' : 'Số tiền' }}</el-text></div>
             </template>
           </template>
         </el-table-column>
@@ -588,7 +590,8 @@
 import { onMounted, reactive, ref, computed } from "vue";
 import {
   Present, Warning, Clock, Document, DataAnalysis, Plus,
-  Search, Check, Close, View, Edit, CreditCard, Loading, Refresh
+  Search, Check, Close, View, Edit, CreditCard, Loading, Refresh,
+  CircleCheck, CircleClose, Ticket, Opportunity, Money
 } from "@element-plus/icons-vue";
 import { promotionsApi } from "../../api/promotions.api";
 import { pricesApi }     from "../../api/prices.api";
@@ -880,6 +883,16 @@ onMounted(load);
 </script>
 
 <style scoped>
+.pm-page :deep(.el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: normal;
+  vertical-align: middle;
+}
+.pm-page :deep(.el-tag .el-icon) {
+  display: none;
+}
 .pm-page {
   padding: 32px 40px 60px;
   display: flex;
@@ -962,6 +975,7 @@ onMounted(load);
 }
 .validate-input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .validate-result-wrap { margin-top: 12px; }

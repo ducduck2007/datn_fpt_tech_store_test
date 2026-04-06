@@ -9,7 +9,6 @@
         <!-- Auto-refresh indicator -->
         <el-space>
           <el-tag :type="autoRefreshActive ? 'success' : 'info'" size="small" effect="plain">
-            <el-icon v-if="autoRefreshActive" class="is-loading"><Loading /></el-icon>
             {{ autoRefreshActive ? 'Đang làm mới...' : `Làm mới sau ${countdown}s` }}
           </el-tag>
           <el-button :icon="Refresh" size="small" @click="doSearch" :loading="loading" plain>Làm mới ngay</el-button>
@@ -158,7 +157,7 @@
 
                   <!-- SLA Waiting Time -->
                   <el-tag :type="getSlaType(order)" size="small" effect="plain">
-                    <el-icon><Timer /></el-icon> {{ formatWaitingTime(order.createdAt) }}
+                    {{ formatWaitingTime(order.createdAt) }}
                   </el-tag>
 
                   <el-space direction="vertical" align="end" :size="0">
@@ -551,7 +550,7 @@ onUnmounted(() => stopAutoRefresh());
 <style scoped>
 .pickup-container { background: #f0f2f5; min-height: 100vh; }
 .page-header { padding: 15px 20px; height: auto; background: #fff; border-bottom: 1px solid #ebeef5; }
-.main-content { padding: 20px; }
+.main-content { padding: 0; }
 .mb-15 { margin-bottom: 15px; }
 .mt-10 { margin-top: 10px; }
 .mt-15 { margin-top: 15px; }

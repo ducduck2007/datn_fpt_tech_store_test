@@ -126,7 +126,7 @@
     <!-- ═══════════════════════════════════
          MAIN CONTENT
     ═══════════════════════════════════ -->
-    <el-main style="margin-left: 256px; min-height: 100vh; overflow: auto; padding: 0;">
+    <el-main :style="`margin-left: 256px; min-height: 100vh; overflow: auto; padding: ${mainPadding};`">
       <router-view />
     </el-main>
 
@@ -135,12 +135,17 @@
 
 <script setup>
 import { Box, Files, Monitor, RefreshLeft, ShoppingBag, SwitchButton, UserFilled } from "@element-plus/icons-vue";
-import { useRouter } from "vue-router";
+import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import { confirmModal } from "../../ui/confirm";
+import { toast } from "../../ui/toast";
 
+const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+
+const mainPadding = computed(() => route.name === "sales-pos" ? "0" : "32px 40px 60px");
 
 function initials(name = "") {
   return (
@@ -162,6 +167,7 @@ async function doLogout() {
   );
   if (ok) {
     auth.clearSession();
+    toast("Đã đăng xuất thành công.", "success");
     router.replace("/sales/login");
   }
 }

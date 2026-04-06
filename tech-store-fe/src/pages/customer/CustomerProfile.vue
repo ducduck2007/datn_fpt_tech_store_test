@@ -772,13 +772,13 @@
                 </el-space>
                 <el-space wrap :size="8">
                   <el-select v-model="paymentStatusFilter" placeholder="Trạng thái" clearable style="width: 160px;" @change="filterPayments">
-                    <el-option label="Thành công" value="SUCCESS"><el-tag type="success" size="small">SUCCESS</el-tag></el-option>
-                    <el-option label="Đang chờ" value="PENDING"><el-tag type="warning" size="small">PENDING</el-tag></el-option>
-                    <el-option label="Đã hoàn tiền" value="REFUNDED"><el-tag type="info" size="small">REFUNDED</el-tag></el-option>
+                    <el-option label="Thành công" value="SUCCESS"><el-tag type="success" size="small">Thành công</el-tag></el-option>
+                    <el-option label="Đang chờ" value="PENDING"><el-tag type="warning" size="small">Đang chờ</el-tag></el-option>
+                    <el-option label="Đã hoàn tiền" value="REFUNDED"><el-tag type="info" size="small">Đã hoàn tiền</el-tag></el-option>
                   </el-select>
                   <el-select v-model="paymentMethodFilter" placeholder="Phương thức" clearable style="width: 160px;" @change="filterPayments">
                     <el-option label="Tiền mặt" value="CASH" />
-                    <el-option label="Chuyển khoản" value="BANK_TRANSFER" />
+                    <el-option label="Chuyển khoản" value="TRANSFER" />
                     <el-option label="Thẻ tín dụng" value="CREDIT_CARD" />
                     <el-option label="Ví điện tử" value="E_WALLET" />
                   </el-select>
@@ -810,7 +810,7 @@
                   <template #default="{ row }"><el-tag size="small" type="info">{{ getPaymentMethodLabel(row.method) }}</el-tag></template>
                 </el-table-column>
                 <el-table-column label="Trạng thái" width="120">
-                  <template #default="{ row }"><el-tag :type="getPaymentStatusType(row.status)" size="small">{{ row.status }}</el-tag></template>
+                  <template #default="{ row }"><el-tag :type="getPaymentStatusType(row.status)" size="small">{{ formatPaymentStatus(row.status) }}</el-tag></template>
                 </el-table-column>
                 <el-table-column label="Thời gian" width="180" sortable prop="createdAt">
                   <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
@@ -869,8 +869,8 @@
         <!-- Meta -->
         <el-descriptions :column="2" border size="small" style="margin-bottom: 16px;">
           <el-descriptions-item label="Ngày đặt">{{ formatDateTime(orderBill.createdAt) }}</el-descriptions-item>
-          <el-descriptions-item label="Trạng thái"><el-tag :type="getOrderStatusType(orderBill.status)" size="small">{{ orderBill.status }}</el-tag></el-descriptions-item>
-          <el-descriptions-item label="Thanh toán"><el-tag :type="orderBill.paymentStatus === 'PAID' ? 'success' : 'warning'" size="small">{{ orderBill.paymentStatus }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="Trạng thái"><el-tag :type="getOrderStatusType(orderBill.status)" size="small">{{ formatOrderStatus(orderBill.status) }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="Thanh toán"><el-tag :type="orderBill.paymentStatus === 'PAID' ? 'success' : 'warning'" size="small">{{ formatPaymentStatus(orderBill.paymentStatus) }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="Kênh">{{ orderBill.channel || '—' }}</el-descriptions-item>
         </el-descriptions>
 
@@ -934,7 +934,7 @@
           <el-descriptions-item label="Mã GD"><el-text style="font-weight: 700;">{{ selectedPayment.transactionRef }}</el-text></el-descriptions-item>
           <el-descriptions-item label="Số tiền"><el-text type="success" style="font-weight: 700;">{{ formatCurrency(selectedPayment.amount) }}</el-text></el-descriptions-item>
           <el-descriptions-item label="Phương thức"><el-tag size="small">{{ getPaymentMethodLabel(selectedPayment.method) }}</el-tag></el-descriptions-item>
-          <el-descriptions-item label="Trạng thái"><el-tag :type="getPaymentStatusType(selectedPayment.status)">{{ selectedPayment.status }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="Trạng thái"><el-tag :type="getPaymentStatusType(selectedPayment.status)">{{ formatPaymentStatus(selectedPayment.status) }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="Thời gian">{{ formatDateTime(selectedPayment.paidAt) }}</el-descriptions-item>
         </el-descriptions>
 
@@ -1015,6 +1015,9 @@ import { customersApi } from "../../api/customers.api";
 import { ordersApi } from "../../api/orders.api";
 
 const router = useRouter();
+
+function formatOrderStatus(s) { return { DELIVERED: "Đã giao hàng", SHIPPING: "Đang vận chuyển", CANCELLED: "Đã hủy", PENDING: "Chờ xử lý", PAID: "Đã thanh toán", RETURNED: "Trả hàng", PARTIALLY_RETURNED: "Trả hàng một phần" }[s] || s; }
+function formatPaymentStatus(s) { return { PAID: "Đã thanh toán", SUCCESS: "Thành công", REFUNDED: "Hoàn tiền", PENDING: "Chờ xử lý", FAILED: "Thất bại" }[s] || s; }
 
 const loading = ref(true);
 const editing = ref(false);
@@ -1610,6 +1613,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+:deep(.el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1;
+  vertical-align: middle;
+}
 .form-static {
   padding: 9px 12px;
   background: var(--el-fill-color-light);

@@ -1,5 +1,5 @@
 <template>
-  <div style="background: #f4f5f9; min-height: 100vh; padding: 28px 28px 56px;">
+  <div style="background: #f4f5f9; min-height: 100vh;">
 
     <!-- Header -->
     <div style="display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--el-border-color-light);">
@@ -41,14 +41,14 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :xs="12" :sm="6" v-if="staffData.length">
-        <el-card shadow="never" :body-style="{ padding:'16px 18px' }" style="border-left:3px solid var(--el-color-success); margin-bottom:10px;">
+      <el-col :xs="12" :sm="6">
+        <el-card shadow="never" :body-style="{ padding:'16px 18px' }" style="border-left:3px solid var(--el-color-danger); margin-bottom:10px;">
           <div style="display:flex; align-items:center; gap:14px;">
-            <el-icon :size="28" style="color:var(--el-color-success); flex-shrink:0;"><ShoppingCart /></el-icon>
+            <el-icon :size="28" style="color:var(--el-color-danger); flex-shrink:0;"><RefreshLeft /></el-icon>
             <div>
-              <div style="font-size:12px; color:var(--el-text-color-secondary); margin-bottom:3px;">Tổng đơn hàng</div>
-              <div style="font-size:16px; font-weight:900;">{{ totalOrders }}</div>
-              <div style="font-size:11px; color:var(--el-color-success); margin-top:3px; font-weight:600;">{{ staffData.length }} nhân viên</div>
+              <div style="font-size:12px; color:var(--el-text-color-secondary); margin-bottom:3px;">Tổng tiền đã hoàn lại</div>
+              <div style="font-size:16px; font-weight:900; white-space:nowrap;">{{ formatMoney(totalRefundAmount) }}&thinsp;₫</div>
+              <div style="font-size:11px; color:var(--el-color-danger); margin-top:3px; font-weight:600;">{{ returnsData.length }} sản phẩm trả</div>
             </div>
           </div>
         </el-card>
@@ -593,7 +593,7 @@ const quickRanges = [
 ];
 
 const totalRevenue = computed(() => channelData.value.reduce((s,r)=>s+Number(r.revenue||0),0));
-const totalOrders  = computed(() => staffData.value.reduce((s,r)=>s+Number(r.orders||0),0));
+const totalRefundAmount = computed(() => returnsData.value.reduce((s,r)=>s+Number(r.totalRefund||0),0));
 const avgRevenue   = computed(() => dateData.value.length ? dateData.value.reduce((s,r)=>s+Number(r.revenue),0)/dateData.value.length : 0);
 
 const filterFrom = computed(() => dateRange.value?.[0]||null);

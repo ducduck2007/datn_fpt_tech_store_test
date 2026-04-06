@@ -1,6 +1,6 @@
 <template>
   <el-container style="height: 100vh; overflow: hidden;">
-
+ 
     <!-- ═══════════════════════════════════
          SIDEBAR
     ═══════════════════════════════════ -->
@@ -30,7 +30,7 @@
           </el-space>
         </el-space>
       </el-button>
-
+ 
       <!-- User pill -->
       <el-card
         shadow="never"
@@ -63,9 +63,9 @@
           </el-space>
         </el-space>
       </el-card>
-
+ 
       <el-divider style="margin: 0 0 4px; border-color: rgba(255,255,255,0.06);" />
-
+ 
       <!-- Scrollable menu -->
       <el-scrollbar style="flex: 1;">
         <el-menu
@@ -81,84 +81,101 @@
             <el-icon><Grid /></el-icon>
             <span>Tổng quan</span>
           </el-menu-item>
-
-          <!-- Quản lý -->
-          <el-menu-item-group title="QUẢN LÝ">
-            <el-sub-menu index="mgmt">
+ 
+          <!-- Người dùng & Khách hàng -->
+          <el-menu-item-group title="NGƯỜI DÙNG">
+            <el-menu-item index="/system/users">
+              <el-icon><UserFilled /></el-icon>
+              <span>Tài khoản</span>
+            </el-menu-item>
+ 
+            <el-sub-menu index="customers">
               <template #title>
-                <el-icon><UserFilled /></el-icon>
-                <span>Quản lý</span>
+                <el-icon><User /></el-icon>
+                <span>Khách hàng</span>
               </template>
-              <el-menu-item index="/system/users">Tài khoản</el-menu-item>
-              <el-menu-item index="/system/customers">Khách hàng</el-menu-item>
+              <el-menu-item index="/system/customers">Danh sách</el-menu-item>
               <el-menu-item index="/system/Toployalcustomers">Top Khách hàng</el-menu-item>
               <el-menu-item index="/system/Loyaltysummaryadmin">Tổng kết Khách hàng</el-menu-item>
-              <el-menu-item index="/system/categories">Danh mục</el-menu-item>
-              <el-menu-item index="/system/products">Sản phẩm</el-menu-item>
+            </el-sub-menu>
+          </el-menu-item-group>
+ 
+          <!-- Kho & Sản phẩm -->
+          <el-menu-item-group title="KHO & SẢN PHẨM">
+            <el-menu-item index="/system/categories">
+              <el-icon><List /></el-icon>
+              <span>Danh mục</span>
+            </el-menu-item>
+ 
+            <el-sub-menu index="products">
+              <template #title>
+                <el-icon><Monitor /></el-icon>
+                <span>Sản phẩm</span>
+              </template>
+              <el-menu-item index="/system/products">Danh sách</el-menu-item>
               <el-menu-item index="/system/serials">Serials</el-menu-item>
               <el-menu-item index="/system/dashboard-products">Báo cáo Sản phẩm</el-menu-item>
             </el-sub-menu>
-
+          </el-menu-item-group>
+ 
+          <!-- Đơn hàng & Tài chính -->
+          <el-menu-item-group title="ĐƠN HÀNG & TÀI CHÍNH">
             <el-sub-menu index="orders">
               <template #title>
                 <el-icon><List /></el-icon>
                 <span>Đơn hàng</span>
               </template>
-              <el-menu-item index="/system/order-dashboard">Tổng quan Đơn hàng</el-menu-item>
+              <el-menu-item index="/system/order-dashboard">Tổng quan</el-menu-item>
               <el-menu-item index="/system/orders/filter">Bộ lọc Đơn hàng</el-menu-item>
+              <el-menu-item index="/system/return-manager">Quản lý Trả hàng</el-menu-item>
             </el-sub-menu>
-
-          </el-menu-item-group>
-
-          <!-- Báo cáo & Tài chính -->
-          <el-menu-item-group title="BÁO CÁO & TÀI CHÍNH">
-            <el-menu-item index="/system/reports">
-              <el-icon><DataLine /></el-icon>
-              <span>Báo cáo</span>
-            </el-menu-item>
-            <el-menu-item index="/system/pricing">
-              <el-icon><Money /></el-icon>
-              <span>Giá cả</span>
-            </el-menu-item>
+ 
             <el-menu-item index="/system/payments">
               <el-icon><CreditCard /></el-icon>
               <span>Thanh toán</span>
             </el-menu-item>
+ 
+            <el-menu-item index="/system/pricing">
+              <el-icon><Money /></el-icon>
+              <span>Giá cả</span>
+            </el-menu-item>
+ 
             <el-menu-item index="/system/promotions">
               <el-icon><Discount /></el-icon>
               <span>Khuyến mãi</span>
             </el-menu-item>
-            <el-menu-item index="/system/return-manager">
-              <el-icon><RefreshLeft /></el-icon>
-              <span>Quản lý Trả hàng</span>
+          </el-menu-item-group>
+ 
+          <!-- Báo cáo -->
+          <el-menu-item-group title="BÁO CÁO">
+            <el-menu-item index="/system/reports">
+              <el-icon><DataLine /></el-icon>
+              <span>Báo cáo tổng hợp</span>
             </el-menu-item>
           </el-menu-item-group>
-
+ 
           <!-- Hệ thống -->
           <el-menu-item-group title="HỆ THỐNG">
             <el-sub-menu index="audits">
               <template #title>
                 <el-icon><Lock /></el-icon>
-                <span>Bảo mật</span>
+                <span>Bảo mật & Kiểm toán</span>
               </template>
-              <el-menu-item index="/system/audit-dashboard">Tổng quan Bảo mật</el-menu-item>
+              <el-menu-item index="/system/audit-dashboard">Tổng quan</el-menu-item>
               <el-menu-item index="/system/audit-logs">Nhật ký Kiểm toán</el-menu-item>
-              <el-menu-item index="/system/user-login-logs">Nhật ký Đăng nhập</el-menu-item>
               <el-menu-item index="/system/audit-report">Báo cáo Kiểm toán</el-menu-item>
+              <el-menu-item index="/system/user-login-logs">Nhật ký Đăng nhập</el-menu-item>
               <el-menu-item index="/system/security-logs">Nhật ký Bảo mật</el-menu-item>
             </el-sub-menu>
-
-            <el-sub-menu index="settings">
-              <template #title>
-                <el-icon><Setting /></el-icon>
-                <span>Cài đặt</span>
-              </template>
-              <el-menu-item index="/system/settings/currency">Tiền tệ</el-menu-item>
-            </el-sub-menu>
+ 
+            <el-menu-item index="/system/settings/currency">
+              <el-icon><Setting /></el-icon>
+              <span>Cài đặt</span>
+            </el-menu-item>
           </el-menu-item-group>
         </el-menu>
       </el-scrollbar>
-
+ 
       <!-- Sidebar footer -->
       <el-space
         direction="vertical"
@@ -172,17 +189,17 @@
         </el-button>
       </el-space>
     </el-aside>
-
+ 
     <!-- ═══════════════════════════════════
          MAIN CONTENT
     ═══════════════════════════════════ -->
-    <el-main style="margin-left: 256px; height: 100vh; overflow-y: auto; padding: 24px;">
+    <el-main style="margin-left: 256px; height: 100vh; overflow-y: auto; padding: 32px 40px 60px;">
       <router-view />
     </el-main>
-
+ 
   </el-container>
 </template>
-
+ 
 <script setup>
 import {
   CreditCard, DataLine, Discount, Grid, List, Lock,
@@ -197,28 +214,33 @@ import {
   clearSession,
   useAuthStore,
 } from "../../stores/auth";
-
+ 
 const route  = useRoute();
 const router = useRouter();
 const auth   = useAuthStore();
-
+ 
 const activePath = computed(() => route.path);
-
+ 
 const initials = (name) =>
   name ? name.split(" ").slice(-2).map(n => n[0]).join("").toUpperCase() : "SY";
-
+ 
 function go(path) {
   if (path && path !== route.path) router.push(path);
 }
-
+ 
 async function logout() {
-  const ok = await confirmModal("Do you want to log out?", "Confirm", "Log out", true);
+  const ok = await confirmModal(
+    "Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?",
+    "Thông báo",
+    "Đăng xuất",
+    true
+  );
   if (!ok) return;
   clearSession();
   clearLastAuthResponse();
-  toast("Logged out.", "success");
+  toast("Đã đăng xuất thành công.", "success");
   router.push("/system/login");
 }
 </script>
-
+ 
 <style></style>

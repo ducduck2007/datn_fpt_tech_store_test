@@ -567,7 +567,6 @@ async function applyPromo() {
   try {
     const res = await ordersApi.validatePromoCode(code, subtotal.value);
     const data = res.data?.data ?? res.data;
-    console.log('[applyPromo] response:', data);
 
     if (data?.valid) {
       appliedPromo.value = { code };

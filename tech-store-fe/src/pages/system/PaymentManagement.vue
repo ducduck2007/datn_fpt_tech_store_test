@@ -183,7 +183,7 @@
                 </el-descriptions-item>
                 <el-descriptions-item label="Trạng thái đơn">
                   <el-tag size="small" :type="selectedPayment.orderStatus === 'DELIVERED' ? 'success' : 'warning'" effect="dark">
-                    {{ selectedPayment.orderStatus }}
+                    {{ formatOrderStatus(selectedPayment.orderStatus) }}
                   </el-tag>
                 </el-descriptions-item>
               </el-descriptions>
@@ -309,7 +309,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, markRaw } from "vue";
 import { paymentsApi } from "../../api/payments";
 import { toast } from "../../ui/toast";
 import { ElMessageBox } from "element-plus";
@@ -317,6 +317,7 @@ import {
   Refresh, Search, View, CreditCard, User, Message, Phone,
   ShoppingBag, Picture, Document, Coin, Tickets, RefreshLeft,
   Wallet, Check, Timer, Money, OfficeBuilding,
+  CircleCheck, CircleClose, InfoFilled,
 } from "@element-plus/icons-vue";
 
 const loading = ref(false);
@@ -352,11 +353,11 @@ const totalRevenue = computed(() =>
 );
 
 const statCards = computed(() => [
-  { label: "Tổng giao dịch", value: payments.value.length, icon: "Tickets", color: "blue" },
-  { label: "Đã thanh toán", value: statusCount("PAID"), icon: "Check", color: "green" },
-  { label: "Chờ xử lý", value: statusCount("PENDING"), icon: "Timer", color: "amber" },
-  { label: "Hoàn tiền", value: statusCount("REFUNDED"), icon: "RefreshLeft", color: "red" },
-  { label: "Doanh thu", value: formatCurrencyShort(totalRevenue.value), icon: "Wallet", color: "purple" },
+  { label: "Tổng giao dịch", value: payments.value.length, icon: markRaw(Tickets), color: "blue" },
+  { label: "Đã thanh toán", value: statusCount("PAID"), icon: markRaw(Check), color: "green" },
+  { label: "Chờ xử lý", value: statusCount("PENDING"), icon: markRaw(Timer), color: "amber" },
+  { label: "Hoàn tiền", value: statusCount("REFUNDED"), icon: markRaw(RefreshLeft), color: "red" },
+  { label: "Doanh thu", value: formatCurrencyShort(totalRevenue.value), icon: markRaw(Wallet), color: "purple" },
 ]);
 
 async function loadPayments() {
@@ -412,9 +413,10 @@ async function handleRefund(paymentId) {
 
 function handleImageError(e) { e.target.style.display = "none"; }
 
-function statusTagType(s) {
-  return { PAID: "success", REFUNDED: "primary", PENDING: "warning", FAILED: "danger" }[s] || "info";
-}
+function statusTagType(s) { return { PAID: "success", REFUNDED: "primary", PENDING: "warning", FAILED: "danger" }[s] || "info"; }
+function statusTagIcon(s) { return { PAID: "CircleCheck", REFUNDED: "RefreshLeft", PENDING: "Timer", FAILED: "CircleClose" }[s] || "InfoFilled"; }
+function orderStatusIcon(s) { return { DELIVERED: "CircleCheck", SHIPPING: "Van", CANCELLED: "CircleClose", PENDING: "Timer", PAID: "CircleCheck", RETURNED: "RefreshLeft", PARTIALLY_RETURNED: "RefreshLeft" }[s] || "InfoFilled"; }
+function formatOrderStatus(s) { return { DELIVERED: "Đã giao hàng", SHIPPING: "Đang vận chuyển", CANCELLED: "Đã hủy", PENDING: "Chờ xử lý", PAID: "Đã thanh toán", RETURNED: "Trả hàng", PARTIALLY_RETURNED: "Trả hàng một phần" }[s] || s; }
 
 function getMethodIconComponent(m) {
   return { CASH: "Money", BANK_TRANSFER: "OfficeBuilding", CREDIT_CARD: "CreditCard", E_WALLET: "Wallet" }[m] || "CreditCard";
@@ -450,9 +452,19 @@ loadPayments();
 
 <style scoped>
 /* ── Root ── */
+.pm-root :deep(.el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: normal;
+  vertical-align: middle;
+}
+.pm-root :deep(.el-tag .el-icon) {
+  display: none;
+}
 .pm-root {
   min-height: 100vh;
-  padding: 28px 32px 48px;
+  padding: 0;
 }
 
 /* ── Header Card ── */

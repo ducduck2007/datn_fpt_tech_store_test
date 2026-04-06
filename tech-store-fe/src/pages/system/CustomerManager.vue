@@ -513,7 +513,7 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="Họ và tên *">
-              <el-input v-model="dlg.form.fullName" placeholder="Nguyen Van A" />
+              <el-input v-model="dlg.form.fullName" placeholder="Nguyễn Văn A" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -541,12 +541,12 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="Địa chỉ">
-              <el-input v-model="dlg.form.address" placeholder="123 Street, City" />
+              <el-input v-model="dlg.form.address" placeholder="123 Đường ABC, Quận 1" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="Ghi chú">
-              <el-input v-model="dlg.form.notes" type="textarea" :rows="2" placeholder="General notes…" />
+              <el-input v-model="dlg.form.notes" type="textarea" :rows="2" placeholder="Ghi chú chung…" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -560,7 +560,7 @@
               <el-tag size="small" type="danger" effect="plain">Nội bộ · Chỉ admin</el-tag>
             </div>
           </div>
-          <el-input v-model="dlg.form.vipNote" type="textarea" :rows="3" placeholder="e.g. Prefers gaming laptops, no display units…" :maxlength="500" show-word-limit />
+          <el-input v-model="dlg.form.vipNote" type="textarea" :rows="3" placeholder="vd: Thích laptop gaming, không lấy hàng trưng bày…" :maxlength="500" show-word-limit />
           <el-text size="small" type="info" style="margin-top:4px;">Khách hàng không thể xem ghi chú này.</el-text>
         </template>
         <el-alert v-if="dlg.mode==='create'" type="info" title="Ghi chú VIP có sẵn khi khách hàng đạt cấp Đồng trở lên." :closable="false" style="margin-top:8px;" />
@@ -907,7 +907,7 @@ async function loadAdminSummary() {
     const res = summaryDlg.mode === 'weekly' ? await customersApi.getLoyaltyWeeklySummaryAdmin(summaryDlg.range) : await customersApi.getLoyaltyMonthlySummaryAdmin(summaryDlg.range);
     const raw = res?.data;
     summaryDlg.data = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-  } catch { toast('Error loading summary', 'error'); summaryDlg.data = []; }
+  } catch { toast('Lỗi tải tổng quan', 'error'); summaryDlg.data = []; }
   finally { summaryDlg.loading = false; }
 }
 function getAdminBarWidth(value, type) {
@@ -1146,7 +1146,7 @@ async function load() {
     else if (typeFilter.value) res = await customersApi.listByType(typeFilter.value);
     else res = await customersApi.listAll();
     rows.value = normalize(extractList(res?.data)); page.value = 1;
-  } catch (e) { rows.value = []; toast("Failed to load customers", "error"); }
+  } catch (e) { rows.value = []; toast("Lỗi tải danh sách khách hàng", "error"); }
   finally { loading.value = false; }
 }
 function handleFilterChange() {
@@ -1168,17 +1168,17 @@ async function save() {
   dlg.loading = true;
   try {
     const payload = { ...dlg.form }; delete payload.vipTier;
-    if (dlg.mode === "create") { await customersApi.create(payload); toast("Customer created!", "success"); }
-    else { await customersApi.update(dlg.id, payload); toast("Updated!", "success"); }
+    if (dlg.mode === "create") { await customersApi.create(payload); toast("Đã tạo khách hàng!", "success"); }
+    else { await customersApi.update(dlg.id, payload); toast("Đã cập nhật!", "success"); }
     dlg.open = false; await load();
   } catch (e) { const msg = e?.response?.data?.message || e?.message || "Save failed"; dlg.alert = typeof msg === "string" ? msg : JSON.stringify(msg); }
   finally { dlg.loading = false; }
 }
 async function remove(row) {
-  const ok = await confirmModal(`Delete "${row?.fullName}"?`, "Confirm Delete", "Delete", true);
+  const ok = await confirmModal(`Xác nhận xóa "${row?.fullName}"?`, "Xác nhận xóa", "Xóa", true);
   if (!ok) return;
-  try { await customersApi.remove(row.id); toast("Deleted!", "success"); await load(); }
-  catch { toast("Delete failed.", "error"); }
+  try { await customersApi.remove(row.id); toast("Đã xóa!", "success"); await load(); }
+  catch { toast("Xóa thất bại.", "error"); }
 }
 function viewDetails(row) { detailsDialog.customer = row; detailsDialog.open = true; }
 function openVipNoteEdit(row) {
@@ -1188,9 +1188,9 @@ function openVipNoteEdit(row) {
 async function saveVipNote() {
   vipNoteDialog.loading = true;
   try {
-    await customersApi.updateVipNote(vipNoteDialog.customerId, vipNoteDialog.note); toast("VIP Note saved.", "success"); vipNoteDialog.open = false; await load();
+    await customersApi.updateVipNote(vipNoteDialog.customerId, vipNoteDialog.note); toast("Đã lưu ghi chú VIP.", "success"); vipNoteDialog.open = false; await load();
     if (detailsDialog.open && detailsDialog.customer?.id === vipNoteDialog.customerId) { detailsDialog.customer.raw.vipNote = vipNoteDialog.note; }
-  } catch { toast("Failed to save VIP Note", "error"); }
+  } catch { toast("Không thể lưu ghi chú VIP", "error"); }
   finally { vipNoteDialog.loading = false; }
 }
 async function loadBirthdayData() {
@@ -1201,19 +1201,19 @@ async function loadBirthdayData() {
       http.get("/api/auth/admin/birthdays/statistics").then(r => { monthlyStats.value = r.data?.monthlyCount || {}; }),
       http.get("/api/auth/admin/birthdays/upcoming?days=7").then(r => { upcomingBirthdays.value = r.data || []; }),
     ]);
-  } catch { toast("Failed to load birthday data", "error"); }
+  } catch { toast("Lỗi tải dữ liệu sinh nhật", "error"); }
   finally { loading.value = false; }
 }
 async function loadMonthlyBirthdays() {
   loading.value = true;
   try { const res = await http.get(`/api/auth/admin/birthdays/month/${selectedMonth.value}`); monthlyBirthdays.value = res.data || []; }
-  catch { toast("Failed to load monthly data", "error"); }
+  catch { toast("Lỗi tải dữ liệu theo tháng", "error"); }
   finally { loading.value = false; }
 }
 async function loadNotificationHistory() {
   historyLoading.value = true;
   try { const res = await http.get("/api/auth/admin/birthdays/notification-history"); notificationHistory.value = res.data || []; }
-  catch { toast("Failed to load history", "error"); }
+  catch { toast("Lỗi tải lịch sử", "error"); }
   finally { historyLoading.value = false; }
 }
 function viewMonthDetail(month) { selectedMonth.value = parseInt(month); birthdayTab.value = "monthly"; loadMonthlyBirthdays(); }
@@ -1226,9 +1226,9 @@ async function confirmSendGreeting() {
   greetingDialog.sending = true;
   try {
     const response = await http.post(`/api/auth/admin/birthdays/send-greeting/${greetingDialog.customer.id}`, { message: greetingDialog.form.message });
-    if (response.data.status === 'success') { toast(`Greeting sent to ${greetingDialog.customer.name}`, "success"); greetingDialog.open = false; if (birthdayTab.value === 'history') loadNotificationHistory(); }
-    else { toast(response.data.message || "Could not send", "error"); }
-  } catch (e) { toast(e.response?.data?.message || "Could not send greeting", "error"); }
+    if (response.data.status === 'success') { toast(`Đã gửi tới ${greetingDialog.customer.name}`, "success"); greetingDialog.open = false; if (birthdayTab.value === 'history') loadNotificationHistory(); }
+    else { toast(response.data.message || "Không thể gửi", "error"); }
+  } catch (e) { toast(e.response?.data?.message || "Không thể gửi lời chúc", "error"); }
   finally { greetingDialog.sending = false; }
 }
 function normalizeInactive(list) {

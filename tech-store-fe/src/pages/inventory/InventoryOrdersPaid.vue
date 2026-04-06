@@ -4,7 +4,7 @@
     <el-row type="flex" justify="space-between" align="bottom">
       <el-col :span="16">
         <el-space direction="vertical" alignment="start" :size="4">
-          <el-text type="primary" size="small" tag="b">INVENTORY</el-text>
+          <el-text type="primary" size="small" tag="b">KHO HÀNG</el-text>
           <h2>Đơn đã thanh toán</h2>
           <el-text type="info">Các đơn hàng chờ kho xử lý đóng gói</el-text>
         </el-space>
@@ -22,9 +22,7 @@
         <el-card shadow="never">
           <el-space>
             <el-avatar :size="40" class="stat-icon-green" shape="square">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M3 9l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <el-icon :size="20"><DocumentChecked /></el-icon>
             </el-avatar>
             <el-space direction="vertical" alignment="start" :size="0">
               <el-text tag="b" size="large">{{ orders.length }}</el-text>
@@ -37,11 +35,7 @@
         <el-card shadow="never">
           <el-space>
             <el-avatar :size="40" class="stat-icon-blue" shape="square">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M2 7h14" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M6 11h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
+              <el-icon :size="20"><Money /></el-icon>
             </el-avatar>
             <el-space direction="vertical" alignment="start" :size="0">
               <el-text tag="b" size="large">{{ formatVND(totalAmount) }}</el-text>
@@ -158,6 +152,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { DocumentChecked, Money } from "@element-plus/icons-vue";
 import { formatVND, formatDate, initials } from "../../utils/format";
 
 const router = useRouter();

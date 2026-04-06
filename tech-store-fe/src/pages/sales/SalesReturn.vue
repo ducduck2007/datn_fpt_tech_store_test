@@ -694,7 +694,7 @@ function reset() {
 </script>
 
 <style scoped>
-.sales-return  { padding: 20px; min-height: 100vh; background: #f5f7fa; }
+.sales-return  { padding: 0; min-height: 100vh; background: #f5f7fa; }
 .header        { padding: 10px 0; margin-bottom: 16px; }
 .steps-bar     { margin-bottom: 24px; background: #fff; padding: 20px 24px; border-radius: 4px; border: 1px solid #dcdfe6; }
 .search-wrap   { text-align: center; padding: 60px 40px; }

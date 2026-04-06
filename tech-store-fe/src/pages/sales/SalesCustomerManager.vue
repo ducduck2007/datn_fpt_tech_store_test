@@ -314,7 +314,7 @@ async function copyPhone(p) {
 </script>
 
 <style scoped>
-.scm-container { padding: 20px; background: #f5f7fa; min-height: 100vh; }
+.scm-container { padding: 0; background: #f5f7fa; min-height: 100vh; }
 .header { height: auto; padding: 10px 0; margin-bottom: 20px; }
 .h-full { height: calc(100vh - 120px); }
 .flex-col { display: flex; flex-direction: column; }
