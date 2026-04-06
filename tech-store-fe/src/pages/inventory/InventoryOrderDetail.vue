@@ -49,6 +49,18 @@
           <span>Tạm tính:</span>
           <span>{{ formatVND(order.subtotal) }}</span>
         </div>
+        <div class="print-summary-row" v-if="order.vipDiscount > 0">
+          <span>Giảm giá VIP:</span>
+          <span>-{{ formatVND(order.vipDiscount) }}</span>
+        </div>
+        <div class="print-summary-row" v-if="order.couponDiscount > 0">
+          <span>Mã giảm giá ({{ order.couponCode }}):</span>
+          <span>-{{ formatVND(order.couponDiscount) }}</span>
+        </div>
+        <div class="print-summary-row" v-if="order.spinDiscount > 0">
+          <span>Giảm giá vòng quay:</span>
+          <span>-{{ formatVND(order.spinDiscount) }}</span>
+        </div>
         <div class="print-summary-row">
           <span>Phí vận chuyển:</span>
           <span>{{ order.shippingFee > 0 ? formatVND(order.shippingFee) : 'Miễn phí' }}</span>
@@ -182,6 +194,18 @@
                 <el-row justify="space-between">
                   <el-text type="info">Tạm tính</el-text>
                   <el-text>{{ formatVND(order.subtotal) }}</el-text>
+                </el-row>
+                <el-row justify="space-between" v-if="order.vipDiscount > 0">
+                  <el-text type="info">Chiết khấu VIP</el-text>
+                  <el-text type="success">-{{ formatVND(order.vipDiscount) }}</el-text>
+                </el-row>
+                <el-row justify="space-between" v-if="order.couponDiscount > 0">
+                  <el-text type="info">Mã giảm giá ({{ order.couponCode }})</el-text>
+                  <el-text type="success">-{{ formatVND(order.couponDiscount) }}</el-text>
+                </el-row>
+                <el-row justify="space-between" v-if="order.spinDiscount > 0">
+                  <el-text type="info">Vòng quay may mắn</el-text>
+                  <el-text type="warning">-{{ formatVND(order.spinDiscount) }}</el-text>
                 </el-row>
                 <el-row justify="space-between">
                   <el-text type="info">Phí vận chuyển</el-text>

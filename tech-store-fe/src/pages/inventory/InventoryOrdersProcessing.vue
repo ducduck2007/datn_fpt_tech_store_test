@@ -16,6 +16,17 @@
       </el-col>
     </el-row>
 
+    <!-- URGENT ALERT -->
+    <el-alert
+      v-if="urgentOrders.length > 0"
+      title="CẢNH BÁO TIẾN ĐỘ"
+      type="error"
+      :description="`Có ${urgentOrders.length} đơn hàng đang xử lý quá lâu (hơn 2 giờ). Vui lòng kiểm tra và bàn giao vận chuyển sớm!`"
+      show-icon
+      :closable="false"
+      class="priority-alert"
+    />
+
     <!-- STATS ROW -->
     <el-row :gutter="16">
       <el-col :span="6">
@@ -82,7 +93,12 @@
         <!-- Order number -->
         <el-table-column label="Mã đơn hàng" min-width="140">
           <template #default="{ row }">
-            <el-text tag="b">#{{ row.orderNumber }}</el-text>
+            <el-space>
+              <el-text tag="b">#{{ row.orderNumber }}</el-text>
+              <el-tag v-if="isUrgent(row.createdAt)" type="danger" size="small" effect="dark" class="pulse-tag">
+                RẤT GẤP
+              </el-tag>
+            </el-space>
           </template>
         </el-table-column>
 
@@ -161,13 +177,25 @@ const search = ref("");
 const loadingId = ref(null);
 const selectedOrders = ref([]);
 
+const isUrgent = (createdAt) => {
+  if (!createdAt) return false;
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  return new Date(createdAt) < twoHoursAgo;
+};
+
+const urgentOrders = computed(() => {
+  return orders.value.filter(o => isUrgent(o.createdAt));
+});
+
 const filteredOrders = computed(() => {
   const q = search.value.toLowerCase();
-  return orders.value.filter(o => 
+  const res = orders.value.filter(o => 
     o.orderNumber?.toLowerCase().includes(q) ||
     o.customerName?.toLowerCase().includes(q) ||
     o.customerPhone?.includes(q)
   );
+  // Sort: Oldest first (FIFO)
+  return res.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 });
 
 const totalAmount = computed(() =>
@@ -241,5 +269,18 @@ h2 {
 }
 .table-card :deep(.el-card__body) {
   padding: 0;
+}
+.priority-alert {
+  border: 1px solid var(--el-color-error-light-3);
+  box-shadow: 0 2px 12px 0 rgba(245, 108, 108, 0.1);
+  margin-bottom: 5px;
+}
+.pulse-tag {
+  animation: pulse-red 2s infinite;
+}
+@keyframes pulse-red {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(245, 108, 108, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 108, 108, 0); }
 }
 </style>
