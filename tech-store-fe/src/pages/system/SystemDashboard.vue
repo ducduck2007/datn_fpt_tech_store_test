@@ -26,8 +26,8 @@
           class="module-card"
           @click="$router.push(c.to)"
         >
-          <div :style="`width:44px;height:44px;border-radius:11px;background:${c.color}18;color:${c.color};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;`">
-            {{ c.icon }}
+          <div :style="`width:44px;height:44px;border-radius:11px;background:${c.color}18;color:${c.color};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;`">
+            <el-icon><component :is="c.icon" /></el-icon>
           </div>
           <div style="flex:1; min-width:0;">
             <el-text tag="div" style="font-size:13.5px; font-weight:700;">{{ c.title }}</el-text>
@@ -59,7 +59,9 @@
               style="background: #fffbeb; border-color: #fde68a;"
             >
               <el-space direction="vertical" fill :size="12" style="width:100%;">
-                <div style="font-size:28px; line-height:1;">📅</div>
+                <div style="font-size:28px; line-height:1; color: var(--el-color-warning);">
+                  <el-icon><Calendar /></el-icon>
+                </div>
                 <el-space direction="vertical" :size="6">
                   <el-text tag="div" style="font-size:14px; font-weight:700;">Kiểm tra không hoạt động tháng</el-text>
                   <el-text size="small" type="info" style="line-height:1.65;">
@@ -94,7 +96,9 @@
               style="background: #fff1f2; border-color: #fecdd3;"
             >
               <el-space direction="vertical" fill :size="12" style="width:100%;">
-                <div style="font-size:28px; line-height:1;">🎯</div>
+                <div style="font-size:28px; line-height:1; color: var(--el-color-danger);">
+                  <el-icon><Aim /></el-icon>
+                </div>
                 <el-space direction="vertical" :size="6">
                   <el-text tag="div" style="font-size:14px; font-weight:700;">Reset cuối năm</el-text>
                   <el-text size="small" type="info" style="line-height:1.65;">
@@ -135,7 +139,25 @@
 </template>
 
 <script setup>
-import { ArrowRight, Refresh, Warning } from "@element-plus/icons-vue";
+import {
+  ArrowRight,
+  Refresh,
+  Warning,
+  User,
+  Avatar,
+  Collection,
+  Box,
+  ShoppingCart,
+  Operation,
+  Star,
+  Money,
+  Present,
+  Tickets,
+  PieChart,
+  Setting,
+  Calendar,
+  Aim
+} from "@element-plus/icons-vue";
 import { onUnmounted } from "vue";
 import { ref } from "vue";
 import { customersApi } from "../../api/customers.api";
@@ -230,18 +252,18 @@ const yearEndChips = [
 ];
 
 const cards = [
-  { title: "Users",               desc: "Quản lý tài khoản & phân quyền",   to: "/system/users",               icon: "👤", color: "#2563eb" },
-  { title: "Customers",           desc: "Khách hàng & hạng thành viên",      to: "/system/customers",           icon: "🧑‍🤝‍🧑", color: "#16a34a" },
-  { title: "Categories",          desc: "Danh mục sản phẩm",                 to: "/system/categories",          icon: "🗂️", color: "#d97706" },
-  { title: "Products",            desc: "Tạo & quản lý sản phẩm",           to: "/system/products",            icon: "📦", color: "#7c3aed" },
-  { title: "Orders — New",        desc: "Đơn hàng mới cần xử lý",           to: "/system/orders/new",          icon: "🆕", color: "#0891b2" },
-  { title: "Orders — Processing", desc: "Hàng đợi đang xử lý",              to: "/system/orders/processing",   icon: "⚙️", color: "#ea580c" },
-  { title: "Loyalty Summary",     desc: "Tổng hợp điểm thưởng",             to: "/system/Loyaltysummaryadmin", icon: "⭐", color: "#ca8a04" },
-  { title: "Pricing",             desc: "Giá biến thể & lịch sử",           to: "/system/pricing",             icon: "💰", color: "#16a34a" },
-  { title: "Promotions",          desc: "Mã giảm giá & chiến dịch",         to: "/system/promotions",          icon: "🎁", color: "#db2777" },
-  { title: "Payment History",     desc: "Tất cả giao dịch thanh toán",       to: "/system/payments",            icon: "🧾", color: "#2563eb" },
-  { title: "Customer Spending",   desc: "Chi tiêu theo khách hàng",          to: "/system/customer-spending",   icon: "📊", color: "#0891b2" },
-  { title: "Settings",            desc: "Đơn vị tiền tệ mặc định",          to: "/system/settings/currency",   icon: "⚙️", color: "#6b7280" },
+  { title: "Users",               desc: "Quản lý tài khoản & phân quyền",   to: "/system/users",               icon: "User", color: "#2563eb" },
+  { title: "Customers",           desc: "Khách hàng & hạng thành viên",      to: "/system/customers",           icon: "Avatar", color: "#16a34a" },
+  { title: "Categories",          desc: "Danh mục sản phẩm",                 to: "/system/categories",          icon: "Collection", color: "#d97706" },
+  { title: "Products",            desc: "Tạo & quản lý sản phẩm",           to: "/system/products",            icon: "Box", color: "#7c3aed" },
+  { title: "Orders — New",        desc: "Đơn hàng mới cần xử lý",           to: "/system/orders/new",          icon: "ShoppingCart", color: "#0891b2" },
+  { title: "Orders — Processing", desc: "Hàng đợi đang xử lý",              to: "/system/orders/processing",   icon: "Operation", color: "#ea580c" },
+  { title: "Loyalty Summary",     desc: "Tổng hợp điểm thưởng",             to: "/system/Loyaltysummaryadmin", icon: "Star", color: "#ca8a04" },
+  { title: "Pricing",             desc: "Giá biến thể & lịch sử",           to: "/system/pricing",             icon: "Money", color: "#16a34a" },
+  { title: "Promotions",          desc: "Mã giảm giá & chiến dịch",         to: "/system/promotions",          icon: "Present", color: "#db2777" },
+  { title: "Payment History",     desc: "Tất cả giao dịch thanh toán",       to: "/system/payments",            icon: "Tickets", color: "#2563eb" },
+  { title: "Customer Spending",   desc: "Chi tiêu theo khách hàng",          to: "/system/customer-spending",   icon: "PieChart", color: "#0891b2" },
+  { title: "Settings",            desc: "Đơn vị tiền tệ mặc định",          to: "/system/settings/currency",   icon: "Setting", color: "#6b7280" },
 ];
 </script>
 
