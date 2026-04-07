@@ -457,13 +457,6 @@ public class OrderService {
         }
 
         System.out.println(">>> STEP 6: building response");
-
-        if (discountCalc.isHasSpinBonus()) {
-            spinWheelService.useBonus(
-                    customer.getId(),
-                    order.getId(),
-                    request.getSpinHistoryId());
-        }
         if (discountCalc.getPromotionId() != null) {
             promotionService.recordRedemption(discountCalc.getPromotionId(), 1L);
             promotionService.recordCustomerUsage(
@@ -700,25 +693,7 @@ public class OrderService {
 
             // Đánh dấu serial SOLD — chỉ với đơn ONLINE
             // Đơn OFFLINE đã đánh dấu ngay khi tạo order
-            if (!"OFFLINE".equals(order.getChannel())) {
-                List<ProductSerial> inStockSerials = productSerialRepository
-                        .findByVariantIdAndStatus(variant.getId(), "IN_STOCK");
-                int soldCount = 0;
-                for (ProductSerial serial : inStockSerials) {
-                    if (soldCount >= item.getQuantity())
-                        break;
-                    serial.setStatus("SOLD");
-                    productSerialRepository.save(serial);
 
-                    // ✅ THÊM: lưu vào order_item_serials để có thể hiển thị sau
-                    OrderItemSerial ois = new OrderItemSerial();
-                    ois.setOrderItem(item);
-                    ois.setProductSerial(serial);
-                    orderItemSerialRepository.save(ois);
-
-                    soldCount++;
-                }
-            }
 
             int actualStock = productSerialRepository
                     .countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
