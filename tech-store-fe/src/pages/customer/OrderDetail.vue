@@ -38,7 +38,7 @@
                 <el-icon><Close /></el-icon> Hủy đơn
               </el-button>
               <el-button
-                v-if="detail?.status === 'SHIPPING' || (detail?.status === 'DELIVERED' && detail?.paymentMethod === 'CASH')"
+                v-if="detail?.status === 'SHIPPING'"
                 type="success" plain :loading="deliveredLoading" @click="confirmDelivered"
               >
                 <el-icon><Check /></el-icon> Đã nhận hàng

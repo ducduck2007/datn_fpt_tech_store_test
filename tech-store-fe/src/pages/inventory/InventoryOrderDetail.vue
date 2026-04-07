@@ -64,78 +64,31 @@
 
     <!-- MAIN UI APP CONTENT -->
     <el-space direction="vertical" alignment="stretch" :size="20" style="width: 100%" class="no-print">
-    <!-- BACK LINK -->
-    <el-button link @click="router.back()">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="icon-spacing">
-        <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Quay lại danh sách
-    </el-button>
+      <!-- BACK LINK -->
+      <el-button link @click="router.back()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="icon-spacing">
+          <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Quay lại danh sách
+      </el-button>
 
-    <!-- PAGE HEADER -->
-    <el-row type="flex" justify="space-between" align="bottom">
-      <el-col :span="16">
-        <el-space direction="vertical" alignment="start" :size="4">
-          <el-text type="info" size="small">Chi tiết đơn hàng</el-text>
-          <el-space :size="12">
-            <h2>#{{ order.orderNumber }}</h2>
-            <el-tag :type="statusType(order.status)" effect="light" round>
-              {{ statusLabel(order.status) }}
-            </el-tag>
-          </el-space>
-          <el-text type="info">Kho hàng · Quản lý đơn hàng</el-text>
-        </el-space>
-      </el-col>
-
-      <!-- INVENTORY ACTIONS -->
-      <el-col :span="8" style="text-align: right;">
-        <el-space>
-          <el-button @click="printOrder" plain>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="icon-spacing">
-              <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            In phiếu
-          </el-button>
-
-          <el-button
-            v-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH' && order.channel === 'ONLINE')"
-            type="warning"
-            plain
-            :loading="loading"
-            @click="markProcessing"
-          >
-            Đóng gói
-          </el-button>
-
-          <el-button
-            v-if="order.status === 'PROCESSING'"
-            type="primary"
-            plain
-            :loading="loading"
-            @click="markShipping"
-          >
-            Chuyển giao vận
-          </el-button>
-        </el-space>
-      </el-col>
-    </el-row>
-
-    <!-- CONTENT GRID -->
-    <el-row :gutter="20">
-      <!-- LEFT COLUMN -->
-      <el-col :span="16">
-        <!-- ORDER ITEMS TABLE -->
-        <el-card shadow="never">
-          <template #header>
-            <el-space>
-              <el-text tag="b">Sản phẩm đặt mua</el-text>
-              <el-text type="info" size="small">({{ order.items?.length || 0 }} sản phẩm)</el-text>
+      <!-- PAGE HEADER -->
+      <el-row type="flex" justify="space-between" align="bottom">
+        <el-col :span="16">
+          <el-space direction="vertical" alignment="start" :size="4">
+            <el-text type="info" size="small">Chi tiết đơn hàng</el-text>
+            <el-space :size="12">
+              <h2>#{{ order.orderNumber }}</h2>
+              <el-tag :type="statusType(order.status)" effect="light" round>
+                {{ statusLabel(order.status) }}
+              </el-tag>
             </el-space>
             <el-text type="info">Kho hàng · Quản lý đơn hàng</el-text>
           </el-space>
         </el-col>
-        <el-col :span="8" style="text-align:right">
+
+        <!-- INVENTORY ACTIONS -->
+        <el-col :span="8" style="text-align: right;">
           <el-space>
             <el-button @click="printOrder" plain>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="icon-spacing">
@@ -146,7 +99,7 @@
             </el-button>
 
             <el-tooltip
-              v-if="order.status === 'PAID'"
+              v-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH' && order.channel === 'ONLINE')"
               :content="allSerialsAssigned ? '' : `Cần gán đủ serial (${totalAssigned}/${totalRequired})`"
               placement="top"
               :disabled="allSerialsAssigned"
@@ -177,8 +130,11 @@
         </el-col>
       </el-row>
 
+      <!-- CONTENT GRID -->
       <el-row :gutter="20">
+        <!-- LEFT COLUMN -->
         <el-col :span="16">
+          <!-- ORDER ITEMS TABLE -->
           <el-card shadow="never">
             <template #header>
               <el-row justify="space-between" align="middle">
@@ -187,7 +143,7 @@
                   <el-text type="info" size="small">({{ order.items?.length || 0 }} sản phẩm)</el-text>
                 </el-space>
                 <el-tag
-                  v-if="order.status === 'PAID'"
+                  v-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH' && order.channel === 'ONLINE')"
                   :type="allSerialsAssigned ? 'success' : 'warning'"
                   effect="light"
                   round
@@ -215,7 +171,7 @@
                 </template>
               </el-table-column>
 
-              <!-- Cột serial: input khi PAID + chưa có, tag khi đã có, dash khi không PAID -->
+              <!-- Cột serial: input khi PAID/COD + chưa có, tag khi đã có, dash khi không PAID -->
               <el-table-column label="Serial Number" width="270">
                 <template #default="{ row }">
                   <!-- Đã có serial → hiển thị tag, có thể xóa nếu đang PAID -->
@@ -223,7 +179,7 @@
                     <el-tag
                       type="success"
                       effect="light"
-                      :closable="order.status === 'PAID'"
+                      :closable="order.status === 'PAID' || order.status === 'PENDING'"
                       @close="handleRemoveSerial(row)"
                       style="font-family:monospace;font-size:13px"
                     >
@@ -231,8 +187,8 @@
                     </el-tag>
                   </el-space>
 
-                  <!-- Chưa có serial + đang PAID → cho nhập -->
-                  <el-space v-else-if="order.status === 'PAID'" :size="4">
+                  <!-- Chưa có serial + đang PAID/COD → cho nhập -->
+                  <el-space v-else-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH')" :size="4">
                     <el-input
                       v-model="serialInputs[row.slotKey]"
                       :placeholder="`Serial ${row.slotIndex + 1}...`"
@@ -297,8 +253,10 @@
           </el-card>
         </el-col>
 
+        <!-- RIGHT COLUMN -->
         <el-col :span="8">
           <el-space direction="vertical" alignment="stretch" :size="16" style="width:100%">
+            <!-- ORDER INFO -->
             <el-card shadow="never">
               <template #header><el-text tag="b">Thông tin đơn hàng</el-text></template>
               <el-space direction="vertical" alignment="stretch" :size="12" style="width:100%">
@@ -323,6 +281,7 @@
               </el-space>
             </el-card>
 
+            <!-- CUSTOMER INFO -->
             <el-card shadow="never">
               <template #header><el-text tag="b">Thông tin khách hàng</el-text></template>
               <el-space direction="vertical" alignment="stretch" :size="16" style="width:100%">
