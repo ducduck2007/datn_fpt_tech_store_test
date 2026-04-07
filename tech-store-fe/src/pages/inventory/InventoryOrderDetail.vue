@@ -114,7 +114,7 @@
           </el-button>
 
           <el-button
-            v-if="order.status === 'PAID'"
+            v-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH' && order.channel === 'ONLINE')"
             type="warning"
             plain
             :loading="loading"
@@ -281,6 +281,7 @@
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
+import { paymentsApi } from "../../api/payments";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { formatVND, formatDateTime, initials } from "../../utils/format";
 
@@ -328,6 +329,16 @@ const markProcessing = async () => {
       }
     );
     loading.value = true;
+    
+    // Bridge: Auto-pay for CASH orders that are still PENDING
+    if (order.value.status === 'PENDING' && order.value.paymentMethod === 'CASH') {
+      await paymentsApi.create({ 
+        orderId: order.value.orderId, 
+        method: 'CASH', 
+        transactionRef: 'COD-DETAIL-CONFIRM' 
+      });
+    }
+
     await ordersApi.markAsProcessing(order.value.orderId);
     ElMessage.success("Đã chuyển đơn hàng sang trạng thái Đang xử lý");
     await load();

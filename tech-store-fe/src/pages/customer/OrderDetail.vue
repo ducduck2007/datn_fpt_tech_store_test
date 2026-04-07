@@ -23,7 +23,10 @@
                 <el-icon><Refresh /></el-icon> Reload
               </el-button>
               <el-button
-                v-if="detail?.status === 'PENDING' && detail?.paymentStatus === 'UNPAID' && detail?.paymentMethod !== 'CASH'"
+                v-if="detail?.paymentStatus === 'UNPAID' && (
+                  (detail?.status === 'PENDING' && detail?.paymentMethod !== 'CASH') ||
+                  (detail?.status === 'DELIVERED' && detail?.paymentMethod === 'CASH')
+                )"
                 type="primary" plain @click="openPaymentDialog"
               >
                 <el-icon><CreditCard /></el-icon> Thanh toán
@@ -35,7 +38,7 @@
                 <el-icon><Close /></el-icon> Hủy đơn
               </el-button>
               <el-button
-                v-if="detail?.status === 'SHIPPING'"
+                v-if="detail?.status === 'SHIPPING' || (detail?.status === 'DELIVERED' && detail?.paymentMethod === 'CASH')"
                 type="success" plain :loading="deliveredLoading" @click="confirmDelivered"
               >
                 <el-icon><Check /></el-icon> Đã nhận hàng

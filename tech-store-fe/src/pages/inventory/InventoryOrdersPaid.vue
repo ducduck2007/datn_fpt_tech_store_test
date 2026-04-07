@@ -121,9 +121,15 @@
 
         <!-- Status -->
         <el-table-column label="Trạng thái" width="140" align="center">
-          <template #default>
-            <el-tag type="success" effect="light" round>
+          <template #default="{ row }">
+            <el-tag v-if="row.status === 'PAID'" type="success" effect="light" round>
               Đã thanh toán
+            </el-tag>
+            <el-tag v-else-if="row.status === 'PENDING'" type="warning" effect="dark" round>
+              Chờ thanh toán (COD)
+            </el-tag>
+            <el-tag v-else type="info" effect="light" round>
+              {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
@@ -167,9 +173,10 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
+import { paymentsApi } from "../../api/payments";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { DocumentChecked, Money } from "@element-plus/icons-vue";
-import { formatVND, formatDate, initials } from "../../utils/format";
+import { formatVND, formatDate, initials, parseSafeDate } from "../../utils/format";
 
 const router = useRouter();
 const orders = ref([]);
@@ -179,8 +186,10 @@ const selectedOrders = ref([]);
 
 const isUrgent = (createdAt) => {
   if (!createdAt) return false;
+  const date = parseSafeDate(createdAt);
+  if (!date) return false;
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-  return new Date(createdAt) < twoHoursAgo;
+  return date < twoHoursAgo;
 };
 
 const urgentOrders = computed(() => {
@@ -208,8 +217,17 @@ const handleSelectionChange = (val) => {
 
 const loadOrders = async (silent = false) => {
   try {
-    const res = await ordersApi.listPaid();
-    orders.value = res.data;
+    const [paidRes, newRes] = await Promise.all([
+      ordersApi.listPaid(),
+      ordersApi.listNew()
+    ]);
+    
+    const paidList = paidRes.data || [];
+    const codList = (newRes.data || []).filter(o => 
+      o.paymentMethod === 'CASH' && o.channel === 'ONLINE'
+    );
+
+    orders.value = [...paidList, ...codList];
   } catch (error) {
     if (!silent) ElMessage.error("Không thể tải danh sách đơn hàng");
   }
@@ -217,8 +235,15 @@ const loadOrders = async (silent = false) => {
 
 const markProcessing = async (orderId) => {
   try {
+    const order = orders.value.find(o => o.orderId === orderId);
     await ElMessageBox.confirm('Xác nhận xử lý đơn hàng này?', 'Xác nhận', { type: 'warning' });
     loadingId.value = orderId;
+    
+    // Bridge: Auto-pay for CASH orders that are still PENDING
+    if (order && order.status === 'PENDING' && order.paymentMethod === 'CASH') {
+      await paymentsApi.create({ orderId, method: 'CASH', transactionRef: 'COD-CONFIRMED' });
+    }
+    
     await ordersApi.markAsProcessing(orderId);
     ElMessage.success("Đã cập nhật trạng thái đơn hàng");
     await loadOrders(true);
@@ -239,6 +264,14 @@ const bulkMarkProcessing = async () => {
       'Xử lý hàng loạt',
       { type: 'warning' }
     );
+    
+    // Bridge: Auto-pay for CASH orders during bulk processing
+    for (const order of selectedOrders.value) {
+      if (order.status === 'PENDING' && order.paymentMethod === 'CASH' ) {
+          await paymentsApi.create({ orderId: order.orderId, method: 'CASH', transactionRef: 'COD-BULK-CONFIRMED' });
+      }
+    }
+    
     await Promise.all(selectedOrders.value.map(o => ordersApi.markAsProcessing(o.orderId)));
     ElMessage.success(`Đã xử lý ${selectedOrders.value.length} đơn hàng`);
     await loadOrders();
