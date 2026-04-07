@@ -90,9 +90,9 @@ export const ordersApi = {
     return http.get(`/api/orders/number/${orderNumber}`);
   },
   // Tìm đơn theo serial number của sản phẩm
-findBySerial(serialNumber) {
-  return http.get(`/api/orders/by-serial/${serialNumber}`);
-},
+  findBySerial(serialNumber) {
+    return http.get(`/api/orders/by-serial/${serialNumber}`);
+  },
 
   // ✅ THÊM MỚI: validate mã giảm giá trước khi tạo đơn
   // Trả về: { valid, discount, minOrder, message }
@@ -100,5 +100,20 @@ findBySerial(serialNumber) {
     return http.get("/api/promotions/validate", {
       params: { code, orderTotal },
     });
+  },
+
+  assignSerial(orderId, itemId, serialNumber) {
+    return http.post(`/api/orders/${orderId}/items/${itemId}/serials/assign`, {
+      serialNumber,
+    });
+  },
+
+  removeSerial(orderId, itemId, serialNumber) {
+    return http.delete(
+      `/api/orders/${orderId}/items/${itemId}/serials/remove`,
+      {
+        params: { serialNumber },
+      },
+    );
   },
 };

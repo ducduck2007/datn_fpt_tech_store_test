@@ -1,4 +1,4 @@
-+ backend
+backend:
 retailmanagement
  ┣ audit
  ┃ ┣ Audit.java
@@ -12,8 +12,11 @@ retailmanagement
  ┃ ┣ AuditLogSpecification.java
  ┃ ┣ AuditModule.java
  ┃ ┣ AuditReportService.java
- ┃ ┗ TargetType.java
+ ┃ ┣ LogSummaryService.java
+ ┃ ┣ TargetType.java
+ ┃ ┗ UserLoginSpecification.java
  ┣ config
+ ┃ ┣ CloudinaryConfig.java
  ┃ ┣ CorsConfig.java
  ┃ ┣ JwtProperties.java
  ┃ ┣ ModelMapperConfig.java
@@ -22,9 +25,11 @@ retailmanagement
  ┃ ┗ WebConfig.java
  ┣ constants
  ┃ ┣ BirthdayScheduler.java
+ ┃ ┣ GroqClient.java
  ┃ ┣ OrderStatuses.java
  ┃ ┗ TierUpgradeNotificationScheduler.java
  ┣ controller
+ ┃ ┣ AiChatController.java
  ┃ ┣ AuditLogController.java
  ┃ ┣ AuthController.java
  ┃ ┣ BirthdayController.java
@@ -33,11 +38,13 @@ retailmanagement
  ┃ ┣ CusController.java
  ┃ ┣ CustomerMyDashboardController.java
  ┃ ┣ LoyaltySummaryController.java
+ ┃ ┣ MigrateController.java
  ┃ ┣ NotificationController.java
  ┃ ┣ OrderController.java
  ┃ ┣ PaymentController.java
  ┃ ┣ PriceController.java
  ┃ ┣ ProductController.java
+ ┃ ┣ ProductImportController.java
  ┃ ┣ ProductSerialController.java
  ┃ ┣ ProductVariantController.java
  ┃ ┣ PromotionController.java
@@ -57,6 +64,8 @@ retailmanagement
  ┃ ┃ ┣ AttributeRequest.java
  ┃ ┃ ┣ CategoryRequest.java
  ┃ ┃ ┣ ChangePasswordRequest.java
+ ┃ ┃ ┣ ChatMessage.java
+ ┃ ┃ ┣ ChatRequest.java
  ┃ ┃ ┣ CreateOrderItemRequest.java
  ┃ ┃ ┣ CreateOrderRequest.java
  ┃ ┃ ┣ CreateReturnRequest.java
@@ -76,19 +85,25 @@ retailmanagement
  ┃ ┃ ┣ UpdateUserPasswordRequest.java
  ┃ ┃ ┣ UpdateUserRequest.java
  ┃ ┃ ┣ UpdateUserRoleRequest.java
- ┃ ┃ ┗ UpsertPriceRequest.java
+ ┃ ┃ ┣ UpsertPriceRequest.java
+ ┃ ┃ ┗ UserLoginFilterRequest.java
  ┃ ┗ response
  ┃ ┃ ┣ ApiResponse.java
  ┃ ┃ ┣ AuditLogResponse.java
  ┃ ┃ ┣ AuditSummaryResponse.java
  ┃ ┃ ┣ AuthResponse.java
+ ┃ ┃ ┣ BestSellingProductDTO.java
  ┃ ┃ ┣ CartItemResponse.java
  ┃ ┃ ┣ CategoryResponse.java
+ ┃ ┃ ┣ ChatResponse.java
  ┃ ┃ ┣ CreateOrderResponse.java
  ┃ ┃ ┣ CustomerBirthdayResponse.java
  ┃ ┃ ┣ CustomerMyDashboardResponse.java
  ┃ ┃ ┣ CustomerResponse.java
+ ┃ ┃ ┣ DashboardResponse.java
+ ┃ ┃ ┣ DashboardStatsResponse.java
  ┃ ┃ ┣ ImageResponse.java
+ ┃ ┃ ┣ LogSummaryResponse.java
  ┃ ┃ ┣ LoyaltyLedgerResponse.java
  ┃ ┃ ┣ LoyaltySummaryResponse.java
  ┃ ┃ ┣ ModuleLogReportResponse.java
@@ -98,6 +113,7 @@ retailmanagement
  ┃ ┃ ┣ OrderListResponse.java
  ┃ ┃ ┣ PaymentResponse.java
  ┃ ┃ ┣ PriceHistoryResponse.java
+ ┃ ┃ ┣ ProductImportResult.java
  ┃ ┃ ┣ ProductResponse.java
  ┃ ┃ ┣ ProductVariantResponse.java
  ┃ ┃ ┣ PromotionHistoryResponse.java
@@ -113,8 +129,8 @@ retailmanagement
  ┃ ┣ BaseEntity.java
  ┃ ┣ CartItem.java
  ┃ ┣ Category.java
+ ┃ ┣ ChatSession.java
  ┃ ┣ Customer.java
- ┃ ┣ Customergroup.java
  ┃ ┣ CustomerType.java
  ┃ ┣ Image.java
  ┃ ┣ LoyaltyLedger.java
@@ -122,7 +138,9 @@ retailmanagement
  ┃ ┣ NotificationType.java
  ┃ ┣ Order.java
  ┃ ┣ OrderItem.java
+ ┃ ┣ OrderItemSerial.java
  ┃ ┣ Payment.java
+ ┃ ┣ Permission.java
  ┃ ┣ PriceHistory.java
  ┃ ┣ Product.java
  ┃ ┣ ProductCategory.java
@@ -133,9 +151,11 @@ retailmanagement
  ┃ ┣ ProductTagId.java
  ┃ ┣ ProductVariant.java
  ┃ ┣ Promotion.java
+ ┃ ┣ PromotionCustomerUsage.java
  ┃ ┣ PromotionRedemption.java
  ┃ ┣ Return.java
  ┃ ┣ Role.java
+ ┃ ┣ RoleEnum.java
  ┃ ┣ SpinWheelHistory.java
  ┃ ┣ StockTransaction.java
  ┃ ┣ SystemSetting.java
@@ -149,11 +169,13 @@ retailmanagement
  ┣ repository
  ┃ ┣ CartItemRepository.java
  ┃ ┣ CategoryRepository.java
+ ┃ ┣ ChatSessionRepository.java
  ┃ ┣ CustomRes.java
  ┃ ┣ ImageRepository.java
  ┃ ┣ LoyaltyLedgerRepository.java
  ┃ ┣ NotificationRepository.java
  ┃ ┣ OrderItemRepository.java
+ ┃ ┣ OrderItemSerialRepository.java
  ┃ ┣ OrderRepository.java
  ┃ ┣ PaymentRepository.java
  ┃ ┣ PriceHistoryRepository.java
@@ -163,10 +185,12 @@ retailmanagement
  ┃ ┣ ProductSerialRepository.java
  ┃ ┣ ProductTagRepository.java
  ┃ ┣ ProductVariantRepository.java
+ ┃ ┣ PromotionCustomerUsageRepository.java
  ┃ ┣ PromotionHistoryRepository.java
  ┃ ┣ PromotionRedemptionRepository.java
  ┃ ┣ PromotionRepository.java
  ┃ ┣ ReturnRepository.java
+ ┃ ┣ RoleRepository.java
  ┃ ┣ SpinWheelHistoryRepository.java
  ┃ ┣ StockTransactionRepository.java
  ┃ ┣ SystemSettingRepository.java
@@ -176,7 +200,8 @@ retailmanagement
  ┣ security
  ┃ ┣ filter
  ┃ ┃ ┣ BasicAuthenticationFilter.java
- ┃ ┃ ┗ JwtAuthenticationFilter.java
+ ┃ ┃ ┣ JwtAuthenticationFilter.java
+ ┃ ┃ ┗ WebClientConfig.java
  ┃ ┣ handler
  ┃ ┃ ┣ CustomAccessDeniedHandler.java
  ┃ ┃ ┗ CustomAuthenticationEntryPoint.java
@@ -190,28 +215,39 @@ retailmanagement
  ┃ ┃ ┣ SecurityLogSpecification.java
  ┃ ┃ ┣ SensitiveOperation.java
  ┃ ┃ ┗ SeverityLevel.java
+ ┃ ┣ permission
+ ┃ ┃ ┣ CheckPermission.java
+ ┃ ┃ ┣ PermissionAspect.java
+ ┃ ┃ ┣ PermissionEnum.java
+ ┃ ┃ ┗ PermissionService.java
  ┃ ┗ service
  ┃ ┃ ┣ CustomUserDetails.java
  ┃ ┃ ┣ CustomUserDetailsService.java
  ┃ ┃ ┗ JwtService.java
  ┣ service
+ ┃ ┣ AiChatService.java
  ┃ ┣ AuthService.java
  ┃ ┣ CartService.java
  ┃ ┣ CategoryService.java
+ ┃ ┣ CloudinaryService.java
  ┃ ┣ CustomerEventNotificationService.java
  ┃ ┣ CustomerMyDashboardService.java
  ┃ ┣ CustomerService.java
+ ┃ ┣ DashboardService.java
  ┃ ┣ EmailService.java
  ┃ ┣ LoyaltyHistoryService.java
  ┃ ┣ LoyaltyResetService.java
  ┃ ┣ LoyaltySummaryService.java
+ ┃ ┣ MigrateImageService.java
  ┃ ┣ NotificationService.java
  ┃ ┣ OrderEmailService.java
  ┃ ┣ OrderQueryService.java
  ┃ ┣ OrderService.java
+ ┃ ┣ OtpService.java
  ┃ ┣ PaymentService.java
  ┃ ┣ PdfService.java
  ┃ ┣ PricingService.java
+ ┃ ┣ ProductImportService.java
  ┃ ┣ ProductSerialService.java
  ┃ ┣ ProductService.java
  ┃ ┣ ProductVariantService.java
@@ -229,7 +265,7 @@ retailmanagement
  ┃ ┣ IpUtil.java
  ┃ ┗ SecurityUtil.java
  ┗ RetailmanagementApplication.java
-+ frontend
+frontend:
 src
  ┣ api
  ┃ ┣ audit.api.js
@@ -250,6 +286,7 @@ src
  ┃ ┣ serials.api.js
  ┃ ┣ settings.api.js
  ┃ ┣ spinWheel.api.js
+ ┃ ┣ userLogin.api.js
  ┃ ┣ users.api.js
  ┃ ┗ vip-checkin.api.js
  ┣ assets
@@ -260,15 +297,19 @@ src
  ┃ ┃ ┗ system-layout.css
  ┃ ┗ vue.svg
  ┣ components
+ ┃ ┣ Aichatwidget.vue
  ┃ ┣ AuthLayout.vue
  ┃ ┣ NotificationBell.vue
+ ┃ ┣ Productimportdialog.vue
  ┃ ┣ QuickNav.vue
  ┃ ┗ TierProgressBar.vue
  ┣ pages
  ┃ ┣ audit
+ ┃ ┃ ┣ AuditDashboard.vue
  ┃ ┃ ┣ AuditLog.vue
  ┃ ┃ ┣ AuditReportDashboard.vue
- ┃ ┃ ┗ SecurityLog.vue
+ ┃ ┃ ┣ SecurityLog.vue
+ ┃ ┃ ┗ UserLoginLog.vue
  ┃ ┣ customer
  ┃ ┃ ┣ CartPage.vue
  ┃ ┃ ┣ Changepassword.vue
@@ -279,6 +320,7 @@ src
  ┃ ┃ ┣ CustomerProfile.vue
  ┃ ┃ ┣ CustomerRegister.vue
  ┃ ┃ ┣ Forbidden.vue
+ ┃ ┃ ┣ Forgotpassword.vue
  ┃ ┃ ┣ OrderCreate.vue
  ┃ ┃ ┣ OrderDetail.vue
  ┃ ┃ ┣ PaymentSuccess.vue
@@ -288,7 +330,14 @@ src
  ┃ ┃ ┣ InventoryOrderDetail.vue
  ┃ ┃ ┣ InventoryOrdersPaid.vue
  ┃ ┃ ┣ InventoryOrdersProcessing.vue
+ ┃ ┃ ┣ InventoryOrdersShipping.vue
  ┃ ┃ ┗ InventoryShell.vue
+ ┃ ┣ sales
+ ┃ ┃ ┣ SalesCustomerManager.vue
+ ┃ ┃ ┣ SalesPickup.vue
+ ┃ ┃ ┣ SalesPOS.vue
+ ┃ ┃ ┣ SalesReturn.vue
+ ┃ ┃ ┗ SalesShell.vue
  ┃ ┗ system
  ┃ ┃ ┣ CategoryManager.vue
  ┃ ┃ ┣ CustomerManager.vue
@@ -297,14 +346,13 @@ src
  ┃ ┃ ┣ OrderDashboard.vue
  ┃ ┃ ┣ OrderDetail.vue
  ┃ ┃ ┣ OrderFilter.vue
- ┃ ┃ ┣ OrderListByFilter.vue
  ┃ ┃ ┣ PaymentManagement.vue
  ┃ ┃ ┣ PricingManager.vue
+ ┃ ┃ ┣ ProductDashboard.vue
  ┃ ┃ ┣ ProductManager.vue
  ┃ ┃ ┣ PromotionManager.vue
  ┃ ┃ ┣ ReportDashboard.vue
- ┃ ┃ ┣ ReturnListAll.vue
- ┃ ┃ ┣ ReturnListPending.vue
+ ┃ ┃ ┣ ReturnManager.vue
  ┃ ┃ ┣ SerialManager.vue
  ┃ ┃ ┣ SettingsCurrency.vue
  ┃ ┃ ┣ SystemDashboard.vue
@@ -321,6 +369,9 @@ src
  ┣ ui
  ┃ ┣ confirm.js
  ┃ ┗ toast.js
+ ┣ utils
+ ┃ ┗ format.js
  ┣ App.vue
  ┣ main.js
+ ┣ src.zip
  ┗ style.css
