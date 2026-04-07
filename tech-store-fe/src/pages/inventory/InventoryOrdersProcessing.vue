@@ -169,7 +169,7 @@ import { useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Money, Timer } from "@element-plus/icons-vue";
-import { formatVND, formatDate, initials } from "../../utils/format";
+import { formatVND, formatDate, initials, parseSafeDate } from "../../utils/format";
 
 const router = useRouter();
 const orders = ref([]);
@@ -179,8 +179,10 @@ const selectedOrders = ref([]);
 
 const isUrgent = (createdAt) => {
   if (!createdAt) return false;
+  const date = parseSafeDate(createdAt);
+  if (!date) return false;
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-  return new Date(createdAt) < twoHoursAgo;
+  return date < twoHoursAgo;
 };
 
 const urgentOrders = computed(() => {

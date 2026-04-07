@@ -401,18 +401,9 @@ const ALL_PAYMENT_OPTIONS = [
   { value: "CARD", label: "Thẻ tín dụng", icon: "💳" },
 ];
 
-const paymentOptions = computed(() =>
-  form.channel === "ONLINE"
-    ? ALL_PAYMENT_OPTIONS.filter((o) => o.value !== "CASH")
-    : ALL_PAYMENT_OPTIONS,
-);
+const paymentOptions = computed(() => ALL_PAYMENT_OPTIONS);
 
-watch(() => form.channel, (val) => {
-  // Khi chuyển sang Giao tại nhà (ONLINE): bắt buộc thanh toán online
-  if (val === "ONLINE" && form.paymentMethod === "CASH") {
-    form.paymentMethod = "TRANSFER";
-  }
-});
+// No manual switching of payment method when channel changes
 
 const subtotal = computed(() =>
   form.items.reduce((sum, i) => {

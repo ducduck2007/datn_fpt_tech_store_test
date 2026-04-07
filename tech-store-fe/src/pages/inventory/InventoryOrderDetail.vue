@@ -62,24 +62,75 @@
       </div>
     </div>
 
-    <!-- MAIN UI -->
-    <el-space direction="vertical" alignment="stretch" :size="20" style="width:100%" class="no-print">
-      <el-button link @click="router.back()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="icon-spacing">
-          <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Quay lại danh sách
-      </el-button>
+    <!-- MAIN UI APP CONTENT -->
+    <el-space direction="vertical" alignment="stretch" :size="20" style="width: 100%" class="no-print">
+    <!-- BACK LINK -->
+    <el-button link @click="router.back()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="icon-spacing">
+        <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Quay lại danh sách
+    </el-button>
 
-      <el-row type="flex" justify="space-between" align="bottom">
-        <el-col :span="16">
-          <el-space direction="vertical" alignment="start" :size="4">
-            <el-text type="info" size="small">Chi tiết đơn hàng</el-text>
-            <el-space :size="12">
-              <h2>#{{ order.orderNumber }}</h2>
-              <el-tag :type="statusType(order.status)" effect="light" round>
-                {{ statusLabel(order.status) }}
-              </el-tag>
+    <!-- PAGE HEADER -->
+    <el-row type="flex" justify="space-between" align="bottom">
+      <el-col :span="16">
+        <el-space direction="vertical" alignment="start" :size="4">
+          <el-text type="info" size="small">Chi tiết đơn hàng</el-text>
+          <el-space :size="12">
+            <h2>#{{ order.orderNumber }}</h2>
+            <el-tag :type="statusType(order.status)" effect="light" round>
+              {{ statusLabel(order.status) }}
+            </el-tag>
+          </el-space>
+          <el-text type="info">Kho hàng · Quản lý đơn hàng</el-text>
+        </el-space>
+      </el-col>
+
+      <!-- INVENTORY ACTIONS -->
+      <el-col :span="8" style="text-align: right;">
+        <el-space>
+          <el-button @click="printOrder" plain>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="icon-spacing">
+              <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            In phiếu
+          </el-button>
+
+          <el-button
+            v-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH' && order.channel === 'ONLINE')"
+            type="warning"
+            plain
+            :loading="loading"
+            @click="markProcessing"
+          >
+            Đóng gói
+          </el-button>
+
+          <el-button
+            v-if="order.status === 'PROCESSING'"
+            type="primary"
+            plain
+            :loading="loading"
+            @click="markShipping"
+          >
+            Chuyển giao vận
+          </el-button>
+        </el-space>
+      </el-col>
+    </el-row>
+
+    <!-- CONTENT GRID -->
+    <el-row :gutter="20">
+      <!-- LEFT COLUMN -->
+      <el-col :span="16">
+        <!-- ORDER ITEMS TABLE -->
+        <el-card shadow="never">
+          <template #header>
+            <el-space>
+              <el-text tag="b">Sản phẩm đặt mua</el-text>
+              <el-text type="info" size="small">({{ order.items?.length || 0 }} sản phẩm)</el-text>
             </el-space>
             <el-text type="info">Kho hàng · Quản lý đơn hàng</el-text>
           </el-space>
@@ -302,6 +353,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
+import { paymentsApi } from "../../api/payments";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { formatVND, formatDateTime, initials } from "../../utils/format";
 
@@ -417,15 +469,33 @@ const markProcessing = async () => {
     return
   }
   try {
-    await ElMessageBox.confirm("Xác nhận đóng gói đơn hàng này?", "Xác nhận xử lý", {
-      confirmButtonText: "Đồng ý", cancelButtonText: "Hủy", type: "warning"
-    })
-    loading.value = true
-    await ordersApi.markAsProcessing(order.value.orderId)
-    ElMessage.success("Đã chuyển sang Đang xử lý")
-    await load()
-  } catch (e) {
-    if (e !== "cancel") ElMessage.error(e.response?.data?.message || "Có lỗi xảy ra")
+    await ElMessageBox.confirm(
+      'Bạn có chắc chắn muốn bắt đầu xử lý đơn hàng này?',
+      'Xác nhận xử lý',
+      {
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy',
+        type: 'warning',
+      }
+    );
+    loading.value = true;
+    
+    // Bridge: Auto-pay for CASH orders that are still PENDING
+    if (order.value.status === 'PENDING' && order.value.paymentMethod === 'CASH') {
+      await paymentsApi.create({ 
+        orderId: order.value.orderId, 
+        method: 'CASH', 
+        transactionRef: 'COD-DETAIL-CONFIRM' 
+      });
+    }
+
+    await ordersApi.markAsProcessing(order.value.orderId);
+    ElMessage.success("Đã chuyển đơn hàng sang trạng thái Đang xử lý");
+    await load();
+  } catch (error) {
+    if (error !== 'cancel') {
+        ElMessage.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật trạng thái");
+    }
   } finally {
     loading.value = false
   }
