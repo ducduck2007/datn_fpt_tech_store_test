@@ -29,6 +29,7 @@ public class ReturnService {
     private final StockTransactionRepository stockTransactionRepository;
     private final ProductVariantRepository variantRepository;
     private final CloudinaryService cloudinaryService;
+    private final EmailService emailService;
 
     @Transactional
     public ReturnResponse createReturn(CreateReturnRequest req, Integer userId, MultipartFile image) {
@@ -111,26 +112,26 @@ public class ReturnService {
             returnEntity.setProcessedBy(staffId);
             returnRepository.save(returnEntity);
 
-            // Khôi phục trạng thái đơn hàng về DELIVERED
             order.setStatus(OrderStatuses.DELIVERED);
             orderRepository.save(order);
+
+            emailService.sendReturnRejectedEmail(returnEntity);
 
             return mapToResponse(returnEntity);
         }
 
-        // ── Tính hoàn tiền theo tỉ lệ thực tế của đơn hàng ──────────
+        // ── Tính hoàn tiền ───────────────────────────────────────────
         //
-        // Ví dụ: đơn có subtotal = 2.000.000đ, totalAmount = 1.600.000đ (sau 20% discount)
-        //        khách trả 1 sp giá gốc 500.000đ
-        //        → tỉ lệ sp = 500.000 / 2.000.000 = 25%
-        //        → hoàn thực tế = 25% × 1.600.000 = 400.000đ (thay vì 500.000đ)
+        // lineTotal đã bao gồm toàn bộ discount (cấp item + cấp đơn)
+        // → hoàn trực tiếp theo tỉ lệ số lượng trả / số lượng mua
         //
-        // Lưu ý: nếu OrderItem dùng tên field khác (unitPrice, salePrice...)
-        //        hãy điều chỉnh item.getPrice() → item.getUnitPrice() v.v.
+        // Ví dụ: lineTotal = 17.955.000, mua 2, trả 1
+        //        → itemRefundBase = 17.955.000 × 1/2 = 8.977.500đ
+        //        FULL    → hoàn 8.977.500đ
+        //        PARTIAL → hoàn 8.977.500 × 80% = 7.182.000đ
 
         OrderItem item = returnEntity.getOrderItem();
 
-// Dùng lineTotal (đã có discount cấp item) × tỉ lệ số lượng trả
         BigDecimal returnQty = BigDecimal.valueOf(returnEntity.getQuantity());
         BigDecimal itemQty   = BigDecimal.valueOf(item.getQuantity());
 
@@ -138,31 +139,18 @@ public class ReturnService {
                 .multiply(returnQty)
                 .divide(itemQty, 2, RoundingMode.HALF_UP);
 
-// Áp thêm discount cấp đơn (promotion, VIP, spin wheel...)
-        BigDecimal orderSubtotal = order.getSubtotal();
-        BigDecimal proportionalRefund;
-
-        if (orderSubtotal != null && orderSubtotal.compareTo(BigDecimal.ZERO) > 0) {
-            proportionalRefund = itemRefundBase
-                    .multiply(order.getTotalAmount())
-                    .divide(orderSubtotal, 2, RoundingMode.HALF_UP);
-        } else {
-            proportionalRefund = itemRefundBase;
-        }
-
-        // Áp tỉ lệ hoàn theo loại
         BigDecimal finalRefund;
         if ("FULL".equals(refundType)) {
-            finalRefund = proportionalRefund;
+            finalRefund = itemRefundBase;
         } else { // PARTIAL → 80%
-            finalRefund = proportionalRefund
+            finalRefund = itemRefundBase
                     .multiply(new BigDecimal("0.8"))
                     .setScale(2, RoundingMode.HALF_UP);
         }
 
         returnEntity.setStatus("APPROVED");
         returnEntity.setRefundAmount(finalRefund);
-        returnEntity.setRefundMethod(refundType); // "FULL" hoặc "PARTIAL"
+        returnEntity.setRefundMethod(refundType);
         returnEntity.setRefundStatus("REFUNDED");
         returnEntity.setRefundedAt(Instant.now());
         returnEntity.setNote(request.getNote());
@@ -184,6 +172,8 @@ public class ReturnService {
         }
 
         updateOrderStatusAfterReturn(order);
+
+        emailService.sendReturnApprovedEmail(returnEntity);
         return mapToResponse(returnEntity);
     }
 

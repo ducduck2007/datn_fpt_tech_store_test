@@ -193,7 +193,7 @@
               </el-table-column>
 
               <el-table-column label="Thành tiền" width="130" align="right">
-                <template #default="{ row }">{{ formatMoney(row.price * row.quantity) }}</template>
+                <template #default="{ row }">{{ formatMoney(order.totalAmount) }}</template>
               </el-table-column>
             </el-table>
 
