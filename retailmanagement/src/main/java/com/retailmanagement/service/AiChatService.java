@@ -8,11 +8,13 @@ import com.retailmanagement.dto.request.ChatMessage;
 import com.retailmanagement.dto.request.ChatRequest;
 import com.retailmanagement.dto.response.ChatResponse;
 import com.retailmanagement.dto.response.CustomerResponse;
+import com.retailmanagement.dto.response.ProductSummaryDto;
 import com.retailmanagement.entity.ChatSession;
 import com.retailmanagement.repository.ChatSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -30,8 +32,9 @@ public class AiChatService {
     private final ChatSessionRepository sessionRepository;
     private final CustomerService customerService;
     private final ObjectMapper objectMapper;
+    private final ProductAiService productAiService;
 
-    @Transactional
+
     public ChatResponse customerChat(ChatRequest request, String customerEmail) {
         CustomerResponse customer = null;
         if (customerEmail != null) {
@@ -48,7 +51,7 @@ public class AiChatService {
         List<ChatMessage> history = loadHistory(session);
         history.add(new ChatMessage("user", request.getMessage()));
 
-        String systemPrompt = buildCustomerSystemPrompt(customer);
+        String systemPrompt = buildCustomerSystemPrompt(customer, request.getMessage());
         String reply = groqClient.chat(systemPrompt, history);
 
         history.add(new ChatMessage("model", reply));
@@ -59,7 +62,7 @@ public class AiChatService {
 
         session.setLastIntent(intent);
         session.setEscalated(escalate);
-        sessionRepository.save(session);
+        saveSessionFinal(session);
 
         return ChatResponse.builder()
                 .sessionId(session.getSessionId())
@@ -69,7 +72,10 @@ public class AiChatService {
                 .build();
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveSessionFinal(ChatSession session) {
+        sessionRepository.save(session);
+    }
     public ChatResponse staffChat(ChatRequest request, String staffUsername, String targetCustomerEmail) {
         CustomerResponse customer = null;
         if (targetCustomerEmail != null) {
@@ -93,7 +99,7 @@ public class AiChatService {
 
         String intent = detectIntent(request.getMessage(), reply);
         session.setLastIntent(intent);
-        sessionRepository.save(session);
+        saveSessionFinal(session);
 
         return ChatResponse.builder()
                 .sessionId(session.getSessionId())
@@ -103,26 +109,42 @@ public class AiChatService {
                 .build();
     }
 
-    private String buildCustomerSystemPrompt(CustomerResponse customer) {
+    private String buildCustomerSystemPrompt(CustomerResponse customer, String userMessage) {
         StringBuilder sb = new StringBuilder();
         sb.append("""
-                Bạn là trợ lý AI của cửa hàng RetailPro — thân thiện, chuyên nghiệp.
-                Trả lời bằng tiếng Việt, ngắn gọn, dễ hiểu.
+            Bạn là trợ lý AI của cửa hàng RetailPro — thân thiện, chuyên nghiệp.
+            Trả lời bằng tiếng Việt, ngắn gọn, dễ hiểu.
+            Khi tư vấn sản phẩm, chỉ giới thiệu sản phẩm có trong danh sách được cung cấp.
+            Không bịa thêm sản phẩm không có trong danh sách.
 
-                NHIỆM VỤ:
-                1. Tư vấn sản phẩm và gợi ý mua hàng
-                2. Tra cứu và giải thích điểm thưởng, hạng VIP
-                3. Hỗ trợ tra cứu đơn hàng, chính sách đổi/hoàn/hủy
-                4. Upsell và cross-sell tự nhiên khi phù hợp
-                5. Vấn đề phức tạp (khiếu nại, hoàn tiền) → đề xuất gặp nhân viên
+            NHIỆM VỤ:
+            1. Tư vấn sản phẩm và gợi ý mua hàng
+            2. Tra cứu và giải thích điểm thưởng, hạng VIP
+            3. Hỗ trợ tra cứu đơn hàng, chính sách đổi/hoàn/hủy
+            4. Upsell và cross-sell tự nhiên khi phù hợp
+            5. Vấn đề phức tạp (khiếu nại, hoàn tiền) → đề xuất gặp nhân viên
 
-                CHÍNH SÁCH ĐIỂM THƯỞNG:
-                - 10.000 VNĐ = 1 điểm | Cuối tuần x1.5 điểm
-                - Member → Bronze (100đ) → Silver (500đ) → Gold (1000đ) → Platinum (5000đ)
-                - VIP (Gold+) được giảm giá và ưu tiên hỗ trợ
+            CHÍNH SÁCH ĐIỂM THƯỞNG:
+            - 10.000 VNĐ = 1 điểm | Cuối tuần x1.5 điểm
+            - Member → Bronze (100đ) → Silver (500đ) → Gold (1000đ) → Platinum (5000đ)
+            - VIP (Gold+) được giảm giá và ưu tiên hỗ trợ
 
-                QUY TẮC: Không bịa thông tin. Không hứa hẹn không chắc chắn. Luôn lịch sự.
-                """);
+            QUY TẮC: Không bịa thông tin. Không hứa hẹn không chắc chắn. Luôn lịch sự.
+            """);
+
+        // ── PRODUCT CONTEXT ──────────────────────────────────────────
+        try {
+            List<ProductSummaryDto> products = isProductQuery(userMessage)
+                    ? productAiService.searchProducts(userMessage)
+                    : productAiService.getTopProducts(15);
+            String productContext = productAiService.formatProductContext(products);
+            if (!productContext.isBlank()) {
+                sb.append("\n").append(productContext).append("\n");
+            }
+        } catch (Exception e) {
+            log.warn("Could not load product context: {}", e.getMessage());
+        }
+        // ─────────────────────────────────────────────────────────────
 
         if (customer != null) {
             sb.append("\n--- THÔNG TIN KHÁCH HÀNG ---\n");
@@ -193,8 +215,8 @@ public class AiChatService {
                 || msg.contains("quản lý") || msg.contains("gặp người thật")
                 || aiReply.toLowerCase().contains("nhân viên hỗ trợ");
     }
-
-    private ChatSession resolveSession(String sessionId, String actorRole, Integer customerId) {
+@Transactional(propagation = Propagation.REQUIRES_NEW)
+    public ChatSession resolveSession(String sessionId, String actorRole, Integer customerId) {
         if (sessionId != null) {
             return sessionRepository.findBySessionId(sessionId)
                     .orElseGet(() -> createSession(sessionId, actorRole, customerId));
@@ -235,5 +257,10 @@ public class AiChatService {
     private String formatVnd(java.math.BigDecimal amount) {
         if (amount == null) return "0 VNĐ";
         return String.format("%,d VNĐ", amount.longValue());
+    }
+    private boolean isProductQuery(String message) {
+        if (message == null) return false;
+        String m = message.toLowerCase();
+        return m.matches(".*\\b(sản phẩm|mua|giá|tìm|có bán|còn hàng|tư vấn|gợi ý|thương hiệu|brand|loại|dòng)\\b.*");
     }
 }
