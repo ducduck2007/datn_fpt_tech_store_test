@@ -42,7 +42,7 @@
         <div style="padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
           <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:6px;">Danh mục</div>
           <el-select v-model="categoryIds" multiple collapse-tags collapse-tags-tooltip placeholder="Tất cả danh mục" clearable size="small" style="width:100%;" @change="onFilter">
-            <el-option v-for="c in categories.filter(c => c.id !== 6)" :key="c.id" :value="c.id" :label="c.name" />
+            <el-option v-for="c in categories.filter(c => c.id !== 6 && c.name !== 'Chuột' && c.name !== 'Bàn phím')" :key="c.id" :value="c.id" :label="c.name" />
           </el-select>
         </div>
         <div style="padding:12px 16px; border-right:1px solid var(--el-border-color-lighter);">
