@@ -1,7 +1,7 @@
 <template>
   <div class="ch-wrap">
     <TierProgressBar v-if="isCustomer" ref="tierProgressRef" style="margin-bottom: 20px;" />
-
+<PromoBanner />
     <div class="ch-banners">
       <transition-group name="banner-list" tag="div">
         <el-card
@@ -314,6 +314,7 @@
 
     <AiChatWidget />
   </div>
+ <Footerapp />
 </template>
 
 <script setup>
@@ -327,6 +328,8 @@ import { toast } from "../../ui/toast";
 import { useCartStore } from "../../stores/cart";
 import http from "../../api/http";
 import TierProgressBar from "../../components/TierProgressBar.vue";
+import PromoBanner from '../../components/Promobanner.vue';
+import Footerapp from "../../components/Footerapp.vue";
 
 const auth = useAuthStore();
 const isCustomer = computed(() => auth.isCustomer);

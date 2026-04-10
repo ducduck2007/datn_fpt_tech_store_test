@@ -12,7 +12,6 @@
     import org.springframework.data.jpa.repository.Query;
     import org.springframework.data.repository.query.*;
     import org.springframework.stereotype.Repository;
-
     import java.math.BigDecimal;
     import java.time.LocalDateTime;
     import java.util.List;
@@ -24,7 +23,6 @@
         List<Customer> findAll();
         List<Customer> findByCustomerType(CustomerType type);
         List<Customer> findByName(String name);
-
         Optional<Customer> findById(Integer id);
 
         @Query("SELECT c FROM Customer c WHERE c.lastLoginAt >= :since AND c.isActive = true ORDER BY c.lastLoginAt DESC")
@@ -125,22 +123,12 @@
                 Pageable pageable
         );
 
-        /**
-         * Lấy tổng chi tiêu của tất cả khách hàng
-         */
         @Query("SELECT SUM(c.totalSpent) FROM Customer c WHERE c.isActive = true")
         BigDecimal getTotalSpentAllCustomers();
-
-        /**
-         * Lấy tổng chi tiêu theo VIP tier
-         */
         @Query("SELECT SUM(c.totalSpent) FROM Customer c WHERE c.isActive = true " +
                 "AND c.vipTier = :vipTier")
         BigDecimal getTotalSpentByVipTier(@Param("vipTier") VipTier vipTier);
 
-        /**
-         * Đếm khách hàng theo khoảng chi tiêu
-         */
         @Query("SELECT COUNT(c) FROM Customer c WHERE c.isActive = true " +
                 "AND c.totalSpent >= :minSpent " +
                 "AND c.totalSpent <= :maxSpent")
@@ -148,13 +136,8 @@
                 @Param("minSpent") BigDecimal minSpent,
                 @Param("maxSpent") BigDecimal maxSpent
         );
-        // Thêm vào interface CustomRes
 
-        /**
-         * Tìm khách hàng chưa mua trong khoảng [lowerBound, upperBound] ngày
-         * Loại trừ khách đã nhận reminder gần đây (tránh spam)
-         * Dùng lastOrderAt từ Customer entity
-         */
+
         @Query(value = """
     SELECT * FROM customers c
     WHERE c.is_active = 1
