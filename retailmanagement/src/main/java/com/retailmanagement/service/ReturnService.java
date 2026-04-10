@@ -30,6 +30,8 @@ public class ReturnService {
     private final ProductVariantRepository variantRepository;
     private final CloudinaryService cloudinaryService;
     private final EmailService emailService;
+    private final ProductSerialRepository productSerialRepository;
+    private final OrderItemSerialRepository orderItemSerialRepository;
 
     @Transactional
     public ReturnResponse createReturn(CreateReturnRequest req, Integer userId, MultipartFile image) {
@@ -89,6 +91,7 @@ public class ReturnService {
     /**
      * refundType = FULL    → hoàn 100% theo tỉ lệ thực tế của đơn (lỗi cửa hàng)
      * refundType = PARTIAL → hoàn 80%  theo tỉ lệ thực tế của đơn (lỗi khách hàng)
+     * refundType = CHANGE_OF_MIND -> khách hàng đổi ý
      * refundType = REJECT  → từ chối, không hoàn tiền
      */
     @Transactional
@@ -140,12 +143,24 @@ public class ReturnService {
                 .divide(itemQty, 2, RoundingMode.HALF_UP);
 
         BigDecimal finalRefund;
-        if ("FULL".equals(refundType)) {
-            finalRefund = itemRefundBase;
-        } else { // PARTIAL → 80%
-            finalRefund = itemRefundBase
-                    .multiply(new BigDecimal("0.8"))
-                    .setScale(2, RoundingMode.HALF_UP);
+        switch (refundType) {
+
+            case "FULL":
+                finalRefund = itemRefundBase;
+                break;
+
+            case "PARTIAL":
+                finalRefund = itemRefundBase
+                        .multiply(new BigDecimal("0.8"))
+                        .setScale(2, RoundingMode.HALF_UP);
+                break;
+
+            case "CHANGE_OF_MIND":
+                finalRefund = itemRefundBase; // nếu có policy riêng thì chỉnh ở đây
+                break;
+
+            default:
+                throw new IllegalArgumentException("Invalid refund type");
         }
 
         returnEntity.setStatus("APPROVED");
@@ -157,8 +172,21 @@ public class ReturnService {
         returnEntity.setProcessedBy(staffId);
         returnRepository.save(returnEntity);
 
-        // Khôi phục tồn kho
-        restoreStockForReturn(returnEntity);
+        // xử lý serial theo loại refund
+        switch (refundType) {
+
+            case "FULL":
+            case "PARTIAL":
+                // hàng lỗi
+                markReturnedSerialsAsFaulty(returnEntity);
+                break;
+
+            case "CHANGE_OF_MIND":
+                // hàng tốt → nhập lại kho
+                markReturnedSerialsAsIn_Stock(returnEntity);
+                restoreStockForReturn(returnEntity);
+                break;
+        }
 
         // Trừ điểm loyalty tương ứng số tiền thực hoàn
         if ("PAID".equals(order.getPaymentStatus()) && order.getCustomer() != null) {
@@ -346,6 +374,64 @@ public class ReturnService {
         orderRepository.save(order);
     }
 
+    private void markReturnedSerialsAsFaulty(Return returnEntity) {
+
+        OrderItem orderItem = returnEntity.getOrderItem();
+        int returnQty = returnEntity.getQuantity();
+
+        // Lấy serial chưa return
+        List<OrderItemSerial> serialLinks =
+                orderItemSerialRepository
+                        .findByOrderItem_IdAndReturnedFalseOrderByIdAsc(orderItem.getId());
+
+        if (serialLinks.size() < returnQty) {
+            throw new RuntimeException("Không đủ serial để xử lý trả hàng");
+        }
+
+        for (int i = 0; i < returnQty; i++) {
+
+            OrderItemSerial link = serialLinks.get(i);
+            ProductSerial serial = link.getProductSerial();
+
+            // chuyển sang hàng lỗi
+            serial.setStatus("FAULTY");
+
+            // đánh dấu serial đã return
+            link.setReturned(true);
+
+            productSerialRepository.save(serial);
+            orderItemSerialRepository.save(link);
+        }
+    }
+
+    private void markReturnedSerialsAsIn_Stock(Return returnEntity) {
+
+        OrderItem orderItem = returnEntity.getOrderItem();
+        int returnQty = returnEntity.getQuantity();
+
+        List<OrderItemSerial> serialLinks =
+                orderItemSerialRepository
+                        .findByOrderItem_IdAndReturnedFalseOrderByIdAsc(orderItem.getId());
+
+        if (serialLinks.size() < returnQty) {
+            throw new RuntimeException("Không đủ serial để xử lý trả hàng");
+        }
+
+        for (int i = 0; i < returnQty; i++) {
+
+            OrderItemSerial link = serialLinks.get(i);
+            ProductSerial serial = link.getProductSerial();
+
+            // quay lại kho
+            serial.setStatus("IN_STOCK");
+
+            // đánh dấu đã return
+            link.setReturned(true);
+
+            productSerialRepository.save(serial);
+            orderItemSerialRepository.save(link);
+        }
+    }
 
     private ReturnResponse mapToResponse(Return r) {
         return ReturnResponse.builder()

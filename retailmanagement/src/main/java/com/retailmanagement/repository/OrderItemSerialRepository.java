@@ -11,5 +11,5 @@ import java.util.Optional;
 public interface OrderItemSerialRepository extends JpaRepository<OrderItemSerial, Long> {
     List<OrderItemSerial> findByOrderItem(OrderItem orderItem);
     Optional<OrderItemSerial> findByProductSerial(ProductSerial serial);
-
+    List<OrderItemSerial> findByOrderItem_IdAndReturnedFalseOrderByIdAsc(Long orderItemId);
 }
