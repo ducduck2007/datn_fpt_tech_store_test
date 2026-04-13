@@ -8,6 +8,7 @@ import com.retailmanagement.constants.OrderStatuses;
 import com.retailmanagement.dto.request.CreateOrderItemRequest;
 import com.retailmanagement.dto.request.CreateOrderRequest;
 import com.retailmanagement.dto.request.UpdateOrderRequest;
+import com.retailmanagement.dto.response.BestVoucherSuggestion;
 import com.retailmanagement.dto.response.CreateOrderResponse;
 import com.retailmanagement.dto.response.OrderDetailResponse;
 import com.retailmanagement.entity.*;
@@ -853,5 +854,13 @@ public class OrderService {
         productSerialRepository.save(serial);
 
         orderItemSerialRepository.delete(toDelete);
+    }
+    public List<BestVoucherSuggestion> suggestVouchersForCart(
+            Integer customerId, BigDecimal subtotal) {
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        return promotionService.suggestBestVouchers(customer, subtotal, 5);
     }
 }

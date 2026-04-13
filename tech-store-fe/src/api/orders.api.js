@@ -107,6 +107,11 @@ export const ordersApi = {
       serialNumber,
     });
   },
+  suggestVouchers(customerId, subtotal) {
+  return http.get("/api/orders/suggest-vouchers", {
+    params: { customerId, subtotal },
+  });
+},
 
   removeSerial(orderId, itemId, serialNumber) {
     return http.delete(
