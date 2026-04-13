@@ -36,7 +36,7 @@
             <li><router-link to="/">MacBook</router-link></li>
             <li><router-link to="/">Laptop học sinh – SV</router-link></li>
             <li><router-link to="/">Laptop đồ họa</router-link></li>
-            <li><router-link to="/">Phụ kiện & Linh kiện</router-link></li>
+        
           </ul>
         </div>
 
