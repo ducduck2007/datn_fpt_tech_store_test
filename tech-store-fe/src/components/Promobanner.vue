@@ -62,7 +62,7 @@ const DURATION = 5000;
 const slides = [
   {
     tag: "🔥 HOT DEAL",
-    title: "Laptop Gaming RTX 4060",
+    title: "MSI Katana 15 B13V",
     sub: "Chinh phục mọi tựa game — hiệu năng đỉnh cao, giá không tưởng",
     cta: "Mua ngay",
     cta2: "Xem tất cả",
@@ -91,7 +91,7 @@ const slides = [
     title: "Laptop Văn Phòng Dell XPS",
     sub: "Thiết kế sang trọng, siêu mỏng — đồng hành cùng mọi chuyến công tác",
     cta: "Mua ngay",
-    cta2: "So sánh",
+
     bg: "linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%)",
     glowColor: "radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)",
     img: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500&q=80",

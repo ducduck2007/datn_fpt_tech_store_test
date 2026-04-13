@@ -325,9 +325,9 @@
               <el-text tag="div" size="small" style="margin: 2px 0;">{{ v.name }}</el-text>
               <el-space :size="6" style="flex-wrap: wrap;">
                 <el-text size="small" type="info">
-                  {{ Number(v.minOrderAmount) > 0 ? `Đơn từ ${formatMoney(v.minOrderAmount)}` : 'Không giới hạn đơn' }}
+                  {{ Number(v.minOrderAmount) > 0 ? `Đơn từ ${formatMoney(v.minOrderAmount)}` : '' }}
                 </el-text>
-                <el-text size="small" type="info">· HSD: {{ formatDate(v.endDate) }}</el-text>
+                <el-text size="small" type="info">· HSD: {{ formatDate(v.expiresAt) }}</el-text>
               </el-space>
               <el-text v-if="!isVoucherApplicable(v)" type="warning" size="small" tag="div" style="margin-top: 4px;">
                 Cần thêm {{ formatMoney(Number(v.minOrderAmount) - subtotal) }} nữa
@@ -451,7 +451,7 @@ function selectVoucher(id) {
 async function loadAvailableVouchers() {
   voucherLoading.value = true;
   try {
-    const res = await promotionsApi.getAvailable();
+    const res = await ordersApi.suggestVouchers(form.customerId, subtotal.value);
     availableVouchers.value = res?.data?.data ?? res?.data ?? [];
   } catch {
     availableVouchers.value = [];
@@ -459,6 +459,9 @@ async function loadAvailableVouchers() {
     voucherLoading.value = false;
   }
 }
+watch(subtotal, () => {
+  if (voucherModalOpen.value) loadAvailableVouchers();
+});
 
 function openVoucherModal() {
   tempSelectedId.value = selectedVoucher.value?.id ?? null;

@@ -2,6 +2,7 @@ package com.retailmanagement.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.retailmanagement.dto.request.PromotionRequest;
+import com.retailmanagement.dto.response.BestVoucherSuggestion;
 import com.retailmanagement.entity.*;
 import com.retailmanagement.repository.*;
 import com.retailmanagement.service.PromotionService.Rules;
@@ -716,5 +717,47 @@ public class PromotionService {
 
     public Rules parseRulesPublic(String json) {
         return parseRules(json);
+    }
+    public List<BestVoucherSuggestion> suggestBestVouchers(
+            Customer customer, BigDecimal subtotal, int topN) {
+
+        List<Promotion> all = promoRepo.findAllActive(LocalDateTime.now());
+
+        return all.stream()
+                .filter(p -> isUsableByLimit(p))
+                .filter(p -> !hasCustomerUsedPromotion(p.getId(), customer.getId()))
+                .filter(p -> p.getMinOrderAmount() == null
+                        || subtotal.compareTo(p.getMinOrderAmount()) >= 0)
+                .filter(p -> isEligibleForCustomer(p, customer))
+                .map(p -> {
+                    BigDecimal afterDiscount = applyDiscount(subtotal, p.getDiscountType(), p.getDiscountValue());
+                    BigDecimal saving = subtotal.subtract(afterDiscount);
+                    return new BestVoucherSuggestion(
+                            p.getId(), p.getCode(), p.getName(),
+                            p.getDiscountType(), p.getDiscountValue(),
+                            saving, p.getEndDate()
+                    );
+                })
+                .sorted(Comparator.comparing(BestVoucherSuggestion::getEstimatedSaving).reversed())
+                .limit(topN)
+                .collect(Collectors.toList());
+    }
+
+    private boolean isEligibleForCustomer(Promotion p, Customer customer) {
+        Applicability app = parseApplicability(p.getApplicabilityJson());
+
+        if (app.customer_types != null && !app.customer_types.isEmpty()) {
+            String type = customer.getCustomerType() != null
+                    ? customer.getCustomerType().name() : "REGULAR";
+            if (!app.customer_types.contains(type)) return false;
+        }
+
+        if (app.vip_tiers != null && !app.vip_tiers.isEmpty()) {
+            String tier = customer.getVipTier() != null
+                    ? customer.getVipTier().name() : null;
+            if (tier == null || !app.vip_tiers.contains(tier)) return false;
+        }
+
+        return true;
     }
 }

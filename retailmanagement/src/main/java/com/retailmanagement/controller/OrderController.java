@@ -2,10 +2,7 @@ package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.CreateOrderRequest;
 import com.retailmanagement.dto.request.UpdateOrderRequest;
-import com.retailmanagement.dto.response.CreateOrderResponse;
-import com.retailmanagement.dto.response.OrderDetailResponse;
-import com.retailmanagement.dto.response.OrderListResponse;
-import com.retailmanagement.dto.response.RevenueByCustomerResponse;
+import com.retailmanagement.dto.response.*;
 import com.retailmanagement.security.service.CustomUserDetails;
 import com.retailmanagement.service.OrderQueryService;
 import com.retailmanagement.service.OrderService;
@@ -14,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -241,5 +239,14 @@ public class OrderController {
             @RequestParam String serialNumber) {
         orderService.removeSerialFromOrderItem(orderId, itemId, serialNumber);
         return ResponseEntity.ok(java.util.Map.of("message", "Đã xóa serial"));
+    }
+    @GetMapping("/suggest-vouchers")
+    public ResponseEntity<?> suggestVouchers(
+            @RequestParam Integer customerId,
+            @RequestParam BigDecimal subtotal) {
+
+        List<BestVoucherSuggestion> suggestions =
+                orderService.suggestVouchersForCart(customerId, subtotal);
+        return ResponseEntity.ok(suggestions);
     }
 }
