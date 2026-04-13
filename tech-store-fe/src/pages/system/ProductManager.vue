@@ -266,14 +266,21 @@
     </el-dialog>
 
     <el-drawer v-model="vr.open" :title="vr.productName" size="560px" direction="rtl">
-      <template #header>
-        <div>
-          <div style="font-size:11px; color:var(--el-text-color-secondary); margin-bottom:3px;">Quản lý biến thể</div>
-          <div style="font-size:16px; font-weight:800;">{{ vr.productName }}</div>
-        </div>
+  <template #header>
+    <div>
+      <div style="font-size:11px; color:var(--el-text-color-secondary); margin-bottom:3px;">Quản lý biến thể</div>
+      <div style="font-size:16px; font-weight:800;">{{ vr.productName }}</div>
+    </div>
+  </template>
+
+  <el-tabs v-model="vr.activeTab" type="border-card" style="height: 100%;">
+    
+    <!-- Tab 1: Danh sách biến thể -->
+    <el-tab-pane name="list">
+      <template #label>
+        <el-space :size="5"><el-icon><Grid /></el-icon> Danh sách biến thể</el-space>
       </template>
 
-      <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--el-text-color-secondary); margin-bottom:10px;">Các biến thể hiện có</div>
       <el-table :data="vr.variants" v-loading="vr.loading" size="small" stripe style="margin-bottom:20px;">
         <el-table-column label="Tên biến thể" min-width="120">
           <template #default="{ row }"><span style="font-weight:600; font-size:13px;">{{ row.variantName }}</span></template>
@@ -291,7 +298,7 @@
           <template #default="{ row }">
             <el-space :size="4">
               <el-button size="small" plain type="primary" @click="openSerialDialog(row)" style="font-size:11px; padding:5px 9px;">Số Seri</el-button>
-              <el-button size="small" plain @click="editVariant(row)"><el-icon><Edit /></el-icon></el-button>
+              <el-button size="small" plain @click="editVariant(row); vr.activeTab = 'form'"><el-icon><Edit /></el-icon></el-button>
               <el-button size="small" plain type="danger" @click="deleteVariant(row.id)"><el-icon><Delete /></el-icon></el-button>
             </el-space>
           </template>
@@ -299,7 +306,22 @@
         <template #empty><el-empty description="Chưa có biến thể" :image-size="48" /></template>
       </el-table>
 
-      <el-divider>{{ vr.isEdit ? 'Cập nhật biến thể' : 'Thêm biến thể mới' }}</el-divider>
+      <div style="text-align:right;">
+        <el-button type="primary" size="small" @click="resetVariantForm(); vr.activeTab = 'form'">
+          <el-icon><Plus /></el-icon> Thêm biến thể mới
+        </el-button>
+      </div>
+    </el-tab-pane>
+
+    <!-- Tab 2: Form thêm / sửa biến thể -->
+    <el-tab-pane name="form">
+      <template #label>
+        <el-space :size="5">
+          <el-icon><Edit /></el-icon>
+          {{ vr.isEdit ? 'Cập nhật biến thể' : 'Thêm biến thể mới' }}
+        </el-space>
+      </template>
+
       <el-form label-position="top">
         <el-row :gutter="12">
           <el-col :span="12">
@@ -334,14 +356,19 @@
           <el-button circle plain size="small" type="danger" @click="removeVariantAttr(i)"><el-icon><Close /></el-icon></el-button>
         </div>
 
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
-          <el-button v-if="vr.isEdit" plain size="small" @click="resetVariantForm">Hủy</el-button>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+          <el-button plain size="small" @click="resetVariantForm(); vr.activeTab = 'list'">
+            <el-icon><Close /></el-icon> Hủy
+          </el-button>
           <el-button type="primary" plain size="small" :loading="vr.saving" @click="saveVariant">
             <el-icon><Check /></el-icon> {{ vr.isEdit ? 'Lưu thay đổi' : 'Thêm biến thể' }}
           </el-button>
         </div>
       </el-form>
-    </el-drawer>
+    </el-tab-pane>
+
+  </el-tabs>
+</el-drawer>
 
     <el-dialog v-model="serialDlg.open" :title="`Quản lý Seri — ${serialDlg.variantName}`" width="620px" :close-on-click-modal="false">
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap: wrap;">
@@ -707,12 +734,16 @@ async function submitBatchUpdate() {
 }
 
 const vr = reactive({
-  open: false, productId: null, productName: "", variants: [], loading: false, saving: false, isEdit: false, editId: null,
-  form: { variantName: "", sku: "", price: 0, stockQuantity: 0, isActive: true }, attrsList: [{ key: "", value: "" }]
+  open: false, productId: null, productName: "", variants: [], loading: false, saving: false,
+  isEdit: false, editId: null, activeTab: 'list',  // ← thêm dòng này
+  form: { variantName: "", sku: "", price: 0, stockQuantity: 0, isActive: true },
+  attrsList: [{ key: "", value: "" }]
 });
 
 async function openVariantDrawer(row) {
-  vr.productId = row.id; vr.productName = row.name; vr.open = true;
+  vr.productId = row.id; vr.productName = row.name;
+  vr.activeTab = 'list';  // ← thêm dòng này
+  vr.open = true;
   resetVariantForm(); await loadVariants();
 }
 async function loadVariants() {
