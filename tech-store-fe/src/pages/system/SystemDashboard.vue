@@ -3,18 +3,20 @@
     <div style="max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
 
       <!-- Header -->
-      <el-row align="middle" justify="space-between" style="flex-wrap: wrap; gap: 16px;">
-        <el-space direction="vertical" :size="4">
-          <el-text size="small" type="info" style="text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">Hệ thống</el-text>
-          <el-text tag="div" style="font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.2;">
-            Admin <el-text tag="span" type="primary" style="font-size: inherit; font-weight: inherit;">Dashboard</el-text>
-          </el-text>
-          <el-text type="info">Truy cập nhanh các module quản trị</el-text>
-        </el-space>
-        <el-button plain @click="reload">
-          <el-icon><Refresh /></el-icon> Làm mới
-        </el-button>
-      </el-row>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><Setting /></el-icon> Hệ thống
+          </div>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Admin <span style="color:var(--el-color-primary);">Dashboard</span></div>
+          <div style="font-size:13px; color:var(--el-text-color-secondary);">Truy cập nhanh các module quản trị</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+          <el-button plain @click="reload">
+            <el-icon><Refresh /></el-icon> Làm mới
+          </el-button>
+        </div>
+      </div>
 
       <!-- Module cards -->
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">

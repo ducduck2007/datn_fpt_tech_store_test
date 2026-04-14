@@ -2,33 +2,31 @@
 <template>
   <div class="pm-root">
 
-    <!-- ── Page Header ── -->
-    <el-card shadow="never" class="pm-header-card">
-      <el-row justify="space-between" align="middle" :gutter="24">
-        <el-col :span="8">
-          <div class="pm-eyebrow">Hệ thống · Tài chính</div>
-          <h1 class="pm-title">Lịch sử Thanh toán</h1>
-          <p class="pm-sub">Theo dõi và quản lý tất cả giao dịch thanh toán</p>
-          <el-button plain :loading="loading" @click="loadPayments">
-            <el-icon v-if="!loading"><Refresh /></el-icon>
-            Tải lại
-          </el-button>
-        </el-col>
-        <el-col :span="16">
-          <el-row :gutter="10" justify="end">
-            <el-col :span="4" v-for="stat in statCards" :key="stat.label">
-              <div :class="['pm-stat-card', `pm-stat-card--${stat.color}`]">
-                <div :class="['pm-stat-icon', `pm-stat-icon--${stat.color}`]">
-                  <el-icon :size="18"><component :is="stat.icon" /></el-icon>
-                </div>
-                <div class="pm-stat-value">{{ stat.value }}</div>
-                <div class="pm-stat-label">{{ stat.label }}</div>
-              </div>
-            </el-col>
-          </el-row>
-        </el-col>
-      </el-row>
-    </el-card>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:300px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+          <el-icon><Money /></el-icon> Hệ thống · Tài chính
+        </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Lịch sử Thanh toán</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Theo dõi và quản lý tất cả giao dịch thanh toán</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+        <div v-for="stat in statCards" :key="stat.label" :class="['pm-stat-card', `pm-stat-card--${stat.color}`]" style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--el-fill-color-light); border-radius:8px;">
+          <div :class="['pm-stat-icon', `pm-stat-icon--${stat.color}`]" style="display:flex; align-items:center; justify-content:center;">
+            <el-icon :size="18"><component :is="stat.icon" /></el-icon>
+          </div>
+          <div>
+            <div class="pm-stat-value" style="font-weight:700;">{{ stat.value }}</div>
+            <div class="pm-stat-label" style="font-size:11px; color:var(--el-text-color-secondary);">{{ stat.label }}</div>
+          </div>
+        </div>
+        <el-button plain :loading="loading" @click="loadPayments">
+          <el-icon v-if="!loading"><Refresh /></el-icon>
+          Tải lại
+        </el-button>
+      </div>
+    </div>
 
     <!-- ── Main Card ── -->
     <el-card shadow="never" class="pm-main-card">

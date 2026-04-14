@@ -2,19 +2,24 @@
   <div class="sa-root">
 
     <!-- ── Header ─────────────────────────────────────────────── -->
-    <div class="sa-header">
-      <div class="sa-header-left">
-        <div class="sa-kicker">Analytics</div>
-        <h1 class="sa-title">Customer Spending Analytics</h1>
-        <p class="sa-sub">Analyze customer spending patterns and top performers</p>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+          Analytics
+        </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Customer Spending Analytics</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Analyze customer spending patterns and top performers</div>
       </div>
-      <button class="sa-btn-reload" @click="loadAll" :disabled="loading">
-        <svg :class="{ spin: loading }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M23 4v6h-6M1 20v-6h6"/>
-          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-        </svg>
-        Reload
-      </button>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+        <button class="sa-btn-reload" @click="loadAll" :disabled="loading">
+          <svg :class="{ spin: loading }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Reload
+        </button>
+      </div>
     </div>
 
     <!-- ── KPI Cards ───────────────────────────────────────────── -->

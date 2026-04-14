@@ -1,14 +1,16 @@
 <template>
   <div style="background:#f6f7f9; min-height:100vh; padding:32px 40px 60px;">
 
+    <!-- Header -->
     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
         <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
-          <el-icon><Grid /></el-icon> Quản trị
-        </div>
+            <el-icon><Goods /></el-icon> Kho & Sản phẩm
+          </div>
         <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Quản lý sản phẩm</div>
         <div style="font-size:13px; color:var(--el-text-color-secondary);">Hỗ trợ: Biến thể · Tồn kho · Đa danh mục · Sắp xếp · Thùng rác · Thẻ</div>
       </div>
+      <!-- End Header -->
       <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
         <el-radio-group v-model="viewMode" size="small" @change="load">
           <el-radio-button value="active"><el-icon><Check /></el-icon> Hoạt động</el-radio-button>

@@ -1,27 +1,27 @@
 <template>
   <div class="pp-page">
 
-    <!-- ── Header ── -->
-    <el-card shadow="never" class="pp-header-card">
-      <el-row justify="space-between" align="middle">
-        <el-col :span="14">
-          <div class="pp-eyebrow">Hệ thống</div>
-          <h1 class="pp-title">Quản lý giá &amp; Xung đột</h1>
-          <p class="pp-subtitle">Quản lý bảng giá, lịch sử và cảnh báo xung đột toàn hệ thống</p>
-        </el-col>
-        <el-col v-if="dashData" :span="10" style="text-align:right">
-          <el-space wrap>
-            <el-tag type="success" effect="dark">{{ dashData.activePromotions ?? 0 }} KM active</el-tag>
-            <el-tag :type="(dashData.variantsBelowCost ?? 0) > 0 ? 'danger' : 'info'" effect="dark">
-              {{ dashData.variantsBelowCost ?? 0 }} dưới giá nhập
-            </el-tag>
-            <el-tag :type="(dashData.expiringIn3Days ?? 0) > 0 ? 'warning' : 'info'" effect="dark">
-              {{ dashData.expiringIn3Days ?? 0 }} sắp hết hạn
-            </el-tag>
-          </el-space>
-        </el-col>
-      </el-row>
-    </el-card>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><TrendCharts /></el-icon> Vận hành & Sản phẩm
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Quản lý giá &amp; Xung đột</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Quản lý bảng giá, lịch sử và cảnh báo xung đột toàn hệ thống</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+        <el-space v-if="dashData" wrap>
+          <el-tag type="success" effect="dark">{{ dashData.activePromotions ?? 0 }} KM active</el-tag>
+          <el-tag :type="(dashData.variantsBelowCost ?? 0) > 0 ? 'danger' : 'info'" effect="dark">
+            {{ dashData.variantsBelowCost ?? 0 }} dưới giá nhập
+          </el-tag>
+          <el-tag :type="(dashData.expiringIn3Days ?? 0) > 0 ? 'warning' : 'info'" effect="dark">
+            {{ dashData.expiringIn3Days ?? 0 }} sắp hết hạn
+          </el-tag>
+        </el-space>
+      </div>
+    </div>
 
     <!-- ── Tabs ── -->
     <el-tabs v-model="activeTab" type="border-card" class="pp-tabs">

@@ -2,29 +2,33 @@
   <div class="order-page">
     <el-card shadow="never">
       <!-- Header -->
-      <el-row justify="space-between" align="bottom">
-        <el-col :span="18">
-          <div class="order-kicker">Đơn hàng</div>
-          <div class="order-id">{{ detail?.orderNumber || `#${orderId}` }}</div>
-          <el-space wrap class="mt-2">
-            <el-tag :type="statusType" size="large">
-              {{ formatOrderStatus(detail?.status) }}
-            </el-tag>
-            <el-tag :type="paymentStatusType" size="large">
-              {{ formatPaymentStatus(detail?.paymentStatus) }}
-            </el-tag>
-            <el-tag v-if="isReturned(detail?.status)" type="warning" size="large">
-              Hoàn trả
-            </el-tag>
-          </el-space>
-        </el-col>
-        <el-col :span="6" style="text-align: right">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><Tickets /></el-icon> Đơn hàng
+          </div>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">{{ detail?.orderNumber || `#${orderId}` }}</div>
+          <div style="font-size:13px; color:var(--el-text-color-secondary);">
+            <el-space wrap>
+              <el-tag :type="statusType" size="small">
+                {{ formatOrderStatus(detail?.status) }}
+              </el-tag>
+              <el-tag :type="paymentStatusType" size="small">
+                {{ formatPaymentStatus(detail?.paymentStatus) }}
+              </el-tag>
+              <el-tag v-if="isReturned(detail?.status)" type="warning" size="small">
+                Hoàn trả
+              </el-tag>
+            </el-space>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
           <el-button plain :loading="loading" @click="reload">
             <el-icon v-if="!loading"><Refresh /></el-icon>
             <span v-if="!loading">Reload</span>
           </el-button>
-        </el-col>
-      </el-row>
+        </div>
+      </div>
 
       <el-divider />
 

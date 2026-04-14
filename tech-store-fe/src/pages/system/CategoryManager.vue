@@ -2,15 +2,15 @@
   <div style="background:#f6f7f9; min-height:100vh; padding:32px 40px 60px;">
 
     <!-- Header -->
-    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:24px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
         <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
-          <el-icon><Grid /></el-icon> Quản trị
-        </div>
+            <el-icon><Grid /></el-icon> Kho & Sản phẩm
+          </div>
         <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Quản lý danh mục</div>
-        <div style="font-size:13.5px; color:var(--el-text-color-secondary);">Quản lý cấu trúc danh mục sản phẩm</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Quản lý cấu trúc danh mục sản phẩm</div>
       </div>
-      <div style="display:flex; gap:10px; flex-shrink:0; padding-top:4px;">
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
         <el-button plain :loading="loading" @click="load">
           <el-icon><Refresh /></el-icon> Tải lại
         </el-button>

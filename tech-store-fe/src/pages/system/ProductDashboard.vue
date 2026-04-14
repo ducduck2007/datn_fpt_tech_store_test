@@ -2,16 +2,16 @@
   <div class="pa-page">
     <div class="pa-inner">
 
-      <!-- ── Header ── -->
-      <el-row justify="space-between" align="top" wrap>
+      <!-- Header -->
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
         <div>
-          <div class="label-upper">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
             <el-icon><DataAnalysis /></el-icon> Analytics Overview
           </div>
-          <h1 class="page-title">Báo Cáo Tổng Quan Sản Phẩm</h1>
-          <el-text type="info">Dữ liệu được cập nhật theo thời gian thực từ hệ thống kho hàng và đơn hàng</el-text>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Báo Cáo Tổng Quan Sản Phẩm</div>
+          <div style="font-size:13px; color:var(--el-text-color-secondary);">Dữ liệu được cập nhật theo thời gian thực từ hệ thống kho hàng và đơn hàng</div>
         </div>
-        <el-space wrap class="header-actions">
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
           <el-button plain :loading="loading" @click="loadData" :disabled="loading">
             <template #icon><el-icon><Refresh /></el-icon></template>
             {{ loading ? 'Đang tải…' : 'Làm mới' }}
@@ -20,8 +20,8 @@
             <template #icon><el-icon><Download /></el-icon></template>
             {{ exporting ? 'Đang xuất…' : 'Xuất Excel' }}
           </el-button>
-        </el-space>
-      </el-row>
+        </div>
+      </div>
 
       <!-- ── Stat cards ── -->
       <el-row :gutter="14">

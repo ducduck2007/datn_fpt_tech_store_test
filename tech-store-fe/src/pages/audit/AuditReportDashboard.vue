@@ -1,14 +1,15 @@
 <template>
   <el-space direction="vertical" fill :size="24" style="width: 100%">
-    <!-- ── Header ── -->
-    <header>
-      <el-space :size="5" class="ard-eyebrow">
-        <el-icon :size="12"><Document /></el-icon>
-        <span>Báo cáo</span>
-      </el-space>
-      <h1 class="ard-title">Báo Cáo <span class="ard-title-accent">Audit</span></h1>
-      <p class="ard-subtitle">Phân tích chuyên sâu về tính tuân thủ và hoạt động nhạy cảm</p>
-    </header>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><DataLine /></el-icon> Audit
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Báo Cáo <span style="color:var(--el-color-primary);">Audit</span></div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Phân tích chuyên sâu về tính tuân thủ và hoạt động nhạy cảm</div>
+      </div>
+    </div>
 
     <!-- ── Overview Stats ── -->
     <el-row :gutter="16">

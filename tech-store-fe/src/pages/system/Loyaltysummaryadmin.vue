@@ -1,28 +1,16 @@
 <template>
-  <div style="display:flex; flex-direction:column; min-height:100vh; background:var(--el-fill-color-light);">
+  <div style="max-width: 1600px; margin: 0 auto; padding: 32px 24px 80px; display: flex; flex-direction: column; gap: 20px;">
 
     <!-- ── Header ─────────────────────────────────────────── -->
-    <div style="background:#fff; border-bottom:1px solid var(--el-border-color-light); padding:14px 24px;">
-      <!-- Row 1 -->
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
-        <div style="display:flex; align-items:center; gap:16px;">
-          <!-- Brand -->
-          <div style="display:flex; align-items:center; gap:8px;">
-            <el-avatar :size="36" style="background:#0f1117; border-radius:8px;">
-              <el-icon style="color:#3b82f6;"><Grid /></el-icon>
-            </el-avatar>
-            <el-text style="font-size:15px; font-weight:800; letter-spacing:-0.02em;">LoyaltyOS</el-text>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><Grid /></el-icon> Phân tích › Loyalty › {{ mode === 'monthly' ? 'Hàng tháng' : 'Hàng tuần' }}
           </div>
-          <el-divider direction="vertical" />
-          <div>
-            <div style="font-size:11px; color:var(--el-text-color-secondary);">
-              Phân tích › Loyalty › {{ mode === 'monthly' ? 'Hàng tháng' : 'Hàng tuần' }}
-            </div>
-            <div style="font-size:16px; font-weight:800; letter-spacing:-0.02em;">{{ currentTab?.label }}</div>
-          </div>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">LoyaltyOS</div>
+          <div style="font-size:13px; color:var(--el-text-color-secondary);">{{ currentTab?.label }}</div>
         </div>
-
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
           <!-- Status pill -->
           <el-tag :type="loading ? 'warning' : 'success'" effect="plain" size="small" round>
             <span :style="`width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;vertical-align:middle;margin-right:4px;`"></span>
@@ -57,10 +45,9 @@
           </template>
         </el-tab-pane>
       </el-tabs>
-    </div>
 
     <!-- ── Main ───────────────────────────────────────────── -->
-    <div style="flex:1; padding:20px 24px 48px;">
+    <div style="flex:1;">
 
       <!-- Error -->
       <el-alert v-if="error" type="error" :title="error" show-icon :closable="false" style="margin-bottom:16px;" />

@@ -1,5 +1,16 @@
 <template>
   <div class="container-xl">
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+          <el-icon><Tickets /></el-icon> Đơn hàng
+        </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Tra cứu Đơn hàng</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Tra cứu và lọc đơn hàng theo nhiều tiêu chí</div>
+      </div>
+    </div>
+
     <!-- ── Filter Panel ── -->
     <el-card shadow="never" :body-style="{ padding: 0 }">
       <template #header>

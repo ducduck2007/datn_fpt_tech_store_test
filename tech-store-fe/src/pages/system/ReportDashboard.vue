@@ -2,12 +2,17 @@
   <div style="background: #f4f5f9; min-height: 100vh;">
 
     <!-- Header -->
-    <div style="display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--el-border-color-light);">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
-        <div style="font-size:26px; font-weight:800; letter-spacing:-0.025em; color:#18192b; margin-bottom:4px;">Tổng quan kinh doanh</div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><DataAnalysis /></el-icon> Báo cáo & Phân tích
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Tổng quan kinh doanh</div>
         <div style="font-size:13px; color:var(--el-text-color-secondary);">Doanh thu · Hiệu suất · Trạng thái đơn hàng</div>
       </div>
-      <el-tag effect="plain" size="large" style="border-radius:99px;">{{ todayFormatted }}</el-tag>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+        <el-tag effect="plain" size="large" style="border-radius:99px;">{{ todayFormatted }}</el-tag>
+      </div>
     </div>
 
     <!-- KPI Strip -->

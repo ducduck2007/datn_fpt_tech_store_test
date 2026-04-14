@@ -1,14 +1,15 @@
 <template>
   <el-space direction="vertical" fill :size="24" style="width: 100%">
-    <!-- ── Header ── -->
-    <header>
-      <el-space :size="6" class="ad-eyebrow">
-        <el-icon :size="12"><Operation /></el-icon>
-        <span>Hệ thống</span>
-      </el-space>
-      <h1 class="ad-title">Bảng điều khiển <span class="ad-title-accent">Audit & Log</span></h1>
-      <p class="ad-subtitle">Tổng quan giám sát bảo mật và hoạt động hệ thống theo thời gian thực</p>
-    </header>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><Odometer /></el-icon> Audit & Security
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Bảng điều khiển <span style="color:var(--el-color-primary);">Audit & Log</span></div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Tổng quan giám sát bảo mật và hoạt động hệ thống theo thời gian thực</div>
+      </div>
+    </div>
 
     <!-- ── Summary Cards ── -->
     <el-row :gutter="16">
