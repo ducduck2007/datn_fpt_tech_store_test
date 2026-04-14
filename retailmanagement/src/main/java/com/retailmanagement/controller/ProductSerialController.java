@@ -35,20 +35,40 @@ public class ProductSerialController {
 
     @PostMapping("/{variantId}/serials")
     @Transactional
-    public ResponseEntity<String> addSerialsToVariant(
+    public ResponseEntity<?> addSerialsToVariant(
             @PathVariable Integer variantId,
             @Valid @RequestBody ProductSerialRequest request) {
 
         List<ProductSerial> newSerials = new ArrayList<>();
+        List<String> duplicateSerials = new ArrayList<>();
 
         for (String sn : request.getSerialNumbers()) {
             if(sn == null || sn.trim().isEmpty()) continue;
 
+            // Xóa khoảng trắng 2 đầu và ép viết hoa
+            String cleanedSn = sn.trim().toUpperCase();
+
+            // Định dạng Seri Laptop: Chỉ A-Z, 0-9, dấu gạch ngang, dài từ 5-30 ký tự
+            if (!cleanedSn.matches("^[A-Z0-9-]{5,30}$")) {
+                return ResponseEntity.badRequest().body("Seri '" + cleanedSn + "' sai định dạng! Seri laptop chỉ gồm chữ IN HOA, số, dấu gạch ngang (5-30 ký tự).");
+            }
+
+            // Kiểm tra trùng lặp Seri trong kho
+            if (serialRepository.existsBySerialNumber(cleanedSn)) {
+                duplicateSerials.add(cleanedSn);
+                continue;
+            }
+
             ProductSerial serial = new ProductSerial();
             serial.setVariantId(variantId);
-            serial.setSerialNumber(sn.trim());
+            serial.setSerialNumber(cleanedSn);
             serial.setStatus("IN_STOCK");
             newSerials.add(serial);
+        }
+
+        // Nếu nhập 1 cái mà trùng luôn cái đó
+        if (newSerials.isEmpty() && !duplicateSerials.isEmpty()) {
+            return ResponseEntity.badRequest().body("Số Seri '" + duplicateSerials.get(0) + "' đã tồn tại trong hệ thống.");
         }
 
         try {
@@ -60,9 +80,14 @@ public class ProductSerialController {
                 variant.setIsActive(currentStock > 0);
                 variantRepository.save(variant);
             }
+
+            if (!duplicateSerials.isEmpty()) {
+                return ResponseEntity.ok("Đã thêm " + newSerials.size() + " Seri. Bỏ qua " + duplicateSerials.size() + " Seri bị trùng.");
+            }
             return ResponseEntity.ok("Đã thêm thành công " + newSerials.size() + " số Seri vào kho.");
+
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Lỗi: Có thể số Seri đã bị trùng lặp trong hệ thống.");
+            return ResponseEntity.badRequest().body("Lỗi hệ thống khi lưu Seri: " + e.getMessage());
         }
     }
 
@@ -89,10 +114,37 @@ public class ProductSerialController {
             @RequestParam("file") MultipartFile file) {
 
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "File trống."));
+            return ResponseEntity.badRequest().body(Map.of("message", "File trống."));
         }
+
         Map<String, Object> result = productSerialService.importFromExcel(variantId, file);
-        return ResponseEntity.ok(result);
+        int successCount = (int) result.get("successCount");
+        @SuppressWarnings("unchecked")
+        List<String> errors = (List<String>) result.get("errors");
+
+        // Trường hợp 1: Tạch 100% (tất cả đều trùng)
+        if (successCount == 0 && !errors.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Nhập thất bại! Tất cả các Seri trong file đều đã tồn tại.",
+                    "errors", errors
+            ));
+        }
+
+        // Trường hợp 2: Trùng một phần, thành công một phần
+        if (successCount > 0 && !errors.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "message", "Thêm mới " + successCount + " mã. Bỏ qua " + errors.size() + " mã bị trùng.",
+                    "errors", errors,
+                    "errorCount", errors.size()
+            ));
+        }
+
+        // Trường hợp 3: Thành công 100%
+        return ResponseEntity.ok(Map.of(
+                "message", "Nhập Excel thành công! Đã thêm " + successCount + " mã mới.",
+                "errors", new ArrayList<>(),
+                "errorCount", 0
+        ));
     }
 
     @GetMapping("/serials/all")

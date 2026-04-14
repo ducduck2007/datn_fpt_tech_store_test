@@ -156,7 +156,11 @@ const loading = ref(true);
 const addingToCart = ref(false);
 const product = ref(null);
 const variants = ref([]);
-const attributes = ref([]);
+
+// THÊM: Biến lưu trữ thông số kỹ thuật gốc của sản phẩm
+const baseAttributes = ref([]); 
+const attributes = ref([]); // Biến này sẽ hiển thị ra màn hình
+
 const galleryImages = ref([]);
 const mainImage = ref("");
 const selectedVariant = ref(null);
@@ -183,9 +187,59 @@ function fixImageUrl(url) {
   return `${BASE_URL}${url}`;
 }
 
+// SỬA: Cập nhật lại logic khi chọn phiên bản
 function selectVariant(v) {
   selectedVariant.value = v;
   quantity.value = 1;
+
+  let mergedAttrs = JSON.parse(JSON.stringify(baseAttributes.value));
+
+  if (v && v.attributesJson) {
+    try {
+      const variantParsed = JSON.parse(v.attributesJson);
+      const variantAttrs = Array.isArray(variantParsed)
+        ? variantParsed
+        : Object.keys(variantParsed).map(key => ({ name: key, value: variantParsed[key] }));
+
+      // TỪ ĐIỂN MAP KEY: Tự động dịch các từ tiếng Anh lôm côm sang chuẩn tiếng Việt của gốc
+      const keyMapping = {
+        'cpu': 'CPU',
+        'ram': 'RAM',
+        'storage': 'Ổ cứng (SSD)',
+        'vga': 'Card màn hình (VGA)',
+        'gpu': 'Card màn hình (VGA)',
+        'screen': 'Màn hình',
+        'display': 'Màn hình'
+      };
+
+      variantAttrs.forEach(vAttr => {
+        // Chuẩn hóa cái tên mà thằng Admin nhập (bỏ khoảng trắng thừa, đưa về chữ thường để tra từ điển)
+        let rawName = vAttr.name.trim();
+        let lowerName = rawName.toLowerCase();
+        
+        // Nếu từ điển có từ này, dịch nó ra. Nếu không, giữ nguyên (nhưng viết hoa chữ cái đầu cho đẹp)
+        let normalizedName = keyMapping[lowerName] || (rawName.charAt(0).toUpperCase() + rawName.slice(1));
+
+        // Đi tìm xem trong baseAttributes có cái tên nào giống normalizedName hoặc giống chữ thường của nó không
+        const existingIndex = mergedAttrs.findIndex(
+          a => a.name.trim().toLowerCase() === normalizedName.toLowerCase() || 
+               a.name.trim().toLowerCase() === lowerName
+        );
+
+        if (existingIndex >= 0) {
+          // TÌM THẤY: Ghi đè giá trị (Ví dụ: đè AMD bằng Core i9)
+          mergedAttrs[existingIndex].value = vAttr.value; 
+        } else {
+          // KHÔNG TÌM THẤY: Thêm mới thông số này vào bảng
+          mergedAttrs.push({ name: normalizedName, value: vAttr.value });
+        }
+      });
+    } catch (e) {
+      console.error("Lỗi parse thông số riêng của biến thể", e);
+    }
+  }
+
+  attributes.value = mergedAttrs;
 }
 
 async function loadProductData() {
@@ -206,13 +260,14 @@ async function loadProductData() {
       galleryImages.value = [mainImage.value];
     }
 
+    // SỬA: Đọc thông số kỹ thuật gốc và lưu vào baseAttributes thay vì attributes
     if (data.attributes) {
       try {
         const parsed = JSON.parse(data.attributes);
-        attributes.value = Array.isArray(parsed)
+        baseAttributes.value = Array.isArray(parsed)
           ? parsed
           : Object.keys(parsed).map(key => ({ name:key, value:parsed[key] }));
-      } catch { attributes.value = []; }
+      } catch { baseAttributes.value = []; }
     }
 
     if (data.variants?.length > 0) {
@@ -222,7 +277,14 @@ async function loadProductData() {
       variants.value = (varRes || []).filter(v => v.isActive);
     }
 
-    if (variants.value.length > 0) selectVariant(variants.value[0]);
+    // Khi load xong, tự động chọn phiên bản đầu tiên (hàm này sẽ kích hoạt gộp thông số)
+    if (variants.value.length > 0) {
+        selectVariant(variants.value[0]);
+    } else {
+        // Nếu sản phẩm không có phiên bản nào, chỉ hiện thông số gốc
+        attributes.value = [...baseAttributes.value];
+    }
+
   } catch (error) {
     toast("Lỗi khi tải dữ liệu sản phẩm", "error");
     console.error(error);

@@ -378,7 +378,14 @@
           </el-button>
         </el-upload>
         <el-divider direction="vertical" />
-        <el-input v-model="serialDlg.inputText" placeholder="Nhập 1 số Seri..." style="width: 200px;" @keyup.enter="addManualSerial" clearable />
+        <el-input 
+          v-model="serialDlg.inputText" 
+          placeholder="Nhập Seri laptop (VD: 5CG123...)" 
+          style="width: 200px;" 
+          @input="formatSerialInput"
+          @keyup.enter="addManualSerial" 
+          clearable 
+        />
         <el-button type="success" :loading="serialDlg.addingManual" @click="addManualSerial">Thêm</el-button>
       </div>
       <el-text tag="div" style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--el-text-color-secondary); margin-bottom:8px;">Danh sách máy trong kho</el-text>
@@ -549,6 +556,11 @@ import { toast } from "../../ui/toast";
 import axios from 'axios';
 import http from "../../api/http";
 import ProductImportDialog from '../../components/Productimportdialog.vue'
+import { ElNotification } from "element-plus";
+function formatSerialInput(val) {
+  if (!val) return;
+  serialDlg.inputText = val.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+}
 
 const BASE_URL_API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -811,16 +823,44 @@ async function importSerialsExcel(fileObj) {
   serialDlg.adding = true;
   try {
     const res = await productsApi.importVariantSerials(serialDlg.variantId, fileObj.raw);
-    const data = res.data;
-    if (data.errors && data.errors.length > 0) {
-      console.warn("Lỗi import:", data.errors);
+    const data = res.data; // Lấy dữ liệu Map từ Backend
+    
+    if (data.errorCount > 0) {
+        // CÓ TRÙNG LẶP MỘT PHẦN: Hiển thị tối đa 5 mã lỗi, còn lại gom vào "..."
+        const errorListHtml = data.errors.slice(0, 5).map(err => `<li>${err}</li>`).join('');
+        const more = data.errors.length > 5 ? `<li><i>... và ${data.errors.length - 5} mã khác bị trùng</i></li>` : '';
+        
+        ElNotification({
+          title: 'Cảnh báo trùng lặp',
+          dangerouslyUseHTMLString: true,
+          message: `<div style="font-size: 13px;"><b>${data.message}</b><ul style="padding-left: 15px; margin-top: 8px; color: #f56c6c;">${errorListHtml}${more}</ul></div>`,
+          type: 'warning',
+          duration: 6000
+        });
+    } else {
+        toast(data.message, "success");
     }
-    toast(`Nhập thành công ${data.successCount} serial.`, "success");
+
     await loadSerials(); 
     await loadVariants(); 
     await load();
   } catch (e) {
-    toast(e.response?.data?.error || "Lỗi import file Excel", "error");
+    const errData = e.response?.data;
+    if (errData && errData.errors) {
+         // LỖI TRÙNG LẶP 100%
+         const errorListHtml = errData.errors.slice(0, 5).map(err => `<li>${err}</li>`).join('');
+         const more = errData.errors.length > 5 ? `<li><i>... và ${errData.errors.length - 5} mã khác bị trùng</i></li>` : '';
+         
+         ElNotification({
+          title: 'Lỗi nhập Excel',
+          dangerouslyUseHTMLString: true,
+          message: `<div style="font-size: 13px;"><b>${errData.message}</b><ul style="padding-left: 15px; margin-top: 8px; color: #f56c6c;">${errorListHtml}${more}</ul></div>`,
+          type: 'error',
+          duration: 6000
+        });
+    } else {
+        toast(typeof errData === 'string' ? errData : (errData?.error || "Lỗi file Excel"), "error");
+    }
   } finally {
     serialDlg.adding = false;
   }
@@ -828,16 +868,23 @@ async function importSerialsExcel(fileObj) {
 async function addManualSerial() {
   const val = serialDlg.inputText?.trim();
   if (!val) return;
+  
+  // Rào độ dài cho chuẩn laptop
+  if (val.length < 5) {
+    return toast("Seri laptop phải có độ dài tối thiểu 5 ký tự!", "warning");
+  }
+
   serialDlg.addingManual = true;
   try {
-    await productsApi.addSerials(serialDlg.variantId, [val]);
-    toast("Thêm thủ công thành công", "success");
+    const res = await productsApi.addSerials(serialDlg.variantId, [val]);
+    toast(res.data || "Thêm thủ công thành công", "success");
     serialDlg.inputText = "";
     await loadSerials();
     await loadVariants();
     await load();
   } catch (e) {
-    toast(typeof e.response?.data === 'string' ? e.response.data : "Lỗi hoặc Seri đã tồn tại", "error");
+    const errMessage = typeof e.response?.data === 'string' ? e.response.data : "Lỗi kết nối hoặc Seri không hợp lệ";
+    toast(errMessage, "error");
   } finally {
     serialDlg.addingManual = false;
   }
