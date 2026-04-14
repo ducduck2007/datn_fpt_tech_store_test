@@ -1,22 +1,20 @@
 <template>
   <div class="return-manager">
-    <!-- ══════════ HEADER ══════════ -->
-    <el-row align="middle" justify="space-between" style="margin-bottom: 20px">
-      <el-space direction="vertical" :size="2">
-        <el-text tag="b" size="large">QUẢN LÝ HOÀN HÀNG</el-text>
-        <el-text type="info" size="small">
-          Xét duyệt yêu cầu trả hàng từ khách — xem ảnh minh chứng và quyết định
-          mức hoàn tiền
-        </el-text>
-      </el-space>
-      <el-button
-        :icon="Refresh"
-        circle
-        plain
-        @click="loadReturns"
-        :loading="loading"
-      />
-    </el-row>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><RefreshLeft /></el-icon> Đơn hàng & CSKH
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Quản lý hoàn hàng</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Xét duyệt yêu cầu trả hàng từ khách — xem ảnh minh chứng và quyết định mức hoàn tiền</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+        <el-button plain @click="loadReturns" :loading="loading">
+          <el-icon><Refresh /></el-icon> Thay mới
+        </el-button>
+      </div>
+    </div>
 
     <!-- ══════════ TABS ══════════ -->
     <el-tabs

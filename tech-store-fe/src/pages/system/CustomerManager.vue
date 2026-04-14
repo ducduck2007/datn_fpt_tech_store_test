@@ -3,17 +3,15 @@
     <div style="max-width:1440px; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
 
       <!-- Header -->
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
         <div>
           <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
             <el-icon><User /></el-icon> Quản lý Quan hệ Khách hàng
           </div>
-          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">
-            Quản lý <span style="color:var(--el-color-primary);">Khách hàng</span>
-          </div>
-          <div style="font-size:13.5px; color:var(--el-text-color-secondary);">{{ rows.length }} tài khoản đã đăng ký</div>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Quản lý <span style="color:var(--el-color-primary);">Khách hàng</span></div>
+          <div style="font-size:13px; color:var(--el-text-color-secondary);">{{ rows.length }} tài khoản đã đăng ký</div>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; padding-top:6px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
           <el-button plain :loading="loading" @click="reloadCurrentTab">
             <el-icon><Refresh /></el-icon> Tải lại
           </el-button>

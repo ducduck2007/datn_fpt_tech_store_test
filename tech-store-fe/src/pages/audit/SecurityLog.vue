@@ -1,14 +1,15 @@
 <template>
   <el-space direction="vertical" fill :size="20" style="width: 100%">
-    <!-- ── Header ── -->
-    <header>
-      <el-space :size="5" class="sl-eyebrow">
-        <el-icon :size="12"><Lock /></el-icon>
-        <span>Hệ thống</span>
-      </el-space>
-      <h1 class="sl-title">Lịch sử <span class="sl-title-accent">Bảo mật</span></h1>
-      <p class="sl-subtitle">Lịch sử các sự kiện bảo mật và truy cập hệ thống</p>
-    </header>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><Lock /></el-icon> Security
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Lịch sử <span style="color:var(--el-color-primary);">Bảo mật</span></div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Lịch sử các sự kiện bảo mật và truy cập hệ thống</div>
+      </div>
+    </div>
 
     <!-- ── Filter Panel ── -->
     <el-card shadow="never">

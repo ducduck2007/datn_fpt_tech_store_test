@@ -3,19 +3,19 @@
     <div style="max-width:1440px; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
 
       <!-- Header -->
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
         <div>
           <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
-            <el-icon><CreditCard /></el-icon> Quản lý Kho
+            <el-icon><Discount /></el-icon> Kho & Sản phẩm
           </div>
-          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">
-            Danh sách <span style="color:var(--el-color-primary);">Số Seri</span>
-          </div>
-          <div style="font-size:13.5px; color:var(--el-text-color-secondary);">Quản lý và theo dõi chi tiết từng sản phẩm trong hệ thống</div>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Danh sách <span style="color:var(--el-color-primary);">Số Seri</span></div>
+          <div style="font-size:13px; color:var(--el-text-color-secondary);">Quản lý và theo dõi chi tiết từng sản phẩm trong hệ thống</div>
         </div>
-        <el-button plain :loading="loading" @click="load">
-          <el-icon><Refresh /></el-icon> Tải lại
-        </el-button>
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+          <el-button plain :loading="loading" @click="load">
+            <el-icon><Refresh /></el-icon> Tải lại
+          </el-button>
+        </div>
       </div>
 
       <!-- Stats -->

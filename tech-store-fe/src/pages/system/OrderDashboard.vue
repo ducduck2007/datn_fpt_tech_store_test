@@ -1,13 +1,16 @@
 <template>
   <div class="order-dashboard">
 
-    <!-- ══ HEADER ══ -->
-    <el-row justify="space-between" align="middle" wrap class="page-header">
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
-        <h1 class="page-title">Order Dashboard</h1>
-        <el-text type="info">Tổng quan tình trạng đơn hàng theo thời gian thực</el-text>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><DataAnalysis /></el-icon> Đơn hàng
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Order Dashboard</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Tổng quan tình trạng đơn hàng theo thời gian thực</div>
       </div>
-      <el-space>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
         <el-select v-model="period" @change="fetchAll" style="width:148px">
           <template #prefix><el-icon><Calendar /></el-icon></template>
           <el-option label="7 ngày qua"  value="7"  />
@@ -18,8 +21,8 @@
           <template #icon><el-icon><Refresh /></el-icon></template>
           Refresh
         </el-button>
-      </el-space>
-    </el-row>
+      </div>
+    </div>
 
     <el-alert v-if="error" :title="error" type="error" show-icon class="error-alert" />
 

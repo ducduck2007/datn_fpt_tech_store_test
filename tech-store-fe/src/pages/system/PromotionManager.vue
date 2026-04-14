@@ -1,16 +1,16 @@
 <template>
   <div class="pm-page">
 
-    <!-- ── Header ── -->
-    <el-row justify="space-between" align="top" wrap>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
-        <div class="label-upper">
-          <el-icon><Present /></el-icon> Hệ thống
-        </div>
-        <h1 class="page-title">Quản lý khuyến mãi</h1>
-        <el-text type="info">Tạo và quản lý các chiến dịch khuyến mãi, xung đột và báo cáo</el-text>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><Present /></el-icon> Marketing
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Quản lý khuyến mãi</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Tạo và quản lý các chiến dịch khuyến mãi, xung đột và báo cáo</div>
       </div>
-      <el-space wrap class="mt-sm">
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
         <el-button plain :loading="conflictLoading"     @click="loadConflicts"      :disabled="conflictLoading">
           <template #icon><el-icon><Warning /></el-icon></template>
           Xung đột
@@ -31,8 +31,8 @@
           <template #icon><el-icon><Plus /></el-icon></template>
           Tạo mới
         </el-button>
-      </el-space>
-    </el-row>
+      </div>
+    </div>
 
     <!-- ── Validate bar ── -->
     <el-card shadow="never">

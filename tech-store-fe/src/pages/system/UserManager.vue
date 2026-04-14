@@ -2,21 +2,23 @@
   <div style="max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px;">
 
     <!-- Header -->
-    <el-row align="bottom" justify="space-between" style="margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
-      <el-space direction="vertical" :size="4">
-        <el-tag type="primary" effect="plain" size="small" round>Admin</el-tag>
-        <el-text tag="div" style="font-size: 22px; font-weight: 800; color: #111827;">Quản lý người dùng</el-text>
-        <el-text size="small" type="info">{{ filteredRows.length }} / {{ rows.length }} tài khoản</el-text>
-      </el-space>
-      <el-space :size="10">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><User /></el-icon> Hệ thống & Phân quyền
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Quản lý người dùng</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">{{ filteredRows.length }} / {{ rows.length }} tài khoản</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
         <el-button plain :loading="loading" @click="load">
           <el-icon><Refresh /></el-icon> Làm mới
         </el-button>
         <el-button type="primary" plain @click="openCreate">
           <el-icon><Plus /></el-icon> Thêm người dùng
         </el-button>
-      </el-space>
-    </el-row>
+      </div>
+    </div>
 
     <!-- Filters -->
     <el-card shadow="never" style="margin-bottom: 16px;">

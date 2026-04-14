@@ -98,6 +98,25 @@
               In phiếu
             </el-button>
 
+            <el-dropdown
+              v-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH' && order.channel === 'ONLINE')"
+              @command="cancelOrder"
+              trigger="click"
+            >
+              <el-button type="danger" plain :loading="cancelLoading">
+                Hủy đơn <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-left: 4px;">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="Hàng hiện đã hết">Hàng hiện đã hết</el-dropdown-item>
+                  <el-dropdown-item command="Hàng hiện đang bị lỗi">Hàng hiện đang bị lỗi</el-dropdown-item>
+                  <el-dropdown-item command="Lý do khác" divided>Lý do khác...</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
             <el-tooltip
               v-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH' && order.channel === 'ONLINE')"
               :content="allSerialsAssigned ? '' : `Cần gán đủ serial (${totalAssigned}/${totalRequired})`"
@@ -473,6 +492,51 @@ const markShipping = async () => {
     if (e !== "cancel") ElMessage.error(e.response?.data?.message || "Có lỗi xảy ra")
   } finally {
     loading.value = false
+  }
+}
+
+const cancelLoading = ref(false);
+const cancelOrder = async (reason) => {
+  let finalReason = reason;
+  if (reason === 'Lý do khác') {
+    try {
+      const { value } = await ElMessageBox.prompt('Nhập lý do hủy đơn:', 'Hủy đơn hàng', {
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Đóng',
+        inputValidator: (val) => {
+          if (!val || val.trim().length === 0) return 'Vui lòng nhập lý do';
+          return true;
+        }
+      });
+      finalReason = value.trim();
+    } catch {
+      return;
+    }
+  } else {
+    try {
+      await ElMessageBox.confirm(
+        `Xác nhận hủy đơn hàng này với lý do: "${finalReason}"?`,
+        'Hủy đơn hàng',
+        {
+          confirmButtonText: 'Hủy đơn ngay',
+          cancelButtonText: 'Đóng',
+          type: 'danger',
+        }
+      );
+    } catch {
+      return; 
+    }
+  }
+
+  cancelLoading.value = true;
+  try {
+    await ordersApi.cancel(order.value.orderId, finalReason);
+    ElMessage.success("Đã hủy đơn hàng thành công");
+    await load();
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn");
+  } finally {
+    cancelLoading.value = false;
   }
 }
 

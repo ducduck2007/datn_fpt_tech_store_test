@@ -1,16 +1,16 @@
 <template>
   <div class="ll-page">
 
-    <!-- ── Header ── -->
-    <el-row justify="space-between" align="top" wrap>
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
-        <div class="label-upper">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
           <el-icon><Trophy /></el-icon> Loyalty Analytics
         </div>
-        <h1 class="page-title">Top Khách Hàng Trung Thành</h1>
-        <el-text type="info">Đánh giá tổng hợp: điểm tích lũy · hạng VIP · chi tiêu · tần suất hoạt động</el-text>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Top Khách Hàng Trung Thành</div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Đánh giá tổng hợp: điểm tích lũy · hạng VIP · chi tiêu · tần suất hoạt động</div>
       </div>
-      <el-space align="center" class="header-right">
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
         <el-space align="center" :size="8">
           <el-text type="info" size="small">Hiển thị</el-text>
           <el-select v-model="topN" @change="loadCustomers" style="width:100px">
@@ -24,8 +24,8 @@
           <template #icon><el-icon><Refresh /></el-icon></template>
           Reload
         </el-button>
-      </el-space>
-    </el-row>
+      </div>
+    </div>
 
     <!-- ── Stat cards ── -->
     <el-row :gutter="16">

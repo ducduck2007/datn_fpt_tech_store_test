@@ -1,21 +1,20 @@
 <template>
   <el-space direction="vertical" fill :size="20" style="width: 100%">
-    <!-- ── Header ── -->
-    <header style="display: flex; justify-content: space-between; align-items: flex-start">
+    <!-- Header -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
       <div>
-        <el-space :size="5" class="al-eyebrow">
-          <el-icon :size="12"><Document /></el-icon>
-          <span>Hệ thống</span>
-        </el-space>
-        <h1 class="al-title">Lịch sử <span class="al-title-accent">Đăng nhập</span></h1>
-        <p class="al-subtitle">Theo dõi hoạt động đăng nhập hệ thống</p>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon><Key /></el-icon> Security
+          </div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">Lịch sử <span style="color:var(--el-color-primary);">Đăng nhập</span></div>
+        <div style="font-size:13px; color:var(--el-text-color-secondary);">Theo dõi hoạt động đăng nhập hệ thống</div>
       </div>
-
-      <el-button type="primary" plain @click="exportCsv">
-        <el-icon><Download /></el-icon>
-        <span>Xuất CSV</span>
-      </el-button>
-    </header>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
+        <el-button type="primary" plain @click="exportCsv">
+          <el-icon><Download /></el-icon> Xuất CSV
+        </el-button>
+      </div>
+    </div>
 
     <!-- ── Filter Panel ── -->
     <el-card shadow="never">
