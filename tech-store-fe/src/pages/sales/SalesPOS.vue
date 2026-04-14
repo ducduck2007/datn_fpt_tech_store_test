@@ -156,6 +156,47 @@
             </div>
           </div>
 
+          <!-- Mã giảm giá gợi ý -->
+<div v-if="foundCustomer && showPromoList && !appliedPromo" class="footer-block promo-suggest-block">
+  <div class="promo-suggest-header">
+    <el-text size="extra-small" style="color: #7c3aed; font-weight: 500;">
+      <el-icon><Present /></el-icon>
+      Mã khả dụng ({{ availablePromos.length }})
+    </el-text>
+    <el-button link size="small" @click="showPromoList = false">
+      <el-icon><Close /></el-icon>
+    </el-button>
+  </div>
+  <div v-if="promosLoading" style="text-align:center; padding: 8px;">
+    <el-icon class="is-loading"><Loading /></el-icon>
+  </div>
+  <div v-else class="promo-list-scroll">
+    <div
+      v-for="(promo, idx) in availablePromos"
+      :key="promo.id"
+      class="promo-chip"
+      :class="{ 'is-best': idx === 0 }"
+      @click="selectPromo(promo.code)"
+    >
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span v-if="idx === 0" class="best-badge">TỐT NHẤT</span>
+        <span class="pcode">{{ promo.code }}</span>
+       <span class="pval">
+  {{ promo.discountType === 'PERCENT'
+      ? `-${promo.discountValue}%`
+      : `-${formatMoney(promo.discountValue)}` }}
+</span>
+      </div>
+      <div v-if="subtotal > 0 && previewDiscount(promo)" class="psave">
+        Tiết kiệm ~{{ formatMoney(previewDiscount(promo)) }}
+      </div>
+      <div v-if="promo.endDate" class="pexp">
+        HH: {{ new Date(promo.endDate).toLocaleDateString('vi-VN') }}
+      </div>
+    </div>
+  </div>
+</div>
+
           <!-- Promo info -->
           <div class="footer-block" v-if="cart.length">
             <el-row :gutter="8">
@@ -285,6 +326,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { Monitor, Loading, ShoppingCart, Delete, Close, User, Wallet, InfoFilled, Medal, Present } from "@element-plus/icons-vue";
 import { productsApi } from "../../api/products.api";
 import { serialsApi } from "../../api/serials.api";
+import { promotionsApi } from "../../api/promotions.api";
 import { ordersApi } from "../../api/orders.api";
 import { paymentsApi } from "../../api/payments";
 import { customersApi } from "../../api/customers.api";
@@ -328,7 +370,9 @@ const cashIn = ref(0);
 const payLoading = ref(false);
 const payError = ref("");
 const payStep = ref("");
-
+const availablePromos = ref([]);
+const promosLoading = ref(false);
+const showPromoList = ref(false);
 const showDone = ref(false);
 const orderDone = ref(null);
 const snapshotTotal = ref(0);
@@ -449,6 +493,7 @@ async function doSearch() {
   } finally { searchLoading.value = false; }
 }
 
+
 // ── Actions ──
 const alreadyInCart = (sid) => cart.value.some(i => i.serialId === sid);
 
@@ -493,6 +538,7 @@ async function lookupCustomer() {
       foundCustomer.value = found;
       toast(`Chào khách hàng: ${found.fullName || found.name}`, "success");
       fetchCustomerDiscounts(found.id);
+      fetchAvailablePromos(found);
     } else {
       cusError.value = "Không tìm thấy khách hàng. Vui lòng nhập đầy đủ SĐT hoặc Email.";
     }
@@ -558,6 +604,8 @@ const removeCustomer = () => {
   spinDiscountPct.value = 0;
   spinBonusExpiry.value = null;
   customerTierName.value = "";
+  availablePromos.value = []; 
+  showPromoList.value = false; 
 };
 
 async function applyPromo() {
@@ -655,6 +703,50 @@ function resetAll() {
   vipDiscountPct.value = 0; spinDiscountPct.value = 0; spinBonusExpiry.value = null; customerTierName.value = "";
   localStorage.removeItem("pos_draft_cart"); localStorage.removeItem("pos_draft_customer");
 }
+async function fetchAvailablePromos(customer) {
+  promosLoading.value = true;
+  availablePromos.value = [];
+  try {
+    const res = await promotionsApi.list(true);
+    const raw = res.data?.data ?? res.data ?? [];
+    const list = Array.isArray(raw?.content) ? raw.content 
+               : (Array.isArray(raw) ? raw : []);
+    
+    const now = new Date();
+    availablePromos.value = list
+      .filter(p => {
+        if (p.startDate && new Date(p.startDate) > now) return false;
+        if (p.endDate && new Date(p.endDate) < now) return false;
+        if (p.usageLimit != null && (p.usedCount ?? 0) >= p.usageLimit) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const est = (p) => p.discountType === 'PERCENT'  // ← đổi PERCENTAGE → PERCENT
+          ? (subtotal.value || 10_000_000) * p.discountValue / 100
+          : Number(p.discountValue ?? 0);
+        return est(b) - est(a);
+      });
+
+    showPromoList.value = availablePromos.value.length > 0;
+  } catch (e) {
+    console.warn("Không lấy được mã giảm giá:", e);
+  } finally {
+    promosLoading.value = false;
+  }
+}
+
+function selectPromo(code) {
+  if (appliedPromo.value) return;
+  promoCode.value = code;
+  applyPromo();
+}
+
+function previewDiscount(promo) {
+  if (!subtotal.value) return null;
+  if (promo.discountType === 'PERCENT')  // ← đổi PERCENTAGE → PERCENT
+    return Math.round(subtotal.value * promo.discountValue / 100);
+  return Number(promo.discountValue ?? 0);  // AMOUNT → trả thẳng số tiền
+}
 
 function printReceipt() { toast("Chức năng in đang phát triển", "info"); }
 
@@ -719,4 +811,17 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .block { display: block; }
 .center { text-align: center; }
 .loading-box { display: flex; flex-direction: column; align-items: center; padding: 60px 0; }
+.promo-suggest-block { background: #f5f0ff; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+.promo-suggest-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.promo-list-scroll { display: flex; flex-direction: column; gap: 5px; max-height: 150px; overflow-y: auto; }
+.promo-chip { background: #fff; border: 1px solid #dcdfe6; border-radius: 6px; padding: 7px 10px; cursor: pointer; transition: border-color 0.15s; }
+.promo-chip:hover { border-color: #9f7aea; }
+.promo-chip.is-best { border: 1.5px solid #7c3aed; }
+.best-badge { background: #7c3aed; color: #fff; font-size: 9px; font-weight: 600; padding: 2px 5px; border-radius: 3px; }
+.pcode { font-family: monospace; font-weight: 600; font-size: 12px; flex: 1; color: #303133; }
+.pval { font-size: 12px; font-weight: 600; color: #f56c6c; }
+.psave { font-size: 10px; color: #67c23a; margin-top: 2px; }
+.pexp { font-size: 10px; color: #909399; margin-top: 1px; }
+
+
 </style>

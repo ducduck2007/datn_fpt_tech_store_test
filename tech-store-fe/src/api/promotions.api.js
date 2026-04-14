@@ -50,7 +50,7 @@ export const promotionsApi = {
    * Returns only promotions that are active, within date range,
    * not yet used by this customer, and matching customer type/tier.
    */
-  getAvailable() {
-    return http.get("/api/promotions/available");
-  },
+  getAvailable(customerId) {
+  return http.get("/api/promotions/available", { params: { customerId } });
+},
 };

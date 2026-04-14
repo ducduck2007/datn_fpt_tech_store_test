@@ -12,7 +12,7 @@ public class BestVoucherSuggestion {
     private Integer id;
     private String code;
     private String name;
-    private String discountType;      // PERCENTAGE / FIXED
+    private String discountType;
     private BigDecimal discountValue;
     private BigDecimal estimatedSaving;
     private LocalDateTime expiresAt;
