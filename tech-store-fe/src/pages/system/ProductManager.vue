@@ -318,7 +318,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="Tồn kho (tự động bởi Seri)">
+            <el-form-item label="Tồn kho">
               <el-input-number v-model="vr.form.stockQuantity" :disabled="true" size="small" style="width:100%;" />
             </el-form-item>
           </el-col>
