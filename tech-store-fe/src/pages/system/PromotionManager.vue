@@ -497,7 +497,7 @@
           <el-col :span="12">
             <el-form-item label="Hạng VIP (vipTiers)">
               <el-checkbox-group v-model="dlg.form.vipTiers">
-                <el-checkbox v-for="t in ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']" :key="t" :value="t">{{ t }}</el-checkbox>
+                <el-checkbox v-for="t in ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND']" :key="t" :value="t">{{ t }}</el-checkbox>
               </el-checkbox-group>
             </el-form-item>
           </el-col>
