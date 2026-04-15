@@ -780,7 +780,6 @@
                     <el-option label="Tiền mặt" value="CASH" />
                     <el-option label="Chuyển khoản" value="TRANSFER" />
                     <el-option label="Thẻ tín dụng" value="CREDIT_CARD" />
-                    <el-option label="Ví điện tử" value="E_WALLET" />
                   </el-select>
                   <el-date-picker v-model="paymentDateRange" type="daterange" range-separator="-" start-placeholder="Từ ngày" end-placeholder="Đến ngày" format="DD/MM/YYYY" value-format="YYYY-MM-DD" style="width: 280px;" @change="filterPayments" />
                   <el-switch v-model="showDeletedPayments" active-text="Hiện đã xóa" @change="loadPayments" />
@@ -1532,9 +1531,8 @@ const getPaymentStatusType = (status) =>
 const getPaymentMethodLabel = (method) =>
   ({
     CASH: "Tiền mặt",
-    BANK_TRANSFER: "Chuyển khoản",
+    TRANSFER: "Chuyển khoản",
     CREDIT_CARD: "Thẻ tín dụng",
-    E_WALLET: "Ví điện tử",
   })[method] || method;
 const getOrderStatusType = (status) =>
   ({
