@@ -233,4 +233,11 @@ public class PromotionController {
 
         return ApiResponse.success(result);
     }
+    @GetMapping("/available-for-customer/{customerId}")
+    public ApiResponse<List<Map<String, Object>>> getAvailableForCustomerId(
+            @PathVariable Integer customerId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found: " + customerId));
+        return ApiResponse.success(promotionService.getAvailablePromotionsForCustomer(customer));
+    }
 }
