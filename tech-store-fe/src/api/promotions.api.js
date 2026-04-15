@@ -53,4 +53,7 @@ export const promotionsApi = {
   getAvailable(customerId) {
   return http.get("/api/promotions/available", { params: { customerId } });
 },
+getAvailableForCustomer(customerId) {
+  return http.get(`/api/promotions/available-for-customer/${customerId}`);
+},
 };

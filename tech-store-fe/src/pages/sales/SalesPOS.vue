@@ -319,6 +319,19 @@
       </el-result>
     </el-dialog>
   </el-container>
+  <ReceiptPrint
+  ref="receiptRef"
+  :order="orderDone"
+  :customerTierName="customerTierName"
+  :vipDiscountPct="vipDiscountPct"
+  :vipDiscount="vipDiscount"
+  :spinDiscountPct="spinDiscountPct"
+  :spinDiscount="spinDiscount"
+  :promoCode="appliedPromo?.code"
+  :promoDiscount="promoDiscount"
+  :payMethod="payMethod"
+  :cashIn="cashIn"
+/>
 </template>
 
 <script setup>
@@ -333,6 +346,7 @@ import { customersApi } from "../../api/customers.api";
 import { spinWheelApi } from "../../api/spinWheel.api";
 import { confirmModal } from "../../ui/confirm";
 import { toast } from "../../ui/toast";
+import ReceiptPrint from '../../components/Receiptprint.vue'
 
 // ── Search & Cart ──
 const searchInput = ref(null);
@@ -378,6 +392,7 @@ const orderDone = ref(null);
 const snapshotTotal = ref(0);
 const snapshotPayMethod = ref("");
 const foundCustomerSnapshot = ref(null);
+const receiptRef = ref(null)
 
 // ── Computed ──
 const subtotal = computed(() => cart.value.reduce((s, i) => s + i.price, 0));
@@ -707,25 +722,15 @@ async function fetchAvailablePromos(customer) {
   promosLoading.value = true;
   availablePromos.value = [];
   try {
-    const res = await promotionsApi.list(true);
-    const raw = res.data?.data ?? res.data ?? [];
-    const list = Array.isArray(raw?.content) ? raw.content 
-               : (Array.isArray(raw) ? raw : []);
-    
-    const now = new Date();
-    availablePromos.value = list
-      .filter(p => {
-        if (p.startDate && new Date(p.startDate) > now) return false;
-        if (p.endDate && new Date(p.endDate) < now) return false;
-        if (p.usageLimit != null && (p.usedCount ?? 0) >= p.usageLimit) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        const est = (p) => p.discountType === 'PERCENT'  // ← đổi PERCENTAGE → PERCENT
-          ? (subtotal.value || 10_000_000) * p.discountValue / 100
-          : Number(p.discountValue ?? 0);
-        return est(b) - est(a);
-      });
+    const res = await promotionsApi.getAvailableForCustomer(customer.id); // ← đổi dòng này
+    const list = Array.isArray(res.data?.data) ? res.data.data : (res.data ?? []);
+
+    availablePromos.value = list.sort((a, b) => {
+      const est = (p) => p.discountType === 'PERCENT'
+        ? (subtotal.value || 10_000_000) * p.discountValue / 100
+        : Number(p.discountValue ?? 0);
+      return est(b) - est(a);
+    });
 
     showPromoList.value = availablePromos.value.length > 0;
   } catch (e) {
@@ -748,8 +753,9 @@ function previewDiscount(promo) {
   return Number(promo.discountValue ?? 0);  // AMOUNT → trả thẳng số tiền
 }
 
-function printReceipt() { toast("Chức năng in đang phát triển", "info"); }
-
+function printReceipt() {
+  receiptRef.value?.handlePrint()
+}
 const onKey = (e) => { if (e.key === "F2") { e.preventDefault(); searchInput.value?.focus(); } };
 onMounted(() => { window.addEventListener("keydown", onKey); loadDraft(); });
 onUnmounted(() => window.removeEventListener("keydown", onKey));
