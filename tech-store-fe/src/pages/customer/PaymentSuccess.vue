@@ -200,7 +200,7 @@ function formatDate(date) {
 }
 
 function formatMethod(method) {
-  const m = { CASH: "Tiền mặt", BANK_TRANSFER: "Chuyển khoản", TRANSFER: "Chuyển khoản", CREDIT_CARD: "Thẻ tín dụng", CARD: "Thẻ tín dụng", E_WALLET: "Ví điện tử" };
+  const m = { CASH: "Tiền mặt", BANK_TRANSFER: "Chuyển khoản", TRANSFER: "Chuyển khoản", CREDIT_CARD: "Thẻ tín dụng", CARD: "Thẻ tín dụng"};
   return m[method] || method;
 }
 

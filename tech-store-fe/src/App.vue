@@ -137,20 +137,6 @@
       <router-view />
     </el-main>
 
-    <!-- ─── Footer ───────────────────────────────────────── -->
-    <el-footer v-if="showFooter" height="auto">
-      <el-divider />
-      <el-row justify="center">
-        <el-space wrap :size="16">
-          <el-text size="small" type="info">Tech Store</el-text>
-          <el-divider direction="vertical" />
-          <el-text size="small" type="info">Laptop · Gaming · Workstation</el-text>
-          <el-divider direction="vertical" />
-          <el-text size="small" type="info">© {{ new Date().getFullYear() }} Tech Store. All rights reserved.</el-text>
-        </el-space>
-      </el-row>
-    </el-footer>
-
     <!-- ─── Notification Dialog ─────────────────────────── -->
     <el-dialog v-model="notificationsDialog" width="540px" align-center>
       <template #header>

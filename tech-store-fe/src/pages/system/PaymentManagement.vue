@@ -51,9 +51,8 @@
           <el-select v-model="filters.method" placeholder="Phương thức" clearable @change="applyFilters" style="width:100%">
             <el-option label="Tất cả phương thức" value="" />
             <el-option label="Tiền mặt" value="CASH" />
-            <el-option label="Chuyển khoản" value="BANK_TRANSFER" />
+            <el-option label="Chuyển khoản" value="TRANSFER" />
             <el-option label="Thẻ tín dụng" value="CREDIT_CARD" />
-            <el-option label="Ví điện tử" value="E_WALLET" />
           </el-select>
         </el-col>
         <el-col :span="4">
@@ -417,7 +416,7 @@ function orderStatusIcon(s) { return { DELIVERED: "CircleCheck", SHIPPING: "Van"
 function formatOrderStatus(s) { return { DELIVERED: "Đã giao hàng", SHIPPING: "Đang vận chuyển", CANCELLED: "Đã hủy", PENDING: "Chờ xử lý", PAID: "Đã thanh toán", RETURNED: "Trả hàng", PARTIALLY_RETURNED: "Trả hàng một phần" }[s] || s; }
 
 function getMethodIconComponent(m) {
-  return { CASH: "Money", BANK_TRANSFER: "OfficeBuilding", CREDIT_CARD: "CreditCard", E_WALLET: "Wallet" }[m] || "CreditCard";
+  return { CASH: "Money", TRANSFER: "OfficeBuilding", CREDIT_CARD: "CreditCard", E_WALLET: "Wallet" }[m] || "CreditCard";
 }
 
 function formatCurrency(v) {
@@ -439,7 +438,7 @@ function formatTime(d) {
   return new Date(d).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 }
 function formatMethod(m) {
-  return { CASH: "Tiền mặt", BANK_TRANSFER: "Chuyển khoản", CREDIT_CARD: "Thẻ tín dụng", E_WALLET: "Ví điện tử" }[m] || m;
+  return { CASH: "Tiền mặt", TRANSFER: "Chuyển khoản", CREDIT_CARD: "Thẻ tín dụng" }[m] || m;
 }
 function formatStatus(s) {
   return { PAID: "Đã thanh toán", REFUNDED: "Hoàn tiền", PENDING: "Chờ xử lý", FAILED: "Thất bại" }[s] || s;
