@@ -402,8 +402,8 @@ const currentStep = computed(() => {
   const ordStatus = order.value?.status;
   if (retStatus === 'COMPLETED') return 3;
   if (retStatus === 'PENDING')   return 2;
-  if (ordStatus === 'RETURNED' || ordStatus === 'PARTIALLY_RETURNED') return 3;
-  if (ordStatus === 'RETURN_REQUESTED') return 2;
+  if (ordStatus === 'RETURNED' || ordStatus === 'PARTIALLY_RETURNED') return 4;
+  if (ordStatus === 'RETURN_REQUESTED') return 3;
   return 1;
 });
 
