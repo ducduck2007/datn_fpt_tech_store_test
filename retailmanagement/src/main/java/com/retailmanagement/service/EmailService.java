@@ -836,4 +836,214 @@ public class EmailService {
             e.printStackTrace();
         }
     }
+
+    @Async
+    public void sendOrderCancelledEmail(Order order, String cancelReason) {
+        try {
+            if (order.getCustomer() == null ||
+                    order.getCustomer().getEmail() == null) return;
+
+            Resend resend = new Resend(apiKey);
+
+            String htmlContent = buildOrderCancelledEmail(order, cancelReason);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Don hang #" + order.getOrderNumber() + " da bi huy")
+                    .html(htmlContent)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ── Main HTML builder — Order Cancelled ──────────────────────────────
+    private String buildOrderCancelledEmail(Order order, String cancelReason) {
+        String customerName  = safe(order.getCustomer().getName(), "Khach hang");
+        String customerEmail = safe(order.getCustomer().getEmail(), "—");
+        String customerPhone = safe(order.getCustomer().getPhone() != null ? order.getCustomer().getPhone() : null, "—");
+        String paymentMethod = safe(order.getPaymentMethod(), "—");
+        String reasonHtml    = (cancelReason != null && !cancelReason.isBlank())
+                ? cancelReason
+                : "Khong co ly do cu the";
+
+        String createdAt = order.getCreatedAt() != null
+                ? order.getCreatedAt().atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy"))
+                : "—";
+
+        String itemRows    = buildItemRows(order);
+        String totalAmount = fmt(order.getTotalAmount());
+
+        return """
+        <!DOCTYPE html><html lang="vi">
+        <head><meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+        <title>Don hang bi huy</title></head>
+        <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,Helvetica,sans-serif;">
+          <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:30px 0;">
+            <tr><td align="center">
+              <table width="600" cellpadding="0" cellspacing="0"
+                     style="max-width:600px;width:100%%;background:#fff;border:1px solid #ccc;">
+ 
+                <!-- HEADER -->
+                <tr>
+                  <td style="background:#7a2e00;padding:24px 32px;">
+                    <p style="margin:0;font-size:11px;letter-spacing:3px;color:#f5c4a1;
+                               text-transform:uppercase;font-weight:bold;">TECHSTORE</p>
+                    <p style="margin:8px 0 0;font-size:18px;font-weight:bold;color:#fff;">
+                      Don hang da bi huy
+                    </p>
+                    <p style="margin:6px 0 0;font-size:13px;color:#f5c4a1;">Don hang #%s — %s</p>
+                  </td>
+                </tr>
+ 
+                <!-- STATUS BAR -->
+                <tr>
+                  <td style="background:#fff3ec;border-bottom:1px solid #f5c4a1;padding:10px 32px;">
+                    <p style="margin:0;font-size:13px;color:#7a2e00;font-weight:bold;">
+                      Da huy don hang
+                    </p>
+                  </td>
+                </tr>
+ 
+                <!-- GREETING -->
+                <tr><td style="padding:24px 32px 0;">
+                  <p style="margin:0;font-size:14px;color:#333;">Xin chao <strong>%s</strong>,</p>
+                  <p style="margin:10px 0 0;font-size:13px;color:#555;line-height:1.6;">
+                    Don hang <strong>#%s</strong> cua ban da bi huy. Neu ban da thanh toan,
+                    so tien se duoc hoan lai theo phuong thuc thanh toan goc trong vong
+                    <strong>3–5 ngay lam viec</strong>.
+                  </p>
+                </td></tr>
+ 
+                <!-- CANCEL REASON -->
+                <tr><td style="padding:16px 32px 0;">
+                  <table width="100%%" cellpadding="0" cellspacing="0"
+                         style="border:1px solid #f5c4a1;background:#fff8f3;border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:12px 16px;">
+                        <p style="margin:0 0 4px;font-size:11px;font-weight:bold;letter-spacing:2px;
+                                   text-transform:uppercase;color:#a04000;">LY DO HUY</p>
+                        <p style="margin:0;font-size:13px;color:#7a2e00;font-weight:bold;">%s</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+ 
+                <!-- CUSTOMER INFO -->
+                <tr><td style="padding:20px 32px 0;">
+                  <p style="margin:0 0 8px;font-size:11px;font-weight:bold;letter-spacing:2px;
+                             text-transform:uppercase;color:#888;">THONG TIN DON HANG</p>
+                  <table width="100%%" cellpadding="0" cellspacing="0"
+                         style="border:1px solid #ddd;border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:7px 12px;font-size:13px;color:#666;border-bottom:1px solid #eee;
+                                  background:#fafafa;width:40%%;border-right:1px solid #eee;">Khach hang</td>
+                      <td style="padding:7px 12px;font-size:13px;color:#222;border-bottom:1px solid #eee;">%s</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:7px 12px;font-size:13px;color:#666;border-bottom:1px solid #eee;
+                                  background:#fafafa;border-right:1px solid #eee;">Email</td>
+                      <td style="padding:7px 12px;font-size:13px;color:#222;border-bottom:1px solid #eee;">%s</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:7px 12px;font-size:13px;color:#666;border-bottom:1px solid #eee;
+                                  background:#fafafa;border-right:1px solid #eee;">Dien thoai</td>
+                      <td style="padding:7px 12px;font-size:13px;color:#222;border-bottom:1px solid #eee;">%s</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:7px 12px;font-size:13px;color:#666;background:#fafafa;
+                                  border-right:1px solid #eee;">Thanh toan</td>
+                      <td style="padding:7px 12px;font-size:13px;color:#222;">%s</td>
+                    </tr>
+                  </table>
+                </td></tr>
+ 
+                <!-- ORDER ITEMS -->
+                <tr><td style="padding:20px 32px 0;">
+                  <p style="margin:0 0 8px;font-size:11px;font-weight:bold;letter-spacing:2px;
+                             text-transform:uppercase;color:#888;">SAN PHAM TRONG DON</p>
+                  <table width="100%%" cellpadding="0" cellspacing="0"
+                         style="border:1px solid #ddd;border-collapse:collapse;">
+                    <tr style="background:#f5f5f5;">
+                      <th style="padding:8px;font-size:12px;color:#555;text-align:left;
+                                  border-bottom:1px solid #ddd;font-weight:bold;">San pham</th>
+                      <th style="padding:8px;font-size:12px;color:#555;text-align:center;
+                                  border-bottom:1px solid #ddd;font-weight:bold;white-space:nowrap;">S.L</th>
+                      <th style="padding:8px;font-size:12px;color:#555;text-align:right;
+                                  border-bottom:1px solid #ddd;font-weight:bold;white-space:nowrap;">Don gia</th>
+                      <th style="padding:8px;font-size:12px;color:#555;text-align:right;
+                                  border-bottom:1px solid #ddd;font-weight:bold;white-space:nowrap;">Thanh tien</th>
+                    </tr>
+                    %s
+                  </table>
+                </td></tr>
+ 
+                <!-- TOTAL -->
+                <tr><td style="padding:12px 32px 0;">
+                  <table width="100%%" cellpadding="0" cellspacing="0"
+                         style="background:#7a2e00;border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:14px 16px;font-size:13px;font-weight:bold;color:#f5c4a1;
+                                  text-transform:uppercase;letter-spacing:1px;">
+                        Tong gia tri don hang
+                      </td>
+                      <td style="padding:14px 16px;text-align:right;">
+                        <span style="font-size:20px;font-weight:bold;color:#fff;">%s d</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+ 
+                <!-- SUPPORT NOTE -->
+                <tr><td style="padding:16px 32px 0;">
+                  <table width="100%%" cellpadding="0" cellspacing="0"
+                         style="border:1px solid #ddd;background:#fafafa;border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:12px 16px;font-size:13px;color:#555;line-height:1.6;">
+                        Neu ban co thac mac ve don hang nay, vui long lien he
+                        <a href="mailto:support@nguyenduc.me" style="color:#7a2e00;">support@nguyenduc.me</a>
+                        de duoc ho tro.
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+ 
+                <!-- DIVIDER -->
+                <tr><td style="padding:24px 32px 0;">
+                  <hr style="border:none;border-top:1px solid #ddd;margin:0;"/>
+                </td></tr>
+ 
+                <!-- FOOTER -->
+                <tr><td style="padding:18px 32px 28px;text-align:center;">
+                  <p style="margin:0 0 4px;font-size:12px;font-weight:bold;color:#555;">TechStore</p>
+                  <p style="margin:0;font-size:12px;color:#999;line-height:1.7;">
+                    Lien he ho tro:
+                    <a href="mailto:support@nguyenduc.me" style="color:#1a2744;text-decoration:underline;">
+                      support@nguyenduc.me
+                    </a><br/>
+                    Email nay duoc gui tu dong, vui long khong tra loi truc tiep.
+                  </p>
+                  <p style="margin:12px 0 0;font-size:11px;color:#bbb;">(c) 2025 TechStore. All rights reserved.</p>
+                </td></tr>
+ 
+              </table>
+            </td></tr>
+          </table>
+        </body></html>
+        """.formatted(
+                order.getOrderNumber(), createdAt,
+                customerName,
+                order.getOrderNumber(),
+                reasonHtml,
+                customerName, customerEmail, customerPhone, paymentMethod,
+                itemRows,
+                totalAmount
+        );
+    }
 }
