@@ -760,4 +760,44 @@ public class PromotionService {
 
         return true;
     }
+
+    @Transactional
+    public void rollbackPromotionUsage(
+            Integer promotionId,
+            Integer customerId,
+            Long orderId
+    ) {
+
+        if (promotionId == null || customerId == null || orderId == null)
+            return;
+
+        // 1️⃣ tìm usage theo order
+        Optional<PromotionCustomerUsage> usageOpt =
+                customerUsageRepo.findByPromotionIdAndCustomerIdAndOrderId(
+                        promotionId,
+                        customerId,
+                        orderId
+                );
+
+        // ✅ đã rollback rồi → stop
+        if (usageOpt.isEmpty()) {
+            return;
+        }
+
+        // 2️⃣ xoá usage record
+        customerUsageRepo.delete(usageOpt.get());
+
+        // 3️⃣ giảm global redemption counter
+        redemptionRepo.findByPromotionId(promotionId)
+                .ifPresent(r -> {
+
+                    long used = r.getUsedCount() == null ? 0 : r.getUsedCount();
+
+                    if (used > 0) {
+                        r.setUsedCount(used - 1);
+                        r.setUpdatedAt(LocalDateTime.now());
+                        redemptionRepo.save(r);
+                    }
+                });
+    }
 }

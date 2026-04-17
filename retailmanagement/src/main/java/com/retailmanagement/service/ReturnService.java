@@ -32,6 +32,9 @@ public class ReturnService {
     private final EmailService emailService;
     private final ProductSerialRepository productSerialRepository;
     private final OrderItemSerialRepository orderItemSerialRepository;
+    private final PromotionService promotionService;
+    private final SpinWheelService spinWheelService;
+    private final PromotionRepository promotionRepository;
 
     @Transactional
     public ReturnResponse createReturn(CreateReturnRequest req, Integer userId, MultipartFile image) {
@@ -200,6 +203,32 @@ public class ReturnService {
         }
 
         updateOrderStatusAfterReturn(order);
+
+        // ======================================================
+        // ✅ RESTORE VOUCHER ONLY IF ORDER FULLY RETURNED
+        // ======================================================
+        if (OrderStatuses.RETURNED.equals(order.getStatus())) {
+
+            if (order.getCustomer() != null) {
+
+                // ----- Restore Promotion -----
+                if (order.getAppliedPromotionCode() != null) {
+
+                    promotionRepository
+                            .findByCode(order.getAppliedPromotionCode())
+                            .ifPresent(promotion ->
+                                    promotionService.rollbackPromotionUsage(
+                                            promotion.getId(),
+                                            order.getCustomer().getId(),
+                                            order.getId()
+                                    )
+                            );
+                }
+
+                // ----- Restore Spin Wheel -----
+                spinWheelService.restoreBonusByOrder(order.getId());
+            }
+        }
 
         emailService.sendReturnApprovedEmail(returnEntity);
         return mapToResponse(returnEntity);
