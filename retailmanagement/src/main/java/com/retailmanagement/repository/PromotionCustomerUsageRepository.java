@@ -22,4 +22,6 @@ public interface PromotionCustomerUsageRepository extends JpaRepository<Promotio
      * Get all promotion IDs that a customer has already used
      */
     List<PromotionCustomerUsage> findByCustomerId(Integer customerId);
+
+    Optional<PromotionCustomerUsage> findByPromotionIdAndCustomerIdAndOrderId(Integer promotionId, Integer customerId, Long orderId);
 }

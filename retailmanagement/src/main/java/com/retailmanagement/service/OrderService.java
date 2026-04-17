@@ -548,6 +548,30 @@ public class OrderService {
                     orderId);
         }
 
+        boolean storeFault = isStoreFault(reason);
+
+        if (storeFault && order.getCustomer() != null) {
+
+            // ✅ rollback promotion
+            if (order.getAppliedPromotionCode() != null) {
+                Promotion promotion =
+                        promotionRepository
+                                .findByCode(order.getAppliedPromotionCode())
+                                .orElse(null);
+
+                if (promotion != null) {
+                    promotionService.rollbackPromotionUsage(
+                            promotion.getId(),
+                            order.getCustomer().getId(),
+                            order.getId()
+                    );
+                }
+            }
+
+            // ✅ rollback spin wheel
+            spinWheelService.restoreBonusByOrder(order.getId());
+        }
+
         orderRepository.save(order);
     }
 
@@ -862,5 +886,17 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
         return promotionService.suggestBestVouchers(customer, subtotal, 5);
+    }
+
+    private boolean isStoreFault(String reason) {
+        if (reason == null) return false;
+
+        String r = reason.toUpperCase();
+
+        return r.contains("OUT_OF_STOCK")
+                || r.contains("STORE_ERROR")
+                || r.contains("WRONG_ITEM")
+                || r.contains("DAMAGED")
+                || r.contains("SHOP_FAULT");
     }
 }

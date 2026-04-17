@@ -289,4 +289,40 @@ public class SpinWheelService {
         }
         return prizes;
     }
+
+    @Transactional
+    public void restoreBonusByOrder(Long orderId) {
+
+        Optional<SpinWheelHistory> spinOpt =
+                spinWheelHistoryRepository.findByUsedOrderId(orderId);
+
+        if (spinOpt.isEmpty()) return;
+
+        SpinWheelHistory spinHistory = spinOpt.get();
+
+        // ✅ ĐÃ restore rồi → STOP
+        if (!spinHistory.getIsUsed()) {
+            return;
+        }
+
+        // ✅ Bonus hết hạn → không restore
+        if (spinHistory.getExpiresAt().isBefore(LocalDateTime.now())) {
+            return;
+        }
+
+        // lock customer tránh race condition
+        Customer customer = customerRepository
+                .findByIdWithLock(spinHistory.getCustomer().getId())
+                .orElseThrow();
+
+        spinHistory.setIsUsed(false);
+        spinHistory.setUsedOrderId(null);
+
+        spinWheelHistoryRepository.save(spinHistory);
+
+        customerRepository.updateSpinBonus(
+                customer.getId(),
+                spinHistory.getDiscountBonus()
+        );
+    }
 }
