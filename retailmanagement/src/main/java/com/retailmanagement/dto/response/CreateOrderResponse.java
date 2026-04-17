@@ -66,6 +66,7 @@ public class CreateOrderResponse {
         private BigDecimal price;
         private BigDecimal discount;
         private BigDecimal lineTotal;
+        private BigDecimal unitPrice;
         private BigDecimal shippingFee;
 
         private List<String> serialNumbers; // ← thêm mới
@@ -74,7 +75,7 @@ public class CreateOrderResponse {
         public Item(Long id, Integer productId, Integer variantId,
                     String productName, String variantName, String sku,
                     Integer quantity, BigDecimal price, BigDecimal discount,
-                    BigDecimal shippingFee, BigDecimal lineTotal) {
+                    BigDecimal shippingFee, BigDecimal lineTotal, BigDecimal unitPrice) {
             this.id = id;
             this.productId = productId;
             this.variantId = variantId;
@@ -86,6 +87,7 @@ public class CreateOrderResponse {
             this.discount = discount;
             this.shippingFee = shippingFee;
             this.lineTotal = lineTotal;
+            this.unitPrice =  unitPrice;
             this.serialNumbers = List.of();
         }
 
@@ -93,10 +95,10 @@ public class CreateOrderResponse {
         public Item(Long id, Integer productId, Integer variantId,
                     String productName, String variantName, String sku,
                     Integer quantity, BigDecimal price, BigDecimal discount,
-                    BigDecimal shippingFee, BigDecimal lineTotal,
+                    BigDecimal shippingFee, BigDecimal lineTotal,  BigDecimal unitPrice,
                     List<String> serialNumbers) {
             this(id, productId, variantId, productName, variantName, sku,
-                    quantity, price, discount, shippingFee, lineTotal);
+                    quantity, price, discount, shippingFee, lineTotal, unitPrice);
             this.serialNumbers = serialNumbers != null ? serialNumbers : List.of();
         }
     }

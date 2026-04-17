@@ -391,6 +391,7 @@ public class OrderService {
                     item.getDiscount(),
                     item.getShippingFee(),
                     item.getLineTotal(),
+                    item.getUnitPrice(),
                     savedSerials // ← thêm vào
             ));
         }
@@ -628,6 +629,7 @@ public class OrderService {
                             i.getDiscount(),
                             i.getShippingFee(),
                             i.getLineTotal(),
+                            i.getUnitPrice(),
                             serials // ← serial numbers
                     );
                 }).toList();

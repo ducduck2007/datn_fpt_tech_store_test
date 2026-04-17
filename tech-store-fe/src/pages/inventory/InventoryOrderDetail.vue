@@ -240,7 +240,7 @@
 
               <el-table-column label="Thành tiền" width="140" align="right">
                 <template #default="{ row }">
-                  <el-text tag="b" v-if="row.isFirst">{{ formatVND(row.lineTotal) }}</el-text>
+                  <el-text tag="b" v-if="row.isFirst">{{ formatVND(row.unitPrice) }}</el-text>
                 </template>
               </el-table-column>
             </el-table>
