@@ -549,6 +549,7 @@ public class OrderService {
         }
 
         orderRepository.save(order);
+        emailService.sendOrderCancelledEmail(order, reason);
     }
 
     @SensitiveOperation(action = ActionType.DELETE_OPERATION, entity = "ORDER", description = "Delete order", severity = SeverityLevel.HIGH)
