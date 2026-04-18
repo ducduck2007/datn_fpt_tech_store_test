@@ -276,11 +276,13 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Đối tượng" width="140">
+        <!-- ✅ Cột đơn tối thiểu thay cho cột Đối tượng -->
+        <el-table-column label="Đơn tối thiểu" width="130" align="right">
           <template #default="{ row }">
-            <el-tag v-if="row.vipTiers?.length"     type="warning" effect="plain" size="small">VIP {{ row.vipTiers.join(', ') }}</el-tag>
-            <el-tag v-else-if="row.customerTypes?.length" type="primary" effect="plain" size="small">{{ row.customerTypes.join(', ') }}</el-tag>
-            <el-text v-else type="info" size="small">All</el-text>
+            <el-text v-if="row.minOrderAmount" type="warning" size="small">
+              {{ fmtMoney(row.minOrderAmount) }}
+            </el-text>
+            <el-text v-else type="info" size="small">Không giới hạn</el-text>
           </template>
         </el-table-column>
 
@@ -431,19 +433,30 @@
           </el-col>
         </el-row>
 
+        <!-- ✅ Section Thời gian & Giới hạn — thêm minOrderAmount, bỏ đối tượng -->
         <el-divider content-position="left">Thời gian & Giới hạn</el-divider>
         <el-row :gutter="12">
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="Ngày bắt đầu">
               <el-input v-model="dlg.form.startDate" type="datetime-local" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="Ngày kết thúc">
               <el-input v-model="dlg.form.endDate" type="datetime-local" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="6">
+            <el-form-item label="Đơn tối thiểu (₫)">
+              <el-input
+                v-model.number="dlg.form.minOrderAmount"
+                type="number"
+                :min="0"
+                placeholder="0 = không giới hạn"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
             <el-form-item label="Giới hạn lượt dùng">
               <el-input v-model.number="dlg.form.usageLimit" type="number" :min="0" placeholder="Không giới hạn" />
             </el-form-item>
@@ -485,23 +498,8 @@
           </el-col>
         </el-row>
 
-        <el-divider content-position="left">👥 Đối tượng khách hàng <el-text type="info" size="small">(để trống = tất cả)</el-text></el-divider>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="Loại khách hàng (customerTypes)">
-              <el-checkbox-group v-model="dlg.form.customerTypes">
-                <el-checkbox v-for="t in ['VIP', 'REGULAR', 'NEW']" :key="t" :value="t">{{ t }}</el-checkbox>
-              </el-checkbox-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Hạng VIP (vipTiers)">
-              <el-checkbox-group v-model="dlg.form.vipTiers">
-                <el-checkbox v-for="t in ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND']" :key="t" :value="t">{{ t }}</el-checkbox>
-              </el-checkbox-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <!-- ✅ Đã bỏ section "Đối tượng khách hàng" (customerTypes + vipTiers) -->
+
       </el-form>
 
       <template #footer>
@@ -626,25 +624,27 @@ function normalize(list) {
     const combo    = rulesObj?.combo ?? null;
     const appObj   = (() => { try { return p?.applicabilityJson ? JSON.parse(p.applicabilityJson) : {}; } catch { return {}; } })();
     return {
-      id:            p?.id ?? p?.promotionId,
-      code:          p?.code ?? "",
-      name:          p?.name ?? "",
-      description:   p?.description ?? "",
-      discountType:  p?.discountType ?? "",
-      discountValue: p?.discountValue ?? 0,
-      startDate:     p?.startDate ?? "",
-      endDate:       p?.endDate ?? "",
-      scope:         appObj?.scope ?? p?.scope ?? "ALL",
-      productIds:    appObj?.product_ids ?? p?.productIds ?? [],
-      variantIds:    appObj?.variant_ids ?? p?.variantIds ?? [],
-      priority:      p?.priority ?? 0,
-      stackable:     !!p?.stackable,
-      isActive:      !!p?.isActive,
-      buyQty:        combo?.buy_qty ?? p?.buyQty ?? null,
-      getQty:        combo?.get_qty ?? p?.getQty ?? null,
-      usageLimit:    rulesObj?.usage_limit ?? p?.usageLimit ?? null,
-      customerTypes: appObj?.customer_types ?? p?.customerTypes ?? [],
-      vipTiers:      appObj?.vip_tiers ?? p?.vipTiers ?? [],
+      id:             p?.id ?? p?.promotionId,
+      code:           p?.code ?? "",
+      name:           p?.name ?? "",
+      description:    p?.description ?? "",
+      discountType:   p?.discountType ?? "",
+      discountValue:  p?.discountValue ?? 0,
+      startDate:      p?.startDate ?? "",
+      endDate:        p?.endDate ?? "",
+      scope:          appObj?.scope ?? p?.scope ?? "ALL",
+      productIds:     appObj?.product_ids ?? p?.productIds ?? [],
+      variantIds:     appObj?.variant_ids ?? p?.variantIds ?? [],
+      priority:       p?.priority ?? 0,
+      stackable:      !!p?.stackable,
+      isActive:       !!p?.isActive,
+      buyQty:         combo?.buy_qty ?? p?.buyQty ?? null,
+      getQty:         combo?.get_qty ?? p?.getQty ?? null,
+      usageLimit:     rulesObj?.usage_limit ?? p?.usageLimit ?? null,
+      // ✅ minOrderAmount từ entity trực tiếp
+      minOrderAmount: p?.minOrderAmount ?? null,
+      customerTypes:  appObj?.customer_types ?? p?.customerTypes ?? [],
+      vipTiers:       appObj?.vip_tiers ?? p?.vipTiers ?? [],
     };
   });
 }
@@ -786,7 +786,8 @@ const dlg = reactive({
     code: "", name: "", description: "", discountType: "PERCENT", discountValue: 0,
     startDate: "", endDate: "", scope: "ALL", productIdsText: "", variantIdsText: "",
     priority: 0, stackable: false, isActive: true, buyQty: null, getQty: null,
-    usageLimit: null, customerTypes: [], vipTiers: [],
+    usageLimit: null, minOrderAmount: null,
+    customerTypes: [], vipTiers: [],
   },
 });
 
@@ -806,19 +807,38 @@ function parseIds(t) {
 
 function openCreate() {
   Object.assign(dlg, { open: true, mode: "create", alert: "", id: null });
-  dlg.form = { code:"", name:"", description:"", discountType:"PERCENT", discountValue:0, startDate:"", endDate:"", scope:"ALL", productIdsText:"", variantIdsText:"", priority:0, stackable:false, isActive:true, buyQty:null, getQty:null, usageLimit:null, customerTypes:[], vipTiers:[] };
-}
-function openEdit(row) {
-  Object.assign(dlg, { open:true, mode:"edit", alert:"", id: row.id });
   dlg.form = {
-    code: row.code, name: row.name, description: row.description,
-    discountType: row.discountType || "PERCENT", discountValue: Number(row.discountValue || 0),
-    startDate: toLocalDT(row.startDate), endDate: toLocalDT(row.endDate),
-    scope: row.scope || "ALL", productIdsText: (row.productIds || []).join(","),
-    variantIdsText: (row.variantIds || []).join(","), priority: Number(row.priority || 0),
-    stackable: !!row.stackable, isActive: !!row.isActive,
-    buyQty: row.buyQty || null, getQty: row.getQty || null, usageLimit: row.usageLimit || null,
-    customerTypes: [...(row.customerTypes || [])], vipTiers: [...(row.vipTiers || [])],
+    code: "", name: "", description: "", discountType: "PERCENT", discountValue: 0,
+    startDate: "", endDate: "", scope: "ALL", productIdsText: "", variantIdsText: "",
+    priority: 0, stackable: false, isActive: true, buyQty: null, getQty: null,
+    usageLimit: null, minOrderAmount: null,
+    customerTypes: [], vipTiers: [],
+  };
+}
+
+function openEdit(row) {
+  Object.assign(dlg, { open: true, mode: "edit", alert: "", id: row.id });
+  dlg.form = {
+    code:           row.code,
+    name:           row.name,
+    description:    row.description,
+    discountType:   row.discountType || "PERCENT",
+    discountValue:  Number(row.discountValue || 0),
+    startDate:      toLocalDT(row.startDate),
+    endDate:        toLocalDT(row.endDate),
+    scope:          row.scope || "ALL",
+    productIdsText: (row.productIds || []).join(","),
+    variantIdsText: (row.variantIds || []).join(","),
+    priority:       Number(row.priority || 0),
+    stackable:      !!row.stackable,
+    isActive:       !!row.isActive,
+    buyQty:         row.buyQty || null,
+    getQty:         row.getQty || null,
+    usageLimit:     row.usageLimit || null,
+    // ✅ load minOrderAmount khi edit
+    minOrderAmount: row.minOrderAmount != null ? Number(row.minOrderAmount) : null,
+    customerTypes:  [...(row.customerTypes || [])],
+    vipTiers:       [...(row.vipTiers || [])],
   };
 }
 
@@ -826,11 +846,21 @@ async function save() {
   dlg.alert = "";
   if (!dlg.form.code || !dlg.form.name) { dlg.alert = "Code và tên là bắt buộc."; return; }
   const payload = {
-    code: dlg.form.code, name: dlg.form.name, description: dlg.form.description,
-    discountType: dlg.form.discountType, discountValue: dlg.form.discountValue,
-    startDate: fromLocalDT(dlg.form.startDate), endDate: fromLocalDT(dlg.form.endDate),
-    scope: dlg.form.scope, productIds: parseIds(dlg.form.productIdsText), variantIds: parseIds(dlg.form.variantIdsText),
-    priority: dlg.form.priority, stackable: dlg.form.stackable, isActive: dlg.form.isActive,
+    code:          dlg.form.code,
+    name:          dlg.form.name,
+    description:   dlg.form.description,
+    discountType:  dlg.form.discountType,
+    discountValue: dlg.form.discountValue,
+    startDate:     fromLocalDT(dlg.form.startDate),
+    endDate:       fromLocalDT(dlg.form.endDate),
+    scope:         dlg.form.scope,
+    productIds:    parseIds(dlg.form.productIdsText),
+    variantIds:    parseIds(dlg.form.variantIdsText),
+    priority:      dlg.form.priority,
+    stackable:     dlg.form.stackable,
+    isActive:      dlg.form.isActive,
+    // ✅ gửi minOrderAmount: 0 hoặc null đều nghĩa là không giới hạn
+    minOrderAmount: dlg.form.minOrderAmount > 0 ? dlg.form.minOrderAmount : null,
     ...(dlg.form.buyQty ? { buyQty: dlg.form.buyQty, getQty: dlg.form.getQty || 1 } : {}),
     ...(dlg.form.usageLimit ? { usageLimit: dlg.form.usageLimit } : {}),
     ...(dlg.form.customerTypes?.length ? { customerTypes: dlg.form.customerTypes } : {}),

@@ -60,10 +60,8 @@ public class PromotionService {
             a.scope = scope;
             a.product_ids = req.getProductIds();
             a.variant_ids = req.getVariantIds();
-
             a.customer_types = req.getCustomerTypes();
             a.vip_tiers = req.getVipTiers();
-
             return objectMapper.writeValueAsString(a);
         } catch (Exception e) {
             throw new IllegalArgumentException("applicabilityJson không hợp lệ");
@@ -251,6 +249,11 @@ public class PromotionService {
             }
         }
 
+        // Validate minOrderAmount nếu có
+        if (req.getMinOrderAmount() != null && req.getMinOrderAmount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("minOrderAmount phải >= 0");
+        }
+
         Promotion p = new Promotion();
         p.setCode(code);
         p.setName(req.getName().trim());
@@ -267,9 +270,8 @@ public class PromotionService {
         p.setRulesJson(rulesJson);
         p.setCreatedBy(createdBy);
         p.setCreatedAt(LocalDateTime.now());
-
-        // ✅ Không còn gọi assertNoDuplicatePromotion() — cho phép tạo tự do,
-        //    chỉ chặn trùng code (đã check ở trên).
+        // ✅ Set minOrderAmount — null nghĩa là không có điều kiện đơn tối thiểu
+        p.setMinOrderAmount(req.getMinOrderAmount());
 
         Promotion saved = promoRepo.save(p);
 
@@ -322,6 +324,16 @@ public class PromotionService {
         if (req.getIsActive() != null)
             p.setIsActive(req.getIsActive());
 
+        // ✅ Update minOrderAmount: null = bỏ điều kiện tối thiểu, >= 0 = set mới
+        if (req.getMinOrderAmount() != null) {
+            if (req.getMinOrderAmount().compareTo(BigDecimal.ZERO) < 0)
+                throw new IllegalArgumentException("minOrderAmount phải >= 0");
+            p.setMinOrderAmount(req.getMinOrderAmount());
+        } else {
+            // Nếu client gửi minOrderAmount = null thì xóa điều kiện (set về null)
+            p.setMinOrderAmount(null);
+        }
+
         if (req.getScope() != null || req.getProductIds() != null || req.getVariantIds() != null) {
             p.setApplicabilityJson(buildApplicabilityJson(req));
         }
@@ -360,7 +372,6 @@ public class PromotionService {
             }
         }
 
-        // ✅ Không còn gọi assertNoDuplicatePromotion() — cho phép update tự do.
         return promoRepo.save(p);
     }
 
@@ -537,9 +548,8 @@ public class PromotionService {
         if (promotionId == null || customerId == null)
             return;
 
-        // Double-check to prevent duplicate
         if (customerUsageRepo.existsByPromotionIdAndCustomerId(promotionId, customerId)) {
-            return; // Already recorded
+            return;
         }
 
         PromotionCustomerUsage usage = PromotionCustomerUsage.builder()
@@ -573,9 +583,6 @@ public class PromotionService {
 
     /**
      * Get list of active promotions available for a specific customer.
-     * Filters out: expired, inactive, over usage limit, already used by this
-     * customer,
-     * and promotions not applicable to the customer's type/tier.
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAvailablePromotionsForCustomer(Customer customer) {
@@ -583,7 +590,6 @@ public class PromotionService {
         List<Promotion> activePromos = promoRepo
                 .findByIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(now, now);
 
-        // Get set of promotion IDs already used by this customer
         Set<Integer> usedPromoIds = customerUsageRepo.findByCustomerId(customer.getId())
                 .stream()
                 .map(PromotionCustomerUsage::getPromotionId)
@@ -592,20 +598,15 @@ public class PromotionService {
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (Promotion p : activePromos) {
-            // Skip if customer already used this promotion
             if (usedPromoIds.contains(p.getId()))
                 continue;
-
-            // Skip if global usage limit reached
             if (!isUsableByLimit(p))
                 continue;
 
-            // Skip if not applicable to this customer's type/tier
             Applicability app = parseApplicability(p.getApplicabilityJson());
             if (!isApplicableToCustomer(app, customer))
                 continue;
 
-            // Build response map
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", p.getId());
             item.put("code", p.getCode());
@@ -617,7 +618,6 @@ public class PromotionService {
             item.put("endDate", p.getEndDate().toString());
             item.put("priority", p.getPriority());
 
-            // Parse combo info
             Rules rules = parseRules(p.getRulesJson());
             if (rules != null && rules.combo != null) {
                 item.put("buyQty", rules.combo.buy_qty);
@@ -627,13 +627,10 @@ public class PromotionService {
                 item.put("isCombo", false);
             }
 
-            // Scope info
             item.put("scope", app.scope);
-
             result.add(item);
         }
 
-        // Sort by priority descending, then by discountValue descending
         result.sort((a, b) -> {
             int priA = (Integer) a.getOrDefault("priority", 0);
             int priB = (Integer) b.getOrDefault("priority", 0);
@@ -718,6 +715,7 @@ public class PromotionService {
     public Rules parseRulesPublic(String json) {
         return parseRules(json);
     }
+
     public List<BestVoucherSuggestion> suggestBestVouchers(
             Customer customer, BigDecimal subtotal, int topN) {
 
@@ -767,11 +765,9 @@ public class PromotionService {
             Integer customerId,
             Long orderId
     ) {
-
         if (promotionId == null || customerId == null || orderId == null)
             return;
 
-        // 1️⃣ tìm usage theo order
         Optional<PromotionCustomerUsage> usageOpt =
                 customerUsageRepo.findByPromotionIdAndCustomerIdAndOrderId(
                         promotionId,
@@ -779,20 +775,15 @@ public class PromotionService {
                         orderId
                 );
 
-        // ✅ đã rollback rồi → stop
         if (usageOpt.isEmpty()) {
             return;
         }
 
-        // 2️⃣ xoá usage record
         customerUsageRepo.delete(usageOpt.get());
 
-        // 3️⃣ giảm global redemption counter
         redemptionRepo.findByPromotionId(promotionId)
                 .ifPresent(r -> {
-
                     long used = r.getUsedCount() == null ? 0 : r.getUsedCount();
-
                     if (used > 0) {
                         r.setUsedCount(used - 1);
                         r.setUpdatedAt(LocalDateTime.now());
