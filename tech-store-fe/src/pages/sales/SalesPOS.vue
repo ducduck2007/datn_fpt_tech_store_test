@@ -275,7 +275,6 @@
         <el-radio-group v-model="payMethod" style="width: 100%" class="pay-method-group">
           <el-radio-button label="CASH">TIỀN MẶT</el-radio-button>
           <el-radio-button label="TRANSFER">CHUYỂN KHOẢN</el-radio-button>
-          <el-radio-button label="CREDIT_CARD">QUẸT THẺ</el-radio-button>
         </el-radio-group>
 
         <div v-if="payMethod === 'CASH'">

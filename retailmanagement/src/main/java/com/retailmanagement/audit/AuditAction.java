@@ -7,5 +7,6 @@ public enum AuditAction {
     CHANGE_PASSWORD,
     DELETE,
     LOGIN,
-    LOGOUT
+    LOGOUT,
+    AUTO_COMPLETE,
 }

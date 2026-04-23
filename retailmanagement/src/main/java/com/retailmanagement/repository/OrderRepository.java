@@ -172,4 +172,43 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             ORDER BY SUM(oi.quantity) DESC
             """, nativeQuery = true)
     List<Object[]> topSellingProducts();
+
+    /**
+     * Tìm tất cả đơn SHIPPING chưa được cập nhật trong hơn N ngày.
+     * Dùng {@code updatedAt} để tính ngưỡng thời gian.
+     *
+     * @param status  OrderStatuses.SHIPPING
+     * @param cutoff  Instant.now().minusSeconds(days * 86_400)
+     */
+    @Query("""
+    SELECT o FROM Order o
+    WHERE o.status = :status
+      AND o.updatedAt < :cutoff
+    ORDER BY o.updatedAt ASC
+""")
+    List<Order> findShippingOrdersOverdue(
+            @Param("status") String status,
+            @Param("cutoff") Instant cutoff
+    );
+
+    /**
+     * Tìm đơn SHIPPING sắp bị auto-complete để gửi email cảnh báo.
+     * Điều kiện: updatedAt nằm trong khoảng [cutoff, upperBound)
+     * — tức là đã quá (N-1) ngày nhưng chưa đủ N ngày.
+     *
+     * @param cutoff      Instant.now().minusSeconds((days-1) * 86_400)
+     * @param upperBound  Instant.now().minusSeconds((days-2) * 86_400)
+     */
+    @Query("""
+    SELECT o FROM Order o
+    WHERE o.status = 'SHIPPING'
+      AND o.updatedAt < :cutoff
+      AND o.updatedAt >= :upperBound
+    ORDER BY o.updatedAt ASC
+""")
+    List<Order> findShippingOrdersToWarn(
+            @Param("cutoff")      Instant cutoff,
+            @Param("upperBound")  Instant upperBound
+    );
+
 }

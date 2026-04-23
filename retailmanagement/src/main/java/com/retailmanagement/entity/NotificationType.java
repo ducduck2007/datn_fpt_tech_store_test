@@ -14,7 +14,8 @@ public enum NotificationType {
     VIP_TIER_UPGRADE("Nâng hạng VIP", "👑"),
     SYSTEM("Hệ thống", "🔔"),
     SPIN_EXPIRY_WARNING("Ưu đãi vòng quay sắp hết hạn", "🎡"),
-    ORDER_UPDATE("Cập nhật về đơn hàng", "");
+    ORDER_UPDATE("Cập nhật về đơn hàng", ""),
+    ORDER_AUTO_COMPLETED("Giao hàng tự động", "✅");
 
     private final String displayName;
     private final String icon;

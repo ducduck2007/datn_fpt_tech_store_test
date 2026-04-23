@@ -22,11 +22,9 @@
               <el-button plain :loading="loading" @click="reload">
                 <el-icon><Refresh /></el-icon> Reload
               </el-button>
+              <!-- Chỉ hiện nút Thanh toán online với đơn KHÔNG phải tiền mặt, đang ở PENDING và chưa thanh toán -->
               <el-button
-                v-if="detail?.paymentStatus === 'UNPAID' && (
-                  (detail?.status === 'PENDING' && detail?.paymentMethod !== 'CASH') ||
-                  (detail?.status === 'DELIVERED' && detail?.paymentMethod === 'CASH')
-                )"
+                v-if="detail?.paymentStatus === 'UNPAID' && detail?.status === 'PENDING' && detail?.paymentMethod !== 'CASH'"
                 type="primary" plain @click="openPaymentDialog"
               >
                 <el-icon><CreditCard /></el-icon> Thanh toán
@@ -37,12 +35,7 @@
               >
                 <el-icon><Close /></el-icon> Hủy đơn
               </el-button>
-              <el-button
-                v-if="detail?.status === 'SHIPPING'"
-                type="success" plain :loading="deliveredLoading" @click="confirmDelivered"
-              >
-                <el-icon><Check /></el-icon> Đã nhận hàng
-              </el-button>
+
             </el-space>
           </el-row>
 
@@ -171,6 +164,45 @@
 
       <!-- RIGHT COLUMN -->
       <div class="order-right" v-if="detail">
+
+        <!-- Shipping Info Banner: hiện khi đơn đang được giao -->
+        <el-alert
+          v-if="detail?.status === 'SHIPPING'"
+          type="success"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px;"
+        >
+          <template #title>
+            <span style="font-weight: 700;">🚚 Đơn hàng đang được giao</span>
+          </template>
+          <template #default>
+            <el-space direction="vertical" :size="4">
+              <el-text size="small">Cửa hàng sẽ xác nhận giao hàng thành công sau khi kiểm tra thông tin với đơn vị vận chuyển.</el-text>
+              <el-text size="small" type="info">Nếu không có phản hồi, đơn hàng sẽ được tự động xác nhận sau <strong>3 ngày</strong>.</el-text>
+              <el-text size="small" type="danger">Nếu có vấn đề với đơn hàng, vui lòng liên hệ hỗ trợ để được giám sát.</el-text>
+            </el-space>
+          </template>
+        </el-alert>
+
+        <!-- COD Info Banner: chỉ hiện khi phương thức là CASH và đơn chưa hoàn thành thu tiền -->
+        <el-alert
+          v-if="detail?.paymentMethod === 'CASH' && detail?.paymentStatus !== 'PAID'"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px;"
+        >
+          <template #title>
+            <span style="font-weight: 700;">💵 Thanh toán tiền mặt (COD)</span>
+          </template>
+          <template #default>
+            <el-space direction="vertical" :size="4">
+              <el-text size="small">Shipper sẽ thu tiền mặt trực tiếp khi giao hàng đến tay bạn.</el-text>
+              <el-text size="small" type="info">Bạn <strong>không cần</strong> thao tác thanh toán online. Hệ thống sẽ tự cập nhật sau khi kế toán đối soát.</el-text>
+            </el-space>
+          </template>
+        </el-alert>
 
         <!-- Totals -->
         <el-card shadow="never" style="margin-bottom: 16px;">
@@ -312,32 +344,6 @@
           <el-text size="small" type="info" style="display: block; text-align: center;">Sử dụng ứng dụng ngân hàng để quét mã QR</el-text>
         </div>
 
-        <div v-if="detail?.paymentMethod === 'CARD'">
-          <el-form-item label="Loại thẻ">
-            <el-select v-model="cardForm.type" style="width: 100%;">
-              <el-option value="VISA" label="VISA" />
-              <el-option value="CREDIT" label="Credit Card" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Số thẻ">
-            <el-input v-model="cardForm.number" placeholder="1234 5678 1234 5678" />
-          </el-form-item>
-          <el-form-item label="Tên chủ thẻ">
-            <el-input v-model="cardForm.holder" placeholder="NGUYEN VAN A" />
-          </el-form-item>
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="Expiry">
-                <el-input v-model="cardForm.expiry" placeholder="MM/YY" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="CVV">
-                <el-input v-model="cardForm.cvv" placeholder="123" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
       </el-form>
 
       <template #footer>
@@ -434,8 +440,8 @@ const spinStatus = reactive({
 });
 
 const returnForm = reactive({ orderItemId: null, quantity: 1, reason: "", refundAmount: 0 });
-const cardForm = reactive({ type: "VISA", number: "", holder: "", expiry: "", cvv: "" });
 const qrCodeUrl = ref("");
+
 
 const isHomeDelivery = computed(() => {
   if (!detail.value?.notes) return false;
