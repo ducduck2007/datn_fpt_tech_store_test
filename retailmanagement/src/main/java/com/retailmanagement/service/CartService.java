@@ -112,10 +112,25 @@ public class CartService {
     private CartItemResponse toResponse(CartItem item) {
         CartItemResponse dto = new CartItemResponse();
         dto.setCartItemId(item.getId());
-        dto.setVariantId(item.getProductVariant().getId());
-        dto.setProductName(item.getProductVariant().getProduct().getName());
-        dto.setPrice(item.getProductVariant().getPrice());
+
+        var variant = item.getProductVariant();
+        var product = variant.getProduct();
+
+        dto.setVariantId(variant.getId());
+        dto.setProductName(product.getName());
+        dto.setVariantName(variant.getVariantName());
+        dto.setPrice(variant.getPrice());
         dto.setQuantity(item.getQuantity());
+
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            String url = product.getImages().stream()
+                    .filter(img -> img.getIsPrimary() != null && img.getIsPrimary())
+                    .map(img -> img.getUrl())
+                    .findFirst()
+                    .orElse(product.getImages().get(0).getUrl());
+            dto.setImageUrl(url);
+        }
+
         return dto;
     }
 }

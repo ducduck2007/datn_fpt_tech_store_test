@@ -72,7 +72,7 @@
             <!-- Product -->
             <el-space :size="14" align="center" style="min-width: 0;">
               <div class="item-img-wrap">
-                <img v-if="row.imageUrl" :src="row.imageUrl" :alt="row.productName" class="item-img" />
+                <img v-if="row.imageUrl" :src="fixImageUrl(row.imageUrl)" :alt="row.productName" class="item-img" />
                 <el-icon v-else :size="20" style="color: var(--el-text-color-placeholder);"><Picture /></el-icon>
               </div>
               <el-space direction="vertical" :size="3" style="min-width: 0;">
@@ -194,6 +194,14 @@ const removingId = ref(null);
 const subtotal = computed(() =>
   items.value.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0),
 );
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+function fixImageUrl(url) {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return `${BASE_URL}${url}`;
+}
 
 async function loadCart() {
   loading.value = true;
