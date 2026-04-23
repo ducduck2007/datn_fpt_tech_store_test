@@ -1,4 +1,4 @@
-<!-- FILE: src/pages/system/PaymentManagement.vue -->
+<!-- \src\pages\system\PaymentManagement.vue -->
 <template>
   <div class="pm-root">
 

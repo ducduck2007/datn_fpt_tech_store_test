@@ -1,3 +1,4 @@
+<!-- \src\components\Receiptprint.vue -->
 <template>
   <div>
     <!-- Nút in (dùng trong POS dialog thành công) -->

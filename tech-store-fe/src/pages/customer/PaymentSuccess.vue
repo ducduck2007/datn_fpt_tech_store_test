@@ -1,3 +1,4 @@
+<!-- \src\pages\customer\PaymentSuccess.vue -->
 <template>
   <div class="success-page">
 

@@ -1,3 +1,4 @@
+<!-- \src\pages\system\OrderDetail.vue -->
 <template>
   <div class="order-page">
     <el-card shadow="never">
@@ -28,7 +29,7 @@
             <span v-if="!loading">Reload</span>
           </el-button>
 
-          <!-- Admin: Xác nhận đã giao hàng (cho đơn SHIPPING mà khách chưa bấm nhận) -->
+          <!-- Admin: Xác nhận đã giao hàng -->
           <el-button
             v-if="detail?.status === 'SHIPPING'"
             type="success"
@@ -48,6 +49,17 @@
             @click="handleConfirmCod"
           >
             <el-icon><Money /></el-icon> Xác nhận Thu Tiền Mặt
+          </el-button>
+
+          <!-- ✅ FIX Issue 1: Admin xác nhận chuyển khoản -->
+          <el-button
+            v-if="detail?.paymentMethod === 'TRANSFER' && detail?.paymentStatus !== 'PAID'"
+            type="primary"
+            plain
+            :loading="confirmTransferLoading"
+            @click="handleConfirmTransfer"
+          >
+            <el-icon><Wallet /></el-icon> Xác nhận Chuyển Khoản
           </el-button>
         </div>
       </div>
@@ -174,7 +186,6 @@
                     </el-space>
                     <div>{{ detail.spinDiscountRate }}%</div>
                     <div class="pill-amount">-{{ formatMoney(detail.spinDiscount) }}</div>
-                    <div class="pill-note">{{ detail.hasSpinBonus ? "Đã áp dụng" : "Khấu trừ khi TT" }}</div>
                   </div>
                 </el-space>
               </el-card>
@@ -188,7 +199,6 @@
                       <span>Mã giảm giá</span>
                       <el-tag size="small" type="success">{{ effectiveCoupon.code || "Đã áp dụng" }}</el-tag>
                     </el-space>
-                    <div v-if="effectiveCoupon.rate">{{ effectiveCoupon.rate }}%</div>
                     <div class="pill-amount">-{{ formatMoney(effectiveCoupon.amount) }}</div>
                     <div class="pill-note">Ưu đãi từ mã khuyến mãi</div>
                   </div>
@@ -274,7 +284,10 @@
                 </el-text>
               </el-descriptions-item>
 
-              <el-descriptions-item label="Phí giao hàng">{{ formatMoney(detail.shippingFee) }}</el-descriptions-item>
+              <!-- ✅ FIX Issue 2: Ẩn dòng phí giao hàng khi = 0 -->
+              <el-descriptions-item v-if="detail.shippingFee > 0" label="Phí giao hàng">
+                {{ formatMoney(detail.shippingFee) }}
+              </el-descriptions-item>
 
               <el-descriptions-item label="Tổng cộng">
                 <el-text type="primary"><strong class="total-amount">{{ formatMoney(detail.totalAmount) }}</strong></el-text>
@@ -301,6 +314,9 @@ import {
   CircleCheck, CircleClose, Timer, InfoFilled, RefreshLeft,
 } from "@element-plus/icons-vue";
 
+// NOTE: "Tickets" được dùng inline trong template qua el-icon — đã có global register
+// nếu chưa, thêm vào import: import { ..., Tickets } from "@element-plus/icons-vue"
+
 const route = useRoute();
 
 const loading = ref(false);
@@ -310,6 +326,7 @@ const orderId = computed(() => route.params.orderId);
 
 const markDeliveredLoading = ref(false);
 const confirmCodLoading = ref(false);
+const confirmTransferLoading = ref(false); // ✅ FIX Issue 1
 
 const statusType = computed(() => {
   const s = detail.value?.status;
@@ -327,10 +344,8 @@ const paymentStatusType = computed(() => {
   return "info";
 });
 
-function orderStatusIcon(s) { return { DELIVERED: "CircleCheck", SHIPPING: "Van", CANCELLED: "CircleClose", PENDING: "Timer", PAID: "CircleCheck", RETURNED: "RefreshLeft", PARTIALLY_RETURNED: "RefreshLeft" }[s] || "InfoFilled"; }
 function formatOrderStatus(s) { return { DELIVERED: "Đã giao hàng", SHIPPING: "Đang vận chuyển", CANCELLED: "Đã hủy", PENDING: "Chờ xử lý", PAID: "Đã thanh toán", RETURNED: "Trả hàng", PARTIALLY_RETURNED: "Trả hàng một phần" }[s] || s; }
-function paymentStatusIcon(s) { return { PAID: "CircleCheck", PARTIAL: "Warning", PENDING: "Timer" }[s] || "InfoFilled"; }
-function formatPaymentStatus(s) { return { PAID: "Đã thanh toán", PARTIAL: "Thanh toán một phần", PENDING: "Chờ thanh toán" }[s] || s; }
+function formatPaymentStatus(s) { return { PAID: "Đã thanh toán", PARTIAL: "Thanh toán một phần", PENDING: "Chờ thanh toán", UNPAID: "Chưa thanh toán" }[s] || s; }
 
 const vipPercentAmount = computed(() => {
   const total = detail.value?.vipDiscount || 0;
@@ -357,27 +372,18 @@ const parsedNotes = computed(() => {
 
 const categorizedNotes = computed(() => {
   return parsedNotes.value.map((note) => {
-    const lower = note.toLowerCase();
     if (/^vip\s+/i.test(note)) {
       return { text: note, type: "note-vip", icon: "⭐" };
     }
     if (/^[Mm]ã[:\s]/.test(note)) {
       return { text: note, type: "note-coupon", icon: "🎟️" };
     }
-    if (lower.includes("ship") || lower.includes("giao")) {
+    if (note.toLowerCase().includes("ship") || note.toLowerCase().includes("giao")) {
       return { text: note, type: "note-ship", icon: "🚚" };
     }
     return { text: note, type: "note-default", icon: "📌" };
   });
 });
-
-function noteTagType(note) {
-  const lower = note.toLowerCase();
-  if (lower.includes("vip")) return "purple";
-  if (lower.includes("mã") || lower.includes("code")) return "success";
-  if (lower.includes("ship") || lower.includes("giao")) return "warning";
-  return "info";
-}
 
 const parsedVipBonus = computed(() => {
   if (!detail.value?.notes) return null;
@@ -398,8 +404,7 @@ const parsedVipBonus = computed(() => {
 
 const parsedCoupon = computed(() => {
   if (!detail.value?.notes) return null;
-  if (detail.value.couponDiscount && detail.value.couponDiscount > 0)
-    return null;
+  if (detail.value.couponDiscount && detail.value.couponDiscount > 0) return null;
   const segments = detail.value.notes.split("|").map((s) => s.trim());
   for (const seg of segments) {
     const match = seg.match(/^[Mm]ã[:\s]+([A-Za-z0-9_\-]+)[:\s]+([-\d,\.]+)/);
@@ -415,27 +420,15 @@ const parsedCoupon = computed(() => {
 
 const effectiveCoupon = computed(() => {
   if (detail.value?.couponDiscount && detail.value.couponDiscount > 0) {
-    return {
-      code: detail.value.couponCode || "",
-      amount: detail.value.couponDiscount,
-      rate: detail.value.couponDiscountRate || null,
-    };
+    return { code: detail.value.couponCode || "", amount: detail.value.couponDiscount, rate: detail.value.couponDiscountRate || null };
   }
-  if (parsedCoupon.value)
-    return {
-      code: parsedCoupon.value.code,
-      amount: parsedCoupon.value.amount,
-      rate: null,
-    };
+  if (parsedCoupon.value) return { code: parsedCoupon.value.code, amount: parsedCoupon.value.amount, rate: null };
   return null;
 });
 
 function formatMoney(val) {
   if (!val) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(val);
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
 }
 
 async function reload() {
@@ -459,7 +452,7 @@ async function reload() {
   }
 }
 
-// Admin: Đánh dấu đơn hàng đã giao thành công
+// Admin: Đánh dấu đã giao hàng
 async function handleMarkDelivered() {
   try {
     await ElMessageBox.confirm(
@@ -470,17 +463,9 @@ async function handleMarkDelivered() {
         <li style="color: var(--el-color-danger);">Hành động này không thể hoàn tác</li>
       </ul>`,
       '✅ Xác nhận Giao Hàng Thành Công',
-      {
-        confirmButtonText: 'Đánh dấu đã giao',
-        cancelButtonText: 'Hủy',
-        type: 'success',
-        dangerouslyUseHTMLString: true,
-        confirmButtonClass: 'el-button--success',
-      }
+      { confirmButtonText: 'Đánh dấu đã giao', cancelButtonText: 'Hủy', type: 'success', dangerouslyUseHTMLString: true }
     );
-  } catch {
-    return; // user cancelled
-  }
+  } catch { return; }
   markDeliveredLoading.value = true;
   try {
     await ordersApi.markAsDelivered(orderId.value);
@@ -508,29 +493,53 @@ async function handleConfirmCod() {
         <li style="color: var(--el-color-danger);">Hành động này không thể hoàn tác</li>
       </ul>`,
       '💵 Xác nhận Thu Tiền Mặt COD',
-      {
-        confirmButtonText: 'Xác nhận đã thu tiền',
-        cancelButtonText: 'Hủy',
-        type: 'warning',
-        dangerouslyUseHTMLString: true,
-      }
+      { confirmButtonText: 'Xác nhận đã thu tiền', cancelButtonText: 'Hủy', type: 'warning', dangerouslyUseHTMLString: true }
     );
-  } catch {
-    return; // user cancelled
-  }
+  } catch { return; }
   confirmCodLoading.value = true;
   try {
-    await paymentsApi.create({
-      orderId: Number(orderId.value),
-      method: 'CASH',
-      transactionRef: `COD-${Date.now()}`,
-    });
+    await paymentsApi.create({ orderId: Number(orderId.value), method: 'CASH', transactionRef: `COD-${Date.now()}` });
     toast('✅ Đã xác nhận thu tiền mặt thành công', 'success');
     await reload();
   } catch {
     toast('Lỗi khi xác nhận thanh toán', 'error');
   } finally {
     confirmCodLoading.value = false;
+  }
+}
+
+// ✅ FIX Issue 1: Admin xác nhận chuyển khoản
+async function handleConfirmTransfer() {
+  const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(detail.value?.totalAmount || 0);
+  try {
+    await ElMessageBox.confirm(
+      `Xác nhận đã nhận tiền chuyển khoản cho đơn hàng <strong>${detail.value?.orderNumber}</strong>?<br/><br/>
+      <div style="padding: 12px; background: var(--el-fill-color-light); border-radius: 6px; margin-bottom: 8px;">
+        <span style="font-size: 22px; font-weight: 800; color: var(--el-color-primary);">${amount}</span>
+      </div>
+      <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: var(--el-text-color-secondary);">
+        <li>Trạng thái thanh toán chuyển sang <strong>PAID</strong></li>
+        <li>Kho sẽ được xuất tự động</li>
+        <li>Điểm loyalty sẽ được cộng cho khách hàng</li>
+        <li style="color: var(--el-color-danger);">Hành động này không thể hoàn tác</li>
+      </ul>`,
+      '🏦 Xác nhận Thanh toán Chuyển khoản',
+      { confirmButtonText: 'Xác nhận đã nhận tiền', cancelButtonText: 'Hủy', type: 'primary', dangerouslyUseHTMLString: true }
+    );
+  } catch { return; }
+  confirmTransferLoading.value = true;
+  try {
+    await paymentsApi.create({
+      orderId: Number(orderId.value),
+      method: 'TRANSFER',
+      transactionRef: `TRANSFER-${Date.now()}`,
+    });
+    toast('✅ Đã xác nhận thanh toán chuyển khoản thành công', 'success');
+    await reload();
+  } catch {
+    toast('Lỗi khi xác nhận thanh toán', 'error');
+  } finally {
+    confirmTransferLoading.value = false;
   }
 }
 
@@ -556,24 +565,6 @@ onMounted(() => reload());
   padding: 0;
   min-height: 100vh;
   font-size: 16px;
-}
-
-.order-kicker {
-  text-transform: uppercase;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  margin-bottom: 4px;
-}
-
-.order-id {
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.mt-2 {
-  margin-top: 8px;
 }
 
 .section-row > .el-col {

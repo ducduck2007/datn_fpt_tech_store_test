@@ -1,3 +1,4 @@
+// \src\api\payments.js
 import http from "./http";
 
 export const paymentsApi = {

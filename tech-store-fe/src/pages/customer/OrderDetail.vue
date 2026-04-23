@@ -1,3 +1,4 @@
+<!-- \src\pages\customer\OrderDetail.vue -->
 <template>
   <div style="max-width: 1280px; margin: 0 auto; padding: 32px 24px 60px;">
     <div class="order-layout">
@@ -22,20 +23,31 @@
               <el-button plain :loading="loading" @click="reload">
                 <el-icon><Refresh /></el-icon> Reload
               </el-button>
-              <!-- Chỉ hiện nút Thanh toán online với đơn KHÔNG phải tiền mặt, đang ở PENDING và chưa thanh toán -->
+
+              <!-- ✅ FIX Issue 1: Chỉ hiện nút "Thanh toán" cho phương thức KHÔNG phải TRANSFER và KHÔNG phải CASH -->
               <el-button
-                v-if="detail?.paymentStatus === 'UNPAID' && detail?.status === 'PENDING' && detail?.paymentMethod !== 'CASH'"
+                v-if="detail?.paymentStatus === 'UNPAID' && detail?.status === 'PENDING'
+                      && detail?.paymentMethod !== 'CASH' && detail?.paymentMethod !== 'TRANSFER'"
                 type="primary" plain @click="openPaymentDialog"
               >
                 <el-icon><CreditCard /></el-icon> Thanh toán
               </el-button>
+
+              <!-- ✅ FIX Issue 1: TRANSFER → chỉ cho xem QR, không tự confirm -->
+              <el-button
+                v-if="detail?.paymentStatus === 'UNPAID' && detail?.status === 'PENDING'
+                      && detail?.paymentMethod === 'TRANSFER'"
+                type="info" plain @click="openPaymentDialog"
+              >
+                <el-icon><CreditCard /></el-icon> Xem QR Chuyển khoản
+              </el-button>
+
               <el-button
                 v-if="detail?.status === 'PENDING' || detail?.status === 'PAID'"
                 type="danger" plain @click="showCancelDialog = true"
               >
                 <el-icon><Close /></el-icon> Hủy đơn
               </el-button>
-
             </el-space>
           </el-row>
 
@@ -118,46 +130,43 @@
                 <el-tag type="info" effect="plain" size="small">{{ detail.items?.length }} sản phẩm</el-tag>
               </el-row>
             </el-space>
-         <el-table :data="detail.items" border stripe size="small">
-  <el-table-column type="index" width="48" align="center" />
-  <el-table-column label="Sản phẩm" min-width="200">
-    <template #default="{ row }">
-      <el-text tag="div" style="font-weight: 600;">{{ row.productName }}</el-text>
-      <el-text size="small" type="info">{{ row.variantName }}</el-text>
-      <el-text size="small" type="info" style="display: block;">{{ row.sku }}</el-text>
-    </template>
-  </el-table-column>
-  <el-table-column label="SL" width="80" align="center">
-    <template #default="{ row }">
-      <el-tag size="small">× {{ row.quantity }}</el-tag>
-    </template>
-  </el-table-column>
-  <el-table-column label="Đơn giá" width="140" align="right">
-    <template #default="{ row }">
-      <el-text type="primary" style="font-weight: 600;">{{ formatMoney(row.price) }}</el-text>
-    </template>
-  </el-table-column>
-
-  <!-- ✅ THÊM MỚI: cột serial -->
-  <el-table-column label="Serial" min-width="160">
-    <template #default="{ row }">
-      <template v-if="row.serialNumbers && row.serialNumbers.length">
-        <el-tag
-          v-for="sn in row.serialNumbers"
-          :key="sn"
-          size="small"
-          type="info"
-          effect="plain"
-          style="margin: 2px 2px; font-family: monospace; letter-spacing: 0.04em;"
-        >
-          {{ sn }}
-        </el-tag>
-      </template>
-      <el-text v-else size="small" type="info">—</el-text>
-    </template>
-  </el-table-column>
-</el-table>
-           
+            <el-table :data="detail.items" border stripe size="small">
+              <el-table-column type="index" width="48" align="center" />
+              <el-table-column label="Sản phẩm" min-width="200">
+                <template #default="{ row }">
+                  <el-text tag="div" style="font-weight: 600;">{{ row.productName }}</el-text>
+                  <el-text size="small" type="info">{{ row.variantName }}</el-text>
+                  <el-text size="small" type="info" style="display: block;">{{ row.sku }}</el-text>
+                </template>
+              </el-table-column>
+              <el-table-column label="SL" width="80" align="center">
+                <template #default="{ row }">
+                  <el-tag size="small">× {{ row.quantity }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="Đơn giá" width="140" align="right">
+                <template #default="{ row }">
+                  <el-text type="primary" style="font-weight: 600;">{{ formatMoney(row.price) }}</el-text>
+                </template>
+              </el-table-column>
+              <el-table-column label="Serial" min-width="160">
+                <template #default="{ row }">
+                  <template v-if="row.serialNumbers && row.serialNumbers.length">
+                    <el-tag
+                      v-for="sn in row.serialNumbers"
+                      :key="sn"
+                      size="small"
+                      type="info"
+                      effect="plain"
+                      style="margin: 2px 2px; font-family: monospace; letter-spacing: 0.04em;"
+                    >
+                      {{ sn }}
+                    </el-tag>
+                  </template>
+                  <el-text v-else size="small" type="info">—</el-text>
+                </template>
+              </el-table-column>
+            </el-table>
           </template>
         </el-card>
       </div>
@@ -165,7 +174,7 @@
       <!-- RIGHT COLUMN -->
       <div class="order-right" v-if="detail">
 
-        <!-- Shipping Info Banner: hiện khi đơn đang được giao -->
+        <!-- Shipping Info Banner -->
         <el-alert
           v-if="detail?.status === 'SHIPPING'"
           type="success"
@@ -185,7 +194,7 @@
           </template>
         </el-alert>
 
-        <!-- COD Info Banner: chỉ hiện khi phương thức là CASH và đơn chưa hoàn thành thu tiền -->
+        <!-- COD Banner -->
         <el-alert
           v-if="detail?.paymentMethod === 'CASH' && detail?.paymentStatus !== 'PAID'"
           type="info"
@@ -200,6 +209,25 @@
             <el-space direction="vertical" :size="4">
               <el-text size="small">Shipper sẽ thu tiền mặt trực tiếp khi giao hàng đến tay bạn.</el-text>
               <el-text size="small" type="info">Bạn <strong>không cần</strong> thao tác thanh toán online. Hệ thống sẽ tự cập nhật sau khi kế toán đối soát.</el-text>
+            </el-space>
+          </template>
+        </el-alert>
+
+        <!-- ✅ FIX Issue 1: Banner chờ xác nhận chuyển khoản -->
+        <el-alert
+          v-if="detail?.paymentMethod === 'TRANSFER' && detail?.paymentStatus !== 'PAID'"
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px;"
+        >
+          <template #title>
+            <span style="font-weight: 700;">🏦 Chờ xác nhận chuyển khoản</span>
+          </template>
+          <template #default>
+            <el-space direction="vertical" :size="4">
+              <el-text size="small">Vui lòng chuyển khoản theo thông tin QR bên dưới.</el-text>
+              <el-text size="small" type="info">Sau khi chuyển tiền, admin sẽ xác nhận thanh toán. Đơn hàng sẽ được cập nhật tự động.</el-text>
             </el-space>
           </template>
         </el-alert>
@@ -220,13 +248,10 @@
               <el-text size="small">🏷️ Mã giảm giá</el-text>
               <el-text size="small" type="danger">−{{ formatMoney(detail.discountTotal - (detail.vipDiscount || 0)) }}</el-text>
             </el-row>
-            <el-row v-if="isHomeDelivery" justify="space-between">
-              <el-text size="small">🚚 Phí ship</el-text>
-              <el-text size="small">{{ formatMoney(detail.shippingFee > 0 ? detail.shippingFee : 15000) }}</el-text>
-            </el-row>
-            <el-row v-else justify="space-between">
-              <el-text size="small">🏬 Nhận tại cửa hàng</el-text>
-              <el-tag type="success" size="small" effect="plain">Miễn phí</el-tag>
+            <!-- ✅ FIX Issue 2: Luôn hiển thị "Miễn phí" — bỏ hardcode 15000 -->
+            <el-row justify="space-between" align="middle">
+              <el-text size="small">{{ isHomeDelivery ? '🚚 Phí ship' : '🏬 Nhận tại cửa hàng' }}</el-text>
+              <el-tag size="small" type="success" effect="plain">Miễn phí</el-tag>
             </el-row>
           </el-space>
           <el-divider style="margin: 12px 0;" />
@@ -264,91 +289,98 @@
             </el-timeline-item>
           </el-timeline>
         </el-card>
-
       </div>
     </div>
 
     <!-- ── PAYMENT DIALOG ── -->
     <el-dialog v-model="showPaymentDialog" title="💳 Thanh toán đơn hàng" width="500px" align-center>
-      <div v-if="spinStatus.loading" style="text-align: center; padding: 20px;">
-        <el-icon class="is-loading" :size="28"><Loading /></el-icon>
-        <el-text type="info" style="display: block; margin-top: 8px;">Đang kiểm tra ưu đãi vòng quay...</el-text>
-      </div>
 
-      <el-card
-        v-if="!spinStatus.loading && spinStatus.hasActiveBonus"
-        shadow="never"
-        style="margin-bottom: 14px; background: var(--el-color-warning-light-9); border-color: var(--el-color-warning-light-5);"
-      >
-        <el-row align="middle" :gutter="12">
-          <el-col flex="none"><span style="font-size: 28px;">🎡</span></el-col>
-          <el-col flex="1">
-            <el-text tag="b" style="display: block;">Ưu đãi vòng quay đã áp dụng!</el-text>
-            <el-text size="small" type="warning">
-              Giảm thêm <strong>{{ spinStatus.bonusRate }}%</strong>
-              <span v-if="spinStatus.bonusExpiresAt"> · Hết hạn {{ formatExpiry(spinStatus.bonusExpiresAt) }}</span>
-            </el-text>
-          </el-col>
-          <el-col flex="none">
-            <el-tag type="warning" effect="dark">−{{ spinStatus.bonusRate }}%</el-tag>
-          </el-col>
-        </el-row>
-        <el-divider style="margin: 10px 0;" />
-        <el-space direction="vertical" fill :size="6" style="width: 100%;">
-          <el-row justify="space-between">
-            <el-text size="small">Tạm tính</el-text>
-            <el-text size="small">{{ formatMoney(detail?.subtotal) }}</el-text>
-          </el-row>
-          <el-row v-if="detail?.vipDiscount > 0" justify="space-between">
-            <el-text size="small">🏆 Giảm VIP</el-text>
-            <el-text size="small" type="danger">−{{ formatMoney(detail.vipDiscount) }}</el-text>
-          </el-row>
-          <el-row justify="space-between">
-            <el-text size="small">🎡 Giảm Spin ({{ spinStatus.bonusRate }}%)</el-text>
-            <el-text size="small" type="danger">−{{ formatMoney(estimatedSpinDiscount) }}</el-text>
-          </el-row>
-          <el-divider style="margin: 4px 0;" />
-          <el-row justify="space-between">
-            <el-text tag="b">Tổng thanh toán</el-text>
-            <el-text tag="b" type="primary">{{ formatMoney((detail?.totalAmount || 0) - estimatedSpinDiscount + (detail?.spinDiscount || 0)) }}</el-text>
-          </el-row>
-        </el-space>
-      </el-card>
+      <!-- ✅ FIX Issue 1: Nếu là TRANSFER, hiển thị QR + thông báo chờ admin -->
+      <template v-if="detail?.paymentMethod === 'TRANSFER'">
+        <el-alert
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px;"
+        >
+          <template #title>🏦 Thanh toán chuyển khoản — Chờ Admin xác nhận</template>
+          <template #default>
+            Quét mã QR để chuyển khoản. Sau khi chuyển tiền thành công, admin sẽ xác nhận và đơn hàng tự động cập nhật trạng thái PAID.
+          </template>
+        </el-alert>
 
-      <el-alert
-        v-if="!spinStatus.loading && !spinStatus.hasActiveBonus && spinStatus.checked"
-        type="info" :closable="false"
-        title="🎡 Khách hàng chưa có ưu đãi vòng quay tuần này"
-        style="margin-bottom: 14px;"
-      />
+        <el-form label-position="top">
+          <el-form-item label="Số tiền cần chuyển">
+            <el-text type="primary" style="font-size: 22px; font-weight: 800;">{{ formatMoney(detail?.totalAmount) }}</el-text>
+          </el-form-item>
+          <el-form-item label="Quét mã QR để chuyển khoản">
+            <div style="text-align: center; width: 100%;">
+              <el-image v-if="qrCodeUrl" :src="qrCodeUrl" style="width: 220px; height: 220px; display: block; margin: 0 auto 8px; border-radius: 12px;" />
+              <el-text size="small" type="info">Sử dụng ứng dụng ngân hàng để quét mã QR</el-text>
+            </div>
+          </el-form-item>
+        </el-form>
+      </template>
 
-      <el-alert type="success" :closable="false" show-icon style="margin-bottom: 14px;">
-        <template #default>
-          <div>Sau khi thanh toán thành công:</div>
-          <el-space direction="vertical" :size="4" style="margin-top: 6px;">
-            <el-text size="small">✅ Đơn hàng chuyển sang <strong>PAID</strong></el-text>
-            <el-text size="small">✅ Xuất kho tự động</el-text>
-            <el-text size="small">✅ <strong>Cộng điểm loyalty</strong> cho khách hàng</el-text>
-          </el-space>
-        </template>
-      </el-alert>
-
-      <el-form label-position="top">
-        <el-form-item label="Số tiền thanh toán">
-          <el-text type="primary" style="font-size: 20px; font-weight: 700;">{{ formatMoney(detail?.totalAmount) }}</el-text>
-        </el-form-item>
-
-        <div v-if="detail?.paymentMethod === 'TRANSFER'">
-          <el-text tag="div" style="font-weight: 600; margin-bottom: 10px;">Quét mã QR để thanh toán</el-text>
-          <el-image v-if="qrCodeUrl" :src="qrCodeUrl" style="width: 200px; height: 200px; display: block; margin: 0 auto 8px;" />
-          <el-text size="small" type="info" style="display: block; text-align: center;">Sử dụng ứng dụng ngân hàng để quét mã QR</el-text>
+      <!-- Các phương thức khác (non-TRANSFER) -->
+      <template v-else>
+        <div v-if="spinStatus.loading" style="text-align: center; padding: 20px;">
+          <el-icon class="is-loading" :size="28"><Loading /></el-icon>
+          <el-text type="info" style="display: block; margin-top: 8px;">Đang kiểm tra ưu đãi vòng quay...</el-text>
         </div>
 
-      </el-form>
+        <el-card
+          v-if="!spinStatus.loading && spinStatus.hasActiveBonus"
+          shadow="never"
+          style="margin-bottom: 14px; background: var(--el-color-warning-light-9); border-color: var(--el-color-warning-light-5);"
+        >
+          <el-row align="middle" :gutter="12">
+            <el-col flex="none"><span style="font-size: 28px;">🎡</span></el-col>
+            <el-col flex="1">
+              <el-text tag="b" style="display: block;">Ưu đãi vòng quay đã áp dụng!</el-text>
+              <el-text size="small" type="warning">
+                Giảm thêm <strong>{{ spinStatus.bonusRate }}%</strong>
+                <span v-if="spinStatus.bonusExpiresAt"> · Hết hạn {{ formatExpiry(spinStatus.bonusExpiresAt) }}</span>
+              </el-text>
+            </el-col>
+            <el-col flex="none">
+              <el-tag type="warning" effect="dark">−{{ spinStatus.bonusRate }}%</el-tag>
+            </el-col>
+          </el-row>
+        </el-card>
+
+        <el-alert type="success" :closable="false" show-icon style="margin-bottom: 14px;">
+          <template #default>
+            <div>Sau khi thanh toán thành công:</div>
+            <el-space direction="vertical" :size="4" style="margin-top: 6px;">
+              <el-text size="small">✅ Đơn hàng chuyển sang <strong>PAID</strong></el-text>
+              <el-text size="small">✅ Xuất kho tự động</el-text>
+              <el-text size="small">✅ <strong>Cộng điểm loyalty</strong> cho khách hàng</el-text>
+            </el-space>
+          </template>
+        </el-alert>
+
+        <el-form label-position="top">
+          <el-form-item label="Số tiền thanh toán">
+            <el-text type="primary" style="font-size: 20px; font-weight: 700;">{{ formatMoney(detail?.totalAmount) }}</el-text>
+          </el-form-item>
+        </el-form>
+      </template>
 
       <template #footer>
-        <el-button plain @click="showPaymentDialog = false">Hủy</el-button>
-        <el-button type="primary" :loading="paymentLoading" @click="confirmPayment">Xác nhận thanh toán</el-button>
+        <el-button plain @click="showPaymentDialog = false">Đóng</el-button>
+        <!-- ✅ FIX Issue 1: Ẩn nút "Xác nhận" với TRANSFER -->
+        <el-button
+          v-if="detail?.paymentMethod !== 'TRANSFER'"
+          type="primary"
+          :loading="paymentLoading"
+          @click="confirmPayment"
+        >
+          Xác nhận thanh toán
+        </el-button>
+        <el-tag v-else type="warning" effect="plain" style="padding: 8px 16px; font-size: 13px;">
+          ⏳ Chờ admin xác nhận
+        </el-tag>
       </template>
     </el-dialog>
 
@@ -439,9 +471,7 @@ const spinStatus = reactive({
   bonusRate: 0, bonusExpiresAt: null,
 });
 
-const returnForm = reactive({ orderItemId: null, quantity: 1, reason: "", refundAmount: 0 });
 const qrCodeUrl = ref("");
-
 
 const isHomeDelivery = computed(() => {
   if (!detail.value?.notes) return false;
@@ -473,21 +503,6 @@ const timelineFinishStatus = computed(() =>
   detail.value?.status === 'DELIVERED' ? 'success' : 'finish'
 );
 
-const timelineProgressPercent = computed(() => {
-  if (!detail.value || !timelineSteps.value.length) return 0;
-  const total = timelineSteps.value.length;
-  const currentIdx = timelineSteps.value.findIndex(s => s.current);
-  if (currentIdx === -1) return timelineSteps.value.every(s => s.active) ? 100 : 0;
-  return Math.round((currentIdx / (total - 1)) * 100);
-});
-
-const isReturnWindowOpen = computed(() => {
-  if (detail.value?.status !== "DELIVERED") return false;
-  const deliveredAt = detail.value?.deliveredAt;
-  if (!deliveredAt) return true;
-  return Date.now() - new Date(deliveredAt).getTime() < 24 * 60 * 60 * 1000;
-});
-
 function statusTagType(status) {
   const map = { PENDING:'warning', PAID:'primary', PROCESSING:'', SHIPPING:'primary', DELIVERED:'success', CANCELLED:'danger' };
   return map[status] || 'info';
@@ -504,17 +519,13 @@ function parseNotes(notes) {
   });
 }
 
-function getNoteTypeLabel(type) {
-  return ({ vip:"VIP", discount:"Giảm giá", delivery:"Giao hàng", payment:"Thanh toán", default:"Ghi chú" })[type] || "Ghi chú";
-}
-
 function formatDateTime(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   return `${d.toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"})} · ${d.toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"})}`;
 }
 
-function generateFakeBankQR() {
+function generateTransferQR() {
   const amount = detail.value?.totalAmount || 0;
   const order = detail.value?.orderNumber || orderId.value;
   qrCodeUrl.value = `https://img.vietqr.io/image/MB-0344269926-compact2.png?amount=${amount}&addInfo=ORDER${order}`;
@@ -522,26 +533,17 @@ function generateFakeBankQR() {
 
 async function openPaymentDialog() {
   showPaymentDialog.value = true;
-  await fetchSpinStatus();
-  if (detail.value?.paymentMethod === "TRANSFER") generateFakeBankQR();
+  if (detail.value?.paymentMethod === "TRANSFER") {
+    generateTransferQR();
+  } else {
+    await fetchSpinStatus();
+  }
 }
 
 const estimatedSpinDiscount = computed(() => {
   if (!detail.value?.subtotal || !spinStatus.bonusRate) return 0;
   if (detail.value?.spinDiscountRate > 0) return 0;
   return Math.round((detail.value.subtotal * spinStatus.bonusRate) / 100);
-});
-
-watch(() => returnForm.orderItemId, (newItemId) => {
-  if (!newItemId || !detail.value?.items) return;
-  const item = detail.value.items.find(i => i.id === newItemId);
-  if (item) { returnForm.quantity = 1; returnForm.refundAmount = Math.round(item.lineTotal / item.quantity); }
-});
-
-watch(() => returnForm.quantity, (newQty) => {
-  if (!returnForm.orderItemId || !detail.value?.items) return;
-  const item = detail.value.items.find(i => i.id === returnForm.orderItemId);
-  if (item) returnForm.refundAmount = Math.round((item.lineTotal / item.quantity) * newQty);
 });
 
 function formatMoney(val) {
@@ -588,11 +590,7 @@ function getCancelWarningMessage() {
   return `<p>Đơn chưa thanh toán sẽ được hủy miễn phí.</p>`;
 }
 
-function getMaxReturnQuantity() {
-  if (!returnForm.orderItemId || !detail.value?.items) return 1;
-  return detail.value.items.find(i => i.id === returnForm.orderItemId)?.quantity || 1;
-}
-
+// ✅ FIX Issue 1: confirmPayment chỉ dùng cho non-TRANSFER
 async function confirmPayment() {
   paymentLoading.value = true;
   try {
@@ -615,19 +613,8 @@ async function confirmCancel() {
   finally { cancelLoading.value = false; }
 }
 
-async function submitReturn() {
-  if (!returnForm.orderItemId || !returnForm.reason) return;
-  try {
-    await returnsApi.create({ orderId: Number(orderId.value), ...returnForm });
-    toast("✅ Đã gửi yêu cầu trả hàng", "success");
-    showReturnDialog.value = false;
-  } catch { toast("Lỗi khi gửi yêu cầu", "error"); }
-}
-
 const deliveredLoading = ref(false);
 const showDeliveredDialog = ref(false);
-
-const confirmDelivered = () => { showDeliveredDialog.value = true; };
 
 const doConfirmDelivered = async () => {
   deliveredLoading.value = true;

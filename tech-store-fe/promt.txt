@@ -1,0 +1,10 @@
+Tôi cần khắc phục 2 vấn đề này:
+- Chuyển khoản yêu cầu xác nhận thủ công
+Mô tả: Luồng thanh toán bank transfer đang để khách hàng tự xác nhận → sai logic, phải hệ thống tự xác nhận hoặc admin duyệt.
+Task cần làm: Fix luồng xác nhận thanh toán chuyển khoản: tự động hoặc admin duyệt, bỏ bước khách tự xác nhận.
+Ghi chú: Ưu tiên fix ngay, ảnh hưởng trực tiếp đến đơn hàng.
+- Bỏ phí vận chuyển
+Mô tả: Thầy yêu cầu bỏ hiển thị & tính tiền ship trong toàn bộ hệ thống.
+Task cần làm: Xóa hoặc ẩn trường phí ship trong UI + backend. Đặt cứng phí ship = 0.
+Ghi chú: Kiểm tra cả trang checkout, order detail, invoice.
+-> Tôi có gửi tree code của cả dự án bao gồm project frontend + backend, bạn cần xem những file nào để hiểu luồng trước khi đưa code sửa thì bảo tôi để tôi gửi nhé.
