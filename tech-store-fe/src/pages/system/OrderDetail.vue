@@ -27,6 +27,28 @@
             <el-icon v-if="!loading"><Refresh /></el-icon>
             <span v-if="!loading">Reload</span>
           </el-button>
+
+          <!-- Admin: Xác nhận đã giao hàng (cho đơn SHIPPING mà khách chưa bấm nhận) -->
+          <el-button
+            v-if="detail?.status === 'SHIPPING'"
+            type="success"
+            plain
+            :loading="markDeliveredLoading"
+            @click="handleMarkDelivered"
+          >
+            <el-icon><CircleCheck /></el-icon> Đánh dấu Đã Giao Hàng
+          </el-button>
+
+          <!-- Admin: Xác nhận thu tiền COD -->
+          <el-button
+            v-if="detail?.paymentMethod === 'CASH' && detail?.paymentStatus !== 'PAID' && ['SHIPPING','DELIVERED'].includes(detail?.status)"
+            type="warning"
+            plain
+            :loading="confirmCodLoading"
+            @click="handleConfirmCod"
+          >
+            <el-icon><Money /></el-icon> Xác nhận Thu Tiền Mặt
+          </el-button>
         </div>
       </div>
 
@@ -270,10 +292,12 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { ordersApi } from "../../api/orders.api";
 import { customersApi } from "../../api/customers.api";
+import { paymentsApi } from "../../api/payments";
 import { toast } from "../../ui/toast";
+import { ElMessageBox } from "element-plus";
 import {
   Refresh, User, Van, Present, Star, Trophy, Opportunity,
-  Ticket, Box, Wallet,
+  Ticket, Box, Wallet, Money,
   CircleCheck, CircleClose, Timer, InfoFilled, RefreshLeft,
 } from "@element-plus/icons-vue";
 
@@ -283,6 +307,9 @@ const loading = ref(false);
 const detail = ref(null);
 const vipTierName = ref("");
 const orderId = computed(() => route.params.orderId);
+
+const markDeliveredLoading = ref(false);
+const confirmCodLoading = ref(false);
 
 const statusType = computed(() => {
   const s = detail.value?.status;
@@ -429,6 +456,81 @@ async function reload() {
     toast("Không thể tải chi tiết đơn hàng", "error");
   } finally {
     loading.value = false;
+  }
+}
+
+// Admin: Đánh dấu đơn hàng đã giao thành công
+async function handleMarkDelivered() {
+  try {
+    await ElMessageBox.confirm(
+      `Xác nhận đơn hàng <strong>${detail.value?.orderNumber}</strong> đã được giao thành công?<br/><br/>
+      <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: var(--el-text-color-secondary);">
+        <li>Đơn hàng sẽ chuyển sang trạng thái <strong>DELIVERED</strong></li>
+        <li>Khách hàng sẽ nhận được thông báo</li>
+        <li style="color: var(--el-color-danger);">Hành động này không thể hoàn tác</li>
+      </ul>`,
+      '✅ Xác nhận Giao Hàng Thành Công',
+      {
+        confirmButtonText: 'Đánh dấu đã giao',
+        cancelButtonText: 'Hủy',
+        type: 'success',
+        dangerouslyUseHTMLString: true,
+        confirmButtonClass: 'el-button--success',
+      }
+    );
+  } catch {
+    return; // user cancelled
+  }
+  markDeliveredLoading.value = true;
+  try {
+    await ordersApi.markAsDelivered(orderId.value);
+    toast('✅ Đã xác nhận giao hàng thành công', 'success');
+    await reload();
+  } catch {
+    toast('Lỗi khi cập nhật trạng thái', 'error');
+  } finally {
+    markDeliveredLoading.value = false;
+  }
+}
+
+// Admin: Xác nhận thu tiền mặt COD
+async function handleConfirmCod() {
+  const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(detail.value?.totalAmount || 0);
+  try {
+    await ElMessageBox.confirm(
+      `Xác nhận shipper đã thu tiền mặt cho đơn hàng <strong>${detail.value?.orderNumber}</strong>?<br/><br/>
+      <div style="padding: 12px; background: var(--el-fill-color-light); border-radius: 6px; margin-bottom: 8px;">
+        <span style="font-size: 22px; font-weight: 800; color: var(--el-color-warning-dark-2);">${amount}</span>
+      </div>
+      <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: var(--el-text-color-secondary);">
+        <li>Trạng thái thanh toán chuyển sang <strong>PAID</strong></li>
+        <li>Điểm loyalty sẽ được cộng cho khách hàng</li>
+        <li style="color: var(--el-color-danger);">Hành động này không thể hoàn tác</li>
+      </ul>`,
+      '💵 Xác nhận Thu Tiền Mặt COD',
+      {
+        confirmButtonText: 'Xác nhận đã thu tiền',
+        cancelButtonText: 'Hủy',
+        type: 'warning',
+        dangerouslyUseHTMLString: true,
+      }
+    );
+  } catch {
+    return; // user cancelled
+  }
+  confirmCodLoading.value = true;
+  try {
+    await paymentsApi.create({
+      orderId: Number(orderId.value),
+      method: 'CASH',
+      transactionRef: `COD-${Date.now()}`,
+    });
+    toast('✅ Đã xác nhận thu tiền mặt thành công', 'success');
+    await reload();
+  } catch {
+    toast('Lỗi khi xác nhận thanh toán', 'error');
+  } finally {
+    confirmCodLoading.value = false;
   }
 }
 

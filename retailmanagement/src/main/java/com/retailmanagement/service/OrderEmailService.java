@@ -340,4 +340,125 @@ public class OrderEmailService {
                 total
         );
     }
+
+    @Async
+    public void sendAutoCompleteWarningEmail(Order order, int daysRemaining) {
+        try {
+            if (order.getCustomer() == null
+                    || order.getCustomer().getEmail() == null) return;
+
+            String customerName = safe(order.getCustomer().getName(), "Khach hang");
+            String orderNumber  = order.getOrderNumber();
+
+            String html = """
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head>
+              <meta charset="UTF-8"/>
+              <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+              <title>Xac nhan don hang</title>
+            </head>
+            <body style="margin:0;padding:0;background:#f2f2f2;
+                         font-family:Arial,Helvetica,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0"
+                     style="background:#f2f2f2;padding:30px 0;">
+                <tr><td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0"
+                         style="max-width:600px;width:100%%;background:#ffffff;
+                                border:1px solid #cccccc;">
+ 
+                    <!-- HEADER -->
+                    <tr>
+                      <td style="background:#1a2744;padding:24px 32px;">
+                        <p style="margin:0;font-size:11px;letter-spacing:3px;
+                                   color:#aabbd4;text-transform:uppercase;">
+                          TECHSTORE
+                        </p>
+                        <p style="margin:6px 0 0;font-size:18px;font-weight:bold;
+                                   color:#ffffff;">
+                          Nhac nhan xac nhan don hang
+                        </p>
+                      </td>
+                    </tr>
+ 
+                    <!-- BODY -->
+                    <tr>
+                      <td style="padding:28px 32px;">
+                        <p style="margin:0 0 12px;font-size:14px;color:#333;">
+                          Xin chao <strong>%s</strong>,
+                        </p>
+                        <p style="margin:0 0 12px;font-size:13px;color:#555;
+                                   line-height:1.7;">
+                          Don hang <strong>#%s</strong> cua ban da duoc van chuyen
+                          va co the da den noi.
+                          <br/>
+                          Neu ban da nhan duoc hang, vui long xac nhan de chung toi
+                          hoan tat don hang.
+                        </p>
+ 
+                        <!-- Warning box -->
+                        <table cellpadding="0" cellspacing="0" width="100%%"
+                               style="border:1px solid #f5c518;background:#fffbea;
+                                      border-collapse:collapse;margin:16px 0;">
+                          <tr>
+                            <td style="padding:14px 16px;">
+                              <p style="margin:0;font-size:13px;color:#7a5800;">
+                                Neu khong co xac nhan trong vong
+                                <strong>1 ngay</strong>,
+                                don hang se tu dong chuyen sang trang thai
+                                <strong>Da giao</strong>.
+                              </p>
+                            </td>
+                          </tr>
+                        </table>
+ 
+                        <p style="margin:0;font-size:13px;color:#555;">
+                          Cam on ban da mua sam tai TechStore.
+                        </p>
+                      </td>
+                    </tr>
+ 
+                    <!-- FOOTER -->
+                    <tr>
+                      <td style="padding:18px 32px 28px;text-align:center;
+                                  border-top:1px solid #ddd;">
+                        <p style="margin:0 0 4px;font-size:12px;
+                                   font-weight:bold;color:#555;">TechStore</p>
+                        <p style="margin:0;font-size:12px;color:#999;
+                                   line-height:1.7;">
+                          Lien he ho tro:
+                          <a href="mailto:support@nguyenduc.me"
+                             style="color:#1a2744;text-decoration:underline;">
+                            support@nguyenduc.me
+                          </a><br/>
+                          Email nay duoc gui tu dong, vui long khong tra loi.
+                        </p>
+                        <p style="margin:12px 0 0;font-size:11px;color:#bbb;">
+                          (c) 2025 TechStore. All rights reserved.
+                        </p>
+                      </td>
+                    </tr>
+ 
+                  </table>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(customerName, orderNumber);
+
+            Resend resend = new Resend(apiKey);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Xac nhan don hang #" + orderNumber + " truoc khi tu dong hoan tat")
+                    .html(html)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

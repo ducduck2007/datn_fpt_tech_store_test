@@ -151,14 +151,7 @@
           title="Mã QR thanh toán sẽ hiển thị sau khi đặt hàng"
           style="margin-top: 12px;"
         />
-        <el-alert
-          v-if="form.paymentMethod === 'CARD'"
-          type="info"
-          :closable="false"
-          show-icon
-          title="Thông tin thẻ sẽ được nhập ở bước tiếp theo"
-          style="margin-top: 12px;"
-        />
+
       </el-card>
 
       <!-- Voucher -->
@@ -398,7 +391,6 @@ const promoError = ref("");
 const ALL_PAYMENT_OPTIONS = [
   { value: "CASH", label: "Tiền mặt", icon: "💵" },
   { value: "TRANSFER", label: "Chuyển khoản", icon: "🏦" },
-  { value: "CARD", label: "Thẻ tín dụng", icon: "💳" },
 ];
 
 const paymentOptions = computed(() => ALL_PAYMENT_OPTIONS);
@@ -512,7 +504,6 @@ function buildNotes() {
   const parts = [];
   if (form.notes?.trim()) parts.push(form.notes.trim());
   if (form.paymentMethod === "TRANSFER") parts.push("Thanh toán chuyển khoản");
-  else if (form.paymentMethod === "CARD") parts.push("Thanh toán thẻ tín dụng");
   parts.push(form.channel === "ONLINE" ? "Giao tại nhà" : "Nhận tại cửa hàng");
   return parts.join(" | ");
 }
