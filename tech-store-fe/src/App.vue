@@ -250,15 +250,24 @@ function goHome() {
 function goLogin() { router.push("/login"); }
 async function logout() {
   clearSession(); clearLastAuthResponse();
-  toast("Đã đăng xuất.", "success");
+  toast("Đăng xuất thành công. Hẹn gặp lại!", "success", { title: "Đã đăng xuất" });
   router.push(isSystemUser.value ? "/system/login" : "/login");
 }
+
+// Tập hợp các ID thông báo đã hiển thị popup — tránh spam khi reload
+const shownNotifIds = new Set();
 
 async function loadNotificationCount() {
   if (!isCustomer.value) return;
   try {
+    const prevCount = unreadNotificationCount.value;
     const res = await http.get("/api/auth/notifications/my/unread-count");
-    unreadNotificationCount.value = res.data?.unreadCount || 0;
+    const newCount = res.data?.unreadCount || 0;
+    unreadNotificationCount.value = newCount;
+    // Chỉ check thông báo mới khi count tăng lên
+    if (newCount > prevCount) {
+      await checkAndShowNewNotifications();
+    }
   } catch {}
 }
 async function loadAllNotifications() {
@@ -267,6 +276,41 @@ async function loadAllNotifications() {
     allNotifications.value = res.data || [];
   } catch {}
 }
+
+/** Map loại thông báo backend → loại toast */
+function notifToastType(type) {
+  return ({ WELCOME: "success", BIRTHDAY: "success", VIP_TIER_UPGRADE: "success",
+            PURCHASE_REMINDER: "info", WINBACK: "info",
+            SPIN_EXPIRY_WARNING: "warning" }[type] ?? "info");
+}
+
+/** Khởi tạo Set với tất cả ID hiện có — không popup thông báo cũ khi mới load trang */
+async function initShownNotifIds() {
+  try {
+    const res = await http.get("/api/auth/notifications/my");
+    (res.data || []).forEach(n => shownNotifIds.add(n.id));
+  } catch {}
+}
+
+/** Fetch danh sách, tìm thông báo chưa đọc chưa hiển thị và popup từng cái */
+async function checkAndShowNewNotifications() {
+  try {
+    const res = await http.get("/api/auth/notifications/my");
+    allNotifications.value = res.data || [];
+    const unread = allNotifications.value.filter(n => !n.isRead);
+    unread.forEach(notif => {
+      if (!shownNotifIds.has(notif.id)) {
+        shownNotifIds.add(notif.id);
+        toast(
+          formatMessage(notif.message),
+          notifToastType(notif.type),
+          { title: `${notifIcon(notif.type)} ${notif.title}`, delay: 5000, html: true }
+        );
+      }
+    });
+  } catch {}
+}
+
 function viewAllNotifications() {
   notificationsDialog.value = true;
   loadAllNotifications();
@@ -275,14 +319,14 @@ async function markNotifAsRead(id) {
   try {
     await http.put(`/api/auth/notifications/${id}/read`);
     await Promise.all([loadAllNotifications(), loadNotificationCount()]);
-  } catch { toast("Không thể đánh dấu đã đọc", "error"); }
+  } catch { toast("Không thể đánh dấu đã đọc", "error", { title: "Lỗi cập nhật" }); }
 }
 async function markAllAsRead() {
   try {
     await http.put("/api/auth/notifications/read-all");
     await Promise.all([loadAllNotifications(), loadNotificationCount()]);
-    toast("Đã đánh dấu tất cả đã đọc", "success");
-  } catch { toast("Không thể cập nhật", "error"); }
+    toast("Đã đánh dấu tất cả thông báo là đã đọc", "success", { title: "Cập nhật thành công" });
+  } catch { toast("Không thể cập nhật thông báo", "error", { title: "Lỗi cập nhật" }); }
 }
 
 function notifIcon(type) {
@@ -293,7 +337,7 @@ function formatDate(d) { return new Date(d).toLocaleDateString("vi-VN"); }
 
 function onAutoLogout(e) {
   clearSession(); clearLastAuthResponse();
-  toast(`Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.`, "warning");
+  toast("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "warning", { title: "Phiên hết hạn", delay: 4500 });
   router.push("/login");
 }
 
@@ -301,11 +345,13 @@ let notifInterval = null;
 watch(isCustomer, (val) => {
   if (val) {
     cartStore.refreshCount();
-    loadNotificationCount();
+    // Khởi tạo Set trước, rồi mới load count (để không popup thông báo cũ)
+    initShownNotifIds().then(() => loadNotificationCount());
     notifInterval = setInterval(loadNotificationCount, 30000);
   } else {
     if (notifInterval) { clearInterval(notifInterval); notifInterval = null; }
     unreadNotificationCount.value = 0;
+    shownNotifIds.clear();
   }
 }, { immediate: true });
 
