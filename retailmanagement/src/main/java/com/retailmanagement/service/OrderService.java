@@ -162,12 +162,10 @@ public class OrderService {
             throw new RuntimeException("Mã giảm giá '" + code + "' đã đạt giới hạn sử dụng");
         }
 
-        // Check per-customer usage (each customer can only use a promo once)
         if (customer != null && promotionService.hasCustomerUsedPromotion(promotion.getId(), customer.getId())) {
             throw new RuntimeException("Bạn đã sử dụng mã giảm giá '" + code + "' rồi, mỗi mã chỉ được dùng 1 lần");
         }
 
-        // Check customer type/tier eligibility
         PromotionService.Applicability app = promotionService.parseApplicability(promotion.getApplicabilityJson());
         if (app.customer_types != null && !app.customer_types.isEmpty() && customer != null) {
             String customerTypeStr = customer.getCustomerType() != null ? customer.getCustomerType().name() : "REGULAR";
@@ -231,12 +229,8 @@ public class OrderService {
         order = orderRepository.save(order);
         System.out.println(">>> STEP 1: order saved, id=" + order.getId());
 
-        BigDecimal shippingFee = request.getShippingFee() != null
-                ? request.getShippingFee()
-                : BigDecimal.ZERO;
-        if (customer.getVipTier() != null && shippingFee.compareTo(BigDecimal.ZERO) > 0) {
-            shippingFee = shippingFee.divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP);
-        }
+        // ✅ FIX: Phí vận chuyển = 0 (theo yêu cầu bỏ phí ship)
+        BigDecimal shippingFee = BigDecimal.ZERO;
         order.setShippingFee(shippingFee);
 
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -259,23 +253,14 @@ public class OrderService {
 
         BigDecimal effectiveDiscount = discountCalc.getTotalDiscount();
 
-        // Tỉ lệ phân bổ discount theo từng line
         BigDecimal totalDiscountRate = BigDecimal.ZERO;
         if (subtotal.compareTo(BigDecimal.ZERO) > 0) {
             totalDiscountRate = effectiveDiscount
                     .divide(subtotal, 4, RoundingMode.HALF_UP);
         }
 
-        // Tỉ lệ phân bổ shipping fee theo từng line
-        BigDecimal totalShippingRate = BigDecimal.ZERO;
-        if (subtotal.compareTo(BigDecimal.ZERO) > 0 && shippingFee.compareTo(BigDecimal.ZERO) > 0) {
-            totalShippingRate = shippingFee
-                    .divide(subtotal, 4, RoundingMode.HALF_UP);
-        }
-
         List<CreateOrderResponse.Item> responseItems = new ArrayList<>();
         BigDecimal totalLineDiscount = BigDecimal.ZERO;
-        BigDecimal totalLineShipping = BigDecimal.ZERO;
         int itemIndex = 0;
 
         for (CreateOrderItemRequest itemReq : request.getItems()) {
@@ -310,19 +295,11 @@ public class OrderService {
                 totalLineDiscount = totalLineDiscount.add(lineDiscount);
             }
 
-            // Phân bổ shipping fee
-            BigDecimal lineShipping;
-            if (isLastItem) {
-                lineShipping = shippingFee.subtract(totalLineShipping);
-            } else {
-                lineShipping = lineSubtotal
-                        .multiply(totalShippingRate)
-                        .setScale(0, RoundingMode.HALF_UP);
-                totalLineShipping = totalLineShipping.add(lineShipping);
-            }
+            // ✅ FIX: shippingFee = 0, lineShipping = 0
+            BigDecimal lineShipping = BigDecimal.ZERO;
 
-            // lineTotal = tiền hàng - discount + shipping
-            BigDecimal lineTotal = lineSubtotal.subtract(lineDiscount).add(lineShipping);
+            // lineTotal = tiền hàng - discount (không có shipping)
+            BigDecimal lineTotal = lineSubtotal.subtract(lineDiscount);
 
             OrderItem item = new OrderItem();
             item.setOrder(order);
@@ -334,14 +311,12 @@ public class OrderService {
             item.setQuantity(itemReq.getQuantity());
             item.setUnitPrice(variant.getPrice());
             item.setDiscount(lineDiscount);
-            item.setShippingFee(lineShipping); // cột mới
+            item.setShippingFee(lineShipping);
             item.setLineTotal(lineTotal);
             item.setCreatedAt(Instant.now());
             orderItemRepository.save(item);
             System.out.println(">>> STEP 2: item saved, id=" + item.getId());
 
-            // OFFLINE: đánh dấu serial cụ thể nhân viên chọn → SOLD ngay
-            // OFFLINE: đánh dấu serial cụ thể nhân viên chọn → SOLD ngay
             if ("OFFLINE".equals(request.getChannel())) {
                 List<ProductSerial> inStockSerials = productSerialRepository
                         .findByVariantIdAndStatus(variant.getId(), "IN_STOCK");
@@ -392,14 +367,13 @@ public class OrderService {
                     item.getShippingFee(),
                     item.getLineTotal(),
                     item.getUnitPrice(),
-                    savedSerials // ← thêm vào
+                    savedSerials
             ));
         }
 
         order.setSubtotal(subtotal);
         order.setDiscountTotal(discountCalc.getTotalDiscount());
-        order.setTotalAmount(
-                subtotal.subtract(discountCalc.getTotalDiscount()).add(order.getShippingFee()));
+        order.setTotalAmount(subtotal.subtract(discountCalc.getTotalDiscount()));
         order.setSpinDiscountRate(discountCalc.getSpinDiscountRate());
         order.setSpinDiscount(discountCalc.getSpinDiscount());
 
@@ -424,14 +398,7 @@ public class OrderService {
                     .append(": không áp dụng (đơn < ").append(formatMoney(tier.getMinOrderToApply())).append(")");
         }
 
-        if (tier != null && request.getShippingFee() != null
-                && request.getShippingFee().compareTo(BigDecimal.ZERO) > 0) {
-            if (notes.length() > 0)
-                notes.append(" | ");
-            notes.append("Ship VIP: -50% (-")
-                    .append(formatMoney(request.getShippingFee().subtract(order.getShippingFee())))
-                    .append(")");
-        }
+        // ✅ FIX: Đã bỏ block "Ship VIP: -50%..." vì phí ship = 0
 
         if (discountCalc.isHasSpinBonus()) {
             if (notes.length() > 0)
@@ -552,8 +519,6 @@ public class OrderService {
         boolean storeFault = isStoreFault(reason);
 
         if (storeFault && order.getCustomer() != null) {
-
-            // ✅ rollback promotion
             if (order.getAppliedPromotionCode() != null) {
                 Promotion promotion =
                         promotionRepository
@@ -568,8 +533,6 @@ public class OrderService {
                     );
                 }
             }
-
-            // ✅ rollback spin wheel
             spinWheelService.restoreBonusByOrder(order.getId());
         }
 
@@ -630,7 +593,7 @@ public class OrderService {
                             i.getShippingFee(),
                             i.getLineTotal(),
                             i.getUnitPrice(),
-                            serials // ← serial numbers
+                            serials
                     );
                 }).toList();
         return new OrderDetailResponse(
@@ -670,7 +633,6 @@ public class OrderService {
             throw new IllegalStateException("Only PAID orders can be processed");
         }
 
-        // Với đơn ONLINE: bắt buộc phải gán đủ serial trước khi đóng gói
         if (!"OFFLINE".equals(order.getChannel())) {
             for (OrderItem item : order.getOrderItems()) {
                 long assigned = orderItemSerialRepository.findByOrderItem(item).size();
@@ -718,10 +680,6 @@ public class OrderService {
             int newReserved = Math.max(0, variant.getReservedQty() - item.getQuantity());
             variant.setReservedQty(newReserved);
             variantRepository.save(variant);
-
-            // Đánh dấu serial SOLD — chỉ với đơn ONLINE
-            // Đơn OFFLINE đã đánh dấu ngay khi tạo order
-
 
             int actualStock = productSerialRepository
                     .countByVariantIdAndStatus(variant.getId(), "IN_STOCK");
@@ -777,14 +735,11 @@ public class OrderService {
     }
 
     public OrderDetailResponse getOrderBySerial(String serialNumber, CustomUserDetails user) {
-
-        // Tìm serial
         ProductSerial serial = productSerialRepository
                 .findBySerialNumber(serialNumber)
                 .orElseThrow(() -> new RuntimeException(
                         "Không tìm thấy serial: " + serialNumber));
 
-        // Tìm OrderItemSerial → OrderItem → Order
         OrderItemSerial ois = orderItemSerialRepository
                 .findByProductSerial(serial)
                 .orElseThrow(() -> new RuntimeException(
@@ -810,42 +765,35 @@ public class OrderService {
             throw new RuntimeException("Order item không thuộc đơn hàng này");
         }
 
-        // Kiểm tra số serial đã gán
         List<OrderItemSerial> existing = orderItemSerialRepository.findByOrderItem(orderItem);
         if (existing.size() >= orderItem.getQuantity()) {
             throw new RuntimeException("Sản phẩm này đã đủ serial ("
                     + orderItem.getQuantity() + "/" + orderItem.getQuantity() + ")");
         }
 
-        // Tìm serial
         String trimmed = serialNumber.trim();
         ProductSerial serial = productSerialRepository.findBySerialNumber(trimmed)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy serial: " + trimmed));
 
-        // Kiểm tra trạng thái
         if (!"IN_STOCK".equals(serial.getStatus())) {
             throw new RuntimeException("Serial " + trimmed + " không ở trạng thái IN_STOCK"
                     + " (hiện tại: " + serial.getStatus() + ")");
         }
 
-        // Kiểm tra đúng variant
         if (!serial.getVariantId().equals(orderItem.getVariant().getId())) {
             throw new RuntimeException("Serial " + trimmed + " không thuộc biến thể sản phẩm này");
         }
 
-        // Kiểm tra chưa gán cho đơn khác
         if (orderItemSerialRepository.findByProductSerial(serial).isPresent()) {
             throw new RuntimeException("Serial " + trimmed + " đã được gán cho đơn hàng khác");
         }
 
-        // Kiểm tra trùng trong cùng item
         boolean duplicate = existing.stream()
                 .anyMatch(ois -> ois.getProductSerial().getSerialNumber().equals(trimmed));
         if (duplicate) {
             throw new RuntimeException("Serial " + trimmed + " đã được gán cho sản phẩm này rồi");
         }
 
-        // Gán serial
         serial.setStatus("SOLD");
         productSerialRepository.save(serial);
 
@@ -875,13 +823,13 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException(
                         "Serial " + trimmed + " chưa được gán cho sản phẩm này"));
 
-        // Trả lại trạng thái IN_STOCK
         ProductSerial serial = toDelete.getProductSerial();
         serial.setStatus("IN_STOCK");
         productSerialRepository.save(serial);
 
         orderItemSerialRepository.delete(toDelete);
     }
+
     public List<BestVoucherSuggestion> suggestVouchersForCart(
             Integer customerId, BigDecimal subtotal) {
 
@@ -893,9 +841,7 @@ public class OrderService {
 
     private boolean isStoreFault(String reason) {
         if (reason == null) return false;
-
         String r = reason.toUpperCase();
-
         return r.contains("OUT_OF_STOCK")
                 || r.contains("STORE_ERROR")
                 || r.contains("WRONG_ITEM")

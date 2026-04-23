@@ -1,3 +1,4 @@
+<!-- \src\pages\customer\OrderCreate.vue -->
 <template>
   <div class="checkout-body">
 
@@ -69,6 +70,7 @@
               </el-row>
             </el-card>
 
+            <!-- ✅ FIX: Bỏ "+70.000 ₫", thay bằng "Miễn phí" -->
             <el-card
               shadow="never"
               :body-style="{ padding: '14px 16px' }"
@@ -85,7 +87,7 @@
                     <el-text size="small" type="info">Giao hàng nhanh 2–4 giờ trong nội thành</el-text>
                   </el-space>
                 </el-space>
-                <el-text type="primary" style="font-weight: 600;">+70.000 ₫</el-text>
+                <el-tag type="success" effect="plain" size="small">Miễn phí</el-tag>
               </el-row>
             </el-card>
           </el-space>
@@ -143,15 +145,20 @@
             </el-card>
           </el-space>
         </el-radio-group>
+
+        <!-- ✅ FIX: TRANSFER chỉ thông báo, không cho tự xác nhận -->
         <el-alert
           v-if="form.paymentMethod === 'TRANSFER'"
           type="info"
           :closable="false"
           show-icon
-          title="Mã QR thanh toán sẽ hiển thị sau khi đặt hàng"
           style="margin-top: 12px;"
-        />
-
+        >
+          <template #title>Thanh toán chuyển khoản</template>
+          <template #default>
+            Mã QR sẽ hiển thị sau khi đặt hàng. Sau khi chuyển khoản, vui lòng chờ admin xác nhận — đơn hàng sẽ được cập nhật tự động.
+          </template>
+        </el-alert>
       </el-card>
 
       <!-- Voucher -->
@@ -223,10 +230,10 @@
             </el-text>
             <el-text type="danger" size="small" style="font-weight: 600;">−{{ formatMoney(promoResult.discountAmount) }}</el-text>
           </el-row>
-          <el-row justify="space-between">
+          <!-- ✅ FIX: Luôn hiển thị "Miễn phí" cho phí vận chuyển -->
+          <el-row justify="space-between" align="middle">
             <el-text size="small">{{ form.channel === 'ONLINE' ? '🚚 Phí vận chuyển' : '🏬 Nhận tại cửa hàng' }}</el-text>
-            <el-text v-if="form.channel === 'ONLINE'" type="primary" size="small" style="font-weight: 600;">+{{ formatMoney(70000) }}</el-text>
-            <el-tag v-else type="success" effect="plain" size="small">Miễn phí</el-tag>
+            <el-tag type="success" effect="plain" size="small">Miễn phí</el-tag>
           </el-row>
         </el-space>
 
@@ -375,7 +382,7 @@ const alert = ref("");
 const form = reactive({
   customerId: null,
   paymentMethod: "CASH",
-  channel: "OFFLINE",   // OFFLINE = Nhận tại cửa hàng | ONLINE = Giao tại nhà
+  channel: "OFFLINE",
   notes: "",
   items: [],
 });
@@ -395,8 +402,6 @@ const ALL_PAYMENT_OPTIONS = [
 
 const paymentOptions = computed(() => ALL_PAYMENT_OPTIONS);
 
-// No manual switching of payment method when channel changes
-
 const subtotal = computed(() =>
   form.items.reduce((sum, i) => {
     const price = i.price ?? i.unitPrice ?? 0;
@@ -410,10 +415,11 @@ const promoDiscount = computed(() =>
     : 0,
 );
 
-const shippingFee = computed(() => form.channel === "ONLINE" ? 70000 : 0);
+// ✅ FIX: Phí vận chuyển = 0 (bỏ phí ship toàn hệ thống)
+const shippingFee = computed(() => 0);
 
 const totalAfterDiscount = computed(() =>
-  Math.max(0, subtotal.value - promoDiscount.value + shippingFee.value),
+  Math.max(0, subtotal.value - promoDiscount.value),
 );
 
 const tempPreview = computed(() => {
@@ -428,12 +434,6 @@ const tempPreview = computed(() => {
 function isVoucherApplicable(v) {
   const min = Number(v.minOrderAmount ?? 0);
   return !(min > 0 && subtotal.value < min);
-}
-
-function vcColorClass(v) {
-  if (v.isCombo) return "vc-left--combo";
-  if (v.discountType === "PERCENT") return "vc-left--percent";
-  return "vc-left--amount";
 }
 
 function selectVoucher(id) {
@@ -523,7 +523,7 @@ async function submit() {
       channel: form.channel,
       notes: buildNotes(),
       items: form.items,
-      shippingFee: shippingFee.value,
+      shippingFee: 0, // ✅ FIX: luôn gửi 0
     };
     if (selectedVoucher.value) payload.promotionCode = selectedVoucher.value.code;
     const res = await ordersApi.create(payload);
@@ -538,12 +538,6 @@ async function submit() {
   } finally {
     loading.value = false;
   }
-}
-
-function formatDiscount(v) {
-  if (v.isCombo) return `Mua ${v.buyQty} tặng ${v.getQty}`;
-  if (v.discountType === "PERCENT") return `${v.discountValue}%`;
-  return formatMoney(v.discountValue);
 }
 
 function formatShort(val) {

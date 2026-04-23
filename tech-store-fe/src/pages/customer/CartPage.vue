@@ -1,3 +1,4 @@
+<!-- \src\pages\customer\CartPage.vue -->
 <template>
   <div style="max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px;">
 
@@ -128,9 +129,10 @@
               <el-text size="small">Tạm tính ({{ items.length }} sản phẩm)</el-text>
               <el-text size="small">{{ formatMoney(subtotal) }}</el-text>
             </el-row>
-            <el-row justify="space-between">
+            <!-- ✅ FIX: Phí vận chuyển = Miễn phí -->
+            <el-row justify="space-between" align="middle">
               <el-text size="small" type="info">Phí vận chuyển</el-text>
-              <el-text size="small" type="info">Tính khi đặt hàng</el-text>
+              <el-tag size="small" type="success" effect="plain">Miễn phí</el-tag>
             </el-row>
           </el-space>
 
