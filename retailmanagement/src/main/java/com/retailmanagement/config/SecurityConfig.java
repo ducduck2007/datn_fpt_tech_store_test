@@ -50,15 +50,11 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-
                 .anonymous(anon -> anon.disable())
-
                 .sessionManagement(sm ->
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
                 .userDetailsService(userDetailsService)
-
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/error",
@@ -71,33 +67,25 @@ public class SecurityConfig {
                                 "/api/products/**",
                                 "/api/categories/**",
                                 "/api/tags/**",
-                                "/uploads/**"
+                                "/uploads/**",
+                                "/api/auth/payments/vnpay-ipn",
+                                "/api/chat/customer",
+                                "/admin/migrate-images"
                         ).permitAll()
 
                         .requestMatchers("/api/auth/logout").authenticated()
-
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
                         .requestMatchers("/api/sales/**").hasAnyRole("SALES", "ADMIN")
-
                         .requestMatchers("/api/inventory/**").hasAnyRole("INVENTORY", "ADMIN")
-
                         .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
-
-                        .requestMatchers("/api/orders/**")
-                        .hasAnyRole("CUSTOMER", "ADMIN", "INVENTORY", "SALES")
-                        .requestMatchers("/api/chat/customer").permitAll()
-                        .requestMatchers("/admin/migrate-images").permitAll()
+                        .requestMatchers("/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN", "INVENTORY", "SALES")
                         .requestMatchers("/api/chat/staff/**").hasAnyRole("ADMIN", "STAFF")
                         .anyRequest().authenticated()
                 )
-
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
-
-                // JWT filter
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
