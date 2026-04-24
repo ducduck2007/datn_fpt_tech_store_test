@@ -94,6 +94,26 @@
         </el-radio-group>
       </el-card>
 
+      <el-card v-if="form.channel === 'ONLINE'" shadow="never" style="margin-bottom: 14px;">
+        <template #header>
+          <el-row justify="space-between" align="middle">
+            <el-space :size="10" align="center">
+              <el-icon><Location /></el-icon>
+              <el-text tag="b">Địa chỉ nhận hàng</el-text>
+            </el-space>
+            <el-button type="primary" link @click="openAddressModal">
+              Thay đổi
+            </el-button>
+          </el-row>
+        </template>
+        <div v-if="form.shippingAddress" style="line-height: 1.5; font-size: 15px;">
+          <el-text>{{ form.shippingAddress }}</el-text>
+        </div>
+        <div v-else>
+          <el-text type="danger">Vui lòng cập nhật địa chỉ giao hàng để tiếp tục!</el-text>
+        </div>
+      </el-card>
+
       <!-- Notes -->
       <el-card shadow="never">
         <template #header>
@@ -264,7 +284,7 @@
         size="large"
         style="width: 100%;"
         :loading="loading"
-        :disabled="form.items.length === 0"
+        :disabled="form.items.length === 0 || (form.channel === 'ONLINE' && (!form.shippingAddress || form.shippingAddress.trim() === ''))"
         @click="submit"
       >
         <el-icon v-if="!loading"><Right /></el-icon>
@@ -357,12 +377,29 @@
       </el-row>
     </template>
   </el-dialog>
+
+  <el-dialog v-model="addressModalOpen" title="📍 Địa chỉ giao hàng" width="480px" align-center>
+    <el-input
+      v-model="tempAddress"
+      type="textarea"
+      :rows="3"
+      placeholder="Nhập địa chỉ giao hàng của bạn (Số nhà, Đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố)"
+    />
+    <template #footer>
+      <div style="text-align: right;">
+        <el-button @click="addressModalOpen = false">Hủy</el-button>
+        <el-button type="primary" @click="confirmAddress" :disabled="!tempAddress.trim()">
+          Xác nhận
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
 import {
   ArrowRight, CircleCheck, Close, CreditCard, Document,
-  List, Loading, Monitor, Right, ShoppingCart, Ticket, Van,
+  List, Loading, Monitor, Right, ShoppingCart, Ticket, Van, Location 
 } from "@element-plus/icons-vue";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -385,6 +422,7 @@ const form = reactive({
   channel: "OFFLINE",
   notes: "",
   items: [],
+  shippingAddress: "", // <-- Đặt nó nằm chung nhà với tụi kia thế này thôi
 });
 
 const voucherModalOpen = ref(false);
@@ -430,6 +468,20 @@ const tempPreview = computed(() => {
     return Math.min(subtotal.value, Math.round((subtotal.value * Number(v.discountValue)) / 100));
   return Math.min(subtotal.value, Number(v.discountValue));
 });
+
+// Thêm biến cho Popup Địa chỉ
+const addressModalOpen = ref(false);
+const tempAddress = ref("");
+
+function openAddressModal() {
+  tempAddress.value = form.shippingAddress; // Lấy địa chỉ hiện tại vào ô nhập
+  addressModalOpen.value = true;
+}
+
+function confirmAddress() {
+  form.shippingAddress = tempAddress.value;
+  addressModalOpen.value = false;
+}
 
 function isVoucherApplicable(v) {
   const min = Number(v.minOrderAmount ?? 0);
@@ -514,6 +566,10 @@ function pickOrderId(payload) {
 }
 
 async function submit() {
+  if (form.channel === "ONLINE" && (!form.shippingAddress || form.shippingAddress.trim() === "")) {
+    toast("Vui lòng nhập địa chỉ giao hàng để tiếp tục!", "warning");
+    return;
+  }
   alert.value = "";
   loading.value = true;
   try {
@@ -524,6 +580,7 @@ async function submit() {
       notes: buildNotes(),
       items: form.items,
       shippingFee: 0, // ✅ FIX: luôn gửi 0
+      shippingAddress: form.channel === "ONLINE" ? form.shippingAddress : "",
     };
     if (selectedVoucher.value) payload.promotionCode = selectedVoucher.value.code;
     const res = await ordersApi.create(payload);
@@ -561,7 +618,10 @@ function formatMoney(value) {
 onMounted(async () => {
   try {
     const profile = await customersApi.getProfile();
-    form.customerId = profile?.data?.id;
+    const custData = profile?.data?.data ?? profile?.data;
+    form.customerId = custData?.id;
+    form.shippingAddress = custData?.address || ""; // <-- Lấy địa chỉ từ DB đổ ra
+    
     const cart = await cartApi.getItems();
     form.items = cart?.data ?? [];
   } catch {

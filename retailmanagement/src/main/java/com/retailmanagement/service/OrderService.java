@@ -222,7 +222,10 @@ public class OrderService {
         order.setShippingFee(BigDecimal.ZERO);
         order.setTotalAmount(BigDecimal.ZERO);
         order.setOrderNumber(generateOrderNumber());
-        order.setShippingAddress(customer.getAddress());
+        String finalAddress = (request.getShippingAddress() != null && !request.getShippingAddress().isBlank())
+                ? request.getShippingAddress()
+                : customer.getAddress();
+        order.setShippingAddress(finalAddress);
         order.setCreatedAt(Instant.now());
         order.setUpdatedAt(Instant.now());
 
@@ -331,6 +334,7 @@ public class OrderService {
                     OrderItemSerial ois = new OrderItemSerial();
                     ois.setOrderItem(item);
                     ois.setProductSerial(serial);
+                    ois.setReturned(false);
                     orderItemSerialRepository.save(ois);
                 }
             }
@@ -607,7 +611,7 @@ public class OrderService {
                 order.getCustomer().getName(),
                 order.getCustomer().getEmail(),
                 order.getCustomer().getPhone(),
-                order.getCustomer().getAddress(),
+                (order.getShippingAddress() != null && !order.getShippingAddress().isBlank()) ? order.getShippingAddress() : order.getCustomer().getAddress(),
                 order.getUser().getId(),
                 order.getUser().getUsername(),
                 order.getNotes(),
@@ -800,6 +804,7 @@ public class OrderService {
         OrderItemSerial ois = new OrderItemSerial();
         ois.setOrderItem(orderItem);
         ois.setProductSerial(serial);
+        ois.setReturned(false);
         orderItemSerialRepository.save(ois);
     }
 
