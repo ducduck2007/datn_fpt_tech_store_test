@@ -2,6 +2,10 @@
 import http from "./http";
 
 export const paymentsApi = {
+  getVnPayUrl(orderId) {
+    return http.get(`/api/auth/payments/vnpay-url/${orderId}`);
+  },
+
   // Tạo payment mới
   create(payload) {
     return http.post("/api/auth/payments", payload);

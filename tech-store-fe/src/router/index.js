@@ -66,6 +66,12 @@ import Forbidden from "../pages/customer/Forbidden.vue";
 const routes = [
   // ===== CUSTOMER =====
   {
+    path: "/payment-result", // Phải khớp với vnp_ReturnUrl ở Backend
+    name: "vnpay-result",
+    component: () => import("../pages/customer/VnPayResult.vue"), // Tí nữa tạo file này
+    meta: { portal: "customer", requiresAuth: true },
+  },
+  {
     path: "/",
     name: "home",
     component: CustomerHome,

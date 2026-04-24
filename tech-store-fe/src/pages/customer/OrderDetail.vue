@@ -24,7 +24,7 @@
                 <el-icon><Refresh /></el-icon> Reload
               </el-button>
 
-              <!-- ✅ FIX Issue 1: Chỉ hiện nút "Thanh toán" cho phương thức KHÔNG phải TRANSFER và KHÔNG phải CASH -->
+              <!-- Nút Thanh toán cho phương thức KHÔNG phải TRANSFER và KHÔNG phải CASH -->
               <el-button
                 v-if="detail?.paymentStatus === 'UNPAID' && detail?.status === 'PENDING'
                       && detail?.paymentMethod !== 'CASH' && detail?.paymentMethod !== 'TRANSFER'"
@@ -33,13 +33,13 @@
                 <el-icon><CreditCard /></el-icon> Thanh toán
               </el-button>
 
-              <!-- ✅ FIX Issue 1: TRANSFER → chỉ cho xem QR, không tự confirm -->
+              <!-- TRANSFER → redirect sang cổng VNPay -->
               <el-button
                 v-if="detail?.paymentStatus === 'UNPAID' && detail?.status === 'PENDING'
                       && detail?.paymentMethod === 'TRANSFER'"
-                type="info" plain @click="openPaymentDialog"
+                type="primary" plain :loading="vnpayLoading" @click="openVnPayPayment"
               >
-                <el-icon><CreditCard /></el-icon> Xem QR Chuyển khoản
+                <el-icon><CreditCard /></el-icon> Thanh toán qua VNPay
               </el-button>
 
               <el-button
@@ -295,92 +295,58 @@
     <!-- ── PAYMENT DIALOG ── -->
     <el-dialog v-model="showPaymentDialog" title="💳 Thanh toán đơn hàng" width="500px" align-center>
 
-      <!-- ✅ FIX Issue 1: Nếu là TRANSFER, hiển thị QR + thông báo chờ admin -->
-      <template v-if="detail?.paymentMethod === 'TRANSFER'">
-        <el-alert
-          type="warning"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 16px;"
-        >
-          <template #title>🏦 Thanh toán chuyển khoản — Chờ Admin xác nhận</template>
-          <template #default>
-            Quét mã QR để chuyển khoản. Sau khi chuyển tiền thành công, admin sẽ xác nhận và đơn hàng tự động cập nhật trạng thái PAID.
-          </template>
-        </el-alert>
+      <!-- Các phương thức non-TRANSFER -->
+      <div v-if="spinStatus.loading" style="text-align: center; padding: 20px;">
+        <el-icon class="is-loading" :size="28"><Loading /></el-icon>
+        <el-text type="info" style="display: block; margin-top: 8px;">Đang kiểm tra ưu đãi vòng quay...</el-text>
+      </div>
 
-        <el-form label-position="top">
-          <el-form-item label="Số tiền cần chuyển">
-            <el-text type="primary" style="font-size: 22px; font-weight: 800;">{{ formatMoney(detail?.totalAmount) }}</el-text>
-          </el-form-item>
-          <el-form-item label="Quét mã QR để chuyển khoản">
-            <div style="text-align: center; width: 100%;">
-              <el-image v-if="qrCodeUrl" :src="qrCodeUrl" style="width: 220px; height: 220px; display: block; margin: 0 auto 8px; border-radius: 12px;" />
-              <el-text size="small" type="info">Sử dụng ứng dụng ngân hàng để quét mã QR</el-text>
-            </div>
-          </el-form-item>
-        </el-form>
-      </template>
+      <el-card
+        v-if="!spinStatus.loading && spinStatus.hasActiveBonus"
+        shadow="never"
+        style="margin-bottom: 14px; background: var(--el-color-warning-light-9); border-color: var(--el-color-warning-light-5);"
+      >
+        <el-row align="middle" :gutter="12">
+          <el-col flex="none"><span style="font-size: 28px;">🎡</span></el-col>
+          <el-col flex="1">
+            <el-text tag="b" style="display: block;">Ưu đãi vòng quay đã áp dụng!</el-text>
+            <el-text size="small" type="warning">
+              Giảm thêm <strong>{{ spinStatus.bonusRate }}%</strong>
+              <span v-if="spinStatus.bonusExpiresAt"> · Hết hạn {{ formatExpiry(spinStatus.bonusExpiresAt) }}</span>
+            </el-text>
+          </el-col>
+          <el-col flex="none">
+            <el-tag type="warning" effect="dark">−{{ spinStatus.bonusRate }}%</el-tag>
+          </el-col>
+        </el-row>
+      </el-card>
 
-      <!-- Các phương thức khác (non-TRANSFER) -->
-      <template v-else>
-        <div v-if="spinStatus.loading" style="text-align: center; padding: 20px;">
-          <el-icon class="is-loading" :size="28"><Loading /></el-icon>
-          <el-text type="info" style="display: block; margin-top: 8px;">Đang kiểm tra ưu đãi vòng quay...</el-text>
-        </div>
+      <el-alert type="success" :closable="false" show-icon style="margin-bottom: 14px;">
+        <template #default>
+          <div>Sau khi thanh toán thành công:</div>
+          <el-space direction="vertical" :size="4" style="margin-top: 6px;">
+            <el-text size="small">✅ Đơn hàng chuyển sang <strong>PAID</strong></el-text>
+            <el-text size="small">✅ Xuất kho tự động</el-text>
+            <el-text size="small">✅ <strong>Cộng điểm loyalty</strong> cho khách hàng</el-text>
+          </el-space>
+        </template>
+      </el-alert>
 
-        <el-card
-          v-if="!spinStatus.loading && spinStatus.hasActiveBonus"
-          shadow="never"
-          style="margin-bottom: 14px; background: var(--el-color-warning-light-9); border-color: var(--el-color-warning-light-5);"
-        >
-          <el-row align="middle" :gutter="12">
-            <el-col flex="none"><span style="font-size: 28px;">🎡</span></el-col>
-            <el-col flex="1">
-              <el-text tag="b" style="display: block;">Ưu đãi vòng quay đã áp dụng!</el-text>
-              <el-text size="small" type="warning">
-                Giảm thêm <strong>{{ spinStatus.bonusRate }}%</strong>
-                <span v-if="spinStatus.bonusExpiresAt"> · Hết hạn {{ formatExpiry(spinStatus.bonusExpiresAt) }}</span>
-              </el-text>
-            </el-col>
-            <el-col flex="none">
-              <el-tag type="warning" effect="dark">−{{ spinStatus.bonusRate }}%</el-tag>
-            </el-col>
-          </el-row>
-        </el-card>
-
-        <el-alert type="success" :closable="false" show-icon style="margin-bottom: 14px;">
-          <template #default>
-            <div>Sau khi thanh toán thành công:</div>
-            <el-space direction="vertical" :size="4" style="margin-top: 6px;">
-              <el-text size="small">✅ Đơn hàng chuyển sang <strong>PAID</strong></el-text>
-              <el-text size="small">✅ Xuất kho tự động</el-text>
-              <el-text size="small">✅ <strong>Cộng điểm loyalty</strong> cho khách hàng</el-text>
-            </el-space>
-          </template>
-        </el-alert>
-
-        <el-form label-position="top">
-          <el-form-item label="Số tiền thanh toán">
-            <el-text type="primary" style="font-size: 20px; font-weight: 700;">{{ formatMoney(detail?.totalAmount) }}</el-text>
-          </el-form-item>
-        </el-form>
-      </template>
+      <el-form label-position="top">
+        <el-form-item label="Số tiền thanh toán">
+          <el-text type="primary" style="font-size: 20px; font-weight: 700;">{{ formatMoney(detail?.totalAmount) }}</el-text>
+        </el-form-item>
+      </el-form>
 
       <template #footer>
         <el-button plain @click="showPaymentDialog = false">Đóng</el-button>
-        <!-- ✅ FIX Issue 1: Ẩn nút "Xác nhận" với TRANSFER -->
         <el-button
-          v-if="detail?.paymentMethod !== 'TRANSFER'"
           type="primary"
           :loading="paymentLoading"
           @click="confirmPayment"
         >
           Xác nhận thanh toán
         </el-button>
-        <el-tag v-else type="warning" effect="plain" style="padding: 8px 16px; font-size: 13px;">
-          ⏳ Chờ admin xác nhận
-        </el-tag>
       </template>
     </el-dialog>
 
@@ -533,10 +499,25 @@ function generateTransferQR() {
 
 async function openPaymentDialog() {
   showPaymentDialog.value = true;
-  if (detail.value?.paymentMethod === "TRANSFER") {
-    generateTransferQR();
-  } else {
-    await fetchSpinStatus();
+  await fetchSpinStatus();
+}
+
+const vnpayLoading = ref(false);
+
+async function openVnPayPayment() {
+  vnpayLoading.value = true;
+  try {
+    const res = await paymentsApi.getVnPayUrl(orderId.value);
+    const paymentUrl = res?.data?.paymentUrl;
+    if (paymentUrl) {
+      window.location.href = paymentUrl;
+    } else {
+      toast("Không lấy được link thanh toán VNPay", "error");
+    }
+  } catch (err) {
+    toast(err?.response?.data?.message || "Lỗi khi tạo link VNPay", "error");
+  } finally {
+    vnpayLoading.value = false;
   }
 }
 
@@ -594,12 +575,31 @@ function getCancelWarningMessage() {
 async function confirmPayment() {
   paymentLoading.value = true;
   try {
-    await paymentsApi.create({ orderId: Number(orderId.value), method: detail.value.paymentMethod, transactionRef: `TXN-${Date.now()}` });
+    // Nếu khách chọn VNPay (hoặc bất kỳ tên gì mày đặt cho VNPay ở DB)
+    if (detail.value.paymentMethod === 'TRANSFER') {
+      const res = await paymentsApi.getVnPayUrl(orderId.value);
+      const paymentUrl = res.data.paymentUrl;
+      if (paymentUrl) {
+        window.location.href = paymentUrl; // Đẩy khách sang VNPay
+        return;
+      }
+    }
+
+    // Nếu là các phương thức thanh toán khác (như ví nội bộ, tiền mặt tại quầy...)
+    await paymentsApi.create({ 
+      orderId: Number(orderId.value), 
+      method: detail.value.paymentMethod, 
+      transactionRef: `TXN-${Date.now()}` 
+    });
+    
     toast("Thanh toán thành công", "success");
     showPaymentDialog.value = false;
     await reload();
-  } catch { toast("Lỗi thanh toán", "error"); }
-  finally { paymentLoading.value = false; }
+  } catch (err) { 
+    toast(err.response?.data?.message || "Lỗi thanh toán", "error"); 
+  } finally { 
+    paymentLoading.value = false; 
+  }
 }
 
 async function confirmCancel() {

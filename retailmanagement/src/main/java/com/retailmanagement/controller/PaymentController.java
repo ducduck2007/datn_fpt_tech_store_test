@@ -2,6 +2,7 @@ package com.retailmanagement.controller;
 
 import com.retailmanagement.dto.request.PaymentRequest;
 import com.retailmanagement.dto.response.PaymentResponse;
+import com.retailmanagement.repository.OrderRepository;
 import com.retailmanagement.security.service.CustomUserDetails;
 import com.retailmanagement.service.PaymentService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.retailmanagement.service.VnPayService;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,57 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final VnPayService vnPayService;
+    private final OrderRepository orderRepository;
+
+
+    @GetMapping("/vnpay-url/{orderId}")
+    public ResponseEntity<?> getVnPayUrl(
+            @PathVariable Long orderId,
+            HttpServletRequest request) {
+
+        // Gọi service tạo URL
+        String url = vnPayService.createPaymentUrl(orderId, request);
+        return ResponseEntity.ok(Map.of("paymentUrl", url));
+    }
+
+    @GetMapping("/vnpay-ipn")
+    public ResponseEntity<?> vnpayIPN(@RequestParam Map<String, String> params) {
+        String vnp_SecureHash = params.get("vnp_SecureHash");
+        params.remove("vnp_SecureHashType");
+        params.remove("vnp_SecureHash");
+
+        // 1. Kiểm tra chữ ký bảo mật (Sử dụng VnPayConfig tao đưa ở turn trước)
+        String signValue = com.retailmanagement.config.VnPayConfig.hashAllFields(params);
+        if (!signValue.equals(vnp_SecureHash)) {
+            return ResponseEntity.ok(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
+        }
+
+        // 2. Tìm đơn hàng
+        String orderNumber = params.get("vnp_TxnRef");
+        var orderOpt = orderRepository.findByOrderNumber(orderNumber);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("RspCode", "01", "Message", "Order not found"));
+        }
+
+        var order = orderOpt.get();
+
+        // 3. Kiểm tra trạng thái tránh cập nhật trùng
+        if (!"UNPAID".equals(order.getPaymentStatus())) {
+            return ResponseEntity.ok(Map.of("RspCode", "02", "Message", "Order already confirmed"));
+        }
+
+        // 4. Kiểm tra mã phản hồi (00 là thành công)
+        if ("00".equals(params.get("vnp_ResponseCode"))) {
+            order.setPaymentStatus("PAID");
+            order.setStatus("PAID");
+            order.setPaidAt(java.time.Instant.now());
+            order.setPaymentMethod("VNPAY");
+            orderRepository.save(order);
+        }
+
+        return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
+    }
 
     /**
      * Helper method to extract user ID from authentication
