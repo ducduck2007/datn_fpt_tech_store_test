@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import com.retailmanagement.service.VnPayService;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -65,11 +66,53 @@ public class PaymentController {
 
         // 4. Kiểm tra mã phản hồi (00 là thành công)
         if ("00".equals(params.get("vnp_ResponseCode"))) {
-            order.setPaymentStatus("PAID");
-            order.setStatus("PAID");
-            order.setPaidAt(java.time.Instant.now());
-            order.setPaymentMethod("VNPAY");
-            orderRepository.save(order);
+            PaymentRequest paymentRequest = new PaymentRequest();
+            paymentRequest.setOrderId(order.getId());
+            paymentRequest.setMethod("VNPAY");
+            paymentRequest.setTransactionRef(params.getOrDefault("vnp_TransactionNo", "TXN-" + orderNumber));
+            paymentService.createPayment(paymentRequest, null);
+        }
+
+        return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
+    }
+
+    /**
+     * Return URL — VNPay redirect user về đây sau thanh toán.
+     * Dùng khi IPN không reach được (vd: localhost/dev).
+     * Xác thực chữ ký và update DB giống IPN.
+     */
+    @GetMapping("/vnpay-return")
+    public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
+        String vnp_SecureHash = params.get("vnp_SecureHash");
+        Map<String, String> fields = new HashMap<>(params);
+        fields.remove("vnp_SecureHashType");
+        fields.remove("vnp_SecureHash");
+
+        // Xác thực chữ ký
+        String signValue = com.retailmanagement.config.VnPayConfig.hashAllFields(fields);
+        if (!signValue.equals(vnp_SecureHash)) {
+            return ResponseEntity.ok(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
+        }
+
+        String orderNumber = params.get("vnp_TxnRef");
+        var orderOpt = orderRepository.findByOrderNumber(orderNumber);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("RspCode", "01", "Message", "Order not found"));
+        }
+
+        var order = orderOpt.get();
+
+        // Idempotent — nếu IPN đã xử lý trước thì bỏ qua
+        if ("PAID".equals(order.getPaymentStatus())) {
+            return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Already paid"));
+        }
+
+        if ("00".equals(params.get("vnp_ResponseCode"))) {
+            PaymentRequest paymentRequest = new PaymentRequest();
+            paymentRequest.setOrderId(order.getId());
+            paymentRequest.setMethod("VNPAY");
+            paymentRequest.setTransactionRef(params.getOrDefault("vnp_TransactionNo", "TXN-" + orderNumber));
+            paymentService.createPayment(paymentRequest, null);
         }
 
         return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));

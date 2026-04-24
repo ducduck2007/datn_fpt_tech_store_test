@@ -69,6 +69,7 @@ public class SecurityConfig {
                                 "/api/tags/**",
                                 "/uploads/**",
                                 "/api/auth/payments/vnpay-ipn",
+                                "/api/auth/payments/vnpay-return",
                                 "/api/chat/customer",
                                 "/admin/migrate-images"
                         ).permitAll()

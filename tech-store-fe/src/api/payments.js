@@ -42,5 +42,9 @@ export const paymentsApi = {
   // Khôi phục payment đã xóa
   restore(paymentId) {
     return http.post(`/api/auth/payments/${paymentId}/restore`);
-  }
+  },
+
+  confirmVnpay(queryParams) {
+  return http.get("/api/auth/payments/vnpay-return", { params: queryParams });
+}
 };
