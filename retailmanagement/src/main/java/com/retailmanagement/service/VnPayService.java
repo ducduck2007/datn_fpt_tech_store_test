@@ -19,7 +19,7 @@ public class VnPayService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
-        String safeOrderNumber = order.getOrderNumber().replace("-", "");
+        String safeOrderNumber = order.getOrderNumber();
 
         Map<String, String> vnp_Params = new HashMap<>();
         vnp_Params.put("vnp_Version", "2.1.0");
@@ -30,7 +30,7 @@ public class VnPayService {
         vnp_Params.put("vnp_Amount", String.valueOf(order.getTotalAmount().longValue() * 100));
         vnp_Params.put("vnp_CurrCode", "VND");
         vnp_Params.put("vnp_TxnRef", safeOrderNumber);
-        vnp_Params.put("vnp_OrderInfo", "ThanhToanDonHang_" + safeOrderNumber);
+        vnp_Params.put("vnp_OrderInfo", "TT_" + safeOrderNumber);
         vnp_Params.put("vnp_OrderType", "other");
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", VnPayConfig.vnp_ReturnUrl);
