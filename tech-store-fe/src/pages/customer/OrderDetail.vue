@@ -83,7 +83,9 @@
                     <el-descriptions-item label="Tên">{{ detail.customerName }}</el-descriptions-item>
                     <el-descriptions-item label="Email">{{ detail.customerEmail }}</el-descriptions-item>
                     <el-descriptions-item label="Phone">{{ detail.customerPhone }}</el-descriptions-item>
-                    <el-descriptions-item label="Address">{{ detail.customerAddress }}</el-descriptions-item>
+                    <el-descriptions-item label="Address">
+                      {{ detail.shippingAddress || detail.customerAddress || 'Chưa cập nhật' }}
+                    </el-descriptions-item>
                   </el-descriptions>
                 </el-card>
               </el-col>

@@ -51,16 +51,7 @@
             <el-icon><Money /></el-icon> Xác nhận Thu Tiền Mặt
           </el-button>
 
-          <!-- ✅ FIX Issue 1: Admin xác nhận chuyển khoản -->
-          <el-button
-            v-if="detail?.paymentMethod === 'TRANSFER' && detail?.paymentStatus !== 'PAID'"
-            type="primary"
-            plain
-            :loading="confirmTransferLoading"
-            @click="handleConfirmTransfer"
-          >
-            <el-icon><Wallet /></el-icon> Xác nhận Chuyển Khoản
-          </el-button>
+
         </div>
       </div>
 
@@ -326,7 +317,7 @@ const orderId = computed(() => route.params.orderId);
 
 const markDeliveredLoading = ref(false);
 const confirmCodLoading = ref(false);
-const confirmTransferLoading = ref(false); // ✅ FIX Issue 1
+
 
 const statusType = computed(() => {
   const s = detail.value?.status;
@@ -508,40 +499,7 @@ async function handleConfirmCod() {
   }
 }
 
-// ✅ FIX Issue 1: Admin xác nhận chuyển khoản
-async function handleConfirmTransfer() {
-  const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(detail.value?.totalAmount || 0);
-  try {
-    await ElMessageBox.confirm(
-      `Xác nhận đã nhận tiền chuyển khoản cho đơn hàng <strong>${detail.value?.orderNumber}</strong>?<br/><br/>
-      <div style="padding: 12px; background: var(--el-fill-color-light); border-radius: 6px; margin-bottom: 8px;">
-        <span style="font-size: 22px; font-weight: 800; color: var(--el-color-primary);">${amount}</span>
-      </div>
-      <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: var(--el-text-color-secondary);">
-        <li>Trạng thái thanh toán chuyển sang <strong>PAID</strong></li>
-        <li>Kho sẽ được xuất tự động</li>
-        <li>Điểm loyalty sẽ được cộng cho khách hàng</li>
-        <li style="color: var(--el-color-danger);">Hành động này không thể hoàn tác</li>
-      </ul>`,
-      '🏦 Xác nhận Thanh toán Chuyển khoản',
-      { confirmButtonText: 'Xác nhận đã nhận tiền', cancelButtonText: 'Hủy', type: 'primary', dangerouslyUseHTMLString: true }
-    );
-  } catch { return; }
-  confirmTransferLoading.value = true;
-  try {
-    await paymentsApi.create({
-      orderId: Number(orderId.value),
-      method: 'TRANSFER',
-      transactionRef: `TRANSFER-${Date.now()}`,
-    });
-    toast('✅ Đã xác nhận thanh toán chuyển khoản thành công', 'success');
-    await reload();
-  } catch {
-    toast('Lỗi khi xác nhận thanh toán', 'error');
-  } finally {
-    confirmTransferLoading.value = false;
-  }
-}
+
 
 function isReturned(status) {
   return ["PARTIALLY_RETURNED", "RETURNED"].includes(status);
