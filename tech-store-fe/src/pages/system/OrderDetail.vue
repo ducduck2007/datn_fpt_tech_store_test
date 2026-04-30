@@ -3,12 +3,17 @@
   <div class="order-page">
     <el-card shadow="never">
       <!-- Header -->
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
+      <div
+        style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:22px; flex-wrap:wrap;">
         <div>
-          <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
-            <el-icon><Tickets /></el-icon> Đơn hàng
+          <div
+            style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--el-text-color-secondary); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+            <el-icon>
+              <Tickets />
+            </el-icon> Đơn hàng
           </div>
-          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">{{ detail?.orderNumber || `#${orderId}` }}</div>
+          <div style="font-size:28px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px;">{{
+            detail?.orderNumber || `#${orderId}` }}</div>
           <div style="font-size:13px; color:var(--el-text-color-secondary);">
             <el-space wrap>
               <el-tag :type="statusType" size="small">
@@ -25,30 +30,20 @@
         </div>
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:4px; flex-wrap:wrap;">
           <el-button plain :loading="loading" @click="reload">
-            <el-icon v-if="!loading"><Refresh /></el-icon>
+            <el-icon v-if="!loading">
+              <Refresh />
+            </el-icon>
             <span v-if="!loading">Reload</span>
           </el-button>
 
-          <!-- Admin: Xác nhận đã giao hàng -->
-          <el-button
-            v-if="detail?.status === 'SHIPPING'"
-            type="success"
-            plain
-            :loading="markDeliveredLoading"
-            @click="handleMarkDelivered"
-          >
-            <el-icon><CircleCheck /></el-icon> Đánh dấu Đã Giao Hàng
-          </el-button>
 
           <!-- Admin: Xác nhận thu tiền COD -->
           <el-button
-            v-if="detail?.paymentMethod === 'CASH' && detail?.paymentStatus !== 'PAID' && ['SHIPPING','DELIVERED'].includes(detail?.status)"
-            type="warning"
-            plain
-            :loading="confirmCodLoading"
-            @click="handleConfirmCod"
-          >
-            <el-icon><Money /></el-icon> Xác nhận Thu Tiền Mặt
+            v-if="detail?.paymentMethod === 'CASH' && detail?.paymentStatus !== 'PAID' && ['SHIPPING', 'DELIVERED'].includes(detail?.status)"
+            type="warning" plain :loading="confirmCodLoading" @click="handleConfirmCod">
+            <el-icon>
+              <Money />
+            </el-icon> Xác nhận Thu Tiền Mặt
           </el-button>
 
 
@@ -66,7 +61,9 @@
           <el-card shadow="never">
             <template #header>
               <el-space>
-                <el-icon><User /></el-icon>
+                <el-icon>
+                  <User />
+                </el-icon>
                 <strong>Thông tin khách hàng</strong>
               </el-space>
             </template>
@@ -87,7 +84,9 @@
           <el-card shadow="never">
             <template #header>
               <el-space>
-                <el-icon><Van /></el-icon>
+                <el-icon>
+                  <Van />
+                </el-icon>
                 <strong>Thanh toán &amp; Giao hàng</strong>
               </el-space>
             </template>
@@ -96,14 +95,20 @@
               <el-descriptions-item label="Kênh">{{ detail.channel }}</el-descriptions-item>
               <el-descriptions-item label="Ghi chú" :label-style="{ verticalAlign: 'top', paddingTop: '10px' }">
                 <el-space v-if="detail.notes" direction="vertical" alignment="flex-start" :size="6" style="width: 100%">
-                  <el-tag
-                    v-for="(note, i) in categorizedNotes"
-                    :key="i"
-                    size="default"
-                    :type="note.type === 'note-vip' ? '' : note.type === 'note-coupon' ? 'success' : note.type === 'note-ship' ? 'warning' : 'info'"
-                  >{{ note.text }}</el-tag>
+                  <el-tag v-for="(note, i) in categorizedNotes" :key="i" size="default"
+                    :type="note.type === 'note-vip' ? '' : note.type === 'note-coupon' ? 'success' : note.type === 'note-ship' ? 'warning' : 'info'">{{
+                    note.text }}</el-tag>
                 </el-space>
                 <span v-else>—</span>
+              </el-descriptions-item>
+              
+              <el-descriptions-item label="Bằng chứng giao" v-if="detail.deliveryProofUrl">
+                <el-image 
+                  :src="detail.deliveryProofUrl" 
+                  :preview-src-list="[detail.deliveryProofUrl]"
+                  style="width: 80px; height: 80px; border-radius: 4px; border: 1px solid var(--el-border-color-light);"
+                  fit="cover"
+                />
               </el-descriptions-item>
             </el-descriptions>
           </el-card>
@@ -116,7 +121,9 @@
               <el-row justify="space-between" align="middle">
                 <el-col :span="20">
                   <el-space>
-                    <el-icon size="20"><Present /></el-icon>
+                    <el-icon size="20">
+                      <Present />
+                    </el-icon>
                     <div>
                       <div><strong>Ưu đãi áp dụng</strong></div>
                       <div>Tổng tiết kiệm: <strong>{{ formatMoney(detail.discountTotal) }}</strong></div>
@@ -131,12 +138,12 @@
 
             <div class="discount-grid">
               <!-- VIP % Discount -->
-              <el-card
-                v-if="detail.vipDiscountRate && detail.vipDiscountRate > 0 && vipPercentAmount > 0"
-                shadow="never"
-              >
+              <el-card v-if="detail.vipDiscountRate && detail.vipDiscountRate > 0 && vipPercentAmount > 0"
+                shadow="never">
                 <el-space alignment="flex-start">
-                  <el-icon size="22"><Star /></el-icon>
+                  <el-icon size="22">
+                    <Star />
+                  </el-icon>
                   <div>
                     <el-space wrap>
                       <span>VIP {{ vipTierName }}</span>
@@ -151,7 +158,9 @@
               <!-- VIP Bonus -->
               <el-card v-if="parsedVipBonus" shadow="never">
                 <el-space alignment="flex-start">
-                  <el-icon size="22"><Trophy /></el-icon>
+                  <el-icon size="22">
+                    <Trophy />
+                  </el-icon>
                   <div>
                     <el-space wrap>
                       <span>VIP {{ parsedVipBonus.tier }}</span>
@@ -164,12 +173,11 @@
               </el-card>
 
               <!-- Spin Wheel -->
-              <el-card
-                v-if="detail.spinDiscount && detail.spinDiscount > 0"
-                shadow="never"
-              >
+              <el-card v-if="detail.spinDiscount && detail.spinDiscount > 0" shadow="never">
                 <el-space alignment="flex-start">
-                  <el-icon size="22"><Opportunity /></el-icon>
+                  <el-icon size="22">
+                    <Opportunity />
+                  </el-icon>
                   <div>
                     <el-space wrap>
                       <span>Vòng quay</span>
@@ -184,7 +192,9 @@
               <!-- Coupon -->
               <el-card v-if="effectiveCoupon" shadow="never">
                 <el-space alignment="flex-start">
-                  <el-icon size="22"><Ticket /></el-icon>
+                  <el-icon size="22">
+                    <Ticket />
+                  </el-icon>
                   <div>
                     <el-space wrap>
                       <span>Mã giảm giá</span>
@@ -205,7 +215,9 @@
             <template #header>
               <el-row justify="space-between" align="middle">
                 <el-space>
-                  <el-icon><Box /></el-icon>
+                  <el-icon>
+                    <Box />
+                  </el-icon>
                   <span>Chi tiết sản phẩm</span>
                 </el-space>
                 <el-tag>{{ detail.items?.length || 0 }} sản phẩm</el-tag>
@@ -240,7 +252,9 @@
           <el-card shadow="never">
             <template #header>
               <el-space>
-                <el-icon><Wallet /></el-icon>
+                <el-icon>
+                  <Wallet />
+                </el-icon>
                 <strong>Tổng thanh toán</strong>
               </el-space>
             </template>
@@ -248,10 +262,8 @@
             <el-descriptions :column="1" border>
               <el-descriptions-item label="Tạm tính">{{ formatMoney(detail.subtotal) }}</el-descriptions-item>
 
-              <el-descriptions-item
-                v-if="detail.vipDiscountRate && detail.vipDiscountRate > 0 && vipPercentAmount > 0"
-                label="Giảm VIP"
-              >
+              <el-descriptions-item v-if="detail.vipDiscountRate && detail.vipDiscountRate > 0 && vipPercentAmount > 0"
+                label="Giảm VIP">
                 <el-text type="success">-{{ formatMoney(vipPercentAmount) }} ({{ detail.vipDiscountRate }}%)</el-text>
               </el-descriptions-item>
 
@@ -262,11 +274,9 @@
                 </el-text>
               </el-descriptions-item>
 
-              <el-descriptions-item
-                v-if="detail.spinDiscount && detail.spinDiscount > 0"
-                label="Vòng quay"
-              >
-                <el-text type="warning">-{{ formatMoney(detail.spinDiscount) }} ({{ detail.spinDiscountRate }}%)</el-text>
+              <el-descriptions-item v-if="detail.spinDiscount && detail.spinDiscount > 0" label="Vòng quay">
+                <el-text type="warning">-{{ formatMoney(detail.spinDiscount) }} ({{ detail.spinDiscountRate
+                  }}%)</el-text>
               </el-descriptions-item>
 
               <el-descriptions-item v-if="effectiveCoupon" label="Mã giảm giá">
@@ -281,13 +291,51 @@
               </el-descriptions-item>
 
               <el-descriptions-item label="Tổng cộng">
-                <el-text type="primary"><strong class="total-amount">{{ formatMoney(detail.totalAmount) }}</strong></el-text>
+                <el-text type="primary"><strong class="total-amount">{{ formatMoney(detail.totalAmount)
+                    }}</strong></el-text>
               </el-descriptions-item>
             </el-descriptions>
           </el-card>
         </el-col>
       </el-row>
     </el-card>
+
+    <!-- Admin Upload Fallback Dialog -->
+    <el-dialog v-model="showAdminDeliverDialog" title="Đánh dấu đã giao hàng" width="400px">
+      <div style="margin-bottom: 16px;">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+        >
+          Trạng thái sẽ giữ nguyên SHIPPING cho đến khi Khách xác nhận.
+        </el-alert>
+      </div>
+      
+      <div style="text-align: center; margin-bottom: 16px;">
+        <el-upload
+          action="#"
+          list-type="picture-card"
+          :auto-upload="false"
+          :limit="1"
+          :on-change="handleFileChange"
+          :on-remove="handleFileRemove"
+          accept="image/*"
+        >
+          <el-icon><Plus /></el-icon>
+        </el-upload>
+        <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 8px;">
+          (Tùy chọn) Tải ảnh bằng chứng gửi từ Zalo của Shipper
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showAdminDeliverDialog = false">Hủy</el-button>
+        <el-button type="success" :loading="markDeliveredLoading" @click="handleAdminUploadProof">
+          Xác nhận Giao Hàng
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -301,7 +349,7 @@ import { toast } from "../../ui/toast";
 import { ElMessageBox } from "element-plus";
 import {
   Refresh, User, Van, Present, Star, Trophy, Opportunity,
-  Ticket, Box, Wallet, Money,
+  Ticket, Box, Wallet, Money, Plus,
   CircleCheck, CircleClose, Timer, InfoFilled, RefreshLeft,
 } from "@element-plus/icons-vue";
 
@@ -443,24 +491,41 @@ async function reload() {
   }
 }
 
-// Admin: Đánh dấu đã giao hàng
-async function handleMarkDelivered() {
-  try {
-    await ElMessageBox.confirm(
-      `Xác nhận đơn hàng <strong>${detail.value?.orderNumber}</strong> đã được giao thành công?<br/><br/>
-      <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: var(--el-text-color-secondary);">
-        <li>Đơn hàng sẽ chuyển sang trạng thái <strong>DELIVERED</strong></li>
-        <li>Khách hàng sẽ nhận được thông báo</li>
-        <li style="color: var(--el-color-danger);">Hành động này không thể hoàn tác</li>
-      </ul>`,
-      '✅ Xác nhận Giao Hàng Thành Công',
-      { confirmButtonText: 'Đánh dấu đã giao', cancelButtonText: 'Hủy', type: 'success', dangerouslyUseHTMLString: true }
-    );
-  } catch { return; }
+const showAdminDeliverDialog = ref(false);
+const adminSelectedFile = ref(null);
+
+function handleFileChange(uploadFile) {
+  adminSelectedFile.value = uploadFile.raw;
+}
+
+function handleFileRemove() {
+  adminSelectedFile.value = null;
+}
+
+// Admin: Upload proof & override
+async function handleAdminUploadProof() {
   markDeliveredLoading.value = true;
   try {
-    await ordersApi.markAsDelivered(orderId.value);
-    toast('✅ Đã xác nhận giao hàng thành công', 'success');
+    let proofUrl = null;
+    if (adminSelectedFile.value) {
+      const formData = new FormData();
+      formData.append("file", adminSelectedFile.value);
+      const uploadRes = await http.post("/api/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      proofUrl = uploadRes.data?.url || uploadRes.data?.data?.url;
+    }
+
+    if (proofUrl) {
+      await ordersApi.uploadProof(orderId.value, { proofUrl });
+      toast('Đã tải ảnh bằng chứng thành công. Đang chờ khách xác nhận!', 'success');
+    } else {
+      // Nếu Admin không up ảnh mà force delivered luôn (trường hợp khách ko biết dùng app)
+      await ordersApi.markAsDelivered(orderId.value);
+      toast('✅ Đã force xác nhận giao hàng thành công', 'success');
+    }
+    
+    showAdminDeliverDialog.value = false;
     await reload();
   } catch {
     toast('Lỗi khi cập nhật trạng thái', 'error');
@@ -516,16 +581,18 @@ onMounted(() => reload());
   line-height: normal;
   vertical-align: middle;
 }
+
 .order-page :deep(.el-tag .el-icon) {
   display: none;
 }
+
 .order-page {
   padding: 0;
   min-height: 100vh;
   font-size: 16px;
 }
 
-.section-row > .el-col {
+.section-row>.el-col {
   margin-bottom: 16px;
 }
 
