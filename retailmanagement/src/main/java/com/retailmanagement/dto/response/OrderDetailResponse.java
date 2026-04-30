@@ -47,6 +47,9 @@ public class OrderDetailResponse {
     private BigDecimal shippingFee;
     private BigDecimal totalAmount;
 
+    private String deliveryProofUrl;
+    private Instant shipperConfirmedAt;
+
     private Instant createdAt;
     private Instant deliveredAt;
     private Instant cancelledAt;
@@ -73,6 +76,8 @@ public class OrderDetailResponse {
             BigDecimal taxTotal,
             BigDecimal shippingFee,
             BigDecimal totalAmount,
+            String deliveryProofUrl,
+            Instant shipperConfirmedAt,
             Instant createdAt,
             Instant deliveredAt,
             Instant cancelledAt,
@@ -98,6 +103,8 @@ public class OrderDetailResponse {
         this.taxTotal      = taxTotal;
         this.shippingFee   = shippingFee;
         this.totalAmount   = totalAmount;
+        this.deliveryProofUrl = deliveryProofUrl;
+        this.shipperConfirmedAt = shipperConfirmedAt;
         this.createdAt     = createdAt;
         this.deliveredAt    = deliveredAt;
         this.cancelledAt  = cancelledAt;
@@ -127,6 +134,8 @@ public class OrderDetailResponse {
             BigDecimal taxTotal,
             BigDecimal shippingFee,
             BigDecimal totalAmount,
+            String deliveryProofUrl,
+            Instant shipperConfirmedAt,
             Instant createdAt,
             Instant deliveredAt,
             Instant cancelledAt,
@@ -137,7 +146,7 @@ public class OrderDetailResponse {
     ) {
         this(orderId, orderNumber, channel, paymentMethod, status, paymentStatus,
                 customerId, customerName, customerAddress, customerPhone, customerEmail, staffId, staffUsername, notes,
-                subtotal, discountTotal, taxTotal, shippingFee, totalAmount, createdAt, deliveredAt, cancelledAt, paidAt, items);
+                subtotal, discountTotal, taxTotal, shippingFee, totalAmount, deliveryProofUrl, shipperConfirmedAt, createdAt, deliveredAt, cancelledAt, paidAt, items);
         this.promoCode = promoCode;
         this.comboInfo = parseComboInfo(appliedPromotionJson);
     }

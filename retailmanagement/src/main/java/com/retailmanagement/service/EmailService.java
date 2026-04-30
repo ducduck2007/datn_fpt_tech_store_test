@@ -88,6 +88,76 @@ public class EmailService {
         return (s != null && !s.isBlank()) ? s : fallback;
     }
 
+    @Async
+    public void sendDeliveryProofEmail(Order order) {
+        try {
+            if (order.getCustomer() == null || order.getCustomer().getEmail() == null) return;
+
+            Resend resend = new Resend(apiKey);
+
+            String customerName = safe(order.getCustomer().getName(), "Khach hang");
+            String orderNumber = order.getOrderNumber();
+            String html = """
+                <!DOCTYPE html>
+                <html lang="vi">
+                <head>
+                  <meta charset="UTF-8"/>
+                  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+                  <title>Thong bao giao hang</title>
+                </head>
+                <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,Helvetica,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:30px 0;">
+                    <tr><td align="center">
+                      <table width="600" cellpadding="0" cellspacing="0"
+                             style="max-width:600px;width:100%%;background:#ffffff;border:1px solid #cccccc;">
+                        <tr>
+                          <td style="background:#1a2744;padding:24px 32px;">
+                            <p style="margin:0;font-size:11px;letter-spacing:3px;color:#aabbd4;
+                                       text-transform:uppercase;font-weight:bold;">TECHSTORE</p>
+                            <p style="margin:8px 0 0;font-size:18px;font-weight:bold;color:#ffffff;">
+                              Don hang dang cho xac nhan giao hang
+                            </p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:24px 32px 0;">
+                            <p style="margin:0;font-size:14px;color:#333;">Xin chao <strong>%s</strong>,</p>
+                            <p style="margin:10px 0 0;font-size:13px;color:#555;line-height:1.6;">
+                              Don hang <strong>#%s</strong> da duoc giao toi. Vui long xac nhan!
+                            </p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:24px 32px 28px;text-align:center;">
+                            <p style="margin:0;font-size:12px;color:#999;line-height:1.7;">
+                              Neu can ho tro, vui long lien he
+                              <a href="mailto:support@nguyenduc.me" style="color:#1a2744;text-decoration:underline;">
+                                support@nguyenduc.me
+                              </a>
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(customerName, orderNumber);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Don hang #" + orderNumber + " da duoc giao")
+                    .html(html)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     // ── Build item rows ───────────────────────────────────────────────────
     private String buildItemRows(Order order) {
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) return "";
@@ -754,7 +824,7 @@ public class EmailService {
                 </tr>
                 <tr>
                   <td style="padding:9px 12px;font-size:13px;color:#666;background:#fafafa;
-                              border-right:1px solid #eee;">Ly do tu choi</td>
+                              border-bottom:1px solid #eee;border-right:1px solid #eee;">Ly do tu choi</td>
                   <td style="padding:9px 12px;font-size:13px;color:#6b1a1a;font-weight:bold;">%s</td>
                 </tr>
               </table>

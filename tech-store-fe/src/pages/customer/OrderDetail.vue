@@ -104,7 +104,7 @@
                     <el-descriptions-item label="Kênh">{{ detail.channel }}</el-descriptions-item>
                     <el-descriptions-item label="Giao hàng">
                       <el-tag :type="isHomeDelivery ? 'primary' : 'success'" size="small" effect="plain">
-                        {{ isHomeDelivery ? '🚚 Giao tại nhà' : '🏬 Nhận tại cửa hàng' }}
+                        {{ isHomeDelivery ? 'Giao tại nhà' : 'Nhận tại cửa hàng' }}
                       </el-tag>
                     </el-descriptions-item>
                   </el-descriptions>
@@ -118,7 +118,7 @@
                       effect="plain"
                       style="height: auto; padding: 4px 8px; white-space: normal; text-align: left; width: 100%;"
                     >
-                      {{ line.icon }} {{ line.text }}
+                      {{ line.text }}
                     </el-tag>
                   </el-space>
                 </el-card>
@@ -176,25 +176,61 @@
       <!-- RIGHT COLUMN -->
       <div class="order-right" v-if="detail">
 
-        <!-- Shipping Info Banner -->
+        <!-- Shipping Info Banner (Chưa có bằng chứng) -->
         <el-alert
-          v-if="detail?.status === 'SHIPPING'"
+          v-if="detail?.status === 'SHIPPING' && !detail?.deliveryProofUrl"
           type="success"
           :closable="false"
           show-icon
           style="margin-bottom: 16px;"
         >
           <template #title>
-            <span style="font-weight: 700;">🚚 Đơn hàng đang được giao</span>
+                        <el-space :size="6">
+              <el-icon><Van /></el-icon>
+              <span style="font-weight: 700;">Đơn hàng đang được giao</span>
+            </el-space>
           </template>
           <template #default>
             <el-space direction="vertical" :size="4">
-              <el-text size="small">Cửa hàng sẽ xác nhận giao hàng thành công sau khi kiểm tra thông tin với đơn vị vận chuyển.</el-text>
-              <el-text size="small" type="info">Nếu không có phản hồi, đơn hàng sẽ được tự động xác nhận sau <strong>3 ngày</strong>.</el-text>
-              <el-text size="small" type="danger">Nếu có vấn đề với đơn hàng, vui lòng liên hệ hỗ trợ để được giám sát.</el-text>
+              <el-text size="small">Shipper đang trên đường giao hàng cho bạn.</el-text>
+              <el-text size="small" type="info">Vui lòng chú ý điện thoại. Khi Shipper giao hàng thành công, hệ thống sẽ yêu cầu bạn xác nhận.</el-text>
             </el-space>
           </template>
         </el-alert>
+
+        <!-- Proof of Delivery Banner (Shipper đã gửi ảnh) -->
+        <el-card
+          v-if="detail?.status === 'SHIPPING' && detail?.deliveryProofUrl"
+          shadow="never"
+          style="margin-bottom: 16px; border-color: var(--el-color-success); background-color: var(--el-color-success-light-9);"
+        >
+          <template #header>
+            <el-space :size="6">
+              <el-icon color="var(--el-color-success)" size="18"><SuccessFilled /></el-icon>
+              <span style="font-weight: 700; color: var(--el-color-success-dark-2);">Đơn hàng đã được giao tới bạn</span>
+            </el-space>
+          </template>
+          <el-row :gutter="12" align="top">
+            <el-col :span="8">
+              <el-image
+                :src="detail.deliveryProofUrl"
+                :preview-src-list="[detail.deliveryProofUrl]"
+                fit="cover"
+                style="width: 100%; aspect-ratio: 4/3; border-radius: 6px; border: 1px solid var(--el-border-color-light); display: block;"
+              />
+              <el-text size="small" type="info" style="display:block; text-align:center; margin-top:4px;">Click để phóng to</el-text>
+            </el-col>
+            <el-col :span="16">
+              <el-space direction="vertical" fill :size="10" style="width: 100%;">
+                <el-text size="small">Shipper đã xác nhận giao hàng thành công. Vui lòng kiểm tra hàng hoá và bấm xác nhận.</el-text>
+                <el-button type="success" style="width: 100%;" @click="showDeliveredDialog = true">
+                  <el-icon><Check /></el-icon> Đã nhận được hàng
+                </el-button>
+                <el-text size="small" type="info">Đơn tự động hoàn tất sau <strong>3 ngày</strong> nếu không có phản hồi.</el-text>
+              </el-space>
+            </el-col>
+          </el-row>
+        </el-card>
 
         <!-- COD Banner -->
         <el-alert
@@ -205,11 +241,14 @@
           style="margin-bottom: 16px;"
         >
           <template #title>
-            <span style="font-weight: 700;">💵 Thanh toán tiền mặt (COD)</span>
+                        <el-space :size="6">
+              <el-icon><Money /></el-icon>
+              <span style="font-weight: 700;">Thanh toán tiền mặt (COD)</span>
+            </el-space>
           </template>
           <template #default>
             <el-space direction="vertical" :size="4">
-              <el-text size="small">Shipper sẽ thu tiền mặt trực tiếp khi giao hàng đến tay bạn.</el-text>
+              <el-text size="small">Shipper/Thu ngân sẽ thu tiền mặt trực tiếp khi hàng đến tay bạn.</el-text>
               <el-text size="small" type="info">Bạn <strong>không cần</strong> thao tác thanh toán online. Hệ thống sẽ tự cập nhật sau khi kế toán đối soát.</el-text>
             </el-space>
           </template>
@@ -224,7 +263,10 @@
           style="margin-bottom: 16px;"
         >
           <template #title>
-            <span style="font-weight: 700;">🏦 Chờ xác nhận chuyển khoản</span>
+                        <el-space :size="6">
+              <el-icon><Wallet /></el-icon>
+              <span style="font-weight: 700;">Chờ xác nhận chuyển khoản</span>
+            </el-space>
           </template>
           <template #default>
             <el-space direction="vertical" :size="4">
@@ -247,12 +289,12 @@
               <el-text size="small" type="danger">−{{ formatMoney(detail.vipDiscount) }}</el-text>
             </el-row>
             <el-row v-if="detail.discountTotal - (detail.vipDiscount || 0) > 0" justify="space-between">
-              <el-text size="small">🏷️ Mã giảm giá</el-text>
+              <el-text size="small"><el-icon><Ticket /></el-icon> Mã giảm giá</el-text>
               <el-text size="small" type="danger">−{{ formatMoney(detail.discountTotal - (detail.vipDiscount || 0)) }}</el-text>
             </el-row>
             <!-- ✅ FIX Issue 2: Luôn hiển thị "Miễn phí" — bỏ hardcode 15000 -->
             <el-row justify="space-between" align="middle">
-              <el-text size="small">{{ isHomeDelivery ? '🚚 Phí ship' : '🏬 Nhận tại cửa hàng' }}</el-text>
+              <el-text size="small"><el-icon><Van v-if="isHomeDelivery" /><Shop v-else /></el-icon> {{ isHomeDelivery ? 'Phí ship' : 'Nhận tại cửa hàng' }}</el-text>
               <el-tag size="small" type="success" effect="plain">Miễn phí</el-tag>
             </el-row>
           </el-space>
@@ -277,6 +319,14 @@
             </el-timeline-item>
             <el-timeline-item v-if="detail.paidAt" type="success" :timestamp="formatDateTime(detail.paidAt)" placement="top">
               Thanh toán
+            </el-timeline-item>
+            <el-timeline-item
+              v-if="detail.shipperConfirmedAt"
+              type="primary"
+              :timestamp="formatDateTime(detail.shipperConfirmedAt)"
+              placement="top"
+            >
+              Shipper xác nhận đã giao
             </el-timeline-item>
             <el-timeline-item
               v-if="!detail.cancelledAt"
@@ -409,8 +459,8 @@
 
 <script setup>
 import {
-  Check, CircleCheck, Clock, Close, CreditCard, Loading,
-  Refresh, User, Warning,
+  Camera, Check, CircleCheck, Clock, Close, CreditCard, Loading, Money, Picture,
+  Refresh, Shop, Ticket, User, Van, Wallet, Warning, SuccessFilled
 } from "@element-plus/icons-vue";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
