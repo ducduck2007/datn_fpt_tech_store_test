@@ -461,4 +461,110 @@ public class OrderEmailService {
             e.printStackTrace();
         }
     }
+
+    @Async
+    public void sendOfflinePickupReminderEmail(Order order) {
+        try {
+            if (order.getCustomer() == null || order.getCustomer().getEmail() == null) return;
+
+            String customerName = safe(order.getCustomer().getName(), "Khách hàng");
+            String orderNumber  = order.getOrderNumber();
+
+            String html = """
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head><meta charset="UTF-8"/></head>
+            <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="padding:30px 0;">
+                <tr><td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #cccccc;">
+                    <tr>
+                      <td style="background:#1a2744;padding:24px 32px;">
+                        <p style="margin:0;font-size:11px;color:#aabbd4;text-transform:uppercase;">TECHSTORE</p>
+                        <p style="margin:6px 0 0;font-size:18px;font-weight:bold;color:#ffffff;">Nhắc nhở nhận đơn hàng tại cửa hàng</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding:28px 32px;">
+                        <p style="font-size:14px;color:#333;">Xin chào <strong>%s</strong>,</p>
+                        <p style="font-size:13px;color:#555;">Đơn hàng <strong>#%s</strong> của bạn đã sẵn sàng tại cửa hàng TechStore.</p>
+                        <table cellpadding="0" cellspacing="0" width="100%%" style="border:1px solid #f5c518;background:#fffbea;margin:16px 0;">
+                          <tr>
+                            <td style="padding:14px 16px;">
+                              <p style="margin:0;font-size:13px;color:#7a5800;">
+                                ⚠️ Vui lòng đến nhận hàng trong vòng <strong>24 giờ tới</strong>.<br/>
+                                Nếu quá thời hạn, hệ thống sẽ tự động huỷ đơn hàng của bạn.
+                              </p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(customerName, orderNumber);
+
+            Resend resend = new Resend(apiKey);
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Nhắc nhở nhận đơn hàng #" + orderNumber)
+                    .html(html)
+                    .build();
+            resend.emails().send(params);
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    @Async
+    public void sendOfflineAutoCancelEmail(Order order) {
+        try {
+            if (order.getCustomer() == null || order.getCustomer().getEmail() == null) return;
+
+            String customerName = safe(order.getCustomer().getName(), "Khách hàng");
+            String orderNumber  = order.getOrderNumber();
+            String refundNote = "PAID".equals(order.getPaymentStatus())
+                    ? "Tiền thanh toán sẽ được hệ thống đối soát và hoàn lại vào điểm tích luỹ (Loyalty Points) của bạn trong 24h tới."
+                    : "Đơn hàng chưa thanh toán đã được huỷ thành công.";
+
+            String html = """
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head><meta charset="UTF-8"/></head>
+            <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="padding:30px 0;">
+                <tr><td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #cccccc;">
+                    <tr>
+                      <td style="background:#c62828;padding:24px 32px;">
+                        <p style="margin:0;font-size:11px;color:#ffcdd2;text-transform:uppercase;">TECHSTORE</p>
+                        <p style="margin:6px 0 0;font-size:18px;font-weight:bold;color:#ffffff;">Đơn hàng đã bị huỷ</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding:28px 32px;">
+                        <p style="font-size:14px;color:#333;">Xin chào <strong>%s</strong>,</p>
+                        <p style="font-size:13px;color:#555;">Đơn hàng <strong>#%s</strong> của bạn đã bị huỷ do quá hạn 3 ngày nhận hàng tại cửa hàng.</p>
+                        <p style="font-size:13px;color:#c62828;font-weight:bold;">%s</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(customerName, orderNumber, refundNote);
+
+            Resend resend = new Resend(apiKey);
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Đơn hàng #" + orderNumber + " đã bị huỷ")
+                    .html(html)
+                    .build();
+            resend.emails().send(params);
+        } catch (Exception e) { e.printStackTrace(); }
+    }
 }
