@@ -65,6 +65,15 @@
             />
           </el-steps>
 
+          <el-alert
+            v-if="detail?.status === 'CANCELLED'"
+            :title="formatCancelReason(detail?.notes)"
+            type="error"
+            show-icon
+            :closable="false"
+            style="margin-bottom: 20px;"
+          />
+
           <!-- Skeleton -->
           <el-skeleton v-if="loading" :rows="6" animated />
 
@@ -584,6 +593,18 @@ function formatMoney(val) {
   return new Intl.NumberFormat("vi-VN", { style:"currency", currency:"VND" }).format(val);
 }
 
+function formatCancelReason(note) {
+  if (!note) return "Đơn hàng đã bị hủy.";
+  
+  // Xử lý riêng cho case Job tự động hủy
+  if (note.includes("AUTO_CANCEL_EXPIRED_PICKUP")) {
+    return "Hệ thống hủy tự động: Đơn hàng quá 3 ngày không được nhận tại cửa hàng.";
+  }
+  
+  // Xử lý các case admin tự nhập
+  return `Lý do hủy: ${note}`;
+}
+
 function formatExpiry(dateStr) {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
@@ -694,7 +715,12 @@ function isReturned(status) {
   return ["PARTIALLY_RETURNED","RETURNED"].includes(status);
 }
 
-onMounted(() => reload());
+onMounted(async () => {
+  await reload();
+  if (route.query.action === 'confirm_delivered' && detail.value?.status === 'SHIPPING') {
+    showDeliveredDialog.value = true;
+  }
+});
 </script>
 
 <style scoped>
