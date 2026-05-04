@@ -330,24 +330,7 @@ public class OrderService {
             orderItemRepository.save(item);
             System.out.println(">>> STEP 2: item saved, id=" + item.getId());
 
-            if ("OFFLINE".equals(request.getChannel())) {
-                List<ProductSerial> inStockSerials = productSerialRepository
-                        .findByVariantIdAndStatus(variant.getId(), "IN_STOCK");
-                if (inStockSerials.size() < itemReq.getQuantity()) {
-                    throw new RuntimeException("Không đủ serial IN_STOCK cho: " + variant.getVariantName());
-                }
-                for (int i = 0; i < itemReq.getQuantity(); i++) {
-                    ProductSerial serial = inStockSerials.get(i);
-                    serial.setStatus("SOLD");
-                    productSerialRepository.save(serial);
-
-                    OrderItemSerial ois = new OrderItemSerial();
-                    ois.setOrderItem(item);
-                    ois.setProductSerial(serial);
-                    ois.setReturned(false);
-                    orderItemSerialRepository.save(ois);
-                }
-            }
+            // Removed auto-assign serials for OFFLINE orders; serials will be assigned manually later.
 
             variant.setReservedQty(variant.getReservedQty() + itemReq.getQuantity());
             variantRepository.save(variant);
@@ -636,6 +619,8 @@ public class OrderService {
                 order.getDeliveredAt(),
                 order.getCancelledAt(),
                 order.getPaidAt(),
+                order.getShippedAt(),
+                order.getUpdatedAt(),
                 items,
                 order.getAppliedPromotionCode(),
                 order.getAppliedPromotionJson());
@@ -645,8 +630,10 @@ public class OrderService {
     public void markAsProcessing(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        if (!OrderStatuses.PAID.equals(order.getStatus())) {
-            throw new IllegalStateException("Only PAID orders can be processed");
+        String channel = order.getChannel();
+        if ("ONLINE".equalsIgnoreCase(channel)
+                && !OrderStatuses.PAID.equals(order.getStatus())) {
+            throw new IllegalStateException("Only PAID ONLINE orders can be processed");
         }
 
         if (!"OFFLINE".equals(order.getChannel())) {
@@ -670,11 +657,19 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         if (!OrderStatuses.PROCESSING.equals(order.getStatus())) {
-            throw new IllegalStateException("Only PAID orders can be processed");
+            throw new IllegalStateException("Only PROCESSING orders can be processed");
         }
         order.setStatus(OrderStatuses.SHIPPING);
         order.setUpdatedAt(Instant.now());
+        order.setShippedAt(Instant.now());
         orderRepository.save(order);
+
+        String channel = order.getChannel();
+        if ("ONLINE".equalsIgnoreCase(channel)) {
+            orderEmailService.sendShippingInProgressEmail(order);
+        } else if ("OFFLINE".equalsIgnoreCase(channel)) {
+            orderEmailService.sendReadyForPickupEmail(order);
+        }
     }
 
     @Transactional
@@ -771,12 +766,12 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         boolean isPaidOrder = OrderStatuses.PAID.equals(order.getStatus());
-        boolean isPendingCashOnline = OrderStatuses.PENDING.equals(order.getStatus())
-                && "CASH".equalsIgnoreCase(order.getPaymentMethod())
-                && "ONLINE".equalsIgnoreCase(order.getChannel());
+        boolean isCashOrder = "CASH".equalsIgnoreCase(order.getPaymentMethod());
+        boolean isOnlineOrOffline = "ONLINE".equalsIgnoreCase(order.getChannel())
+                || "OFFLINE".equalsIgnoreCase(order.getChannel());
 
-        if (!isPaidOrder && !isPendingCashOnline) {
-            throw new RuntimeException("Chỉ được gán serial cho đơn PAID hoặc đơn thanh toán COD");
+        if (!isPaidOrder && !(isCashOrder && isOnlineOrOffline)) {
+            throw new RuntimeException("Chỉ được gán serial cho đơn PAID hoặc đơn CASH (ONLINE/OFFLINE)");
         }
 
         OrderItem orderItem = orderItemRepository.findById(itemId)
@@ -830,8 +825,13 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
-        if (!OrderStatuses.PAID.equals(order.getStatus())) {
-            throw new RuntimeException("Chỉ được xóa serial khi đơn hàng ở trạng thái PAID");
+        boolean isPaidOrder = OrderStatuses.PAID.equals(order.getStatus());
+        boolean isCashOrder = "CASH".equalsIgnoreCase(order.getPaymentMethod());
+        boolean isOnlineOrOffline = "ONLINE".equalsIgnoreCase(order.getChannel())
+                || "OFFLINE".equalsIgnoreCase(order.getChannel());
+
+        if (!isPaidOrder && !(isCashOrder && isOnlineOrOffline)) {
+            throw new RuntimeException("Chỉ được xóa serial cho đơn PAID hoặc đơn CASH (ONLINE/OFFLINE)");
         }
 
         OrderItem orderItem = orderItemRepository.findById(itemId)

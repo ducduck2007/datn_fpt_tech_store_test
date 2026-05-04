@@ -96,7 +96,7 @@
         <el-col :span="8" style="text-align: right;">
           <el-space>
             <!-- Tạo mã QR cho Shipper -->
-            <el-button v-if="['PROCESSING', 'SHIPPING'].includes(order.status)" type="primary" plain @click="showQrDialog = true">
+            <el-button v-if="['SHIPPING'].includes(order.status)" type="primary" plain @click="showQrDialog = true">
               <el-icon class="icon-spacing"><FullScreen /></el-icon>
               QR Giao Hàng
             </el-button>
@@ -183,41 +183,53 @@
               </el-row>
             </template>
 
-            <!-- Bảng: mỗi slot serial = 1 dòng -->
-            <el-table :data="tableRows" style="width:100%" :row-class-name="rowClass">
+            <!-- Bảng: mỗi item = 1 dòng, hiện tất cả serial trong 1 ô -->
+            <el-table :data="tableRows.filter(r => r.isFirst)" style="width:100%" :row-class-name="rowClass">
               <el-table-column label="Sản phẩm" min-width="180">
                 <template #default="{ row }">
-                  <template v-if="row.isFirst">
-                    <el-space direction="vertical" alignment="start" :size="0">
-                      <el-text tag="b">{{ row.productName }}</el-text>
-                      <el-text type="info" size="small"
-                        v-if="row.variantName && row.variantName !== row.productName">
-                        {{ row.variantName }}
-                      </el-text>
-                      <el-text type="info" size="small" v-if="row.sku">SKU: {{ row.sku }}</el-text>
-                    </el-space>
-                  </template>
+                  <el-space direction="vertical" alignment="start" :size="0">
+                    <el-text tag="b">{{ row.productName }}</el-text>
+                    <el-text type="info" size="small"
+                      v-if="row.variantName && row.variantName !== row.productName">
+                      {{ row.variantName }}
+                    </el-text>
+                    <el-text type="info" size="small" v-if="row.sku">SKU: {{ row.sku }}</el-text>
+                  </el-space>
                 </template>
               </el-table-column>
 
-              <el-table-column label="Serial Number" width="270">
+              <el-table-column label="SL" width="60" align="center">
                 <template #default="{ row }">
-                  <el-space v-if="row.serial" :size="6">
-                    <el-tag
-                      type="success"
-                      effect="light"
-                      :closable="order.status === 'PAID' || order.status === 'PENDING'"
-                      @close="handleRemoveSerial(row)"
-                      style="font-family:monospace;font-size:13px"
-                    >
-                      {{ row.serial }}
-                    </el-tag>
-                  </el-space>
+                  <el-text tag="b">{{ row.quantity }}</el-text>
+                </template>
+              </el-table-column>
 
-                  <el-space v-else-if="order.status === 'PAID' || (order.status === 'PENDING' && order.paymentMethod === 'CASH')" :size="4">
+              <el-table-column label="Serial Number" min-width="270">
+                <template #default="{ row }">
+                  <!-- Serial đã gán + badge X/Y -->
+                  <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px; align-items:center;">
+                    <el-tag
+                      v-for="sn in getItemSerials(row)"
+                      :key="sn"
+                      type="success" effect="light"
+                      :closable="order.status === 'PAID' || order.status === 'PENDING' || order.status === 'PROCESSING'"
+                      style="font-family:monospace;font-size:12px"
+                      @close="handleRemoveSerialByItem(row, sn)"
+                    >{{ sn }}</el-tag>
+                    <el-text
+                      size="small"
+                      :type="getItemSerials(row).length >= row.quantity ? 'success' : 'danger'"
+                      style="font-weight:600;"
+                    >{{ getItemSerials(row).length }}/{{ row.quantity }}</el-text>
+                  </div>
+                  <!-- Select thêm serial mới (khi chưa đủ) -->
+                  <el-space
+                    v-if="(order.status === 'PAID' || order.status === 'PENDING' || order.status === 'PROCESSING') && getItemSerials(row).length < row.quantity"
+                    :size="4"
+                  >
                     <el-select
                       v-model="serialInputs[row.slotKey]"
-                      :placeholder="`Serial ${row.slotIndex + 1}…`"
+                      :placeholder="`Serial ${getItemSerials(row).length + 1}…`"
                       size="small"
                       style="width:200px"
                       filterable
@@ -233,7 +245,7 @@
                         <el-icon style="color:var(--el-color-primary)"><CreditCard /></el-icon>
                       </template>
                       <el-option
-                        v-for="opt in (variantSerials[row.variantId] ?? [])"
+                        v-for="opt in (variantSerials[row.variantId] ?? []).filter(o => !getItemSerials(row).includes(o.value))"
                         :key="opt.value"
                         :label="opt.label"
                         :value="opt.value"
@@ -251,18 +263,14 @@
                       size="small"
                       :loading="assigningSlot === row.slotKey"
                       @click="handleAssignSerial(row)"
-                    >
-                      Gán
-                    </el-button>
+                    >Gán</el-button>
                   </el-space>
-
-                  <el-text v-else type="info" size="small">—</el-text>
                 </template>
               </el-table-column>
 
               <el-table-column label="Đơn giá" width="130" align="right">
                 <template #default="{ row }">
-                  <el-text v-if="row.isFirst">{{ formatVND(row.unitPrice) }}</el-text>
+                  <el-text>{{ formatVND(row.unitPrice) }}</el-text>
                 </template>
               </el-table-column>
 
@@ -410,6 +418,7 @@ const tableRows = computed(() => {
         slotKey:     `${item.id}_${i}`,
         slotIndex:   i,
         isFirst:     i === 0,
+        quantity:    item.quantity,
         productName: item.productName,
         variantName: item.variantName,
         sku:         item.sku,
@@ -487,6 +496,26 @@ const handleRemoveSerial = async (row) => {
       type: "warning", confirmButtonText: "Bỏ gán", cancelButtonText: "Hủy"
     })
     await ordersApi.removeSerial(order.value.orderId, row.itemId, row.serial)
+    ElMessage.success("Đã bỏ gán serial")
+    await load()
+  } catch (e) {
+    if (e !== "cancel") ElMessage.error(e.response?.data?.message || "Không thể xóa serial")
+  }
+}
+
+// Lấy danh sách serial đã gán của item (dùng cho item-based view)
+function getItemSerials(row) {
+  const item = order.value?.items?.find(i => i.id === row.itemId);
+  return item?.serialNumbers || [];
+}
+
+// Xóa serial theo item + serial number
+const handleRemoveSerialByItem = async (row, sn) => {
+  try {
+    await ElMessageBox.confirm(`Bỏ gán serial "${sn}"?`, "Xác nhận", {
+      type: "warning", confirmButtonText: "Bỏ gán", cancelButtonText: "Hủy"
+    })
+    await ordersApi.removeSerial(order.value.orderId, row.itemId, sn)
     ElMessage.success("Đã bỏ gán serial")
     await load()
   } catch (e) {
