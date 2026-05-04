@@ -704,7 +704,12 @@ function isReturned(status) {
   return ["PARTIALLY_RETURNED","RETURNED"].includes(status);
 }
 
-onMounted(() => reload());
+onMounted(async () => {
+  await reload();
+  if (route.query.action === 'confirm_delivered' && detail.value?.status === 'SHIPPING') {
+    showDeliveredDialog.value = true;
+  }
+});
 </script>
 
 <style scoped>
