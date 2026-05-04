@@ -693,6 +693,17 @@ const doConfirmDelivered = async () => {
   deliveredLoading.value = true;
   showDeliveredDialog.value = false;
   try {
+    // Đơn CASH chưa thu tiền → tạo payment trước khi confirmed delivered
+    const method    = (detail.value?.paymentMethod || "").toUpperCase();
+    const payStatus = (detail.value?.paymentStatus || "").toUpperCase();
+    if (method === "CASH" && payStatus !== "PAID" && payStatus !== "COMPLETED") {
+      await paymentsApi.create({
+        orderId: Number(orderId.value),
+        method: "CASH",
+        paymentStatus: "PAID",
+        transactionRef: `COD-CUSTOMER-${Date.now()}`
+      });
+    }
     await ordersApi.markAsDelivered(orderId.value);
     toast("Đã xác nhận nhận hàng", "success");
     await reload();

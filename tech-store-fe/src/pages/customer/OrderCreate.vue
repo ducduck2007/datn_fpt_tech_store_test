@@ -26,9 +26,10 @@
             style="display: flex; align-items: center; gap: 12px; padding: 12px 0;
                    border-bottom: 1px solid var(--el-border-color-lighter);"
           >
-            <el-avatar shape="square" :size="44" style="background: var(--el-fill-color-light); flex-shrink: 0;">
-              <el-icon><Monitor /></el-icon>
-            </el-avatar>
+            <div class="item-img-wrap">
+              <img v-if="item.imageUrl" :src="fixImageUrl(item.imageUrl)" :alt="item.productName" class="item-img" />
+              <el-icon v-else :size="20" style="color: var(--el-text-color-placeholder);"><Picture /></el-icon>
+            </div>
             <el-text style="flex: 1; min-width: 0; font-weight: 500;">{{ item.productName }}</el-text>
             <el-space :size="8" align="center" style="flex-shrink: 0;">
               <el-text type="info" size="small">×{{ item.quantity }}</el-text>
@@ -399,7 +400,7 @@
 <script setup>
 import {
   ArrowRight, CircleCheck, Close, CreditCard, Document,
-  List, Loading, Monitor, Right, ShoppingCart, Ticket, Van, Location 
+  List, Loading, Monitor, Right, ShoppingCart, Ticket, Van, Location, Picture 
 } from "@element-plus/icons-vue";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -415,6 +416,14 @@ const cartStore = useCartStore();
 
 const loading = ref(false);
 const alert = ref("");
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+function fixImageUrl(url) {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return `${BASE_URL}${url}`;
+}
 
 const form = reactive({
   customerId: null,
@@ -644,5 +653,23 @@ onMounted(async () => {
 
 @media (max-width: 860px) {
   .checkout-body { grid-template-columns: 1fr; }
+}
+
+.item-img-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-extra-light);
+  flex-shrink: 0;
+}
+.item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>

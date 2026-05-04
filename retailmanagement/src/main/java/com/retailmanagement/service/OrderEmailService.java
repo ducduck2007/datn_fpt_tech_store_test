@@ -58,6 +58,54 @@ public class OrderEmailService {
         }
     }
 
+    @Async
+    public void sendShippingInProgressEmail(Order order) {
+        try {
+            if (order.getCustomer() == null
+                    || order.getCustomer().getEmail() == null) return;
+
+            String html = buildShippingInProgressEmail(order);
+
+            Resend resend = new Resend(apiKey);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Shipper dang giao don hang #" + order.getOrderNumber())
+                    .html(html)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Async
+    public void sendReadyForPickupEmail(Order order) {
+        try {
+            if (order.getCustomer() == null
+                    || order.getCustomer().getEmail() == null) return;
+
+            String html = buildReadyForPickupEmail(order);
+
+            Resend resend = new Resend(apiKey);
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("TechStore <noreply@nguyenduc.me>")
+                    .to(order.getCustomer().getEmail())
+                    .subject("Don hang #" + order.getOrderNumber() + " san sang de nhan")
+                    .html(html)
+                    .build();
+
+            resend.emails().send(params);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────
     private String fmt(BigDecimal v) {
         if (v == null) return "0";
@@ -339,6 +387,174 @@ public class OrderEmailService {
                 summaryRows,
                 total
         );
+    }
+
+    private String buildShippingInProgressEmail(Order order) {
+        String customerName = safe(order.getCustomer().getName(), "Khach hang");
+        String orderNumber = order.getOrderNumber();
+        String address = safe(order.getShippingAddress(), safe(order.getCustomer().getAddress(), "—"));
+
+        String updatedAt = order.getUpdatedAt() != null
+                ? order.getUpdatedAt().atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy"))
+                : "—";
+
+        return """
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+          <meta charset="UTF-8"/>
+          <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+          <title>Shipper dang giao</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,Helvetica,sans-serif;">
+          <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:30px 0;">
+            <tr><td align="center">
+              <table width="600" cellpadding="0" cellspacing="0"
+                     style="max-width:600px;width:100%%;background:#ffffff;border:1px solid #cccccc;">
+
+                <tr>
+                  <td style="background:#1a2744;padding:24px 32px;">
+                    <p style="margin:0;font-size:11px;letter-spacing:3px;color:#aabbd4;
+                               text-transform:uppercase;font-weight:bold;">TECHSTORE</p>
+                    <p style="margin:8px 0 0;font-size:18px;font-weight:bold;color:#ffffff;">
+                      Shipper dang giao don hang
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="background:#e8f4e8;border-bottom:1px solid #c3dcc3;padding:10px 32px;">
+                    <p style="margin:0;font-size:13px;color:#2a6e2a;font-weight:bold;">
+                      Dang giao — %s
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:24px 32px 0;">
+                    <p style="margin:0;font-size:14px;color:#333;">Xin chao <strong>%s</strong>,</p>
+                    <p style="margin:10px 0 0;font-size:13px;color:#555;line-height:1.6;">
+                      Don hang <strong>#%s</strong> dang duoc shipper giao den ban.
+                      Vui long giu dien thoai de nhan hang.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:16px 32px 0;">
+                    <table width="100%%" cellpadding="0" cellspacing="0"
+                           style="border:1px solid #ddd;border-collapse:collapse;">
+                      <tr>
+                        <td style="padding:7px 12px;font-size:13px;color:#666;background:#fafafa;
+                                    border-right:1px solid #eee;width:40%%;">Dia chi giao hang</td>
+                        <td style="padding:7px 12px;font-size:13px;color:#222;">%s</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:24px 32px 28px;text-align:center;">
+                    <p style="margin:0;font-size:12px;color:#999;line-height:1.7;">
+                      Neu can ho tro, vui long lien he
+                      <a href="mailto:support@nguyenduc.me" style="color:#1a2744;text-decoration:underline;">
+                        support@nguyenduc.me
+                      </a>
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td></tr>
+          </table>
+        </body>
+        </html>
+        """.formatted(updatedAt, customerName, orderNumber, address);
+    }
+
+    private String buildReadyForPickupEmail(Order order) {
+        String customerName = safe(order.getCustomer().getName(), "Khach hang");
+        String orderNumber = order.getOrderNumber();
+        String pickupAddress = "So 605 Kim Nguu, Ha Noi";
+
+        String updatedAt = order.getUpdatedAt() != null
+                ? order.getUpdatedAt().atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy"))
+                : "—";
+
+        return """
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+          <meta charset="UTF-8"/>
+          <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+          <title>San sang nhan hang</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,Helvetica,sans-serif;">
+          <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:30px 0;">
+            <tr><td align="center">
+              <table width="600" cellpadding="0" cellspacing="0"
+                     style="max-width:600px;width:100%%;background:#ffffff;border:1px solid #cccccc;">
+
+                <tr>
+                  <td style="background:#1a2744;padding:24px 32px;">
+                    <p style="margin:0;font-size:11px;letter-spacing:3px;color:#aabbd4;
+                               text-transform:uppercase;font-weight:bold;">TECHSTORE</p>
+                    <p style="margin:8px 0 0;font-size:18px;font-weight:bold;color:#ffffff;">
+                      Don hang san sang de nhan
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="background:#e8f4e8;border-bottom:1px solid #c3dcc3;padding:10px 32px;">
+                    <p style="margin:0;font-size:13px;color:#2a6e2a;font-weight:bold;">
+                      Da chuan bi xong — %s
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:24px 32px 0;">
+                    <p style="margin:0;font-size:14px;color:#333;">Xin chao <strong>%s</strong>,</p>
+                    <p style="margin:10px 0 0;font-size:13px;color:#555;line-height:1.6;">
+                      Don hang <strong>#%s</strong> da duoc chuan bi xong.
+                      Vui long toi cua hang de nhan hang.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:16px 32px 0;">
+                    <table width="100%%" cellpadding="0" cellspacing="0"
+                           style="border:1px solid #ddd;border-collapse:collapse;">
+                      <tr>
+                        <td style="padding:7px 12px;font-size:13px;color:#666;background:#fafafa;
+                                    border-right:1px solid #eee;width:40%%;">Dia chi nhan hang</td>
+                        <td style="padding:7px 12px;font-size:13px;color:#222;">%s</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:24px 32px 28px;text-align:center;">
+                    <p style="margin:0;font-size:12px;color:#999;line-height:1.7;">
+                      Neu can ho tro, vui long lien he
+                      <a href="mailto:support@nguyenduc.me" style="color:#1a2744;text-decoration:underline;">
+                        support@nguyenduc.me
+                      </a>
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td></tr>
+          </table>
+        </body>
+        </html>
+        """.formatted(updatedAt, customerName, orderNumber, pickupAddress);
     }
 
     @Async
