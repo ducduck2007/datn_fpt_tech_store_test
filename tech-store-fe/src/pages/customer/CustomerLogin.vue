@@ -98,12 +98,13 @@
 <script setup>
 import { Goods, Lock, Monitor, Right, User } from "@element-plus/icons-vue";
 import { reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { toast } from "../../ui/toast";
 import { authApi } from "../../api/auth.api";
 import { useAuthStore } from "../../stores/auth";
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 
 const loading = ref(false);
@@ -155,7 +156,8 @@ async function doLogin() {
     auth.setSession({ token, user });
 
     toast("Đăng nhập thành công.", "success");
-    router.replace("/");
+    const redirectPath = route.query.redirect || "/";
+    router.replace(redirectPath);
   } catch (e) {
     alert.value = errToText(e);
     triggerShake();
