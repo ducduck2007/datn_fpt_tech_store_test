@@ -1,21 +1,21 @@
 <!-- src/pages/customer/VnPayResult.vue -->
 <template>
-  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--el-bg-color-page); padding:40px 16px;">
+  <div class="auth-page">
     <div style="width:100%; max-width:640px;">
 
       <!-- ── LOADING ── -->
-      <el-card v-if="fetchingOrder" shadow="never">
+      <el-card v-if="fetchingOrder" shadow="never" class="profile-card" style="width: 100%; max-width: 640px;">
         <div style="text-align:center; padding:40px 0;">
           <el-icon class="is-loading" :size="48" color="var(--el-color-primary)"><Loading /></el-icon>
-          <p style="margin-top:16px; font-size:15px; font-weight:600;">Đang xử lý kết quả thanh toán</p>
-          <p style="margin-top:4px; font-size:13px; color:var(--el-text-color-secondary);">
+          <el-text tag="div" style="margin-top:16px; font-size:15px; font-weight:600;">Đang xử lý kết quả thanh toán</el-text>
+          <el-text tag="div" size="small" type="info" style="margin-top:4px;">
             {{ statusMessage || 'Vui lòng chờ trong giây lát...' }}
-          </p>
+          </el-text>
         </div>
       </el-card>
 
       <!-- ── RESULT ── -->
-      <el-card v-else shadow="never">
+      <el-card v-else shadow="never" class="profile-card" style="width: 100%; max-width: 640px;">
 
         <el-result
           :icon="isSuccess ? 'success' : 'error'"
@@ -25,10 +25,13 @@
             : responseMessage || 'Giao dịch không thành công.'"
         >
           <template v-if="isSuccess" #extra>
-            <div style="background:var(--el-color-success-light-9); border:1px solid var(--el-color-success-light-5); border-radius:10px; padding:14px 28px; text-align:center;">
-              <el-text size="small" type="success" style="font-weight:700; letter-spacing:.06em; text-transform:uppercase;">Số tiền đã thanh toán</el-text>
-              <div style="font-size:30px; font-weight:800; color:var(--el-color-success); margin-top:4px;">{{ formatMoney(vnpAmount) }}</div>
-            </div>
+            <el-card shadow="never" class="profile-card" style="background: var(--el-color-success-light-9); border-color: var(--el-color-success-light-5); text-align: center; padding: 8px 24px;">
+              <el-statistic title="Số tiền đã thanh toán">
+                <template #number>
+                  <el-text type="success" style="font-size: 30px; font-weight: 800;">{{ formatMoney(vnpAmount) }}</el-text>
+                </template>
+              </el-statistic>
+            </el-card>
           </template>
         </el-result>
 
@@ -80,6 +83,19 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: var(--el-bg-color-page);
+  padding: 40px 16px;
+  gap: 16px;
+}
+</style>
 
 <script setup>
 import { Document, Loading } from '@element-plus/icons-vue';

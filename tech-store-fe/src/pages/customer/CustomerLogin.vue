@@ -1,9 +1,9 @@
 <template>
-  <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;
-              background: #f0f2fa; padding: 24px; overflow: hidden;">
+  <div class="auth-page">
 
     <el-card
       shadow="always"
+      class="profile-card"
       :class="{ 'card-shake': shaking }"
       style="width: 420px; max-width: 100%;"
       :body-style="{ padding: '36px 32px' }"
@@ -13,7 +13,7 @@
         <el-tag type="primary" effect="plain" size="small">
           &nbsp;Cổng khách hàng
         </el-tag>
-        <el-text tag="div" style="font-size: 28px; font-weight: 700; color: #111827; letter-spacing: -0.02em; line-height: 1.2;">
+        <el-text tag="div" class="auth-title">
           Chào mừng trở lại
         </el-text>
         <el-text size="small" type="info">Đăng nhập vào tài khoản của bạn để tiếp tục</el-text>
@@ -167,4 +167,21 @@ async function doLogin() {
 }
 </script>
 
-<style></style>
+<style scoped>
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-bg-color-page);
+  padding: 24px;
+  overflow: hidden;
+}
+.auth-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+</style>
