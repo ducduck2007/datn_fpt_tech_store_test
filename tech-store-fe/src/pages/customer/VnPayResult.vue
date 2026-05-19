@@ -26,13 +26,15 @@
         >
           <template v-if="isSuccess" #extra>
             <el-card shadow="never" class="profile-card" style="background: var(--el-color-success-light-9); border-color: var(--el-color-success-light-5); text-align: center; padding: 8px 24px;">
-              <el-statistic title="Số tiền đã thanh toán">
-                <template #number>
-                  <el-text type="success" style="font-size: 30px; font-weight: 800;">{{ formatMoney(vnpAmount) }}</el-text>
-                </template>
-              </el-statistic>
+              <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 6px; letter-spacing: 0.05em;">
+                SỐ TIỀN ĐÃ THANH TOÁN
+              </div>
+              <div style="font-size: 32px; font-weight: 800; color: var(--el-color-success-dark-2); line-height: 1.2;">
+                {{ formatMoney(displayAmount) }}
+              </div>
             </el-card>
           </template>
+
         </el-result>
 
         <el-divider content-position="left">
@@ -109,69 +111,98 @@ const router = useRouter();
 
 const q          = computed(() => route.query);
 const isSuccess  = computed(() => q.value.vnp_ResponseCode === '00');
+
+// VNPay trả vnp_Amount đơn vị VND × 100 (ví dụ 1777500000 = 17.775.000đ)
 const vnpAmount  = computed(() => Number(q.value.vnp_Amount || 0) / 100);
 
 const fetchingOrder   = ref(true);
 const resolvedOrderId = ref(null);
+const resolvedOrder   = ref(null);   // lưu full order để lấy totalAmount chính xác
 const statusMessage   = ref('');
 
+// Số tiền hiển thị: ưu tiên totalAmount từ đơn hàng, fallback về vnp_Amount từ URL
+const displayAmount = computed(() => {
+  // 1. Thử lấy từ order đã fetch (kiểm tra nhiều tên field API có thể trả)
+  const order = resolvedOrder.value;
+  if (order) {
+    const fromOrder = order.totalAmount ?? order.total ?? order.amount ?? order.grandTotal;
+    if (fromOrder != null && fromOrder > 0) return fromOrder;
+  }
+  // 2. Fallback: lấy từ vnp_Amount trong URL (VNPay gửi đơn vị VND × 100)
+  const raw = q.value.vnp_Amount ?? q.value.vnp_amount;   // phòng case khác
+  const fromUrl = raw ? Number(raw) / 100 : 0;
+  return fromUrl;
+});
+
+// Helper: lấy id từ order object (backend có thể trả id hoặc orderId)
+function extractId(order) {
+  return order?.orderId ?? order?.id ?? null;
+}
+
 onMounted(async () => {
-  const txnRef = q.value.vnp_TxnRef;   // Có thể là orderId số HOẶC orderNumber chuỗi
+  const txnRef = q.value.vnp_TxnRef;
+  console.log('[VNP-DEBUG] Full query params:', JSON.stringify(route.query));
+  console.log('[VNP-DEBUG] vnp_Amount raw:', q.value.vnp_Amount);
   if (!txnRef) { fetchingOrder.value = false; return; }
 
   try {
-    // ── BƯỚC 1: Gọi backend xác nhận chữ ký + tạo payment ─────────────
+    // ── BƯỚC 1: Xác nhận chữ ký VNPay + tạo payment ──────────────────
     statusMessage.value = 'Đang xác nhận thanh toán...';
     try {
       await paymentsApi.confirmVnpay(route.query);
-      console.log('[VnPayResult] confirmVnpay OK');
     } catch (err) {
       const s = err?.response?.status;
-      if (s === 409 || s === 400) {
-        console.warn('[VnPayResult] Đã xác nhận trước đó, bỏ qua');
-      } else {
+      // 409/400 = đã xác nhận trước đó → bỏ qua, không phải lỗi
+      if (s !== 409 && s !== 400) {
         console.error('[VnPayResult] confirmVnpay lỗi:', err?.response?.data || err?.message);
       }
     }
 
-    // ── BƯỚC 2: Tìm orderId để navigate ────────────────────────────────
+    // ── BƯỚC 2: Tìm orderId & order data để navigate và hiển thị ──────
     statusMessage.value = 'Đang tải thông tin đơn hàng...';
 
-    console.log('[DEBUG] txnRef =', txnRef, '| isNumeric =', /^\d+$/.test(txnRef));
-
-    // Thử 1: nếu txnRef là số → getById trực tiếp
+    // Thử 1: nếu txnRef là số thuần → getById trực tiếp
     if (/^\d+$/.test(txnRef)) {
       try {
         const res   = await ordersApi.getById(txnRef);
         const order = res?.data?.data ?? res?.data;
-        console.log('[DEBUG] getById result =', order);
-        if (order?.id) { resolvedOrderId.value = order.id; return; }
-      } catch (e) { console.warn('[DEBUG] getById failed:', e?.response?.status); }
+        const oid   = extractId(order);
+        if (oid) {
+          resolvedOrderId.value = oid;
+          resolvedOrder.value   = order;
+          return;
+        }
+      } catch (e) { /* không tìm được, thử cách khác */ }
     }
 
-    // Thử 2: getByOrderNumber
+    // Thử 2: getByOrderNumber (txnRef dạng ORD-YYYYMMDD-XXXXXX)
     try {
       const res   = await ordersApi.getByOrderNumber(txnRef);
       const order = res?.data?.data ?? res?.data;
-      console.log('[DEBUG] getByOrderNumber result =', order);
-      if (order?.id) { resolvedOrderId.value = order.id; return; }
-    } catch (e) { console.warn('[DEBUG] getByOrderNumber failed:', e?.response?.status); }
+      console.log('[VNP-DEBUG] getByOrderNumber raw response:', JSON.stringify(order));
+      const oid   = extractId(order);
+      if (oid) {
+        resolvedOrderId.value = oid;
+        resolvedOrder.value   = order;
+        console.log('[VNP-DEBUG] resolvedOrder.totalAmount =', order?.totalAmount);
+        return;
+      }
+    } catch (e) { console.warn('[VNP-DEBUG] getByOrderNumber failed:', e?.message); }
 
-    // Thử 3: fallback getMyOrders
-    const res    = await ordersApi.getMyOrders();
-    const raw    = res?.data?.data ?? res?.data ?? res ?? [];
-    const list   = Array.isArray(raw) ? raw : (raw.content ?? raw.items ?? []);
-    console.log('[DEBUG] my-orders list length =', list.length);
-    console.log('[DEBUG] first item sample =', list[0]);  // xem field names
-    const found  = list.find(o =>
+    // Thử 3: fallback – quét danh sách đơn hàng của khách
+    const res  = await ordersApi.getMyOrders();
+    const raw  = res?.data?.data ?? res?.data ?? [];
+    const list = Array.isArray(raw) ? raw : (raw.content ?? raw.items ?? []);
+    const found = list.find(o =>
       String(o.id) === String(txnRef) ||
+      String(o.orderId) === String(txnRef) ||
       o.orderNumber?.replace(/-/g, '') === txnRef ||
       o.orderNumber === txnRef
     );
-    console.log('[DEBUG] found =', found);
-    if (found?.id) resolvedOrderId.value = found.id;
-
-    console.log('[VnPayResult] txnRef =', txnRef, '→ resolvedOrderId =', resolvedOrderId.value);
+    if (found) {
+      resolvedOrderId.value = extractId(found);
+      resolvedOrder.value   = found;
+    }
 
   } catch (err) {
     console.warn('[VnPayResult] Lỗi tổng:', err?.message);
@@ -182,7 +213,11 @@ onMounted(async () => {
 });
 
 function goToOrder() {
-  router.push(resolvedOrderId.value ? `/orders/${resolvedOrderId.value}` : '/my-orders');
+  if (resolvedOrderId.value) {
+    router.push(`/orders/${resolvedOrderId.value}`);
+  } else {
+    router.push('/my-orders');
+  }
 }
 
 function formatMoney(val) {
@@ -214,4 +249,4 @@ const responseMessage = computed(() => {
   if (!code || code === '00') return '';
   return ERROR_CODES[code] ?? `Giao dịch thất bại (mã lỗi: ${code}).`;
 });
-</script>
+</script>

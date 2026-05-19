@@ -328,7 +328,10 @@ const avatarLetter = computed(() => {
   return (s[0] || "U").toUpperCase();
 });
 
-const showHeader = computed(() => route.meta?.hideHeader !== true);
+const showHeader = computed(() =>
+  route.meta?.hideHeader !== true &&
+  (route.meta?.portal ?? 'customer') === 'customer'
+);
 const showSearch = computed(
   () => route.name === "home" && (route.meta?.portal || "customer") === "customer",
 );

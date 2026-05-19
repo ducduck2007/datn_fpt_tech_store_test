@@ -324,7 +324,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showDone" title="Hoàn tất" width="420px" :show-close="false" :close-on-click-modal="false">
+    <el-dialog v-model="showDone" title="Hoàn tất" width="420px">
       <el-result icon="success" title="Bán hàng thành công">
         <template #sub-title>
           <el-descriptions :column="1" border size="small" class="mt-10">
@@ -386,6 +386,8 @@ const cusError = ref("");
 const foundCustomer = ref(null);
 const orderNotes = ref("");
 const hasDraft = ref(false);
+const showDraftPrompt = ref(false);
+const draftCartPreview = ref("");
 
 // ── Promo & Payment ──
 const promoCode = ref("");
@@ -758,6 +760,21 @@ async function confirmPayment() {
       throw new Error(`Lỗi phân tích ID đơn hàng từ hệ thống: ${JSON.stringify(respData).substring(0, 50)}`);
     }
 
+    // ── Gán serial cho từng sản phẩm ─────────────────────────────────────
+    // Parse danh sách items backend trả về (chứa id (itemId) và variantId)
+    payStep.value = "Gán serial sản phẩm...";
+    // Dùng pool để tránh gán trùng khi mua nhiều cùng variantId
+    const orderItemsPool = [...(respData.items ?? [])];
+    for (const cartItem of cart.value) {
+      if (!cartItem.serialCode) continue; // bỏ qua nếu cart item không có serialCode
+      const idx = orderItemsPool.findIndex(oi => String(oi.variantId) === String(cartItem.variantId));
+      if (idx === -1) continue;
+      const orderItem = orderItemsPool.splice(idx, 1)[0]; // lấy ra khỏi pool tránh gán trùng
+      await ordersApi.assignSerial(Number(orderId), orderItem.id, cartItem.serialCode).catch(err => {
+        console.warn(`[POS] assignSerial thất bại variantId=${cartItem.variantId}:`, err?.response?.data || err?.message);
+      });
+    }
+
     payStep.value = "Ghi nhận thanh toán...";
     await paymentsApi.create({ 
       orderId: Number(orderId), 
@@ -767,25 +784,34 @@ async function confirmPayment() {
       transactionRef: `TXN-POS-${Date.now()}`
     });
 
-    payStep.value = "Cập nhật trạng thái giao hàng...";
-    await ordersApi.markAsProcessing(orderId).catch(() => {});
-    await ordersApi.markAsShipping(orderId).catch(() => {});
-    await ordersApi.markAsDelivered(orderId);
-
-    payStep.value = "Cập nhật kho...";
-    await Promise.allSettled(cart.value.map(i => serialsApi.updateStatus(i.serialId, "SOLD")));
-
+    // ── Thanh toán thành công → đóng modal NGAY, không chờ các bước phụ ──
     snapshotTotal.value = totalAmount.value;
     foundCustomerSnapshot.value = foundCustomer.value;
     orderDone.value = oRes.data?.data || oRes.data;
     showModal.value = false; showDone.value = true;
     toast("Thanh toán thành công!", "success");
+
+    // ── Các bước phụ chạy nền, không block UI ─────────────────────────────
+    // Cập nhật trạng thái đơn hàng (an toàn – không làm đơ màn hình)
+    (async () => {
+      try {
+        await ordersApi.markAsProcessing(orderId);
+        await ordersApi.markAsShipping(orderId);
+        await ordersApi.markAsDelivered(orderId);
+      } catch (statusErr) {
+        console.warn("[POS] Cập nhật trạng thái thất bại:", statusErr?.response?.data || statusErr?.message);
+      }
+      // Cập nhật kho
+      await Promise.allSettled(cart.value.map(i => serialsApi.updateStatus(i.serialId, "SOLD")));
+    })();
+
     resetAll();
-  } catch (e) { payError.value = e.response?.data?.message || "Lỗi thanh toán."; }
+  } catch (e) { payError.value = e?.response?.data?.message || e?.message || "Lỗi thanh toán."; }
   finally { payLoading.value = false; }
 }
 
 function resetAll() {
+  showDone.value = false;
   cart.value = []; foundCustomer.value = null; cusQuery.value = "";
   orderNotes.value = ""; searchQuery.value = ""; clearPromo();
   vipDiscountPct.value = 0; spinDiscountPct.value = 0; spinBonusExpiry.value = null; customerTierName.value = "";
