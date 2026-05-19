@@ -153,7 +153,7 @@
               :disabled="!items.length"
               @click="checkout"
             >
-              <el-icon><Right /></el-icon> Thanh toán ngay
+              <el-icon><Right /></el-icon> Tiếp theo
             </el-button>
           </el-space>
         </el-card>

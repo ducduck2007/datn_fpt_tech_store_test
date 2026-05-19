@@ -162,12 +162,12 @@ async function onCancel(orderId) {
 
 const STATUS_LABELS = {
   PENDING:"Chờ xử lý", CONFIRMED:"Đã xác nhận", PROCESSING:"Đang xử lý",
-  SHIPPING:"Đang giao", DELIVERED:"Đã giao", CANCELLED:"Đã hủy", PAID:"Đã thanh toán",
+  SHIPPING:"Đang giao", DELIVERED:"Đã giao", CANCELLED:"Đã hủy", PAID:"Đã thanh toán",RETURNED:"Đã trả hàng",
 };
 
 const STATUS_TYPES = {
   PENDING:"warning", CONFIRMED:"primary", PROCESSING:"primary",
-  SHIPPING:"primary", DELIVERED:"success", CANCELLED:"danger", PAID:"success",
+  SHIPPING:"primary", DELIVERED:"success", CANCELLED:"danger", PAID:"success",RETURNED:"info",
 };
 
 function statusLabel(s) { return STATUS_LABELS[s] || s; }
@@ -181,6 +181,7 @@ const stats = computed(() => [
   { label:"Đang xử lý", value: countByStatus("CONFIRMED")+countByStatus("PROCESSING"),colorVar:"--el-color-primary",       bgVar:"--el-color-primary-light-9",   borderVar:"--el-color-primary-light-5"  },
   { label:"Đã giao",    value: countByStatus("DELIVERED"),                            colorVar:"--el-color-success",        bgVar:"--el-color-success-light-9",   borderVar:"--el-color-success-light-5"  },
   { label:"Đã hủy",     value: countByStatus("CANCELLED"),                            colorVar:"--el-color-danger",         bgVar:"--el-color-danger-light-9",    borderVar:"--el-color-danger-light-5"   },
+  { label:"Trả hàng",     value: countByStatus("RETURNED"),                            colorVar:"--el-color-info",         bgVar:"--el-color-info-light-9",    borderVar:"--el-color-info-light-5"},
 ]);
 
 function formatDate(date) {

@@ -348,7 +348,7 @@
             </template>
           </el-alert>
 
-          <!-- TRANSFER - OFFLINE (Chuyển khoản tại quầy) -->
+          <!-- TRANSFER - OFFLINE (Thanh toán qua VNPay — giống ONLINE) -->
           <el-alert
             v-if="detail?.paymentMethod === 'TRANSFER' && detail?.channel === 'OFFLINE'"
             type="warning"
@@ -358,19 +358,20 @@
           >
             <template #title>
               <el-space :size="6">
-                <el-icon><Wallet /></el-icon>
-                <span style="font-weight: 700;">Chuyển khoản tại quầy</span>
+                <el-icon><CreditCard /></el-icon>
+                <span style="font-weight: 700;">Thanh toán trực tuyến (VNPay)</span>
               </el-space>
             </template>
             <template #default>
               <el-space direction="vertical" :size="4">
-                <el-text size="small">Vui lòng quét mã QR tại quầy để chuyển khoản thanh toán.</el-text>
-                <el-text size="small" type="info">Sau khi chuyển tiền thành công, thu ngân sẽ xác nhận thanh toán cho bạn.</el-text>
+                <el-text size="small">Vui lòng hoàn tất thanh toán qua cổng VNPay bằng cách bấm nút "Thanh toán qua VNPay" ở trên.</el-text>
+                <el-text size="small" type="info">Nếu bạn đã thanh toán, xin vui lòng chờ hệ thống cập nhật.</el-text>
               </el-space>
             </template>
           </el-alert>
 
         </template>
+
 
         <!-- Totals -->
         <el-card shadow="never" class="profile-card" style="margin-bottom: 16px;">

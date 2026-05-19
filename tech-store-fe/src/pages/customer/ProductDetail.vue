@@ -78,14 +78,14 @@
             <el-text type="danger" style="font-size: 32px; font-weight: 700; line-height: 1;">
               {{ formatPrice(currentPrice) }}
             </el-text>
-            <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+            <!-- <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
               <el-text type="info" style="text-decoration: line-through;">
                 {{ formatPrice(originalPrice) }}
               </el-text>
               <el-tag type="danger" effect="dark" size="small" style="font-weight: 600;">
                 -{{ discountPercent }}%
               </el-tag>
-            </div>
+            </div> -->
           </el-space>
         </el-card>
 
@@ -153,7 +153,7 @@
                 :disabled="currentStock === 0 || !selectedVariant"
                 @click="handleBuyNow"
               >
-                MUA NGAY - GIAO NHANH 2H
+                MUA NGAY
               </el-button>
             </el-col>
           </el-row>
@@ -211,7 +211,7 @@
               <el-icon color="var(--el-color-success)"><CircleCheckFilled /></el-icon>
               <div>
                 <div class="commitment-title">Chính hãng 100%</div>
-                <div class="commitment-desc">Hoàn tiền 200% nếu phát hiện hàng giả</div>
+                <div class="commitment-desc">Hoàn tiền nếu phát hiện hàng giả</div>
               </div>
             </div>
             <el-divider />
@@ -219,23 +219,15 @@
               <el-icon color="var(--el-color-primary)"><Van /></el-icon>
               <div>
                 <div class="commitment-title">Giao nhanh toàn quốc</div>
-                <div class="commitment-desc">Miễn phí vận chuyển đơn từ 500k</div>
+                <div class="commitment-desc">Miễn phí vận chuyển</div>
               </div>
             </div>
             <el-divider />
             <div class="commitment-item">
               <el-icon color="var(--el-color-warning)"><Refresh /></el-icon>
               <div>
-                <div class="commitment-title">30 ngày đổi trả</div>
+                <div class="commitment-title">24h đổi trả</div>
                 <div class="commitment-desc">Lỗi là đổi mới, thủ tục đơn giản</div>
-              </div>
-            </div>
-            <el-divider />
-            <div class="commitment-item">
-              <el-icon color="var(--el-color-danger)"><Service /></el-icon>
-              <div>
-                <div class="commitment-title">Hỗ trợ 24/7</div>
-                <div class="commitment-desc">Kỹ thuật viên tư vấn tận tâm</div>
               </div>
             </div>
           </el-card>
